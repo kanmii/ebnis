@@ -112,24 +112,21 @@
     {
       "label": "deploy to heroku server only",
       "type": "shell",
-      "command": "git co master && git merge dev && git subtree push --prefix=server heroku master && heroku run \"POOL_SIZE=2 mix ecto.migrate\" && git co dev",
-      "options": {
-        "cwd": ".."
-      },
+      "command": "git co master && git merge dev && git push heroku master && heroku run \"POOL_SIZE=2 mix ecto.migrate\" && git co dev",
       "problemMatcher": []
     },
 
     {
       "label": "mix test ${file} integration",
       "type": "shell",
-      "command": "yarn build-local-prod && cd ../server && mix test --include integration ${file}",
+      "command": "yarn build-local-prod && cd ../ebnis_be && mix test --include integration ${file}",
       "problemMatcher": [
         "$mixCompileError",
         "$mixCompileWarning",
         "$mixTestFailure"
       ],
       "options": {
-        "cwd": "../web-client",
+        "cwd": "../ebnis_fe",
         "env": {
           "EBNIS_PHOENIX_TEST_PORT": "4023"
         }
@@ -155,14 +152,14 @@
     {
       "label": "mix test all integration",
       "type": "shell",
-      "command": "yarn build-local-prod && cd ../server && mix test --only integration ",
+      "command": "yarn build-local-prod && cd ../ebnis_be && mix test --only integration ",
       "problemMatcher": [
         "$mixCompileError",
         "$mixCompileWarning",
         "$mixTestFailure"
       ],
       "options": {
-        "cwd": "../web-client",
+        "cwd": "../ebnis_fe",
         "env": {
           "EBNIS_PHOENIX_TEST_PORT": "4023"
         }
@@ -188,14 +185,14 @@
     {
       "label": "mix test only login feature",
       "type": "shell",
-      "command": "yarn build-local-prod && cd ../server && mix test --only log_in_feature test/ebnis_web/features_test.exs ",
+      "command": "yarn build-local-prod && cd ../ebnis_be && mix test --only log_in_feature test/ebnis_web/features_test.exs ",
       "problemMatcher": [
         "$mixCompileError",
         "$mixCompileWarning",
         "$mixTestFailure"
       ],
       "options": {
-        "cwd": "../web-client",
+        "cwd": "../ebnis_fe",
         "env": {
           "EBNIS_PHOENIX_TEST_PORT": "4023"
         }
@@ -221,14 +218,14 @@
     {
       "label": "mix test only sign up feature",
       "type": "shell",
-      "command": "yarn build-local-prod && cd ../server && mix test --only sign_up_feature test/ebnis_web/features_test.exs ",
+      "command": "yarn build-local-prod && cd ../ebnis_be && mix test --only sign_up_feature test/ebnis_web/features_test.exs ",
       "problemMatcher": [
         "$mixCompileError",
         "$mixCompileWarning",
         "$mixTestFailure"
       ],
       "options": {
-        "cwd": "../web-client",
+        "cwd": "../ebnis_fe",
         "env": {
           "EBNIS_PHOENIX_TEST_PORT": "4023"
         }
