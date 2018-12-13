@@ -1,4 +1,4 @@
-defmodule EbData.EctoFieldVal do
+defmodule EbData.FieldType do
   @behaviour Ecto.Type
 
   @iso_extended_format "{ISO:Extended:Z}"

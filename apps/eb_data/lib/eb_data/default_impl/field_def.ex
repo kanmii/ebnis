@@ -3,9 +3,9 @@ defmodule EbData.DefaultImpl.FieldDef do
 
   import Ecto.Changeset
 
-  alias EbData.EctoFieldVal
+  alias EbData.FieldType
 
-  @all_types EctoFieldVal.all_types()
+  @all_types FieldType.all_types()
 
   # @primary_key false
   embedded_schema do

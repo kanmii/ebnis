@@ -6,7 +6,7 @@ defmodule EbData.DefaultImpl.Field do
   @primary_key false
   embedded_schema do
     field(:def_id, Ecto.UUID)
-    field(:data, EbData.EctoFieldVal)
+    field(:data, EbData.FieldType)
   end
 
   @doc "changeset"

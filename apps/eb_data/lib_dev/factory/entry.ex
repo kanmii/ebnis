@@ -1,11 +1,11 @@
 defmodule EbData.Factory.Entry do
   alias EbData.Factory
   alias EbData.DefaultImpl.Experience
-  alias EbData.EctoFieldVal
+  alias EbData.FieldType
 
   @integers 0..1_000
 
-  @all_types EctoFieldVal.all_types_string()
+  @all_types FieldType.all_types_string()
 
   def insert(%Experience{} = exp) do
     insert(exp, %{})
@@ -89,7 +89,7 @@ defmodule EbData.Factory.Entry do
         {"defId", v}
 
       {:data, data} ->
-        {:ok, val} = EctoFieldVal.serialize_k_v(data)
+        {:ok, val} = FieldType.serialize_k_v(data)
 
         {"data", Jason.encode!(val)}
     end)

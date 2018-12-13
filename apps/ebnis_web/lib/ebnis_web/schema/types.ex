@@ -5,7 +5,7 @@ defmodule EbnisWeb.Schema.Types do
   use Absinthe.Schema.Notation
   use Timex
 
-  alias EbData.EctoFieldVal
+  alias EbData.FieldType
 
   @iso_extended_format "{ISO:Extended:Z}"
 
@@ -13,7 +13,7 @@ defmodule EbnisWeb.Schema.Types do
     parse(&parse_entry_field/1)
 
     serialize(fn val ->
-      {:ok, data} = EctoFieldVal.serialize_k_v(val)
+      {:ok, data} = FieldType.serialize_k_v(val)
       Jason.encode!(data)
     end)
   end
@@ -21,7 +21,7 @@ defmodule EbnisWeb.Schema.Types do
   defp parse_entry_field(%Absinthe.Blueprint.Input.String{value: value}) do
     case Jason.decode(value) do
       {:ok, parsed} ->
-        EctoFieldVal.parse(parsed)
+        FieldType.parse(parsed)
 
       {:error, _} ->
         :error
