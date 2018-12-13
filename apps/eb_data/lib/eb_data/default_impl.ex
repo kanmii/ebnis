@@ -17,11 +17,14 @@ defmodule EbData.DefaultImpl do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, credential: credential}} ->
+        user =
           Map.put(user, :credential, %{
             credential
             | token: nil,
               password: nil
           })
+
+        {:ok, user}
 
       {:error, failed_operations, changeset, _successes} ->
         {:error, failed_operations, changeset}
@@ -50,7 +53,7 @@ defmodule EbData.DefaultImpl do
 
   #################################### CREDENTIAL ##############################
 
-   @doc """
+  @doc """
   Returns the list of credentials.
 
   ## Examples
@@ -204,6 +207,7 @@ defmodule EbData.DefaultImpl do
     User.changeset(user, attrs)
   end
 
+  def get_user_by(attrs), do: Repo.get_by(User, attrs)
 
   ################################## EXPERIENCES ###############################
 

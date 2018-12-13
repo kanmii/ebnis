@@ -17,19 +17,22 @@ defmodule EbData do
   def get_credential(id), do: impl().get_credential(id)
 
   def update_credential(schema, params),
-    do: impl().update_credential(schema, params )
+    do: impl().update_credential(schema, params)
 
   def delete_credential(schema), do: impl().delete_credential(schema)
 
   def change_credential(schema, params),
-    do: impl().change_credential(schema, params )
+    do: impl().change_credential(schema, params)
 
   ################################### USERS ####################################
 
   def list_user, do: impl().list_user()
   def get_user(id), do: impl().get_user(id)
   def update_user(schema, params), do: impl().update_user(schema, params)
-  def delete_user(schema), do: delete_user(schema)
+  def delete_user(schema), do: impl().delete_user(schema)
+
+  def get_user_by(attrs) when is_map(attrs) or is_list(attrs),
+    do: impl().get_user_by(attrs)
 
   ################################## EXPERIENCES ###############################
 
