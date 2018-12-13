@@ -4,6 +4,6 @@ defmodule EbData.DefaultImpl.Repo do
     adapter: Ecto.Adapters.Postgres
 
   def init(_, opts) do
-      {:ok, Keyword.put(opts, :url, System.get_env("DATABASE_URL"))}
+    {:ok, Keyword.put(opts, :url, System.get_env("DATABASE_URL"))}
   end
 end
