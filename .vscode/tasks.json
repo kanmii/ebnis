@@ -112,7 +112,7 @@
     {
       "label": "deploy to heroku server only",
       "type": "shell",
-      "command": "git co master && git merge dev && git push heroku master && heroku run \"POOL_SIZE=2 mix ecto.migrate\" && git co dev",
+      "command": "git co master && git merge dev && git push -f heroku master && heroku run \"POOL_SIZE=2 mix ecto.migrate\" && git co dev",
       "problemMatcher": []
     },
 
