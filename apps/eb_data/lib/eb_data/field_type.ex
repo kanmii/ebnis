@@ -28,6 +28,17 @@ defmodule EbData.FieldType do
   @non_primitives ["datetime", "date", :datetime, :date]
   @primitives Enum.reject(@all_types, &Enum.member?(@non_primitives, &1))
 
+  @simple_binary_serializable [
+    :integer,
+    "integer",
+    :decimal,
+    "decimal",
+    :date,
+    "date",
+    :datetime,
+    "datetime"
+  ]
+
   @float_string_pattern ~r|^\d+\.?$|
 
   @doc ~S"""
@@ -43,19 +54,7 @@ defmodule EbData.FieldType do
 
   def serialize_k_v(_), do: :error
 
-  defp serialize_k_v(k, v) when k in @integer_types and is_integer(v) do
-    to_map(k, v)
-  end
-
-  defp serialize_k_v(k, v) when k in @integer_types and is_binary(v) do
-    parse_serialize(k, v)
-  end
-
-  defp serialize_k_v(k, v) when k in @decimal_types and (is_float(v) or is_integer(v)) do
-    to_map(k, v / 1)
-  end
-
-  defp serialize_k_v(k, v) when k in @decimal_types and is_binary(v) do
+  defp serialize_k_v(k, v) when k in @simple_binary_serializable and is_binary(v) do
     parse_serialize(k, v)
   end
 
@@ -63,20 +62,20 @@ defmodule EbData.FieldType do
     to_map(k, v)
   end
 
+  defp serialize_k_v(k, v) when k in @integer_types and is_integer(v) do
+    to_map(k, v)
+  end
+
+  defp serialize_k_v(k, v) when k in @decimal_types and (is_float(v) or is_integer(v)) do
+    to_map(k, v / 1)
+  end
+
   defp serialize_k_v(key, %Date{} = date) when key in @date_type do
     to_map(key, Date.to_iso8601(date))
   end
 
-  defp serialize_k_v(k, v) when k in @date_type and is_binary(v) do
-    parse_serialize(k, v)
-  end
-
   defp serialize_k_v(key, %DateTime{} = val) when key in @datetime_type do
     to_map(key, DateTime.to_iso8601(val))
-  end
-
-  defp serialize_k_v(k, v) when k in @datetime_type and is_binary(v) do
-    parse_serialize(k, v)
   end
 
   defp serialize_k_v(_, _), do: :error
