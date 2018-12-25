@@ -11,8 +11,8 @@ defmodule EbnisWeb.Schema.User do
     field(:name, non_null(:string))
     field(:credential, :credential)
 
-    field(:inserted_at, non_null(:iso_datetime))
-    field(:updated_at, non_null(:iso_datetime))
+    field(:inserted_at, non_null(:datetime))
+    field(:updated_at, non_null(:datetime))
   end
 
   @desc "Variables for creating User and credential"
@@ -51,8 +51,8 @@ defmodule EbnisWeb.Schema.User do
       resolve(&Resolver.create/3)
     end
 
-     @doc "Log in a user"
-     field :login, :user do
+    @doc "Log in a user"
+    field :login, :user do
       arg(:login, non_null(:login_user))
 
       resolve(&Resolver.login/3)

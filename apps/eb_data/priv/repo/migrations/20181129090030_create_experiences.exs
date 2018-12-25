@@ -9,12 +9,16 @@ defmodule EbData.Repo.Migrations.CreateExperiences do
 
       add(:description, :string)
 
-      add(:user_id, references(:users, on_delete: :delete_all),
+      add(
+        :user_id,
+        references(:users, on_delete: :delete_all),
         null: false,
         comment: "The owner of the experience"
       )
 
-      add(:field_defs, :jsonb,
+      add(
+        :field_defs,
+        :jsonb,
         null: false,
         comment: "Field definitions that will be used for experience entry"
       )

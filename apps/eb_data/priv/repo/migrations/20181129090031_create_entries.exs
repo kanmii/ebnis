@@ -3,7 +3,9 @@ defmodule EbData.Repo.Migrations.CreateEntries do
 
   def change do
     create table(:entries) do
-      add(:exp_id, references(:experiences, on_delete: :delete_all),
+      add(
+        :exp_id,
+        references(:experiences, on_delete: :delete_all),
         null: false,
         comment: "The definition of the experience"
       )

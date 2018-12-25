@@ -13,7 +13,7 @@ defmodule EbData.DefaultImpl.User do
 
     has_one(:credential, Credential)
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
   @doc "changeset"
