@@ -45,7 +45,7 @@ defmodule EbData.MixProject do
       {:mox, "~> 0.4.0", only: :test},
       {:constantizer, "~> 0.2.0"},
       {:faker, "~> 0.11.2", only: [:dev, :test]},
-      {:sequence, path: "../../../../elixir_sequence", only: [:dev, :test]}
+      {:sequence, github: "samba6/sequence", only: [:dev, :test]}
     ]
   end
 

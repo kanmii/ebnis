@@ -44,24 +44,29 @@ defmodule EbData.Factory.Experience do
   def stringify(%{} = attrs) do
     attrs
     |> Factory.reject_attrs()
-    |> Enum.map(fn
-      {:field_defs, defs} ->
-        {"fieldDefs", Enum.map(defs, &FieldDefFactory.stringify/1)}
+    |> Enum.map(
+         fn
+           {:field_defs, defs} ->
+             {"fieldDefs", Enum.map(defs, &FieldDefFactory.stringify/1)}
 
-      {k, v} when k in @simple_attrs ->
-        {Factory.to_camel_key(k), v}
-    end)
+           {k, v} when k in @simple_attrs ->
+             {Factory.to_camel_key(k), v}
+         end
+       )
     |> Enum.into(%{})
   end
 
   def entry(%Experience{field_defs: field_defs}) do
     fields =
-      Enum.map(field_defs, fn %{id: id, type: type} ->
-        %{
-          def_id: id,
-          value: Map.new([{type, entry_val(type)}])
-        }
-      end)
+      Enum.map(
+        field_defs,
+        fn %{id: id, type: type} ->
+          %{
+            def_id: id,
+            value: Map.new([{type, entry_val(type)}])
+          }
+        end
+      )
 
     %{fields: fields}
   end
@@ -72,8 +77,8 @@ defmodule EbData.Factory.Experience do
   defp entry_val("multi_line_text"), do: Faker.Lorem.Shakespeare.En.hamlet()
 
   defp entry_val("single_line_text"),
-    do: Faker.Lorem.Shakespeare.En.as_you_like_it()
+       do: Faker.Lorem.Shakespeare.En.as_you_like_it()
 
   defp entry_val("decimal"),
-    do: "#{Enum.random(@integers)}.#{Enum.random(@integers)}"
+       do: "#{Enum.random(@integers)}.#{Enum.random(@integers)}"
 end
