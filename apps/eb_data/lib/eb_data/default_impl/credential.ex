@@ -24,24 +24,22 @@ defmodule EbData.DefaultImpl.Credential do
     credential
     |> cast(attrs, [:source, :token, :user_id, :password])
     |> validate()
+
+  end
+
+  def create_new_changeset(%__MODULE__{} = credential, attrs \\ %{}) do
+    changeset(credential, attrs)
+    |> hash_password()
   end
 
   def validate(%Changeset{} = changes) do
     changes
     |> validate_required([:source])
     |> unique_constraint(:source, name: :credential_user_id_source_index)
-    |> hash_password()
   end
 
-  defp hash_password(
-         %Changeset{
-           valid?: true,
-           changes: %{
-             source: "password",
-             password: password
-           }
-         } = changes
-       ) do
+  defp hash_password( %Changeset{ valid?: true, changes: %{ source: "password", password: password } } = changes ) do
+
     put_change(changes, :token, hashpwsalt(password))
   end
 

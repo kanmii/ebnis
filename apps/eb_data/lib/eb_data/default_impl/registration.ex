@@ -55,7 +55,7 @@ defmodule EbData.DefaultImpl.Registration do
   def insert_credential(_repo, %{user: user}, params) do
     user
     |> Ecto.build_assoc(:credential)
-    |> Credential.changeset(params)
+    |> Credential.create_new_changeset(params)
     |> create_credential()
   end
 

@@ -33,7 +33,7 @@ defmodule EbData.Factory.Experience do
 
   defp all do
     %{
-      title: Sequence.next(Enum.random(["E", "e"]) <> "xperience "),
+      title: Enum.random(["E", "e"]) <> "xperience " <> Sequence.next(""),
       field_defs:
         1..Enum.random(@count)
         |> Enum.map(fn _ -> FieldDefFactory.params() end),
