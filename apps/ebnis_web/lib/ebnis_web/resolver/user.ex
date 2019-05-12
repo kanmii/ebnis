@@ -47,7 +47,7 @@ defmodule EbnisWeb.User.Resolver do
       {:error, errs} ->
         {
           :error,
-          Poison.encode!(%{
+          Jason.encode!(%{
             error: errs
           })
         }
@@ -63,7 +63,7 @@ defmodule EbnisWeb.User.Resolver do
       {:error, errs} ->
         {
           :error,
-          Poison.encode!(%{
+          Jason.encode!(%{
             error: errs
           })
         }
