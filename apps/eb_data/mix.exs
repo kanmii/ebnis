@@ -41,7 +41,7 @@ defmodule EbData.MixProject do
       {:postgrex, ">= 0.0.0"},
       {:bcrypt_elixir, "~> 1.1"},
       {:comeonin, "~> 4.1"},
-      {:timex, "~> 3.4"},
+      {:timex, "~> 3.5"},
       {:mox, "~> 0.4.0", only: :test},
       {:constantizer, "~> 0.2.0"},
       {:faker, "~> 0.11.2", only: [:dev, :test]},
