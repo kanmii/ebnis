@@ -41,7 +41,6 @@ defmodule EbnisWeb.MixProject do
       {:dataloader, "~> 1.0"},
       {:corsica, "~> 1.1"},
       {:timex, "~> 3.4"},
-      {:hound, "~> 1.0", only: :test},
       {:mox, "~> 0.4.0", only: :test},
       {:guardian, "~> 1.1"}
     ]
