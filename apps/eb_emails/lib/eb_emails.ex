@@ -14,7 +14,12 @@ defmodule EbEmails do
   @impl true
   @spec send_welcome(email_address) :: :ok
   def send_welcome(email_address) do
-    impl().send_welcome(email_address)
+    try do
+      impl().send_welcome(email_address)
+    rescue
+      _ ->
+        :error
+    end
   end
 
   defconstp impl do
