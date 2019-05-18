@@ -5,7 +5,7 @@
     }
   ],
   "settings": {
-    "editor.formatOnSave": false,
+    "editor.formatOnSave": true,
     "elixirLS.dialyzerEnabled": true,
     "[elixir]": {
       "editor.quickSuggestions": true
