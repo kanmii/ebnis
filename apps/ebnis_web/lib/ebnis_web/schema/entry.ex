@@ -18,7 +18,7 @@ defmodule EbnisWeb.Schema.Entry do
       resolve(&Resolver.exp/3)
     end
 
-    field :fields, :field |> list_of() |> non_null()
+    field(:fields, :field |> list_of() |> non_null())
     field(:inserted_at, non_null(:iso_datetime))
     field(:updated_at, non_null(:iso_datetime))
   end
@@ -29,7 +29,7 @@ defmodule EbnisWeb.Schema.Entry do
     field(:data, non_null(:entry_field_json))
   end
 
-  @desc "Variables for creating an xperience entry"
+  @desc "Variables for creating an experience entry"
   input_object :create_entry do
     @desc "The ID of the experience"
     field(:exp_id, non_null(:id))

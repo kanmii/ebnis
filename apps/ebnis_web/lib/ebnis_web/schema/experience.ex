@@ -19,7 +19,7 @@ defmodule EbnisWeb.Schema.Experience do
     field(:updated_at, non_null(:iso_datetime))
   end
 
-  @desc "Variables for creating Experience"
+  @desc "Variables for defining a new Experience"
   input_object :create_exp do
     field(:title, non_null(:string))
     field(:description, :string)

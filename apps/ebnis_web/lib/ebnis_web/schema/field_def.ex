@@ -1,6 +1,7 @@
 defmodule EbnisWeb.Schema.FieldDef do
   use Absinthe.Schema.Notation
 
+  @desc "The possible field type that can be defined for an experience"
   enum :field_type do
     value(:single_line_text, as: "single_line_text")
     value(:multi_line_text, as: "multi_line_text")
@@ -21,7 +22,7 @@ defmodule EbnisWeb.Schema.FieldDef do
     field(:type, non_null(:field_type))
   end
 
-  @desc "Variables for creating field for an existing experience"
+  @desc "Variables for defining field while defining a new experience"
   input_object :create_field_def do
     field(:name, non_null(:string))
     field(:type, non_null(:field_type))
