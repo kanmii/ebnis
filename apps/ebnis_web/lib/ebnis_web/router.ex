@@ -7,6 +7,13 @@ defmodule EbnisWeb.Router do
     plug(EbnisWeb.Plug.AuthContexts)
   end
 
+  if Mix.env() == :e2e do
+    scope "/" do
+      get("/reset_db", EbnisWeb.E2eController, :reset_db)
+      post("/create_user", EbnisWeb.E2eController, :create_user)
+    end
+  end
+
   scope "/" do
     pipe_through(:api)
 
