@@ -9,6 +9,6 @@ defmodule EbEmails.DefaultImpl.Composition do
     |> to(email)
     |> from(@from_email)
     |> subject("Welcome to Ebnis!")
-    |> html_body("<h1>Thanks for signing up for Ebnis, #{email}!</h1>")
+    |> html_body("<h3>Thanks for signing up for Ebnis, #{email}!</h3>")
   end
 end
