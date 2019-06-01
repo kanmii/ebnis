@@ -23,7 +23,27 @@ defmodule EbnisWeb.Schema.Entry do
     field(:updated_at, non_null(:iso_datetime))
   end
 
-  @desc "Variables for creating an entry field"
+  @desc ~S"""
+    Variables for creating an entry field
+
+    It is of the form:
+    {
+      defId: string;
+      data: JSON_string;
+    }
+
+    The `defId` key comes from experience to which this entry is associated and
+    using this `defId`, we will retrieve the associated field definition for
+    each field so as to ensure that we are storing valid JSON string data for
+    the field. For instance, if user submits a field with JSON string data:
+        {date: "2016-05-10"}
+    and defId:
+        field_definition_id_10000
+    but when we query the experience for field definition id
+    `field_definition_id_10000`, it tells us it should be associated with an
+    integer data, then we will return error with explanation `invalid data type`
+    for this field.
+  """
   input_object :create_field do
     field(:def_id, non_null(:id))
     field(:data, non_null(:entry_field_json))
@@ -36,6 +56,45 @@ defmodule EbnisWeb.Schema.Entry do
 
     @desc "fields making up the experience entry"
     field(:fields, :create_field |> list_of() |> non_null())
+  end
+
+  @desc ~S"""
+    Variables for creating several entries for an experience.
+
+    It is of the form:
+    {
+      // The ID of the experience
+      expId: string;
+
+      // list of fields making up the entries.
+      listOFields: CreateField[][];
+    }
+
+
+    listOFields is basically a list of lists like so:
+    [
+      [{defId: string, data: string}, {}, {}] // list of fields for entry 1,
+      [{}, {}, {}] // list of fields for entry 2,
+      .
+      .
+      .
+      [{}, {}, {}] // list of fields for entry n,
+    ]
+
+    The length of each member list must be the same because all entries for
+    a particular experience will have the same number of fields
+  """
+  input_object :create_entries_input do
+    @desc "The ID of the experience"
+    field(:exp_id, non_null(:id))
+
+    field(
+      :list_of_fields,
+      :create_field
+      |> list_of()
+      |> list_of()
+      |> non_null()
+    )
   end
 
   @desc "Variables for getting an experience entry"
@@ -74,6 +133,12 @@ defmodule EbnisWeb.Schema.Entry do
       arg(:entry, non_null(:create_entry))
 
       resolve(&Resolver.create/3)
+    end
+
+    field :create_entries, list_of(:entry) do
+      arg(:create_entries, non_null(:create_entries_input))
+
+      resolve(&Resolver.create_entries/3)
     end
   end
 

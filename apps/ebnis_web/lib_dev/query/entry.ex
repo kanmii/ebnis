@@ -73,4 +73,21 @@ defmodule EbnisWeb.Query.Entry do
 
     """
   end
+
+  def create_entries do
+    """
+    mutation CreateEntriesMutation($createEntries: CreateEntriesInput!) {
+      createEntries(createEntries: $createEntries) {
+        ...#{@frag_name}
+
+        fields {
+          ...#{@field_frag_name}
+        }
+      }
+    }
+
+    #{@fragment}
+    #{@field_frag}
+    """
+  end
 end

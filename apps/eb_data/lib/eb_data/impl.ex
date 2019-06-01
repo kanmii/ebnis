@@ -12,6 +12,8 @@ defmodule EbData.Impl do
 
   @callback create_entry(map) :: {:ok, map} | {:error, term, map}
 
+  @callback create_entries(map) :: {:ok, map} | {:error, map}
+
   @callback get_exp_entries(
               exp_id :: binary() | Integer.t(),
               user_id :: binary() | Integer.t()

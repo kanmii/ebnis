@@ -309,5 +309,75 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
   end
 
+  describe "create entries mutation" do
+    # @tag :skip
+    test "succeeds" do
+      user = RegFactory.insert()
+      exp = ExpFactory.insert(user_id: user.id)
+      exp_id = Integer.to_string(exp.id)
+      params = Factory.params(exp).fields
+
+      more_fields =
+        Enum.map(params, fn %{def_id: def_id, data: data} ->
+          [data_type] = Map.keys(data)
+
+          %{
+            def_id: def_id,
+            data: Factory.data(data_type)
+          }
+          |> Factory.stringify_field()
+        end)
+
+      variables = %{
+        "createEntries" => %{
+          "expId" => exp_id,
+          "listOfFields" => [
+            Enum.map(params, &Factory.stringify_field/1),
+            more_fields
+          ]
+        }
+      }
+
+      query = Query.create_entries()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createEntries" => [
+                    %{
+                      "id" => _,
+                      "expId" => ^exp_id,
+                      "exp" => %{
+                        "id" => ^exp_id
+                      },
+                      "fields" => fields1
+                    },
+                    %{
+                      "id" => _,
+                      "expId" => ^exp_id,
+                      "exp" => %{
+                        "id" => ^exp_id
+                      },
+                      "fields" => fields2
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      exp_field_def_ids = Enum.map(exp.field_defs, & &1.id) |> Enum.sort()
+      entry_field_defs_ids1 = Enum.map(fields1, & &1["defId"]) |> Enum.sort()
+      entry_field_defs_ids2 = Enum.map(fields2, & &1["defId"]) |> Enum.sort()
+
+      assert exp_field_def_ids == entry_field_defs_ids1
+      assert exp_field_def_ids == entry_field_defs_ids2
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

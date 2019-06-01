@@ -60,6 +60,10 @@ defmodule EbData do
     impl().create_entry(attrs)
   end
 
+  def create_entries(attrs) do
+    impl().create_entries(attrs)
+  end
+
   def get_exp_entries(exp_id, user_id) do
     impl().get_exp_entries(exp_id, user_id)
   end

@@ -77,4 +77,22 @@ defmodule EbnisWeb.Resolver.Entry do
     |> Dataloader.load(:data, :exp, entry)
     |> on_load(&{:ok, Dataloader.get(&1, :data, :exp, entry)})
   end
+
+  def create_entries(
+        _,
+        %{create_entries: attrs},
+        %{context: %{current_user: user}}
+      ) do
+    result_list =
+      attrs
+      |> Map.put(:user_id, user.id)
+      |> EbData.create_entries()
+      |> Enum.map(fn {:ok, result} -> result end)
+
+    {:ok, result_list}
+  end
+
+  def create_entries(_, _, _) do
+    Resolver.unauthorized()
+  end
 end
