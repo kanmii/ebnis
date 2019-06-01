@@ -44,7 +44,7 @@ defmodule EbData.MixProject do
       {:timex, "~> 3.5"},
       {:mox, "~> 0.4.0", only: :test},
       {:constantizer, "~> 0.2.0"},
-      {:faker, "~> 0.11.2", only: [:dev, :test]},
+      {:faker, "~> 0.12.0", only: [:dev, :test]},
       {:sequence, github: "samba6/sequence", only: [:dev, :test]}
     ]
   end
