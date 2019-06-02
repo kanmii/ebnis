@@ -1,14 +1,8 @@
 defmodule EbData.Factory.FieldDef do
   use EbData.Factory
+  alias EbData.FieldType
 
-  @field_types [
-    "single_line_text",
-    "multi_line_text",
-    "integer",
-    "decimal",
-    "date",
-    "datetime"
-  ]
+  @field_types FieldType.all_types_string()
 
   def field_types, do: @field_types
 
@@ -19,11 +13,22 @@ defmodule EbData.Factory.FieldDef do
     |> Map.merge(attrs)
   end
 
-  defp all do
+  def all() do
     %{
-      name: Enum.random(["F", "f"]) <> "ield " <> Sequence.next(""),
+      name: name(),
       type: Enum.random(@field_types)
     }
+  end
+
+  def all(field_type) when field_type in @field_types do
+    %{
+      name: name(),
+      type: field_type
+    }
+  end
+
+  defp name do
+    Enum.random(["F", "f"]) <> "ield " <> Sequence.next("")
   end
 
   def stringify(field) do

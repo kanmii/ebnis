@@ -3,6 +3,8 @@ defmodule EbnisWeb.Query.Entry do
 
   @field_frag_name "EntryFieldFrag"
 
+  @create_entries_response_fragment_name "CreateEntryResponseFragment"
+
   @fragment """
     fragment #{@frag_name} on Entry {
       id
@@ -19,6 +21,26 @@ defmodule EbnisWeb.Query.Entry do
     fragment #{@field_frag_name} on Field {
       defId
       data
+    }
+  """
+
+  @create_entries_response_fragment """
+  fragment #{@create_entries_response_fragment_name} on CreateEntriesResponse {
+      successes {
+        index
+        entry {
+          ...#{@frag_name}
+
+          fields {
+            ...#{@field_frag_name}
+          }
+        }
+      }
+
+      failures {
+        index
+        error
+      }
     }
   """
 
@@ -78,16 +100,13 @@ defmodule EbnisWeb.Query.Entry do
     """
     mutation CreateEntriesMutation($createEntries: CreateEntriesInput!) {
       createEntries(createEntries: $createEntries) {
-        ...#{@frag_name}
-
-        fields {
-          ...#{@field_frag_name}
-        }
+        ...#{@create_entries_response_fragment_name}
       }
     }
 
     #{@fragment}
     #{@field_frag}
+    #{@create_entries_response_fragment}
     """
   end
 end

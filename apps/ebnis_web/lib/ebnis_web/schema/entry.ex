@@ -23,6 +23,46 @@ defmodule EbnisWeb.Schema.Entry do
     field(:updated_at, non_null(:iso_datetime))
   end
 
+  object :create_entries_response_entry do
+    field(:index, non_null(:integer))
+    field(:entry, non_null(:entry))
+  end
+
+  object :create_entries_response_error do
+    field(:index, non_null(:integer))
+    field(:error, non_null(:string))
+  end
+
+  @desc ~S"""
+    Datastructure returned when creating multiple entries simultaneously.
+
+    It looks like so:
+    `typescript
+    {
+      successes?: [{
+        index: number;
+        entry: Entry
+      }],
+
+      failures?: [{
+        index: number;
+        error: string
+      }]
+    }
+    `
+
+    The inserts that succeed go into the `successes` field while those that fail
+    go into `failures` field. Each field is an array of maps with a key `index` which maps to the index of the object in user's input from which we attempted to create the entry. The `index` is so that user knows how to map
+    from the response we returned to the input the user supplied.
+
+    In addition, we only get `successes` field if at least one input succeeds
+    and we only get `failures` field if at least one input fails
+  """
+  object :create_entries_response do
+    field(:successes, list_of(:create_entries_response_entry))
+    field(:failures, list_of(:create_entries_response_error))
+  end
+
   @desc ~S"""
     Variables for creating an entry field
 
@@ -135,7 +175,7 @@ defmodule EbnisWeb.Schema.Entry do
       resolve(&Resolver.create/3)
     end
 
-    field :create_entries, list_of(:entry) do
+    field :create_entries, :create_entries_response do
       arg(:create_entries, non_null(:create_entries_input))
 
       resolve(&Resolver.create_entries/3)

@@ -249,14 +249,17 @@ defmodule EbData.DefaultImpl do
           list_of_fields: [[Map.t()]],
           user_id: String.t()
         }) :: [any]
-  def create_entries(attrs) do
-    %{exp_id: exp_id, user_id: user_id} = attrs
 
+  def create_entries(%{list_of_fields: []}) do
+    []
+  end
+
+  def create_entries(%{exp_id: exp_id, user_id: user_id} = attrs) do
     {entries_to_insert, entries_with_errors} =
       Enum.map(attrs.list_of_fields, fn fields ->
         Entry.changeset(%Entry{}, %{exp_id: exp_id, fields: fields})
       end)
-      |> Entry.validate_fields_for_many(exp_id, user_id)
+      |> Entry.changeset_many(exp_id, user_id)
 
     case entries_to_insert do
       [] ->
@@ -268,13 +271,11 @@ defmodule EbData.DefaultImpl do
         {_, results_from_db} = Repo.insert_all(Entry, entries, returning: true)
 
         Enum.zip(entries_to_insert, results_from_db)
-        |> Enum.map(fn {{_, index}, result_from_db} ->
+        |> Enum.map(fn {{_entry_to_insert, index}, result_from_db} ->
           {{:ok, result_from_db}, index}
         end)
     end
     |> Enum.concat(entries_with_errors)
-    |> Enum.sort_by(fn {_, index} -> index end)
-    |> Enum.map(fn {object_of_interest, _} -> object_of_interest end)
   end
 
   @spec get_exp_entries(

@@ -9,6 +9,15 @@ defmodule EbData.Factory.Experience do
   @simple_attrs [:user_id, :title, :description]
   @integers 0..1_000
 
+  def insert(attrs, data_types_list) do
+    {:ok, exp} =
+      attrs
+      |> params(data_types_list)
+      |> EbData.create_exp()
+
+    exp
+  end
+
   def insert(attrs) do
     {:ok, exp} =
       attrs
@@ -16,6 +25,11 @@ defmodule EbData.Factory.Experience do
       |> EbData.create_exp()
 
     exp
+  end
+
+  def params(attrs, data_types_list) do
+    all(data_types_list)
+    |> Map.merge(attrs)
   end
 
   def params(attrs) do
@@ -31,12 +45,18 @@ defmodule EbData.Factory.Experience do
     end
   end
 
-  defp all do
+  defp all(data_types_list \\ nil) do
     %{
       title: Enum.random(["E", "e"]) <> "xperience " <> Sequence.next(""),
       field_defs:
-        1..Enum.random(@count)
-        |> Enum.map(fn _ -> FieldDefFactory.params() end),
+        case data_types_list do
+          nil ->
+            1..Enum.random(@count)
+            |> Enum.map(fn _ -> FieldDefFactory.params() end)
+
+          data_types_list ->
+            Enum.map(data_types_list, &FieldDefFactory.all/1)
+        end,
       description: description()
     }
   end
@@ -44,15 +64,13 @@ defmodule EbData.Factory.Experience do
   def stringify(%{} = attrs) do
     attrs
     |> Factory.reject_attrs()
-    |> Enum.map(
-         fn
-           {:field_defs, defs} ->
-             {"fieldDefs", Enum.map(defs, &FieldDefFactory.stringify/1)}
+    |> Enum.map(fn
+      {:field_defs, defs} ->
+        {"fieldDefs", Enum.map(defs, &FieldDefFactory.stringify/1)}
 
-           {k, v} when k in @simple_attrs ->
-             {Factory.to_camel_key(k), v}
-         end
-       )
+      {k, v} when k in @simple_attrs ->
+        {Factory.to_camel_key(k), v}
+    end)
     |> Enum.into(%{})
   end
 
@@ -77,8 +95,8 @@ defmodule EbData.Factory.Experience do
   defp entry_val("multi_line_text"), do: Faker.Lorem.Shakespeare.En.hamlet()
 
   defp entry_val("single_line_text"),
-       do: Faker.Lorem.Shakespeare.En.as_you_like_it()
+    do: Faker.Lorem.Shakespeare.En.as_you_like_it()
 
   defp entry_val("decimal"),
-       do: "#{Enum.random(@integers)}.#{Enum.random(@integers)}"
+    do: "#{Enum.random(@integers)}.#{Enum.random(@integers)}"
 end

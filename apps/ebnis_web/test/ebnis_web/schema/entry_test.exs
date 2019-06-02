@@ -343,24 +343,33 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntries" => [
-                    %{
-                      "id" => _,
-                      "expId" => ^exp_id,
-                      "exp" => %{
-                        "id" => ^exp_id
+                  "createEntries" => %{
+                    "failures" => nil,
+                    "successes" => [
+                      %{
+                        "entry" => %{
+                          "id" => _,
+                          "expId" => ^exp_id,
+                          "exp" => %{
+                            "id" => ^exp_id
+                          },
+                          "fields" => fields1
+                        },
+                        "index" => index1
                       },
-                      "fields" => fields1
-                    },
-                    %{
-                      "id" => _,
-                      "expId" => ^exp_id,
-                      "exp" => %{
-                        "id" => ^exp_id
-                      },
-                      "fields" => fields2
-                    }
-                  ]
+                      %{
+                        "entry" => %{
+                          "id" => _,
+                          "expId" => ^exp_id,
+                          "exp" => %{
+                            "id" => ^exp_id
+                          },
+                          "fields" => fields2
+                        },
+                        "index" => index2
+                      }
+                    ]
+                  }
                 }
               }} =
                Absinthe.run(
@@ -370,12 +379,169 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  context: context(user)
                )
 
+      assert Enum.sort([index1, index2]) == [0, 1]
+
       exp_field_def_ids = Enum.map(exp.field_defs, & &1.id) |> Enum.sort()
       entry_field_defs_ids1 = Enum.map(fields1, & &1["defId"]) |> Enum.sort()
       entry_field_defs_ids2 = Enum.map(fields2, & &1["defId"]) |> Enum.sort()
 
       assert exp_field_def_ids == entry_field_defs_ids1
       assert exp_field_def_ids == entry_field_defs_ids2
+    end
+
+    # @tag :skip
+    test "fails because listOfFields is empty" do
+      variables = %{
+        "createEntries" => %{
+          # if we ever reach DB, this test will fail because exp_id must be
+          # an integer
+          "expId" => "",
+          "listOfFields" => []
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createEntries" => %{
+                    "successes" => nil,
+                    "failures" => nil
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.create_entries(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: "1"})
+               )
+    end
+
+    # @tag :skip
+    test "fails if listOfFields has empty array member" do
+      user = RegFactory.insert()
+      exp = ExpFactory.insert(%{user_id: user.id})
+      exp_id = Integer.to_string(exp.id)
+      fields = Factory.params(exp).fields
+
+      # empty array member
+      more_fields = []
+
+      variables = %{
+        "createEntries" => %{
+          "expId" => exp_id,
+          "listOfFields" => [
+            Enum.map(fields, &Factory.stringify_field/1),
+            more_fields
+          ]
+        }
+      }
+
+      query = Query.create_entries()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createEntries" => %{
+                    "successes" => [
+                      %{
+                        "entry" => %{
+                          "id" => _,
+                          "expId" => ^exp_id,
+                          "exp" => %{
+                            "id" => ^exp_id
+                          },
+                          "fields" => _fields1
+                        },
+                        "index" => 0
+                      }
+                    ],
+                    "failures" => [
+                      %{
+                        "error" => "{\"fields\":\"can't be blank\"}",
+                        "index" => 1
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "fails if listOfFields has member with missing data" do
+      user = RegFactory.insert()
+      exp = ExpFactory.insert(%{user_id: user.id}, ["integer", "decimal"])
+      exp_id = Integer.to_string(exp.id)
+      fields = Factory.params(exp).fields
+
+      # more_fields will be missing data for integer type
+      [missing_field | more_fields] =
+        Enum.map(fields, fn %{def_id: def_id, data: data} ->
+          [data_type] = Map.keys(data)
+
+          %{def_id: def_id, data: Factory.data(data_type)}
+          |> Factory.stringify_field()
+        end)
+
+      error =
+        Jason.encode!(%{
+          fields: [
+            %{
+              meta: %{
+                def_id: missing_field["defId"],
+                index: 1
+              },
+              errors: %{data: "can't be blank"}
+            }
+          ]
+        })
+
+      variables = %{
+        "createEntries" => %{
+          "expId" => exp_id,
+          "listOfFields" => [
+            more_fields,
+            Enum.map(fields, &Factory.stringify_field/1)
+          ]
+        }
+      }
+
+      query = Query.create_entries()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createEntries" => %{
+                    "successes" => [
+                      %{
+                        "entry" => %{
+                          "id" => _,
+                          "expId" => ^exp_id
+                        },
+                        "index" => 1
+                      }
+                    ],
+                    "failures" => [
+                      %{
+                        "error" => ^error,
+                        "index" => 0
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
     end
   end
 

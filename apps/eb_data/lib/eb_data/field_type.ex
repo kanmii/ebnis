@@ -20,12 +20,19 @@ defmodule EbData.FieldType do
   ]
 
   @integer_types ["integer", :integer]
+
   @decimal_types ["decimal", :decimal]
+
   @date_type ["date", :date]
+
   @datetime_type ["datetime", :datetime]
+
   @all_types_atom Enum.map(@all_types_string, &String.to_existing_atom/1)
+
   @all_types Enum.concat(@all_types_string, @all_types_atom)
+
   @non_primitives ["datetime", "date", :datetime, :date]
+
   @primitives Enum.reject(@all_types, &Enum.member?(@non_primitives, &1))
 
   @simple_binary_serializable [

@@ -50,35 +50,31 @@ defmodule EbData.DefaultImpl.Entry do
     changeset
   end
 
-  defp validate_fields_for_one(
-         %Changeset{changes: changes} = changeset,
-         exp_id,
-         user_id
-       ) do
-    case get_field_defs(exp_id, user_id) do
+  defp validate_fields_for_one(%Changeset{} = changeset, exp_id, user_id) do
+    case get_field_definition_info_from_exp(exp_id, user_id) do
       {:error, nil} ->
-        add_error(changeset, :exp_id, "does not exist", validation: :assoc)
+        add_exp_does_not_exist_error_to_changeset(changeset)
 
-      map_of_id_type_from_exp_field_defs ->
+      field_id_to_type_mappings ->
         put_change(
           changeset,
           :fields,
-          validate_fields(map_of_id_type_from_exp_field_defs, changes.fields)
+          validate_fields(field_id_to_type_mappings, changeset.changes.fields)
         )
     end
   end
 
-  @spec validate_fields_for_many(
+  defp add_exp_does_not_exist_error_to_changeset(changeset) do
+    add_error(changeset, :exp_id, "does not exist", validation: :assoc)
+  end
+
+  @spec changeset_many(
           changesets :: [%Changeset{}],
           exp_id :: binary(),
           user_id :: binary()
         ) ::
           {[{Map.t(), Integer.t()}], [{{:error, %Changeset{}}, Integer.t()}]}
-  def validate_fields_for_many(
-        changesets,
-        exp_id,
-        user_id
-      ) do
+  def changeset_many(changesets, exp_id, user_id) do
     {valid_changesets_with_indices, non_valid_changesets_with_indices, _} =
       Enum.reduce(
         changesets,
@@ -86,34 +82,32 @@ defmodule EbData.DefaultImpl.Entry do
         &separate_valid_from_non_valid_changesets/2
       )
 
-    case get_field_defs(exp_id, user_id) do
+    case get_field_definition_info_from_exp(exp_id, user_id) do
       {:error, nil} ->
         entries_with_errors =
           Enum.reduce(
             valid_changesets_with_indices,
             non_valid_changesets_with_indices,
-            fn {changeset, index}, acc ->
-              [
-                {
-                  {
-                    :error,
-                    add_error(
-                      changeset,
-                      :exp_id,
-                      "does not exist",
-                      validation: :assoc
-                    )
-                  },
-                  index
-                }
-                | acc
-              ]
-            end
+            &reduce_add_errors_to_all_changesets_with_indices/2
           )
 
         {[], entries_with_errors}
 
-      map_of_id_type_from_exp_field_defs ->
+      field_id_to_type_mappings ->
+        {
+          valid_changesets_with_indices,
+          more_non_valid_changesets_with_indices
+        } =
+          Enum.reduce(
+            valid_changesets_with_indices,
+            {[], []},
+            &reduce_separate_changesets_with_indices_with_field_errors(
+              &1,
+              &2,
+              field_id_to_type_mappings
+            )
+          )
+
         now =
           DateTime.utc_now()
           |> DateTime.truncate(:second)
@@ -121,54 +115,51 @@ defmodule EbData.DefaultImpl.Entry do
         entries_to_insert =
           Enum.map(
             valid_changesets_with_indices,
-            fn {changeset, index} ->
-              fields_structs =
-                validate_fields(
-                  map_of_id_type_from_exp_field_defs,
-                  changeset.changes.fields
-                )
-                |> Enum.map(fn field_changeset ->
-                  changes = field_changeset.changes
-                  struct(Field, changes)
-                end)
-
-              {
-                Map.merge(
-                  changeset.changes,
-                  %{
-                    fields: fields_structs,
-                    # we will update the changeset with timestamps because
-                    # we will be using Repo.insert_all which does not
-                    # autogenerate timestamps
-                    inserted_at: now,
-                    updated_at: now
-                  }
-                ),
-                index
-              }
-            end
+            &map_valid_changesets_with_indices_to_insert_data(&1, now)
           )
 
-        {entries_to_insert, non_valid_changesets_with_indices}
+        {
+          entries_to_insert,
+          Enum.concat(
+            non_valid_changesets_with_indices,
+            more_non_valid_changesets_with_indices
+          )
+        }
     end
   end
 
   # In this function, we validate that
-  # 1. that all field.def_id exist as field_def.id on the experience struct
+  # 1. all field.def_id exist as field_def.id on the experience struct
   # otherwise: add error :def_id, "does not exist", validation: :assoc
-  # 2. that every field.def_id is unique. Otherwise:
+  # 2. every field.def_id is unique. Otherwise:
   # add error :def_id, "has already been taken", validation: :uniqueness
-  # 3. that the data in the field is corresponds to the data type in the field
+  # 3. the data in the field corresponds to the data type in the field
   # definition otherwise add error "invalid data type"
+  # 4. every field definition in experience has corresponding entry in user
+  # supplied field. E.g. if field definition is of the form:
+  #   [
+  #     %{def_id: "1", type: "integer"},
+  #     %{def_id: "2", type: "decimal"}
+  #   ]
+  # but user supplied:
+  #   [
+  #     %{def_id: "2", type: "decimal"}
+  #   ]
+  # notice that:
+  #   %{def_id: "1", type: "integer"},
+  # is missing in user supplied value
+  # Thus we will create a field changeset and set data to blank so that it
+  # errors
   defp validate_fields(
          map_of_id_type_from_exp_field_defs,
          fields_changesets
        ) do
-    {fields_changesets, _} =
+    {fields_changesets, user_field_def_ids} =
       Enum.reduce(
+        # represents list of all fields that will be used to create an entry
         fields_changesets,
         {[], []},
-        fn field_changeset, {fields_changesets_acc, def_ids} ->
+        fn field_changeset, {fields_changesets_acc, user_field_def_ids} ->
           def_id = field_changeset.changes.def_id
 
           [data_type | _] = Map.keys(field_changeset.changes.data)
@@ -183,7 +174,7 @@ defmodule EbData.DefaultImpl.Entry do
                   validation: :assoc
                 )
 
-              Enum.member?(def_ids, def_id) ->
+              Enum.member?(user_field_def_ids, def_id) ->
                 add_error(
                   field_changeset,
                   :def_id,
@@ -202,14 +193,34 @@ defmodule EbData.DefaultImpl.Entry do
                 field_changeset
             end
 
-          {[new_changeset | fields_changesets_acc], [def_id | def_ids]}
+          {
+            [new_changeset | fields_changesets_acc],
+            [def_id | user_field_def_ids]
+          }
         end
       )
 
-    Enum.reverse(fields_changesets)
+    fields_missing_from_definitions =
+      Enum.reduce(
+        map_of_id_type_from_exp_field_defs,
+        [],
+        fn {def_id, _type}, acc ->
+          case Enum.member?(user_field_def_ids, def_id) do
+            true ->
+              acc
+
+            _ ->
+              [Field.changeset(%Field{}, %{def_id: def_id}) | acc]
+          end
+        end
+      )
+
+    fields_changesets
+    |> Enum.reverse()
+    |> Enum.concat(fields_missing_from_definitions)
   end
 
-  defp get_field_defs(exp_id, user_id) do
+  defp get_field_definition_info_from_exp(exp_id, user_id) do
     case DefaultImpl.get_exp_field_defs(exp_id, user_id) do
       nil ->
         {:error, nil}
@@ -217,7 +228,6 @@ defmodule EbData.DefaultImpl.Entry do
       field_defs ->
         # make a mapping from field definition id to field type
         # %{"field_id_1" => "integer", "field_id_2" => "single_line_text"}
-
         Enum.reduce(
           field_defs,
           %{},
@@ -228,11 +238,7 @@ defmodule EbData.DefaultImpl.Entry do
 
   defp separate_valid_from_non_valid_changesets(
          changeset,
-         {
-           valid_changesets,
-           non_valid_changesets,
-           index
-         }
+         {valid_changesets, non_valid_changesets, index}
        ) do
     case changeset.valid? do
       true ->
@@ -249,5 +255,74 @@ defmodule EbData.DefaultImpl.Entry do
           index + 1
         }
     end
+  end
+
+  defp reduce_add_errors_to_all_changesets_with_indices({changeset, index}, acc) do
+    [
+      {{:error, add_exp_does_not_exist_error_to_changeset(changeset)}, index} | acc
+    ]
+  end
+
+  defp reduce_separate_changesets_with_indices_with_field_errors(
+         {changeset, index},
+         {valid_changesets, non_valid_changesets},
+         field_id_to_type_mappings
+       ) do
+    fields_changesets =
+      validate_fields(
+        field_id_to_type_mappings,
+        changeset.changes.fields
+      )
+
+    no_field_changeset_with_error? =
+      Enum.reduce(fields_changesets, true, fn
+        %{valid?: true}, true ->
+          true
+
+        _, _ ->
+          false
+      end)
+
+    case no_field_changeset_with_error? do
+      true ->
+        {[{changeset, index} | valid_changesets], non_valid_changesets}
+
+      _ ->
+        changeset_with_error = {
+          :error,
+          put_change(changeset, :fields, fields_changesets)
+        }
+
+        {
+          valid_changesets,
+          [{changeset_with_error, index} | non_valid_changesets]
+        }
+    end
+  end
+
+  defp map_valid_changesets_with_indices_to_insert_data(
+         {changeset, index},
+         now
+       ) do
+    fields_structs =
+      Enum.map(
+        changeset.changes.fields,
+        &struct(Field, &1.changes)
+      )
+
+    {
+      Map.merge(
+        changeset.changes,
+        %{
+          fields: fields_structs,
+          # we will update the changeset with timestamps because
+          # we will be using Repo.insert_all which does not
+          # autogenerate timestamps
+          inserted_at: now,
+          updated_at: now
+        }
+      ),
+      index
+    }
   end
 end

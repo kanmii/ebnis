@@ -16,30 +16,8 @@ defmodule EbnisWeb.Resolver.Entry do
   end
 
   defp stringify_changeset_error(changeset) do
-    field_errors =
-      changeset.changes.fields
-      |> Enum.with_index()
-      |> Enum.reduce(
-        [],
-        fn
-          {%{valid?: false, errors: errors, changes: changes}, index}, acc ->
-            errors = %{
-              meta: %{
-                def_id: changes.def_id,
-                index: index
-              },
-              errors: Resolver.changeset_errors_to_map(errors)
-            }
-
-            [errors | acc]
-
-          _field, acc ->
-            acc
-        end
-      )
-
     errors =
-      case {field_errors, changeset.errors} do
+      case {stringify_changeset_fields_error(changeset), changeset.errors} do
         {[], []} ->
           %{}
 
@@ -52,6 +30,35 @@ defmodule EbnisWeb.Resolver.Entry do
       end
 
     Jason.encode!(errors)
+  end
+
+  defp stringify_changeset_fields_error(%{changes: %{fields: fields}}) do
+    {field_errors, _} =
+      Enum.reduce(
+        fields,
+        {[], 0},
+        fn
+          %{valid?: false, errors: errors, changes: changes}, {acc, index} ->
+            errors = %{
+              meta: %{
+                def_id: changes.def_id,
+                index: index
+              },
+              errors: Resolver.changeset_errors_to_map(errors)
+            }
+
+            {[errors | acc], index + 1}
+
+          _field, {acc, index} ->
+            {acc, index + 1}
+        end
+      )
+
+    field_errors
+  end
+
+  defp stringify_changeset_fields_error(_) do
+    []
   end
 
   def get_exp_entries(
@@ -83,16 +90,48 @@ defmodule EbnisWeb.Resolver.Entry do
         %{create_entries: attrs},
         %{context: %{current_user: user}}
       ) do
-    result_list =
+    result =
       attrs
       |> Map.put(:user_id, user.id)
       |> EbData.create_entries()
-      |> Enum.map(fn {:ok, result} -> result end)
+      |> Enum.reduce({[], []}, &separate_successes_and_failures/2)
 
-    {:ok, result_list}
+    # test for where field has error e.g. invalid data type
+
+    {:ok, mapify_successes_and_failures(result)}
   end
 
   def create_entries(_, _, _) do
     Resolver.unauthorized()
+  end
+
+  defp separate_successes_and_failures({{:ok, entry}, index}, {oks, errors}) do
+    {[%{index: index, entry: entry} | oks], errors}
+  end
+
+  defp separate_successes_and_failures(
+         {{:error, error}, index},
+         {oks, errors}
+       ) do
+    {
+      oks,
+      [%{index: index, error: stringify_changeset_error(error)} | errors]
+    }
+  end
+
+  defp mapify_successes_and_failures({[], []}) do
+    %{}
+  end
+
+  defp mapify_successes_and_failures({successes, []}) do
+    %{successes: successes}
+  end
+
+  defp mapify_successes_and_failures({[], failures}) do
+    %{failures: failures}
+  end
+
+  defp mapify_successes_and_failures({successes, failures}) do
+    %{successes: successes, failures: failures}
   end
 end
