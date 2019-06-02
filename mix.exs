@@ -14,7 +14,9 @@ defmodule Ebnis.Umbrella.MixProject do
   #
   # Type `mix help deps` for examples and options.
   defp deps do
-    []
+    [
+      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false}
+    ]
   end
 
   # Aliases are shortcuts or tasks specific to the current project.
