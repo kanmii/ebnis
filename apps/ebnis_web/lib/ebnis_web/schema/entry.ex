@@ -49,7 +49,7 @@ defmodule EbnisWeb.Schema.Entry do
   end
 
   @desc ~S"""
-    Datastructure returned when creating multiple entries simultaneously.
+    Data structure returned when creating multiple entries simultaneously.
 
     It looks like so:
     `typescript
@@ -207,7 +207,7 @@ defmodule EbnisWeb.Schema.Entry do
     end
 
     @desc ~S"""
-    Get entries for many experiences simultaneoulsy. Use like so:
+    Get entries for many experiences simultaneously. Use like so:
 
     query ListExperiencesEntries($experiencesIds: [id!]!, $first: Int!) {
       listExperiencesEntries(experiencesIds: $experiencesIds, first: $first) {
