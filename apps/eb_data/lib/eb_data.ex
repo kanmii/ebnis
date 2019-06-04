@@ -70,6 +70,10 @@ defmodule EbData do
 
   def get_entry(id), do: impl().get_entry(id)
 
+  def list_experiences_entries(user_id, experiences_ids, pagination_args) do
+    impl().list_experiences_entries(user_id, experiences_ids, pagination_args)
+  end
+
   defconstp impl do
     Application.get_env(:eb_data, :impl, DefaultImpl)
   end

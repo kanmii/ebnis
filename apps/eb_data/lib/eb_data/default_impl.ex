@@ -238,6 +238,8 @@ defmodule EbData.DefaultImpl do
     |> Repo.one()
   end
 
+  ############################## ENTRIES #####################################
+
   def create_entry(%{} = attrs) do
     %Entry{}
     |> Entry.changeset_one(attrs)
@@ -290,4 +292,17 @@ defmodule EbData.DefaultImpl do
   end
 
   def get_entry(id), do: Repo.get(Entry, id)
+
+  @spec list_experiences_entries(
+          user_id :: String.t(),
+          experiences_ids :: [String.t()],
+          pagination_args :: Absinthe.Relay.Connection.Options.t()
+        ) :: {:ok, map} | {:error, any}
+  def list_experiences_entries(user_id, experiences_ids, pagination_args) do
+    Entry
+    |> join(:inner, [ee], e in assoc(ee, :exp))
+    |> where([_, e], e.id in ^experiences_ids and e.user_id == ^user_id)
+    |> order_by([ee], desc: ee.updated_at)
+    |> Absinthe.Relay.Connection.from_query(&Repo.all/1, pagination_args)
+  end
 end

@@ -3,9 +3,21 @@ defmodule EbnisWeb.Schema.Types do
   Custom types (scalars, objects and input types) shared among schema types
   """
   use Absinthe.Schema.Notation
+  use Absinthe.Relay.Schema.Notation, :modern
   use Timex
 
   alias EbData.FieldType
+  alias EbData.DefaultImpl.Entry
+
+  node interface do
+    resolve_type(fn
+      %Entry{}, _ ->
+        :entry_relay
+
+      _, _ ->
+        nil
+    end)
+  end
 
   @iso_extended_format "{ISO:Extended:Z}"
 

@@ -545,5 +545,51 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
   end
 
+  describe "list_experiences_entries" do
+    test "succeeds" do
+      user = RegFactory.insert()
+      exp = ExpFactory.insert(user_id: user.id)
+      string_experience_id = Integer.to_string(exp.id)
+
+      Factory.insert(exp, user_id: user.id)
+      Factory.insert(exp, user_id: user.id)
+
+      query = Query.list_experiences_entries()
+
+      variables = %{
+        "experiencesIds" => [string_experience_id],
+        "first" => 1
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "listExperiencesEntries" => %{
+                    "edges" => [
+                      %{
+                        "cursor" => _,
+                        "node" => %{
+                          "exp" => %{"id" => ^string_experience_id},
+                          "expId" => ^string_experience_id,
+                          "id" => _
+                        }
+                      }
+                    ],
+                    "pageInfo" => %{
+                      "hasNextPage" => true,
+                      "hasPreviousPage" => false
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

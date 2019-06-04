@@ -1,12 +1,26 @@
 defmodule EbnisWeb.Query.Entry do
   @frag_name "EntryFragment"
 
+  @fragment_relay_name "EntryRelayFragment"
+
   @field_frag_name "EntryFieldFrag"
 
   @create_entries_response_fragment_name "CreateEntryResponseFragment"
 
   @fragment """
     fragment #{@frag_name} on Entry {
+      id
+      expId
+      insertedAt
+      updatedAt
+      exp {
+        id
+      }
+    }
+  """
+
+  @fragment_relay """
+    fragment #{@fragment_relay_name} on EntryRelay {
       id
       expId
       insertedAt
@@ -107,6 +121,28 @@ defmodule EbnisWeb.Query.Entry do
     #{@fragment}
     #{@field_frag}
     #{@create_entries_response_fragment}
+    """
+  end
+
+  def list_experiences_entries do
+    """
+    query ListExperiencesEntries($experiencesIds: [ID!]!, $first: Int!) {
+      listExperiencesEntries(experiencesIds: $experiencesIds, first: $first) {
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+        }
+
+        edges {
+          cursor
+          node {
+            ...#{@fragment_relay_name}
+          }
+        }
+      }
+    }
+
+    #{@fragment_relay}
     """
   end
 end

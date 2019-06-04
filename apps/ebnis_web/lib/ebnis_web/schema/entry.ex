@@ -1,5 +1,6 @@
 defmodule EbnisWeb.Schema.Entry do
   use Absinthe.Schema.Notation
+  use Absinthe.Relay.Schema.Notation, :modern
 
   alias EbnisWeb.Resolver.Entry, as: Resolver
 
@@ -12,6 +13,20 @@ defmodule EbnisWeb.Schema.Entry do
   @desc "An Experience entry"
   object :entry do
     field(:id, non_null(:id))
+    field(:exp_id, non_null(:id))
+
+    field :exp, non_null(:experience) do
+      resolve(&Resolver.exp/3)
+    end
+
+    field(:fields, :field |> list_of() |> non_null())
+    field(:inserted_at, non_null(:iso_datetime))
+    field(:updated_at, non_null(:iso_datetime))
+  end
+
+  @desc "An Experience entry that supports relay"
+  node object(:entry_relay) do
+    field(:_id, non_null(:id), resolve: fn %{id: id}, _, _ -> {:ok, id} end)
     field(:exp_id, non_null(:id))
 
     field :exp, non_null(:experience) do
@@ -150,7 +165,7 @@ defmodule EbnisWeb.Schema.Entry do
 
   @desc "Mutations allowed on Experience entry object"
   object :entry_mutation do
-    @doc ~S"""
+    @desc ~S"""
       Create an experience
 
       The error returned will be of the form:
@@ -190,5 +205,54 @@ defmodule EbnisWeb.Schema.Entry do
 
       resolve(&Resolver.get_exp_entries/3)
     end
+
+    @desc ~S"""
+    Get entries for many experiences simultaneoulsy. Use like so:
+
+    query ListExperiencesEntries($experiencesIds: [id!]!, $first: Int!) {
+      listExperiencesEntries(experiencesIds: $experiencesIds, first: $first) {
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+        }
+
+        edges {
+          cursor
+          node {
+            ...EntryRelayFragment
+          }
+        }
+      }
+    }
+
+    You get:
+    ```typescript
+    {
+      listExperiencesEntries: {
+        edges: [
+          {
+            cursor: string;
+            node: {
+              id: string;
+              _id: string;
+            }
+          }
+        ],
+
+        pageInfo: {
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+        }
+      }
+    }
+    ```
+    """
+    connection field(:list_experiences_entries, node_type: :entry_relay) do
+      @desc "The IDs of the experiences"
+      arg(:experiences_ids, :id |> list_of() |> non_null)
+      resolve(&Resolver.list_experiences_entries/2)
+    end
   end
+
+  connection(node_type: :entry_relay)
 end

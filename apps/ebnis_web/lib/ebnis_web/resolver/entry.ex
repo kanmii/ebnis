@@ -2,6 +2,7 @@ defmodule EbnisWeb.Resolver.Entry do
   import Absinthe.Resolution.Helpers, only: [on_load: 2]
 
   alias EbnisWeb.Resolver
+  alias EbData.DefaultImpl.User
 
   def create(_, %{entry: attrs}, %{context: %{current_user: user}}) do
     case attrs
@@ -133,5 +134,24 @@ defmodule EbnisWeb.Resolver.Entry do
 
   defp mapify_successes_and_failures({successes, failures}) do
     %{successes: successes, failures: failures}
+  end
+
+  @spec list_experiences_entries(
+          %{experiences_ids: [String.t()]},
+          %{
+            context: %{current_user: %User{}}
+          }
+        ) :: {:ok, map} | {:error, any}
+  def list_experiences_entries(args, %{context: %{current_user: user}}) do
+    # args = %{experiences_ids: ["3196"], first: 10}
+    EbData.list_experiences_entries(
+      user.id,
+      args.experiences_ids,
+      Map.delete(args, :experiences_ids)
+    )
+  end
+
+  def list_experiences_entries(_, _, _) do
+    Resolver.unauthorized()
   end
 end

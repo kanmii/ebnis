@@ -19,5 +19,11 @@ defmodule EbData.Impl do
               user_id :: binary() | Integer.t()
             ) :: [map]
 
+  @callback list_experiences_entries(
+              user_id :: String.t(),
+              experiences_ids :: [String.t()],
+              pagination_args :: Absinthe.Relay.Connection.Options.t()
+            ) :: {:ok, map} | {:error, any}
+
   @callback get_entry(id :: binary() | Integer.t()) :: map | nil
 end

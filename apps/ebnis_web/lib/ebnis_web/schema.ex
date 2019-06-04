@@ -1,5 +1,6 @@
 defmodule EbnisWeb.Schema do
   use Absinthe.Schema
+  use Absinthe.Relay.Schema, :modern
 
   import_types(Absinthe.Type.Custom)
   import_types(EbnisWeb.Schema.Types)
