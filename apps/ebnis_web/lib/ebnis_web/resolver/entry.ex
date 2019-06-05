@@ -137,18 +137,23 @@ defmodule EbnisWeb.Resolver.Entry do
   end
 
   @spec list_experiences_entries(
-          %{experiences_ids: [String.t()]},
           %{
-            context: %{current_user: %User{}}
-          }
-        ) :: {:ok, map} | {:error, any}
-  def list_experiences_entries(args, %{context: %{current_user: user}}) do
-    # args = %{experiences_ids: ["3196"], first: 10}
-    EbData.list_experiences_entries(
-      user.id,
-      args.experiences_ids,
-      Map.delete(args, :experiences_ids)
-    )
+            input: %{
+              experiences_ids: [String.t()],
+              pagination: Absinthe.Relay.Connection.Options.t()
+            }
+          },
+          %{context: %{current_user: %User{}}}
+        ) :: {:ok, [Absinthe.Relay.Connection.t()]}
+  def list_experiences_entries(%{input: input}, %{context: %{current_user: user}}) do
+    entries_connections =
+      EbData.list_experiences_entries(
+        user.id,
+        input.experiences_ids,
+        input.pagination
+      )
+
+    {:ok, entries_connections}
   end
 
   def list_experiences_entries(_, _, _) do

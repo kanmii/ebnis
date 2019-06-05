@@ -70,4 +70,12 @@ defmodule EbnisWeb.Schema.Types do
   defp parse_iso_datetime(_) do
     :error
   end
+
+  ####################### input types #####################################
+  input_object :pagination_input do
+    field(:first, :integer)
+    field(:last, :integer)
+    field(:before, :integer)
+    field(:after, :integer)
+  end
 end

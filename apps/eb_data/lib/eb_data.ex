@@ -74,6 +74,20 @@ defmodule EbData do
     impl().list_experiences_entries(user_id, experiences_ids, pagination_args)
   end
 
+  def get_paginated_entries(
+        experience_id,
+        pagination_args,
+        query \\ nil,
+        repo_opts \\ []
+      ) do
+    impl().get_paginated_entries(
+      experience_id,
+      pagination_args,
+      query,
+      repo_opts
+    )
+  end
+
   defconstp impl do
     Application.get_env(:eb_data, :impl, DefaultImpl)
   end

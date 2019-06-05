@@ -8,6 +8,19 @@ defmodule EbnisWeb.Query.Experience do
       id
       title
       description
+      entries(pagination: {first: 100} ) {
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+        }
+
+        edges {
+          node {
+            id
+            expId
+          }
+        }
+      }
     }
   """
 

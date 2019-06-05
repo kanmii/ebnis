@@ -1,5 +1,6 @@
 defmodule EbnisWeb.Schema.Experience do
   use Absinthe.Schema.Notation
+  use Absinthe.Relay.Schema.Notation, :modern
 
   alias EbnisWeb.Resolver.Experience, as: Resolver
 
@@ -13,7 +14,10 @@ defmodule EbnisWeb.Schema.Experience do
     @desc "The field definitions used for the experience entries"
     field(:field_defs, :field_def |> list_of() |> non_null())
 
-    field(:entries, :entry |> list_of() |> non_null())
+    field :entries, :entry_relay_connection |> non_null() do
+      arg(:pagination, :pagination_input)
+      resolve(&Resolver.entries/3)
+    end
 
     field(:inserted_at, non_null(:iso_datetime))
     field(:updated_at, non_null(:iso_datetime))
@@ -37,7 +41,7 @@ defmodule EbnisWeb.Schema.Experience do
     field :exp, :experience do
       arg(:exp, non_null(:create_exp))
 
-      resolve(&Resolver.create/3)
+      resolve(&Resolver.create/2)
     end
   end
 
@@ -45,13 +49,13 @@ defmodule EbnisWeb.Schema.Experience do
   object :exp_query do
     @desc "get all experiences belonging to a user"
     field :exps, list_of(:experience) do
-      resolve(&Resolver.get_user_exps/3)
+      resolve(&Resolver.get_user_exps/2)
     end
 
     @desc "get an experience"
     field :exp, :experience do
       arg(:exp, non_null(:get_exp))
-      resolve(&Resolver.get_exp/3)
+      resolve(&Resolver.get_exp/2)
     end
   end
 end

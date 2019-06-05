@@ -297,12 +297,34 @@ defmodule EbData.DefaultImpl do
           user_id :: String.t(),
           experiences_ids :: [String.t()],
           pagination_args :: Absinthe.Relay.Connection.Options.t()
-        ) :: {:ok, map} | {:error, any}
-  def list_experiences_entries(user_id, experiences_ids, pagination_args) do
-    Entry
-    |> join(:inner, [ee], e in assoc(ee, :exp))
-    |> where([_, e], e.id in ^experiences_ids and e.user_id == ^user_id)
-    |> order_by([ee], desc: ee.updated_at)
-    |> Absinthe.Relay.Connection.from_query(&Repo.all/1, pagination_args)
+        ) :: [Absinthe.Relay.Connection.t()]
+  def list_experiences_entries(_user_id, experiences_ids, pagination_args) do
+    Enum.map(experiences_ids, fn experience_id ->
+      get_paginated_entries(experience_id, pagination_args)
+    end)
+  end
+
+  @spec get_paginated_entries(
+          experience_id :: String.t(),
+          pagination_args :: Absinthe.Relay.Connection.Options.t(),
+          query :: Ecto.Queryable.t() | nil
+        ) :: Absinthe.Relay.Connection.t()
+  def get_paginated_entries(
+        experience_id,
+        pagination_args,
+        query \\ nil,
+        repo_opts \\ []
+      ) do
+    {:ok, entries_connection} =
+      (query || Entry)
+      |> join(:inner, [ee], e in assoc(ee, :exp))
+      |> where([_, e], e.id == ^experience_id)
+      |> order_by([ee], desc: ee.updated_at)
+      |> Absinthe.Relay.Connection.from_query(
+        &Repo.all(&1, repo_opts),
+        pagination_args
+      )
+
+    entries_connection
   end
 end

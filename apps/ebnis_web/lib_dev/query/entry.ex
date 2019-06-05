@@ -21,13 +21,11 @@ defmodule EbnisWeb.Query.Entry do
 
   @fragment_relay """
     fragment #{@fragment_relay_name} on EntryRelay {
+      _id
       id
       expId
       insertedAt
       updatedAt
-      exp {
-        id
-      }
     }
   """
 
@@ -70,14 +68,15 @@ defmodule EbnisWeb.Query.Entry do
     """
     mutation CreateAnExperienceEntry($entry: CreateEntry!) {
       entry(entry: $entry) {
-        ...#{@frag_name}
+        ...#{@fragment_relay_name}
+
         fields {
           ...#{@field_frag_name}
         }
       }
     }
 
-    #{@fragment}
+    #{@fragment_relay}
     #{@field_frag}
     """
   end
@@ -126,8 +125,8 @@ defmodule EbnisWeb.Query.Entry do
 
   def list_experiences_entries do
     """
-    query ListExperiencesEntries($experiencesIds: [ID!]!, $first: Int!) {
-      listExperiencesEntries(experiencesIds: $experiencesIds, first: $first) {
+    query ListExperiencesEntries($input: ListExperiencesEntriesInput!) {
+      listExperiencesEntries(input: $input) {
         pageInfo {
           hasNextPage
           hasPreviousPage

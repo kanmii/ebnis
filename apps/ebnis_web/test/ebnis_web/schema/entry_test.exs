@@ -27,11 +27,9 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
               %{
                 data: %{
                   "entry" => %{
+                    "_id" => _,
                     "id" => _,
                     "expId" => ^exp_id,
-                    "exp" => %{
-                      "id" => ^exp_id
-                    },
                     "fields" => fields
                   }
                 }
@@ -548,38 +546,47 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
   describe "list_experiences_entries" do
     test "succeeds" do
       user = RegFactory.insert()
-      exp = ExpFactory.insert(user_id: user.id)
-      string_experience_id = Integer.to_string(exp.id)
+      [exp1, exp2] = ExpFactory.insert_list(2, %{user_id: user.id})
+      string_experience_id1 = Integer.to_string(exp1.id)
+      string_experience_id2 = Integer.to_string(exp2.id)
 
-      Factory.insert(exp, user_id: user.id)
-      Factory.insert(exp, user_id: user.id)
+      Factory.insert(exp1, user_id: user.id)
+      Factory.insert(exp1, user_id: user.id)
+
+      Factory.insert(exp2, user_id: user.id)
 
       query = Query.list_experiences_entries()
 
       variables = %{
-        "experiencesIds" => [string_experience_id],
-        "first" => 1
+        "input" => %{
+          "experiencesIds" => [string_experience_id1, string_experience_id2],
+          "pagination" => %{
+            "first" => 1
+          }
+        }
       }
 
       assert {:ok,
               %{
                 data: %{
-                  "listExperiencesEntries" => %{
-                    "edges" => [
-                      %{
-                        "cursor" => _,
-                        "node" => %{
-                          "exp" => %{"id" => ^string_experience_id},
-                          "expId" => ^string_experience_id,
-                          "id" => _
+                  "listExperiencesEntries" => [
+                    %{
+                      "edges" => [
+                        %{
+                          "cursor" => _,
+                          "node" => %{
+                            "expId" => ^string_experience_id1,
+                            "id" => _
+                          }
                         }
+                      ],
+                      "pageInfo" => %{
+                        "hasNextPage" => true,
+                        "hasPreviousPage" => false
                       }
-                    ],
-                    "pageInfo" => %{
-                      "hasNextPage" => true,
-                      "hasPreviousPage" => false
-                    }
-                  }
+                    },
+                    _other
+                  ]
                 }
               }} =
                Absinthe.run(

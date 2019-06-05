@@ -26,14 +26,20 @@ defmodule EbnisWeb.Schema.Entry do
 
   @desc "An Experience entry that supports relay"
   node object(:entry_relay) do
+    @desc "Internal ID of the entry. Field `id` is the global opaque ID"
     field(:_id, non_null(:id), resolve: fn %{id: id}, _, _ -> {:ok, id} end)
+
+    @desc "The ID of experience to which this entry belongs"
     field(:exp_id, non_null(:id))
 
+    @desc "The experience object to which this entry belongs"
     field :exp, non_null(:experience) do
       resolve(&Resolver.exp/3)
     end
 
+    @desc "The data fields belonging to this entry"
     field(:fields, :field |> list_of() |> non_null())
+
     field(:inserted_at, non_null(:iso_datetime))
     field(:updated_at, non_null(:iso_datetime))
   end
@@ -163,6 +169,15 @@ defmodule EbnisWeb.Schema.Entry do
     field(:exp_id, non_null(:id))
   end
 
+  input_object :list_experiences_entries_input do
+    field(:experiences_ids, :id |> list_of() |> non_null())
+    field(:pagination, :pagination_input)
+  end
+
+  ################### end input objects   #############################
+
+  ################### mutations #########################################
+
   @desc "Mutations allowed on Experience entry object"
   object :entry_mutation do
     @desc ~S"""
@@ -184,7 +199,7 @@ defmodule EbnisWeb.Schema.Entry do
         ]
       }
     """
-    field :entry, :entry do
+    field :entry, :entry_relay do
       arg(:entry, non_null(:create_entry))
 
       resolve(&Resolver.create/3)
@@ -197,6 +212,10 @@ defmodule EbnisWeb.Schema.Entry do
     end
   end
 
+  ################### end mutations #########################################
+
+  ################### queries #########################################
+
   @desc "Queries allowed on Experience object"
   object :entry_query do
     @desc "get all experiences belonging to a user"
@@ -207,49 +226,50 @@ defmodule EbnisWeb.Schema.Entry do
     end
 
     @desc ~S"""
-    Get entries for many experiences simultaneously. Use like so:
+      Get entries for many experiences simultaneously. Use like so:
 
-    query ListExperiencesEntries($experiencesIds: [id!]!, $first: Int!) {
-      listExperiencesEntries(experiencesIds: $experiencesIds, first: $first) {
-        pageInfo {
-          hasNextPage
-          hasPreviousPage
-        }
-
-        edges {
-          cursor
-          node {
-            ...EntryRelayFragment
+      query ListExperiencesEntries($input: ListExperiencesEntriesInput!) {
+        listExperiencesEntries(input: $input) {
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
           }
-        }
-      }
-    }
 
-    You get:
-    ```typescript
-    {
-      listExperiencesEntries: {
-        edges: [
-          {
-            cursor: string;
-            node: {
-              id: string;
-              _id: string;
+          edges {
+            cursor
+            node {
+              ...EntryRelayFragment
             }
           }
-        ],
-
-        pageInfo: {
-          hasNextPage: boolean;
-          hasPreviousPage: boolean;
         }
       }
-    }
-    ```
+
+      You get:
+      ```typescript
+      {
+        listExperiencesEntries: [
+          {
+            edges: [
+              {
+                cursor: string;
+                node: {
+                  id: string;
+                  _id: string;
+                }
+              }
+            ],
+
+            pageInfo: {
+              hasNextPage: boolean;
+              hasPreviousPage: boolean;
+            }
+          }
+        ]
+      }
+      ```
     """
-    connection field(:list_experiences_entries, node_type: :entry_relay) do
-      @desc "The IDs of the experiences"
-      arg(:experiences_ids, :id |> list_of() |> non_null)
+    field(:list_experiences_entries, list_of(:entry_relay_connection)) do
+      arg(:input, non_null(:list_experiences_entries_input))
       resolve(&Resolver.list_experiences_entries/2)
     end
   end

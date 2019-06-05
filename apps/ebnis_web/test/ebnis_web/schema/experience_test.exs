@@ -248,10 +248,18 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                 data: %{
                   "exps" => [
                     %{
-                      "id" => ida
+                      "id" => ida,
+                      "entries" => %{}
                     },
                     %{
-                      "id" => idb
+                      "id" => idb,
+                      "entries" => %{
+                        "edges" => [],
+                        "pageInfo" => %{
+                          "hasNextPage" => false,
+                          "hasPreviousPage" => false
+                        }
+                      }
                     }
                   ]
                 }
