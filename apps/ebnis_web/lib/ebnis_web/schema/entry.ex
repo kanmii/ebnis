@@ -10,22 +10,8 @@ defmodule EbnisWeb.Schema.Entry do
     field(:data, non_null(:entry_field_json))
   end
 
-  @desc "An Experience entry"
-  object :entry do
-    field(:id, non_null(:id))
-    field(:exp_id, non_null(:id))
-
-    field :exp, non_null(:experience) do
-      resolve(&Resolver.exp/3)
-    end
-
-    field(:fields, :field |> list_of() |> non_null())
-    field(:inserted_at, non_null(:iso_datetime))
-    field(:updated_at, non_null(:iso_datetime))
-  end
-
   @desc "An Experience entry that supports relay"
-  node object(:entry_relay) do
+  node object(:entry) do
     @desc "Internal ID of the entry. Field `id` is the global opaque ID"
     field(:_id, non_null(:id), resolve: fn %{id: id}, _, _ -> {:ok, id} end)
 
@@ -199,7 +185,7 @@ defmodule EbnisWeb.Schema.Entry do
         ]
       }
     """
-    field :entry, :entry_relay do
+    field :entry, :entry do
       arg(:entry, non_null(:create_entry))
 
       resolve(&Resolver.create/3)
@@ -231,7 +217,7 @@ defmodule EbnisWeb.Schema.Entry do
           edges {
             cursor
             node {
-              ...EntryRelayFragment
+              ...EntryFragment
             }
           }
         }
@@ -261,11 +247,11 @@ defmodule EbnisWeb.Schema.Entry do
       }
       ```
     """
-    field(:list_experiences_entries, list_of(:entry_relay_connection)) do
+    field(:list_experiences_entries, list_of(:entry_connection)) do
       arg(:input, non_null(:list_experiences_entries_input))
       resolve(&Resolver.list_experiences_entries/2)
     end
   end
 
-  connection(node_type: :entry_relay)
+  connection(node_type: :entry)
 end

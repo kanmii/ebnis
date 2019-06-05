@@ -1,26 +1,12 @@
 defmodule EbnisWeb.Query.Entry do
-  @frag_name "EntryFragment"
-
-  @fragment_relay_name "EntryRelayFragment"
+  @fragment_name "EntryFragment"
 
   @field_frag_name "EntryFieldFrag"
 
   @create_entries_response_fragment_name "CreateEntryResponseFragment"
 
   @fragment """
-    fragment #{@frag_name} on Entry {
-      id
-      expId
-      insertedAt
-      updatedAt
-      exp {
-        id
-      }
-    }
-  """
-
-  @fragment_relay """
-    fragment #{@fragment_relay_name} on EntryRelay {
+    fragment #{@fragment_name} on Entry {
       _id
       id
       expId
@@ -41,7 +27,7 @@ defmodule EbnisWeb.Query.Entry do
       successes {
         index
         entry {
-          ...#{@frag_name}
+          ...#{@fragment_name}
 
           fields {
             ...#{@field_frag_name}
@@ -56,19 +42,11 @@ defmodule EbnisWeb.Query.Entry do
     }
   """
 
-  def fragment do
-    @fragment
-  end
-
-  def all_fields_fragment do
-    {@frag_name, fragment()}
-  end
-
   def create do
     """
     mutation CreateAnExperienceEntry($entry: CreateEntry!) {
       entry(entry: $entry) {
-        ...#{@fragment_relay_name}
+        ...#{@fragment_name}
 
         fields {
           ...#{@field_frag_name}
@@ -76,7 +54,7 @@ defmodule EbnisWeb.Query.Entry do
       }
     }
 
-    #{@fragment_relay}
+    #{@fragment}
     #{@field_frag}
     """
   end
@@ -107,13 +85,13 @@ defmodule EbnisWeb.Query.Entry do
         edges {
           cursor
           node {
-            ...#{@fragment_relay_name}
+            ...#{@fragment_name}
           }
         }
       }
     }
 
-    #{@fragment_relay}
+    #{@fragment}
     """
   end
 end

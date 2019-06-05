@@ -14,7 +14,7 @@ defmodule EbnisWeb.Schema.Experience do
     @desc "The field definitions used for the experience entries"
     field(:field_defs, :field_def |> list_of() |> non_null())
 
-    field :entries, :entry_relay_connection |> non_null() do
+    field :entries, :entry_connection |> non_null() do
       arg(:pagination, :pagination_input)
       resolve(&Resolver.entries/3)
     end

@@ -287,22 +287,16 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                     "successes" => [
                       %{
                         "entry" => %{
-                          "id" => _,
+                          "_id" => _,
                           "expId" => ^exp_id,
-                          "exp" => %{
-                            "id" => ^exp_id
-                          },
                           "fields" => fields1
                         },
                         "index" => index1
                       },
                       %{
                         "entry" => %{
-                          "id" => _,
+                          "_id" => _,
                           "expId" => ^exp_id,
-                          "exp" => %{
-                            "id" => ^exp_id
-                          },
                           "fields" => fields2
                         },
                         "index" => index2
@@ -385,11 +379,8 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                     "successes" => [
                       %{
                         "entry" => %{
-                          "id" => _,
+                          "_id" => _,
                           "expId" => ^exp_id,
-                          "exp" => %{
-                            "id" => ^exp_id
-                          },
                           "fields" => _fields1
                         },
                         "index" => 0
