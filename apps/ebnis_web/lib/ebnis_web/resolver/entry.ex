@@ -62,24 +62,6 @@ defmodule EbnisWeb.Resolver.Entry do
     []
   end
 
-  def get_exp_entries(
-        _,
-        %{entry: %{exp_id: id}},
-        %{context: %{current_user: user}}
-      ) do
-    case EbData.get_exp_entries(id, user.id) do
-      nil ->
-        {:error, "experience not found"}
-
-      exp ->
-        {:ok, exp}
-    end
-  end
-
-  def get_exp_entries(_, _, _) do
-    Resolver.unauthorized()
-  end
-
   def exp(%{} = entry, _, %{context: %{loader: loader}}) do
     loader
     |> Dataloader.load(:data, :exp, entry)

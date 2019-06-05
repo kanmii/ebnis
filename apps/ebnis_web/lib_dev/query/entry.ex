@@ -81,34 +81,6 @@ defmodule EbnisWeb.Query.Entry do
     """
   end
 
-  def get do
-    """
-    query GetAnExperienceEntry($entry: GetEntry!) {
-      entry(entry: $entry) {
-        ...#{@frag_name}
-
-      }
-    }
-
-    #{@fragment}
-
-    """
-  end
-
-  def get_exp_entries do
-    """
-    query GetEntriesForExperience($entry: GetExpEntries! ) {
-      expEntries(entry: $entry) {
-        ...#{@frag_name}
-
-      }
-    }
-
-    #{@fragment}
-
-    """
-  end
-
   def create_entries do
     """
     mutation CreateEntriesMutation($createEntries: CreateEntriesInput!) {

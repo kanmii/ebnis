@@ -64,10 +64,6 @@ defmodule EbData do
     impl().create_entries(attrs)
   end
 
-  def get_exp_entries(exp_id, user_id) do
-    impl().get_exp_entries(exp_id, user_id)
-  end
-
   def get_entry(id), do: impl().get_entry(id)
 
   def list_experiences_entries(user_id, experiences_ids, pagination_args) do

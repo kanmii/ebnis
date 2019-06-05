@@ -280,17 +280,6 @@ defmodule EbData.DefaultImpl do
     |> Enum.concat(entries_with_errors)
   end
 
-  @spec get_exp_entries(
-          exp_id :: integer | binary,
-          user_id :: integer | binary
-        ) :: [Entry.t()]
-  def get_exp_entries(exp_id, user_id) do
-    Entry
-    |> join(:inner, [ee], e in assoc(ee, :exp))
-    |> where([_, e], e.id == ^exp_id and e.user_id == ^user_id)
-    |> Repo.all()
-  end
-
   def get_entry(id), do: Repo.get(Entry, id)
 
   @spec list_experiences_entries(

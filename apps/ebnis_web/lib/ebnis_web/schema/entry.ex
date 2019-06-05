@@ -218,13 +218,6 @@ defmodule EbnisWeb.Schema.Entry do
 
   @desc "Queries allowed on Experience object"
   object :entry_query do
-    @desc "get all experiences belonging to a user"
-    field :exp_entries, list_of(:entry) do
-      arg(:entry, non_null(:get_exp_entries))
-
-      resolve(&Resolver.get_exp_entries/3)
-    end
-
     @desc ~S"""
       Get entries for many experiences simultaneously. Use like so:
 
