@@ -5,6 +5,7 @@ defmodule EbnisWeb.Query.Experience do
 
   @fragment """
     fragment #{@frag_name} on Experience {
+      _id
       id
       title
       description
@@ -24,57 +25,56 @@ defmodule EbnisWeb.Query.Experience do
     }
   """
 
-  def fragment do
-    @fragment
-  end
-
-  def all_fields_fragment do
-    {@frag_name, fragment()}
-  end
-
   def create do
     {field_frag_name, field_frag} = FieldDef.all_fields_fragment()
 
     """
-    mutation CreateAnExperience($exp: CreateExp!) {
-      exp(exp: $exp) {
-        ...#{@frag_name}
-        fieldDefs {
-          ...#{field_frag_name}
+      mutation CreateAnExperience($exp: CreateExp!) {
+        exp(exp: $exp) {
+          ...#{@frag_name}
+          fieldDefs {
+            ...#{field_frag_name}
+          }
         }
       }
-    }
 
-    #{@fragment}
-    #{field_frag}
+      #{@fragment}
+      #{field_frag}
     """
   end
 
   def get do
     """
-    query GetAnExperience($exp: GetExp!) {
-      exp(exp: $exp) {
-        ...#{@frag_name}
+      query GetAnExperience($exp: GetExp!) {
+        exp(exp: $exp) {
+          ...#{@frag_name}
 
+        }
       }
-    }
 
-    #{@fragment}
-
+      #{@fragment}
     """
   end
 
   def gets do
     """
-    query GetExperiences {
-      exps {
-        ...#{@frag_name}
+      query GetExperiences($pagination: PaginationInput!) {
+        exps(pagination: $pagination) {
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+          }
 
+          edges {
+            node {
+              ...#{@frag_name}
+            }
+          }
+
+        }
       }
-    }
 
-    #{@fragment}
-
+      #{@fragment}
     """
   end
 end

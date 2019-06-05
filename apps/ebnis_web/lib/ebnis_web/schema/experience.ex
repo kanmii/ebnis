@@ -4,16 +4,25 @@ defmodule EbnisWeb.Schema.Experience do
 
   alias EbnisWeb.Resolver.Experience, as: Resolver
 
-  @desc "An Experience"
-  object :experience do
-    field(:id, non_null(:id))
+  @desc "An Experience schema. Uses relay."
+  node object(:experience) do
+    @desc "Internal ID of the schema. Field `id` is the global opaque ID"
+    field(
+      :_id,
+      non_null(:id),
+      resolve: &EbnisWeb.Resolver.resolve_internal_id/3
+    )
 
+    @desc "The title of the experience"
     field(:title, non_null(:string))
+
+    @desc "The description of the experience"
     field(:description, :string)
 
     @desc "The field definitions used for the experience entries"
     field(:field_defs, :field_def |> list_of() |> non_null())
 
+    @desc "The entries of the experience - can be paginated"
     field :entries, :entry_connection |> non_null() do
       arg(:pagination, :pagination_input)
       resolve(&Resolver.entries/3)
@@ -47,8 +56,11 @@ defmodule EbnisWeb.Schema.Experience do
 
   @desc "Queries allowed on Experience object"
   object :exp_query do
-    @desc "get all experiences belonging to a user"
-    field :exps, list_of(:experience) do
+    @desc ~S"""
+      Get all experiences belonging to a user
+    """
+    connection field(:exps, node_type: :experience) do
+      arg(:pagination, non_null(:pagination_input))
       resolve(&Resolver.get_user_exps/2)
     end
 
@@ -58,4 +70,6 @@ defmodule EbnisWeb.Schema.Experience do
       resolve(&Resolver.get_exp/2)
     end
   end
+
+  connection(node_type: :experience)
 end

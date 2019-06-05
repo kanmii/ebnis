@@ -6,6 +6,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
   alias EbData.Factory.Registration, as: RegFactory
   alias EbData.Factory.FieldDef, as: FieldDefFactory
   alias EbnisWeb.Query.Experience, as: Query
+  alias EbnisWeb.Resolver
 
   @moduletag :db
 
@@ -161,7 +162,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
 
       variables = %{
         "exp" => %{
-          "id" => id
+          "id" => Resolver.convert_to_global_id(id, :experience)
         }
       }
 
@@ -169,7 +170,8 @@ defmodule EbnisWeb.Schema.ExperienceTest do
               %{
                 data: %{
                   "exp" => %{
-                    "id" => ^id
+                    "_id" => ^id,
+                    "id" => _
                   }
                 }
               }} =
@@ -187,7 +189,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
 
       variables = %{
         "exp" => %{
-          "id" => "0"
+          "id" => Resolver.convert_to_global_id("0", :experience)
         }
       }
 
@@ -215,7 +217,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
 
       variables = %{
         "exp" => %{
-          "id" => id
+          "id" => Resolver.convert_to_global_id(id, :experience)
         }
       }
 
@@ -243,30 +245,43 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       %{id: id1} = Factory.insert(user_id: user.id)
       %{id: id2} = Factory.insert(user_id: user.id)
 
+      variables = %{
+        "pagination" => %{
+          "first" => 2
+        }
+      }
+
       assert {:ok,
               %{
                 data: %{
-                  "exps" => [
-                    %{
-                      "id" => ida,
-                      "entries" => %{}
-                    },
-                    %{
-                      "id" => idb,
-                      "entries" => %{
-                        "edges" => [],
-                        "pageInfo" => %{
-                          "hasNextPage" => false,
-                          "hasPreviousPage" => false
+                  "exps" => %{
+                    "edges" => [
+                      %{
+                        "node" => %{
+                          "_id" => ida,
+                          "entries" => %{}
+                        }
+                      },
+                      %{
+                        "node" => %{
+                          "_id" => idb,
+                          "entries" => %{
+                            "edges" => [],
+                            "pageInfo" => %{
+                              "hasNextPage" => false,
+                              "hasPreviousPage" => false
+                            }
+                          }
                         }
                       }
-                    }
-                  ]
+                    ]
+                  }
                 }
               }} =
                Absinthe.run(
                  Query.gets(),
                  Schema,
+                 variables: variables,
                  context: context(user)
                )
 
@@ -280,15 +295,28 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     test "get experience defs returns [] for none existing definitions" do
       user = RegFactory.insert()
 
+      variables = %{
+        "pagination" => %{
+          "first" => 2
+        }
+      }
+
       assert {:ok,
               %{
                 data: %{
-                  "exps" => []
+                  "exps" => %{
+                    "edges" => [],
+                    "pageInfo" => %{
+                      "hasNextPage" => false,
+                      "hasPreviousPage" => false
+                    }
+                  }
                 }
               }} =
                Absinthe.run(
                  Query.gets(),
                  Schema,
+                 variables: variables,
                  context: context(user)
                )
     end

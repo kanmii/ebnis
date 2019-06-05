@@ -52,8 +52,8 @@ defmodule EbData do
     impl().get_exp_field_defs(exp_id, user_id)
   end
 
-  def get_user_exps(user_id) do
-    impl().get_user_exps(user_id)
+  def get_user_exps(user_id, pagination_args) do
+    impl().get_user_exps(user_id, pagination_args)
   end
 
   def create_entry(attrs) do

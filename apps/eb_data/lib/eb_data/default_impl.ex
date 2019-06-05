@@ -225,10 +225,13 @@ defmodule EbData.DefaultImpl do
 
   def get_exp(id), do: Repo.get(Experience, id)
 
-  def get_user_exps(user_id) do
+  def get_user_exps(user_id, pagination_args) do
     Experience
     |> where([e], e.user_id == ^user_id)
-    |> Repo.all()
+    |> Absinthe.Relay.Connection.from_query(
+      &Repo.all(&1),
+      pagination_args
+    )
   end
 
   def get_exp_field_defs(exp_id, user_id) do

@@ -8,11 +8,15 @@ defmodule EbnisWeb.Schema.Types do
 
   alias EbData.FieldType
   alias EbData.DefaultImpl.Entry
+  alias EbData.DefaultImpl.Experience
 
   node interface do
     resolve_type(fn
       %Entry{}, _ ->
         :entry_relay
+
+      %Experience{}, _ ->
+        :experience
 
       _, _ ->
         nil

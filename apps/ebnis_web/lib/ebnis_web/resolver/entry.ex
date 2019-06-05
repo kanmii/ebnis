@@ -70,12 +70,15 @@ defmodule EbnisWeb.Resolver.Entry do
 
   def create_entries(
         _,
-        %{create_entries: attrs},
+        %{create_entries: %{exp_id: experience_id} = attrs},
         %{context: %{current_user: user}}
       ) do
     result =
       attrs
-      |> Map.put(:user_id, user.id)
+      |> Map.merge(%{
+        user_id: user.id,
+        exp_id: Resolver.convert_from_global(experience_id, :experience)
+      })
       |> EbData.create_entries()
       |> Enum.reduce({[], []}, &separate_successes_and_failures/2)
 
@@ -127,11 +130,20 @@ defmodule EbnisWeb.Resolver.Entry do
           },
           %{context: %{current_user: %User{}}}
         ) :: {:ok, [Absinthe.Relay.Connection.t()]}
-  def list_experiences_entries(%{input: input}, %{context: %{current_user: user}}) do
+  def list_experiences_entries(
+        %{input: input},
+        %{context: %{current_user: user}}
+      ) do
+    internal_experience_ids =
+      Enum.map(
+        input.experiences_ids,
+        &Resolver.convert_from_global(&1, :experience)
+      )
+
     entries_connections =
       EbData.list_experiences_entries(
         user.id,
-        input.experiences_ids,
+        internal_experience_ids,
         input.pagination
       )
 

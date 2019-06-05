@@ -12,8 +12,12 @@ defmodule EbnisWeb.Schema.Entry do
 
   @desc "An Experience entry that supports relay"
   node object(:entry) do
-    @desc "Internal ID of the entry. Field `id` is the global opaque ID"
-    field(:_id, non_null(:id), resolve: fn %{id: id}, _, _ -> {:ok, id} end)
+    @desc "Internal ID of the schema. Field `id` is the global opaque ID"
+    field(
+      :_id,
+      non_null(:id),
+      resolve: &EbnisWeb.Resolver.resolve_internal_id/3
+    )
 
     @desc "The ID of experience to which this entry belongs"
     field(:exp_id, non_null(:id))
@@ -70,6 +74,8 @@ defmodule EbnisWeb.Schema.Entry do
     field(:failures, list_of(:create_entries_response_error))
   end
 
+  ############################## INPUTS #######################################
+
   @desc ~S"""
     Variables for creating an entry field
 
@@ -98,7 +104,7 @@ defmodule EbnisWeb.Schema.Entry do
 
   @desc "Variables for creating an experience entry"
   input_object :create_entry do
-    @desc "The ID of the experience"
+    @desc "The global ID of the experience"
     field(:exp_id, non_null(:id))
 
     @desc "fields making up the experience entry"
@@ -110,7 +116,7 @@ defmodule EbnisWeb.Schema.Entry do
 
     It is of the form:
     {
-      // The ID of the experience
+      // The global ID of the experience
       expId: string;
 
       // list of fields making up the entries.
@@ -132,7 +138,7 @@ defmodule EbnisWeb.Schema.Entry do
     a particular experience will have the same number of fields
   """
   input_object :create_entries_input do
-    @desc "The ID of the experience"
+    @desc "The global ID of the experience"
     field(:exp_id, non_null(:id))
 
     field(
@@ -144,23 +150,16 @@ defmodule EbnisWeb.Schema.Entry do
     )
   end
 
-  @desc "Variables for getting an experience entry"
-  input_object :get_entry do
-    field(:id, non_null(:id))
-  end
-
-  @desc "Variables for getting all entries belonging to an experience"
-  input_object :get_exp_entries do
-    @desc "The ID of the experience"
-    field(:exp_id, non_null(:id))
-  end
-
   input_object :list_experiences_entries_input do
+    @desc ~S"""
+      List of global IDs of experiences we wish to get
+    """
     field(:experiences_ids, :id |> list_of() |> non_null())
+
     field(:pagination, :pagination_input)
   end
 
-  ################### end input objects   #############################
+  ############################# END INPUTS ##################################
 
   ################### mutations #########################################
 

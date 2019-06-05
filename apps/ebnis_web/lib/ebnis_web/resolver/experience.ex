@@ -46,7 +46,9 @@ defmodule EbnisWeb.Resolver.Experience do
     Jason.encode!(errors)
   end
 
-  def get_exp(%{exp: %{id: id}}, %{context: %{current_user: user}}) do
+  def get_exp(%{exp: %{id: global_id}}, %{context: %{current_user: user}}) do
+    id = Resolver.convert_from_global(global_id, :experience)
+
     case EbData.get_exp(id, user.id) do
       nil ->
         {:error, "Experience definition not found"}
@@ -60,8 +62,8 @@ defmodule EbnisWeb.Resolver.Experience do
     Resolver.unauthorized()
   end
 
-  def get_user_exps(_, %{context: %{current_user: user}}) do
-    {:ok, EbData.get_user_exps(user.id)}
+  def get_user_exps(args, %{context: %{current_user: user}}) do
+    EbData.get_user_exps(user.id, args.pagination)
   end
 
   def get_user_exps(_, _) do

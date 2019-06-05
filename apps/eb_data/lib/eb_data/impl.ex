@@ -8,7 +8,10 @@ defmodule EbData.Impl do
 
   @callback get_exp(id :: binary()) :: nil | map
 
-  @callback get_user_exps(user_id :: binary() | Integer.t()) :: [map]
+  @callback get_user_exps(
+              user_id :: binary() | Integer.t(),
+              pagination_args :: Absinthe.Relay.Connection.Options.t()
+            ) :: {:ok, map} | {:error, any}
 
   @callback create_entry(map) :: {:ok, map} | {:error, term, map}
 

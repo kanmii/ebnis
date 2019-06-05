@@ -6,6 +6,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
   alias EbData.Factory.Experience, as: ExpFactory
   alias EbData.Factory.Registration, as: RegFactory
   alias EbnisWeb.Query.Entry, as: Query
+  alias EbnisWeb.Resolver
 
   @moduletag :db
 
@@ -269,7 +270,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       variables = %{
         "createEntries" => %{
-          "expId" => exp_id,
+          "expId" => Resolver.convert_to_global_id(exp_id, :experience),
           "listOfFields" => [
             Enum.map(params, &Factory.stringify_field/1),
             more_fields
@@ -327,8 +328,8 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       variables = %{
         "createEntries" => %{
           # if we ever reach DB, this test will fail because exp_id must be
-          # an integer
-          "expId" => "",
+          # a non zero integer
+          "expId" => Resolver.convert_to_global_id("0", :experience),
           "listOfFields" => []
         }
       }
@@ -362,7 +363,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       variables = %{
         "createEntries" => %{
-          "expId" => exp_id,
+          "expId" => Resolver.convert_to_global_id(exp_id, :experience),
           "listOfFields" => [
             Enum.map(fields, &Factory.stringify_field/1),
             more_fields
@@ -434,7 +435,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       variables = %{
         "createEntries" => %{
-          "expId" => exp_id,
+          "expId" => Resolver.convert_to_global_id(exp_id, :experience),
           "listOfFields" => [
             more_fields,
             Enum.map(fields, &Factory.stringify_field/1)
@@ -491,7 +492,11 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       variables = %{
         "input" => %{
-          "experiencesIds" => [string_experience_id1, string_experience_id2],
+          "experiencesIds" =>
+            Enum.map(
+              [string_experience_id1, string_experience_id2],
+              &Resolver.convert_to_global_id(&1, :experience)
+            ),
           "pagination" => %{
             "first" => 1
           }
