@@ -47,7 +47,7 @@ defmodule EbnisWeb.Resolver.Experience do
   end
 
   def get_exp(%{exp: %{id: global_id}}, %{context: %{current_user: user}}) do
-    id = Resolver.convert_from_global(global_id, :experience)
+    id = Resolver.convert_from_global_id(global_id, :experience)
 
     case EbData.get_exp(id, user.id) do
       nil ->

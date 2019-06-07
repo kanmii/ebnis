@@ -2,14 +2,22 @@ defmodule EbnisWeb.Resolver.Entry do
   import Absinthe.Resolution.Helpers, only: [on_load: 2]
 
   alias EbnisWeb.Resolver
-  alias EbData.DefaultImpl.User
+  alias EbData.DefaultImpl.{User, Entry}
 
   def create(_, %{entry: attrs}, %{context: %{current_user: user}}) do
     case attrs
+         |> Map.put(
+           :exp_id,
+           Resolver.convert_from_global_id(attrs.exp_id, :experience)
+         )
          |> Map.put(:user_id, user.id)
          |> EbData.create_entry() do
       {:ok, entry} ->
-        {:ok, entry}
+        {:ok,
+         %Entry{
+           entry
+           | exp_id: Resolver.convert_to_global_id(entry.exp_id, :experience)
+         }}
 
       {:error, changeset} ->
         {:error, stringify_changeset_error(changeset)}
@@ -77,7 +85,7 @@ defmodule EbnisWeb.Resolver.Entry do
       attrs
       |> Map.merge(%{
         user_id: user.id,
-        exp_id: Resolver.convert_from_global(experience_id, :experience)
+        exp_id: Resolver.convert_from_global_id(experience_id, :experience)
       })
       |> EbData.create_entries()
       |> Enum.reduce({[], []}, &separate_successes_and_failures/2)
@@ -137,7 +145,7 @@ defmodule EbnisWeb.Resolver.Entry do
     internal_experience_ids =
       Enum.map(
         input.experiences_ids,
-        &Resolver.convert_from_global(&1, :experience)
+        &Resolver.convert_from_global_id(&1, :experience)
       )
 
     entries_connections =

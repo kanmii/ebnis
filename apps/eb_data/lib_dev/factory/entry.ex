@@ -2,6 +2,7 @@ defmodule EbData.Factory.Entry do
   alias EbData.Factory
   alias EbData.DefaultImpl.Experience
   alias EbData.FieldType
+  alias EbnisWeb.Resolver
 
   @integers 0..1_000
 
@@ -76,7 +77,7 @@ defmodule EbData.Factory.Entry do
         Map.put(acc, "fields", Enum.map(fields, &stringify_field/1))
 
       {:exp_id, v}, acc ->
-        Map.put(acc, "expId", v)
+        Map.put(acc, "expId", Resolver.convert_to_global_id(v, :experience))
 
       _, acc ->
         acc

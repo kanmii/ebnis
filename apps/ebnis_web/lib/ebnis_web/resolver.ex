@@ -56,7 +56,7 @@ defmodule EbnisWeb.Resolver do
     {:ok, id}
   end
 
-  def convert_from_global(global_id, node_type) do
+  def convert_from_global_id(global_id, node_type) do
     case from_global_id(global_id, Schema) do
       {:ok, %{id: internal_id, type: ^node_type}} ->
         internal_id
