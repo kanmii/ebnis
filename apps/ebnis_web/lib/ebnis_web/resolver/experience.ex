@@ -91,4 +91,9 @@ defmodule EbnisWeb.Resolver.Experience do
        )}
     end)
   end
+
+  def entries(%{} = experience, _args, context) do
+    # get first 100 entries by default
+    entries(experience, %{pagination: %{first: 100}}, context)
+  end
 end
