@@ -16,6 +16,10 @@ defmodule EbnisWeb.Resolver.Experience do
     end
   end
 
+  def create(_, _) do
+    Resolver.unauthorized()
+  end
+
   defp stringify_changeset_error(changeset) do
     field_def_errors =
       Enum.reduce(
