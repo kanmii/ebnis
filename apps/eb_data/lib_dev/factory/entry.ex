@@ -8,6 +8,8 @@ defmodule EbData.Factory.Entry do
 
   @all_types FieldType.all_types_string()
 
+  @simple_attributes [:client_id]
+
   def insert(%Experience{} = exp) do
     insert(exp, %{})
   end
@@ -44,7 +46,8 @@ defmodule EbData.Factory.Entry do
 
     %{
       fields: fields,
-      exp_id: exp.id
+      exp_id: exp.id,
+      user_id: exp.user_id
     }
     |> Map.merge(attrs)
   end
@@ -78,6 +81,9 @@ defmodule EbData.Factory.Entry do
 
       {:exp_id, v}, acc ->
         Map.put(acc, "expId", Resolver.convert_to_global_id(v, :experience))
+
+      {k, v}, acc when k in @simple_attributes ->
+        Map.put(acc, Factory.to_camel_key(k), v)
 
       _, acc ->
         acc

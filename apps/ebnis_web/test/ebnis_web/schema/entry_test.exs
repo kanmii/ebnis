@@ -30,7 +30,8 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                     "_id" => _,
                     "id" => _,
                     "expId" => _global_experience_id,
-                    "fields" => fields
+                    "fields" => fields,
+                    "clientId" => _
                   }
                 }
               }} =
@@ -244,6 +245,101 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  Schema,
                  variables: variables,
                  context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "create an entry with client id succeeds" do
+      user = RegFactory.insert()
+      exp = ExpFactory.insert(user_id: user.id)
+      client_id = "me"
+      params = Factory.params(exp, client_id: client_id)
+
+      variables = %{
+        "entry" => Factory.stringify(params)
+      }
+
+      query = Query.create()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "entry" => %{
+                    "_id" => _,
+                    "id" => _,
+                    "expId" => _global_experience_id,
+                    "fields" => fields,
+                    "clientId" => ^client_id
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      field_defs_ids = Enum.map(fields, & &1["defId"]) |> Enum.sort()
+      assert Enum.map(exp.field_defs, & &1.id) |> Enum.sort() == field_defs_ids
+    end
+
+    # @tag :skip
+    test "create an entry fails for non unique client id" do
+      user = RegFactory.insert()
+      exp = ExpFactory.insert(user_id: user.id)
+      client_id = "me"
+      Factory.insert(exp, client_id: client_id)
+      params = Factory.params(exp, client_id: client_id)
+
+      variables = %{
+        "entry" => Factory.stringify(params)
+      }
+
+      error = Jason.encode!(%{client_id: "has already been taken"})
+
+      query = Query.create()
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: ^error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "create an entry fails without user context" do
+      user = RegFactory.insert()
+      exp = ExpFactory.insert(user_id: user.id)
+      params = Factory.params(exp)
+
+      variables = %{
+        "entry" => Factory.stringify(params)
+      }
+
+      query = Query.create()
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Unauthorized"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables
                )
     end
   end

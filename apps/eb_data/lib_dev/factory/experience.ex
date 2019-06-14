@@ -6,7 +6,7 @@ defmodule EbData.Factory.Experience do
   alias EbData.DefaultImpl.Experience
 
   @count 1..5
-  @simple_attrs [:user_id, :title, :description]
+  @simple_attrs [:user_id, :title, :description, :client_id]
   @integers 0..1_000
 
   def insert(attrs, data_types_list) do

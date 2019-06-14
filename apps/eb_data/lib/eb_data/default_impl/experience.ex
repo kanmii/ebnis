@@ -13,6 +13,7 @@ defmodule EbData.DefaultImpl.Experience do
   schema "experiences" do
     field(:title, :string)
     field(:description, :string)
+    field(:client_id, :string)
     belongs_to(:user, User)
     embeds_many(:field_defs, FieldDef)
     has_many(:entries, Entry, foreign_key: :exp_id)
@@ -23,12 +24,13 @@ defmodule EbData.DefaultImpl.Experience do
   @doc "changeset"
   def changeset(%__MODULE__{} = schema, %{} = attrs) do
     schema
-    |> cast(attrs, [:description, :title, :user_id])
+    |> cast(attrs, [:description, :title, :user_id, :client_id])
     |> cast_embed(:field_defs, required: true)
     |> validate_required([:title, :user_id, :field_defs])
     |> validate_field_defs()
     |> assoc_constraint(:user)
     |> unique_constraint(:title, name: :experiences_user_id_title_index)
+    |> unique_constraint(:client_id, name: :experiences_client_id_user_id_index)
   end
 
   defp validate_field_defs(%Changeset{valid?: false} = changeset) do

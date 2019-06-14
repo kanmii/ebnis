@@ -25,6 +25,7 @@ defmodule EbData.DefaultImpl.Entry do
 
   @timestamps_opts [type: :utc_datetime]
   schema "entries" do
+    field(:client_id, :string)
     belongs_to(:exp, Experience)
     embeds_many(:fields, Field)
 
@@ -34,9 +35,10 @@ defmodule EbData.DefaultImpl.Entry do
   @doc "changeset"
   def changeset(%__MODULE__{} = schema, %{} = attrs) do
     schema
-    |> cast(attrs, [:exp_id])
+    |> cast(attrs, [:exp_id, :client_id])
     |> cast_embed(:fields, required: true)
     |> validate_required([:exp_id, :fields])
+    |> unique_constraint(:client_id, name: :entries_client_id_exp_id_index)
   end
 
   @doc "changeset_one"

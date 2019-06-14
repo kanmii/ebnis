@@ -22,6 +22,14 @@ defmodule EbnisWeb.Schema.Entry do
     @desc "The ID of experience to which this entry belongs"
     field(:exp_id, non_null(:id))
 
+    @desc ~S"""
+      The client ID. For experiences created on the client and to be synced
+      with the server, the client ID uniquely identifies such and can be used
+      to enforce uniqueness at the DB level. Not providing client_id assumes
+      a fresh experience.
+    """
+    field(:client_id, :string)
+
     @desc "The experience object to which this entry belongs"
     field :exp, non_null(:experience) do
       resolve(&Resolver.exp/3)
@@ -109,6 +117,9 @@ defmodule EbnisWeb.Schema.Entry do
 
     @desc "fields making up the experience entry"
     field(:fields, :create_field |> list_of() |> non_null())
+
+    @desc "Client id for entries created on client to be synced with server."
+    field(:client_id, :string)
   end
 
   @desc ~S"""

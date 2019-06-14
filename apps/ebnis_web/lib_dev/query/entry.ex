@@ -10,6 +10,7 @@ defmodule EbnisWeb.Query.Entry do
       _id
       id
       expId
+      clientId
       insertedAt
       updatedAt
     }

@@ -24,6 +24,10 @@ defmodule EbnisWeb.Resolver.Entry do
     end
   end
 
+  def create(_, _, _) do
+    Resolver.unauthorized()
+  end
+
   defp stringify_changeset_error(changeset) do
     errors =
       case {stringify_changeset_fields_error(changeset), changeset.errors} do

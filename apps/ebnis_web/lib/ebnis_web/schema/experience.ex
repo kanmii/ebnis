@@ -19,6 +19,14 @@ defmodule EbnisWeb.Schema.Experience do
     @desc "The description of the experience"
     field(:description, :string)
 
+    @desc ~S"""
+      The client ID. For experiences created on the client and to be synced
+      with the server, the client ID uniquely identifies such and can be used
+      to enforce uniqueness at the DB level. Not providing client_id assumes
+      a fresh experience.
+    """
+    field(:client_id, :string)
+
     @desc "The field definitions used for the experience entries"
     field(:field_defs, :field_def |> list_of() |> non_null())
 
@@ -32,11 +40,14 @@ defmodule EbnisWeb.Schema.Experience do
     field(:updated_at, non_null(:iso_datetime))
   end
 
+  ############################ INPUT OBJECTS ################################
+
   @desc "Variables for defining a new Experience"
   input_object :create_exp do
     field(:title, non_null(:string))
     field(:description, :string)
     field(:field_defs, :create_field_def |> list_of() |> non_null())
+    field(:client_id, :string)
   end
 
   @desc "Variables for getting an experience"

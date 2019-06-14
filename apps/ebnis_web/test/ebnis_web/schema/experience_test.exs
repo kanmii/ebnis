@@ -33,7 +33,8 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                   "exp" => %{
                     "id" => _,
                     "title" => ^title,
-                    "fieldDefs" => _
+                    "fieldDefs" => _,
+                    "clientId" => nil
                   }
                 }
               }} =
@@ -149,6 +150,91 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                  Schema,
                  variables: variables,
                  context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "create an experience with client id succeeds" do
+      %{client_id: client_id} = params = Factory.params(client_id: "olu")
+      user = RegFactory.insert()
+
+      variables = %{
+        "exp" => Factory.stringify(params)
+      }
+
+      query = Query.create()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "exp" => %{
+                    "id" => _,
+                    "clientId" => ^client_id,
+                    "fieldDefs" => _
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "create an experience fails if client id not unique for user" do
+      user = RegFactory.insert()
+      Factory.insert(client_id: "abcd", user_id: user.id)
+
+      variables = %{
+        "exp" =>
+          Factory.params(client_id: "abcd")
+          |> Factory.stringify()
+      }
+
+      query = Query.create()
+
+      error = Jason.encode!(%{client_id: "has already been taken"})
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: ^error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "create an experience fails if user context not supplied" do
+      variables = %{
+        "exp" =>
+          Factory.params()
+          |> Factory.stringify()
+      }
+
+      query = Query.create()
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Unauthorized"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables
                )
     end
   end
