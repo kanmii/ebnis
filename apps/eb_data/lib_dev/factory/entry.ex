@@ -9,6 +9,7 @@ defmodule EbData.Factory.Entry do
   @all_types FieldType.all_types_string()
 
   @simple_attributes [:client_id]
+  @iso_extended_format "{ISO:Extended:Z}"
 
   def insert(%Experience{} = exp) do
     insert(exp, %{})
@@ -84,6 +85,13 @@ defmodule EbData.Factory.Entry do
 
       {k, v}, acc when k in @simple_attributes ->
         Map.put(acc, Factory.to_camel_key(k), v)
+
+      {k, %DateTime{} = v}, acc ->
+        Map.put(
+          acc,
+          Factory.to_camel_key(k),
+          Timex.format!(v, @iso_extended_format)
+        )
 
       _, acc ->
         acc

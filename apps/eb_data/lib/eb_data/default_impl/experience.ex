@@ -24,7 +24,14 @@ defmodule EbData.DefaultImpl.Experience do
   @doc "changeset"
   def changeset(%__MODULE__{} = schema, %{} = attrs) do
     schema
-    |> cast(attrs, [:description, :title, :user_id, :client_id])
+    |> cast(attrs, [
+      :description,
+      :title,
+      :user_id,
+      :client_id,
+      :inserted_at,
+      :updated_at
+    ])
     |> cast_embed(:field_defs, required: true)
     |> validate_required([:title, :user_id, :field_defs])
     |> validate_field_defs()

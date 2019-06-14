@@ -120,6 +120,10 @@ defmodule EbnisWeb.Schema.Entry do
 
     @desc "Client id for entries created on client to be synced with server."
     field(:client_id, :string)
+
+    @desc "If entry is created on the client, it might include timestamps"
+    field(:inserted_at, :iso_datetime)
+    field(:updated_at, :iso_datetime)
   end
 
   @desc ~S"""

@@ -47,7 +47,15 @@ defmodule EbnisWeb.Schema.Experience do
     field(:title, non_null(:string))
     field(:description, :string)
     field(:field_defs, :create_field_def |> list_of() |> non_null())
+
+    @desc ~S"""
+      Uniquely identifies an experience created by client for sync conflict
+    """
     field(:client_id, :string)
+
+    @desc "If experience is created on the client, it might include timestamps"
+    field(:inserted_at, :iso_datetime)
+    field(:updated_at, :iso_datetime)
   end
 
   @desc "Variables for getting an experience"

@@ -10,6 +10,8 @@ defmodule EbnisWeb.Query.Experience do
       title
       description
       clientId
+      insertedAt
+      updatedAt
       entries(pagination: {first: 100} ) {
         pageInfo {
           hasNextPage

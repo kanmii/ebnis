@@ -9,6 +9,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
   alias EbnisWeb.Resolver
 
   @moduletag :db
+  @iso_extended_format "{ISO:Extended:Z}"
 
   @invalid_field_types Enum.map(
                          ["integer1", "date2", "datetime2", "decimal4"],
@@ -235,6 +236,51 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                  query,
                  Schema,
                  variables: variables
+               )
+    end
+
+    # @tag :skip
+    test "create an experience with timestamps succeeds" do
+      inserted_at =
+        DateTime.utc_now()
+        |> Timex.shift(hours: -5)
+        |> Timex.to_datetime()
+        |> DateTime.truncate(:second)
+
+      inserted_at_string =
+        inserted_at
+        |> Timex.format!(@iso_extended_format)
+
+      params =
+        Factory.params(
+          inserted_at: inserted_at,
+          updated_at: inserted_at
+        )
+
+      user = RegFactory.insert()
+
+      variables = %{
+        "exp" => Factory.stringify(params)
+      }
+
+      query = Query.create()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "exp" => %{
+                    "id" => _,
+                    "fieldDefs" => _,
+                    "insertedAt" => ^inserted_at_string,
+                    "updatedAt" => ^inserted_at_string
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
                )
     end
   end

@@ -9,6 +9,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
   alias EbnisWeb.Resolver
 
   @moduletag :db
+  @iso_extended_format "{ISO:Extended:Z}"
 
   describe "mutation" do
     # @tag :skip
@@ -340,6 +341,54 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  query,
                  Schema,
                  variables: variables
+               )
+    end
+
+    test "create an entry with timestamps succeeds" do
+      inserted_at =
+        DateTime.utc_now()
+        |> Timex.shift(hours: -15)
+        |> Timex.to_datetime()
+        |> DateTime.truncate(:second)
+
+      inserted_at_string =
+        inserted_at
+        |> Timex.format!(@iso_extended_format)
+
+      user = RegFactory.insert()
+      exp = ExpFactory.insert(user_id: user.id)
+
+      params =
+        Factory.params(
+          exp,
+          inserted_at: inserted_at,
+          updated_at: inserted_at
+        )
+
+      variables = %{
+        "entry" => Factory.stringify(params)
+      }
+
+      query = Query.create()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "entry" => %{
+                    "_id" => _,
+                    "id" => _,
+                    "expId" => _global_experience_id,
+                    "fields" => _fields,
+                    "insertedAt" => ^inserted_at_string,
+                    "updatedAt" => ^inserted_at_string
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
                )
     end
   end

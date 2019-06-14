@@ -8,6 +8,7 @@ defmodule EbData.Factory.Experience do
   @count 1..5
   @simple_attrs [:user_id, :title, :description, :client_id]
   @integers 0..1_000
+  @iso_extended_format "{ISO:Extended:Z}"
 
   def insert(attrs, data_types_list) do
     {:ok, exp} =
@@ -70,6 +71,9 @@ defmodule EbData.Factory.Experience do
 
       {k, v} when k in @simple_attrs ->
         {Factory.to_camel_key(k), v}
+
+      {k, %DateTime{} = v} ->
+        {Factory.to_camel_key(k), Timex.format!(v, @iso_extended_format)}
     end)
     |> Enum.into(%{})
   end

@@ -35,10 +35,18 @@ defmodule EbData.DefaultImpl.Entry do
   @doc "changeset"
   def changeset(%__MODULE__{} = schema, %{} = attrs) do
     schema
-    |> cast(attrs, [:exp_id, :client_id])
+    |> cast(attrs, [
+      :exp_id,
+      :client_id,
+      :inserted_at,
+      :updated_at
+    ])
     |> cast_embed(:fields, required: true)
     |> validate_required([:exp_id, :fields])
-    |> unique_constraint(:client_id, name: :entries_client_id_exp_id_index)
+    |> unique_constraint(
+      :client_id,
+      name: :entries_client_id_exp_id_index
+    )
   end
 
   @doc "changeset_one"
