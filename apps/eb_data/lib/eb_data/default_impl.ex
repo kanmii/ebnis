@@ -8,11 +8,16 @@ defmodule EbData.DefaultImpl do
   alias EbData.DefaultImpl.User
   alias EbData.DefaultImpl.Experience
   alias EbData.DefaultImpl.Entry
+  alias Ecto.Multi
+  alias EbData.Impl
+  alias Ecto.Changeset
+
+  @behaviour Impl
 
   # ACCOUNTS
 
   def register(%{} = params) do
-    Ecto.Multi.new()
+    Multi.new()
     |> Registration.create(params)
     |> Repo.transaction()
     |> case do
@@ -217,6 +222,35 @@ defmodule EbData.DefaultImpl do
     |> Repo.insert()
   end
 
+  @spec sync_offline_experience(Impl.sync_offline_experience_attributes_t()) ::
+          Impl.sync_offline_experience_success_t() | {:error, Changeset.t()}
+  def sync_offline_experience(%{client_id: _} = attrs) do
+    case create_exp(attrs) do
+      {:ok, %Experience{} = experience} ->
+        entries = attrs[:entries] || []
+
+        {valid_entries, entries_errors_changesets} =
+          Entry.sync_offline_experience_validate_entries(entries, experience)
+
+        {_, created_entries} =
+          Repo.insert_all(
+            Entry,
+            valid_entries,
+            returning: true
+          )
+
+        experience_with_entries = %Experience{
+          experience
+          | entries: created_entries
+        }
+
+        {:ok, experience_with_entries, entries_errors_changesets}
+
+      {:error, experience_error_changeset} ->
+        {:error, experience_error_changeset}
+    end
+  end
+
   def get_exp(id, user_id) do
     Experience
     |> where([e], e.id == ^id and e.user_id == ^user_id)
@@ -241,6 +275,8 @@ defmodule EbData.DefaultImpl do
     |> Repo.one()
   end
 
+  #########################  END  EXPERIENCES ###############################
+
   ############################## ENTRIES #####################################
 
   def create_entry(%{} = attrs) do
@@ -249,12 +285,7 @@ defmodule EbData.DefaultImpl do
     |> Repo.insert()
   end
 
-  @spec create_entries(%{
-          exp_id: String.t(),
-          list_of_fields: [[Map.t()]],
-          user_id: String.t()
-        }) :: [any]
-
+  @spec create_entries(attr :: Impl.create_entries_attributes_t()) :: [any]
   def create_entries(%{list_of_fields: []}) do
     []
   end
@@ -319,4 +350,6 @@ defmodule EbData.DefaultImpl do
 
     entries_connection
   end
+
+  #########################  END ENTRIES #####################################
 end

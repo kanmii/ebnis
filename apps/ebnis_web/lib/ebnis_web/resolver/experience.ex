@@ -3,6 +3,50 @@ defmodule EbnisWeb.Resolver.Experience do
 
   alias EbnisWeb.Resolver
   alias EbData.DefaultImpl.Entry
+  alias EbnisWeb.Resolver.Entry, as: EntryResolver
+  # alias EbData.Impl
+
+  def sync_offline_experience(
+        %{input: %{} = attrs},
+        %{context: %{current_user: user}}
+      ) do
+    case attrs
+         |> Map.put(:user_id, user.id)
+         |> EbData.sync_offline_experience() do
+      {:ok, experience, []} ->
+        {
+          :ok,
+          %{
+            experience: experience,
+            entries_errors: []
+          }
+        }
+
+      {:ok, experience, entries_changeset_errors} ->
+        entries_errors =
+          Enum.map(
+            entries_changeset_errors,
+            fn error ->
+              %{
+                error: EntryResolver.stringify_changeset_error(error),
+                experience_id: experience.id,
+                client_id: error.changes.client_id
+              }
+            end
+          )
+
+        {
+          :ok,
+          %{
+            experience: experience,
+            entries_errors: entries_errors
+          }
+        }
+
+      {:error, changeset} ->
+        {:error, stringify_changeset_error(changeset)}
+    end
+  end
 
   def create(%{exp: attrs}, %{context: %{current_user: user}}) do
     case attrs

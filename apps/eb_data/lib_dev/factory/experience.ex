@@ -4,6 +4,7 @@ defmodule EbData.Factory.Experience do
   alias EbData.Factory
   alias EbData.Factory.FieldDef, as: FieldDefFactory
   alias EbData.DefaultImpl.Experience
+  alias EbData.Factory.Entry, as: EntryFactory
 
   @count 1..5
   @simple_attrs [:user_id, :title, :description, :client_id]
@@ -74,6 +75,9 @@ defmodule EbData.Factory.Experience do
 
       {k, %DateTime{} = v} ->
         {Factory.to_camel_key(k), Timex.format!(v, @iso_extended_format)}
+
+      {:entries, v} ->
+        {"entries", Enum.map(v, &EntryFactory.stringify/1)}
     end)
     |> Enum.into(%{})
   end

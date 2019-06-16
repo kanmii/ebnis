@@ -1,8 +1,8 @@
 defmodule EbData.Factory.Entry do
   alias EbData.Factory
-  alias EbData.DefaultImpl.Experience
   alias EbData.FieldType
   alias EbnisWeb.Resolver
+  alias EbData.DefaultImpl.Experience
 
   @integers 0..1_000
 
@@ -11,15 +11,15 @@ defmodule EbData.Factory.Entry do
   @simple_attributes [:client_id]
   @iso_extended_format "{ISO:Extended:Z}"
 
-  def insert(%Experience{} = exp) do
+  def insert(%{} = exp) do
     insert(exp, %{})
   end
 
-  def insert(%Experience{} = exp, attrs) when is_list(attrs) do
+  def insert(%{} = exp, attrs) when is_list(attrs) do
     insert(exp, Map.new(attrs))
   end
 
-  def insert(%Experience{} = exp, %{} = attrs) do
+  def insert(%{} = exp, %{} = attrs) do
     {:ok, entry} =
       exp
       |> params(attrs)
@@ -28,20 +28,20 @@ defmodule EbData.Factory.Entry do
     entry
   end
 
-  def params(%Experience{} = exp) do
+  def params(%{} = exp) do
     params(exp, %{})
   end
 
-  def params(%Experience{} = exp, attrs) when is_list(attrs) do
+  def params(%{} = exp, attrs) when is_list(attrs) do
     params(exp, Map.new(attrs))
   end
 
   def params(%Experience{} = exp, %{} = attrs) do
     fields =
-      Enum.map(exp.field_defs, fn %{id: id, type: type} ->
+      Enum.map(exp.field_defs, fn field_def ->
         %{
-          def_id: id,
-          data: data(type)
+          def_id: field_def.id,
+          data: data(field_def.type)
         }
       end)
 
@@ -51,6 +51,29 @@ defmodule EbData.Factory.Entry do
       user_id: exp.user_id
     }
     |> Map.merge(attrs)
+  end
+
+  def params(%{} = exp, %{} = attrs) do
+    fields =
+      Enum.map(exp.field_defs, fn
+        field_def ->
+          %{
+            def_id: field_def[:id] || field_def[:client_id] || "0",
+            data: data(field_def.type)
+          }
+      end)
+
+    %{
+      fields: fields,
+      exp_id: exp[:id] || exp[:client_id] || "0",
+      user_id: exp[:user_id]
+    }
+    |> Map.merge(attrs)
+  end
+
+  def params_list(how_many, exp, attrs \\ %{}) do
+    1..how_many
+    |> Enum.map(fn _ -> params(exp, attrs) end)
   end
 
   def field(attrs \\ %{})
@@ -81,7 +104,16 @@ defmodule EbData.Factory.Entry do
         Map.put(acc, "fields", Enum.map(fields, &stringify_field/1))
 
       {:exp_id, v}, acc ->
-        Map.put(acc, "expId", Resolver.convert_to_global_id(v, :experience))
+        value =
+          case attrs[:client_id] do
+            nil ->
+              Resolver.convert_to_global_id(v, :experience)
+
+            _ ->
+              v
+          end
+
+        Map.put(acc, "expId", value)
 
       {k, v}, acc when k in @simple_attributes ->
         Map.put(acc, Factory.to_camel_key(k), v)

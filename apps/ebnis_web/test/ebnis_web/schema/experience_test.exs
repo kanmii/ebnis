@@ -7,6 +7,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
   alias EbData.Factory.FieldDef, as: FieldDefFactory
   alias EbnisWeb.Query.Experience, as: Query
   alias EbnisWeb.Resolver
+  alias EbData.Factory.Entry, as: EntryFactory
 
   @moduletag :db
   @iso_extended_format "{ISO:Extended:Z}"
@@ -16,9 +17,9 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                          &%{type: &1}
                        )
 
-  describe "mutation" do
+  describe "create an experience" do
     # @tag :skip
-    test "create an experience with field values succeeds" do
+    test "with field values succeeds" do
       %{title: title} = params = Factory.params()
       user = RegFactory.insert()
 
@@ -48,7 +49,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "create an experience fails if title (case insensitive) not unique for user" do
+    test "fails if title (case insensitive) not unique for user" do
       user = RegFactory.insert()
       Factory.insert(title: "Good experience", user_id: user.id)
 
@@ -79,7 +80,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "create an experience fails if field name (case insensitive) not unique for experience" do
+    test "fails if field name (case insensitive) not unique for experience" do
       user = RegFactory.insert()
 
       attrs = %{
@@ -123,7 +124,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "create an experience fails if field has wrong data type" do
+    test "fails if field has wrong data type" do
       user = RegFactory.insert()
 
       attrs = %{
@@ -155,67 +156,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "create an experience with client id succeeds" do
-      %{client_id: client_id} = params = Factory.params(client_id: "olu")
-      user = RegFactory.insert()
-
-      variables = %{
-        "exp" => Factory.stringify(params)
-      }
-
-      query = Query.create()
-
-      assert {:ok,
-              %{
-                data: %{
-                  "exp" => %{
-                    "id" => _,
-                    "clientId" => ^client_id,
-                    "fieldDefs" => _
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 query,
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-    end
-
-    # @tag :skip
-    test "create an experience fails if client id not unique for user" do
-      user = RegFactory.insert()
-      Factory.insert(client_id: "abcd", user_id: user.id)
-
-      variables = %{
-        "exp" =>
-          Factory.params(client_id: "abcd")
-          |> Factory.stringify()
-      }
-
-      query = Query.create()
-
-      error = Jason.encode!(%{client_id: "has already been taken"})
-
-      assert {:ok,
-              %{
-                errors: [
-                  %{
-                    message: ^error
-                  }
-                ]
-              }} =
-               Absinthe.run(
-                 query,
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-    end
-
-    # @tag :skip
-    test "create an experience fails if user context not supplied" do
+    test "fails if user context not supplied" do
       variables = %{
         "exp" =>
           Factory.params()
@@ -240,7 +181,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "create an experience with timestamps succeeds" do
+    test "with timestamps succeeds" do
       inserted_at =
         DateTime.utc_now()
         |> Timex.shift(hours: -5)
@@ -451,6 +392,446 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                  variables: variables,
                  context: context(user)
                )
+    end
+  end
+
+  describe "sync offline experience" do
+    # @tag :skip
+    test "fails if client id not unique for user" do
+      user = RegFactory.insert()
+      Factory.insert(client_id: "abcd", user_id: user.id)
+      field_def = FieldDefFactory.params()
+
+      params =
+        Factory.params(
+          client_id: "abcd",
+          field_defs: [
+            Map.put(field_def, :client_id, 1)
+          ]
+        )
+
+      variables = %{
+        "input" => Factory.stringify(params)
+      }
+
+      query = Query.sync_offline_experience()
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert error =~ ~S("client_id":)
+    end
+
+    # @tag :skip
+    test "succeeds with valid entries" do
+      field_defs =
+        FieldDefFactory.params_list(2)
+        |> Enum.with_index(1)
+        |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
+
+      params = Factory.params(client_id: "olu", field_defs: field_defs)
+
+      entries_params =
+        EntryFactory.params_list(2, params)
+        |> Enum.with_index(1)
+        |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
+
+      user = RegFactory.insert()
+
+      variables = %{
+        "input" =>
+          params
+          |> Map.put(:entries, entries_params)
+          |> Factory.stringify()
+      }
+
+      query = Query.sync_offline_experience()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "syncOfflineExperience" => %{
+                    "experience" => %{
+                      "id" => _,
+                      "clientId" => "olu",
+                      "fieldDefs" => _,
+                      "entries" => %{
+                        "edges" => edges
+                      }
+                    },
+                    "entriesErrors" => []
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert entries_params
+             |> Enum.map(&"#{&1.client_id}")
+             |> Enum.sort() ==
+               edges
+               |> Enum.map(&~s(#{&1["node"]["clientId"]}))
+               |> Enum.sort()
+    end
+
+    # @tag :skip
+    test "fails if entry.exp_id != experience.client_id" do
+      field_defs =
+        FieldDefFactory.params_list(2)
+        |> Enum.with_index(1)
+        |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
+
+      params = Factory.params(client_id: "olu", field_defs: field_defs)
+
+      [entry_1, entry_2] =
+        EntryFactory.params_list(2, params)
+        |> Enum.with_index(1)
+        |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
+
+      user = RegFactory.insert()
+      entry_1 = Map.put(entry_1, :exp_id, "pat")
+
+      variables = %{
+        "input" =>
+          params
+          |> Map.put(:entries, [entry_1, entry_2])
+          |> Factory.stringify()
+      }
+
+      query = Query.sync_offline_experience()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "syncOfflineExperience" => %{
+                    "experience" => %{
+                      "_id" => experience_id,
+                      "clientId" => "olu",
+                      "fieldDefs" => _,
+                      "entries" => %{
+                        "edges" => edges
+                      }
+                    },
+                    "entriesErrors" => [
+                      %{
+                        "clientId" => "1",
+                        "error" => error,
+                        "experienceId" => entry_error_experience_id
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert experience_id == entry_error_experience_id
+      assert length(edges) == 1
+      assert error =~ ~s("exp_id":)
+    end
+
+    test "fails if entry.fields.def_id != experience.field_defs.client_id" do
+      field_def = FieldDefFactory.params(client_id: "b")
+
+      params = Factory.params(client_id: "a", field_defs: [field_def])
+      entry = EntryFactory.params(params, %{client_id: "c"})
+      [entry_field] = entry.fields
+      entry = Map.put(entry, :fields, [Map.put(entry_field, :def_id, "d")])
+
+      user = RegFactory.insert()
+
+      variables = %{
+        "input" =>
+          params
+          |> Map.put(:entries, [entry])
+          |> Factory.stringify()
+      }
+
+      query = Query.sync_offline_experience()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "syncOfflineExperience" => %{
+                    "experience" => %{
+                      "_id" => _,
+                      "clientId" => "a",
+                      "fieldDefs" => _,
+                      "entries" => %{
+                        "edges" => []
+                      }
+                    },
+                    "entriesErrors" => [
+                      %{
+                        "clientId" => "c",
+                        "error" => error,
+                        "experienceId" => _
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert error =~ ~s("fields":[{"errors":{"def_id":)
+      assert error =~ ~s("meta":{"def_id":"d")
+    end
+
+    test "fails if entry.fields.def_id not unique" do
+      field_def = FieldDefFactory.params()
+
+      params =
+        Factory.params(
+          client_id: "a",
+          field_defs: [
+            Map.put(field_def, :client_id, "b")
+          ]
+        )
+
+      entry = EntryFactory.params(params, %{client_id: "c"})
+      [entry_field] = entry.fields
+      entry = Map.put(entry, :fields, [entry_field, entry_field])
+
+      user = RegFactory.insert()
+
+      variables = %{
+        "input" =>
+          params
+          |> Map.put(:entries, [entry])
+          |> Factory.stringify()
+      }
+
+      query = Query.sync_offline_experience()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "syncOfflineExperience" => %{
+                    "experience" => %{
+                      "_id" => _,
+                      "clientId" => "a",
+                      "fieldDefs" => _,
+                      "entries" => %{
+                        "edges" => []
+                      }
+                    },
+                    "entriesErrors" => [
+                      %{
+                        "clientId" => "c",
+                        "error" => error,
+                        "experienceId" => _
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert error =~ ~s("fields":[{"errors":{"def_id":)
+      assert error =~ ~s("meta":{"def_id":"b")
+    end
+
+    test "fails if entry.fields.data.type != experience.field_defs.type" do
+      field_def = FieldDefFactory.params(type: "integer")
+
+      params =
+        Factory.params(
+          client_id: "a",
+          field_defs: [
+            field_def
+          ]
+        )
+
+      entry = EntryFactory.params(params, %{client_id: "c"})
+
+      entry_field = %{
+        data: %{"decimal" => 5.0},
+        def_id: field_def.client_id
+      }
+
+      entry = Map.put(entry, :fields, [entry_field])
+
+      user = RegFactory.insert()
+
+      variables = %{
+        "input" =>
+          params
+          |> Map.put(:entries, [entry])
+          |> Factory.stringify()
+      }
+
+      query = Query.sync_offline_experience()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "syncOfflineExperience" => %{
+                    "experience" => %{
+                      "_id" => _,
+                      "clientId" => "a",
+                      "fieldDefs" => _,
+                      "entries" => %{
+                        "edges" => []
+                      }
+                    },
+                    "entriesErrors" => [
+                      %{
+                        "clientId" => "c",
+                        "error" => error,
+                        "experienceId" => _
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert error =~ ~s("fields":[{"errors":{"def_id":)
+      assert error =~ ~s("meta":{"def_id":)
+    end
+
+    test "fails if entry.fields.def_id not in experience.field_defs.client_ids" do
+      field_defs = FieldDefFactory.params_list(2)
+
+      params =
+        Factory.params(
+          client_id: "a",
+          field_defs: field_defs
+        )
+
+      entry = EntryFactory.params(params, %{client_id: "c"})
+      [entry_field, missing_entry_field] = entry.fields
+      entry = Map.put(entry, :fields, [entry_field])
+
+      user = RegFactory.insert()
+
+      variables = %{
+        "input" =>
+          params
+          |> Map.put(:entries, [entry])
+          |> Factory.stringify()
+      }
+
+      query = Query.sync_offline_experience()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "syncOfflineExperience" => %{
+                    "experience" => %{
+                      "_id" => _,
+                      "clientId" => _,
+                      "fieldDefs" => _,
+                      "entries" => %{
+                        "edges" => []
+                      }
+                    },
+                    "entriesErrors" => [
+                      %{
+                        "clientId" => _,
+                        "error" => error,
+                        "experienceId" => _
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert error =~ ~s("fields":[{"errors":{"data":)
+      assert error =~ ~s("meta":{"def_id":"#{missing_entry_field.def_id}")
+    end
+
+    # @tag :skip
+    test "fails if entry.client_ids not unique for experience" do
+      field_defs = [FieldDefFactory.params()]
+
+      params = Factory.params(client_id: "a", field_defs: field_defs)
+      entries = EntryFactory.params_list(2, params, client_id: "b")
+
+      user = RegFactory.insert()
+
+      variables = %{
+        "input" =>
+          params
+          |> Map.put(:entries, entries)
+          |> Factory.stringify()
+      }
+
+      query = Query.sync_offline_experience()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "syncOfflineExperience" => %{
+                    "experience" => %{
+                      "_id" => experience_id,
+                      "clientId" => _,
+                      "fieldDefs" => _,
+                      "entries" => %{
+                        "edges" => edges
+                      }
+                    },
+                    "entriesErrors" => [
+                      %{
+                        "clientId" => "b",
+                        "error" => error,
+                        "experienceId" => entry_error_experience_id
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert experience_id == entry_error_experience_id
+      assert length(edges) == 1
+      assert error =~ ~s("client_id":)
     end
   end
 

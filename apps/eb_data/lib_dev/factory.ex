@@ -51,6 +51,10 @@ defmodule EbData.Factory do
           |> Map.new()
           |> params
 
+      def params_list(how_many, attrs \\ %{}) do
+        Enum.map(1..how_many, fn _ -> params(attrs) end)
+      end
+
       def insert_list(how_many, attrs \\ %{})
 
       def insert_list(how_many, attrs) when is_list(attrs),

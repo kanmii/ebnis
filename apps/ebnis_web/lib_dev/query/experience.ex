@@ -22,6 +22,13 @@ defmodule EbnisWeb.Query.Experience do
           node {
             id
             expId
+            clientId
+            insertedAt
+            updatedAt
+            fields {
+              defId
+              data
+            }
           }
         }
       }
@@ -78,6 +85,33 @@ defmodule EbnisWeb.Query.Experience do
       }
 
       #{@fragment}
+    """
+  end
+
+  def sync_offline_experience do
+    {field_frag_name, field_frag} = FieldDef.all_fields_fragment()
+
+    """
+      mutation CreateAnExperience($input: CreateExp!) {
+        syncOfflineExperience(input: $input) {
+          experience {
+            ...#{@frag_name}
+
+            fieldDefs {
+              ...#{field_frag_name}
+            }
+          }
+
+          entriesErrors {
+            experienceId
+            clientId
+            error
+          }
+        }
+      }
+
+      #{@fragment}
+      #{field_frag}
     """
   end
 end

@@ -11,9 +11,9 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
   @moduletag :db
   @iso_extended_format "{ISO:Extended:Z}"
 
-  describe "mutation" do
+  describe "create entry" do
     # @tag :skip
-    test "create an entry succeeds" do
+    test "succeeds" do
       user = RegFactory.insert()
       exp = ExpFactory.insert(user_id: user.id)
       params = Factory.params(exp)
@@ -48,7 +48,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
 
     # @tag :skip
-    test "create an entry fails if wrong experience id" do
+    test "fails if wrong experience id" do
       user = RegFactory.insert()
 
       params = %{
@@ -80,7 +80,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
 
     # @tag :skip
-    test "create an entry fails if wrong user" do
+    test "fails if wrong user" do
       user = RegFactory.insert()
       exp = ExpFactory.insert(user_id: user.id)
       params = Factory.params(exp)
@@ -109,7 +109,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
 
     # @tag :skip
-    test "create an entry fails if field def does not exist" do
+    test "fails if field def does not exist" do
       user = RegFactory.insert()
       exp = ExpFactory.insert(user_id: user.id)
       params = Factory.params(exp)
@@ -151,7 +151,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
 
     # @tag :skip
-    test "create an entry fails if field def_id not unique" do
+    test "fails if field def_id not unique" do
       user = RegFactory.insert()
       exp = ExpFactory.insert(user_id: user.id)
       params = Factory.params(exp)
@@ -196,7 +196,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
 
     # @tag :skip
-    test "create entry fails if data type of field def does not match data of field" do
+    test "fails if fields.data.type != field_definition.type" do
       user = RegFactory.insert()
 
       exp =
@@ -250,11 +250,14 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
 
     # @tag :skip
-    test "create an entry with client id succeeds" do
+    test "with client id succeeds" do
       user = RegFactory.insert()
       exp = ExpFactory.insert(user_id: user.id)
       client_id = "me"
-      params = Factory.params(exp, client_id: client_id)
+
+      params =
+        Factory.params(exp, client_id: client_id)
+        |> Map.put(:exp_id, Resolver.convert_to_global_id(exp.id, :experience))
 
       variables = %{
         "entry" => Factory.stringify(params)
@@ -286,18 +289,19 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
 
     # @tag :skip
-    test "create an entry fails for non unique client id" do
+    test "fails for non unique client id" do
       user = RegFactory.insert()
       exp = ExpFactory.insert(user_id: user.id)
       client_id = "me"
       Factory.insert(exp, client_id: client_id)
-      params = Factory.params(exp, client_id: client_id)
+
+      params =
+        Factory.params(exp, client_id: client_id)
+        |> Map.put(:exp_id, Resolver.convert_to_global_id(exp.id, :experience))
 
       variables = %{
         "entry" => Factory.stringify(params)
       }
-
-      error = Jason.encode!(%{client_id: "has already been taken"})
 
       query = Query.create()
 
@@ -305,7 +309,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
               %{
                 errors: [
                   %{
-                    message: ^error
+                    message: error
                   }
                 ]
               }} =
@@ -315,10 +319,12 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  variables: variables,
                  context: context(user)
                )
+
+      assert error =~ "client_id"
     end
 
     # @tag :skip
-    test "create an entry fails without user context" do
+    test "fails without user context" do
       user = RegFactory.insert()
       exp = ExpFactory.insert(user_id: user.id)
       params = Factory.params(exp)
@@ -344,7 +350,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                )
     end
 
-    test "create an entry with timestamps succeeds" do
+    test "with timestamps succeeds" do
       inserted_at =
         DateTime.utc_now()
         |> Timex.shift(hours: -15)

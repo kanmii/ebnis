@@ -2,8 +2,10 @@ defmodule EbData do
   import Constantizer
 
   alias EbData.DefaultImpl
+  alias EbData.Impl
+  alias Ecto.Changeset
 
-  @behaviour EbData.Impl
+  @behaviour Impl
 
   #################################### ACCOUNTS ################################
 
@@ -56,6 +58,14 @@ defmodule EbData do
     impl().get_user_exps(user_id, pagination_args)
   end
 
+  @spec sync_offline_experience(attr :: Impl.sync_offline_experience_attributes_t()) ::
+          Impl.sync_offline_experience_success_t() | {:error, Changeset.t()}
+  def sync_offline_experience(attrs) do
+    impl().sync_offline_experience(attrs)
+  end
+
+  ##########################   END EXPERIENCES ###############################
+
   def create_entry(attrs) do
     impl().create_entry(attrs)
   end
@@ -66,6 +76,11 @@ defmodule EbData do
 
   def get_entry(id), do: impl().get_entry(id)
 
+  @spec list_experiences_entries(
+          user_id :: String.t(),
+          experiences_ids :: [String.t()],
+          pagination_args :: Absinthe.Relay.Connection.Options.t()
+        ) :: [Absinthe.Relay.Connection.t()]
   def list_experiences_entries(user_id, experiences_ids, pagination_args) do
     impl().list_experiences_entries(user_id, experiences_ids, pagination_args)
   end

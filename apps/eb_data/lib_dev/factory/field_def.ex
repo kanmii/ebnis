@@ -1,8 +1,11 @@
 defmodule EbData.Factory.FieldDef do
   use EbData.Factory
   alias EbData.FieldType
+  alias EbData.Factory
 
   @field_types FieldType.all_types_string()
+
+  @simple_attributes [:name, :client_id]
 
   def field_types, do: @field_types
 
@@ -16,7 +19,8 @@ defmodule EbData.Factory.FieldDef do
   def all() do
     %{
       name: name(),
-      type: Enum.random(@field_types)
+      type: Enum.random(@field_types),
+      client_id: Sequence.next("")
     }
   end
 
@@ -36,8 +40,8 @@ defmodule EbData.Factory.FieldDef do
       {:type, v} ->
         {"type", String.upcase(v)}
 
-      {:name, v} ->
-        {"name", v}
+      {k, v} when k in @simple_attributes ->
+        {Factory.to_camel_key(k), v}
     end)
     |> Enum.into(%{})
   end

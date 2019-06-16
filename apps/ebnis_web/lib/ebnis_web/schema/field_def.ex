@@ -26,5 +26,13 @@ defmodule EbnisWeb.Schema.FieldDef do
   input_object :create_field_def do
     field(:name, non_null(:string))
     field(:type, non_null(:field_type))
+
+    @desc ~S"""
+      String that uniquely identifies this field definition has been
+      created offline. If an associated entry is also created
+      offline, then `createField.defId` **MUST BE** the same as this
+      field and will be validated as such.
+    """
+    field(:client_id, :id)
   end
 end

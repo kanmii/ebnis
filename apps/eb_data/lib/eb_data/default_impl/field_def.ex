@@ -11,6 +11,7 @@ defmodule EbData.DefaultImpl.FieldDef do
   embedded_schema do
     field(:name, :string)
     field(:type, :string)
+    field(:client_id, :string)
   end
 
   @doc "changeset"
@@ -18,7 +19,8 @@ defmodule EbData.DefaultImpl.FieldDef do
     field_def
     |> cast(attrs, [
       :name,
-      :type
+      :type,
+      :client_id
     ])
     |> validate_required([:name, :type])
     |> validate_length(:name, min: 2)

@@ -28,7 +28,7 @@ defmodule EbnisWeb.Resolver.Entry do
     Resolver.unauthorized()
   end
 
-  defp stringify_changeset_error(changeset) do
+  def stringify_changeset_error(changeset) do
     errors =
       case {stringify_changeset_fields_error(changeset), changeset.errors} do
         {[], []} ->

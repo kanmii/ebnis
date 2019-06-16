@@ -19,16 +19,17 @@ defmodule EbnisWeb.Schema.Entry do
       resolve: &EbnisWeb.Resolver.resolve_internal_id/3
     )
 
-    @desc "The ID of experience to which this entry belongs"
+    @desc ~S"""
+      The ID of experience to which this entry belongs.
+    """
     field(:exp_id, non_null(:id))
 
     @desc ~S"""
-      The client ID. For experiences created on the client and to be synced
-      with the server, the client ID uniquely identifies such and can be used
-      to enforce uniqueness at the DB level. Not providing client_id assumes
-      a fresh experience.
+      The client ID which indicates that an entry has been created offline
+      and is to be synced with the server, the client ID uniquely identifies
+      this entry and will be used prevent sync conflict.
     """
-    field(:client_id, :string)
+    field(:client_id, :id)
 
     @desc "The experience object to which this entry belongs"
     field :exp, non_null(:experience) do
@@ -82,6 +83,16 @@ defmodule EbnisWeb.Schema.Entry do
     field(:failures, list_of(:create_entries_response_error))
   end
 
+  @desc ~S"""
+    Error object that will be returned when an entry is created along side
+    an offline experience.
+  """
+  object :offline_experience_sync_entry_error do
+    field(:experience_id, non_null(:id))
+    field(:client_id, non_null(:id))
+    field(:error, non_null(:string))
+  end
+
   ############################## INPUTS #######################################
 
   @desc ~S"""
@@ -106,20 +117,41 @@ defmodule EbnisWeb.Schema.Entry do
     for this field.
   """
   input_object :create_field do
+    @desc ~S"""
+      The experience definition ID for which the experience data is to be
+      generated. If the associated experience of this entry has been created
+      offline, then this field **MUST BE THE SAME** as `createField.clientId`
+      and will be rejected if not.
+    """
     field(:def_id, non_null(:id))
+
+    @desc ~S"""
+      The data of this entry. It is a JSON string of the form:
+
+      ```json
+        {date: '2017-01-01'}
+        {integer: 4}
+      ```
+    """
     field(:data, non_null(:entry_field_json))
   end
 
   @desc "Variables for creating an experience entry"
   input_object :create_entry do
-    @desc "The global ID of the experience"
+    @desc ~S"""
+      The global ID of the experience or if the associated
+      experience has been created offline, then this must be the same as the
+      `experience.clientId` and will be enforced as such.
+    """
     field(:exp_id, non_null(:id))
 
     @desc "fields making up the experience entry"
     field(:fields, :create_field |> list_of() |> non_null())
 
-    @desc "Client id for entries created on client to be synced with server."
-    field(:client_id, :string)
+    @desc ~S"""
+      Client id for entries created offline and to be synced with server.
+    """
+    field(:client_id, :id)
 
     @desc "If entry is created on the client, it might include timestamps"
     field(:inserted_at, :iso_datetime)

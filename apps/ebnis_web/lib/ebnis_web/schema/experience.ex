@@ -25,7 +25,7 @@ defmodule EbnisWeb.Schema.Experience do
       to enforce uniqueness at the DB level. Not providing client_id assumes
       a fresh experience.
     """
-    field(:client_id, :string)
+    field(:client_id, :id)
 
     @desc "The field definitions used for the experience entries"
     field(:field_defs, :field_def |> list_of() |> non_null())
@@ -40,6 +40,17 @@ defmodule EbnisWeb.Schema.Experience do
     field(:updated_at, non_null(:iso_datetime))
   end
 
+  object :offline_experience_sync do
+    field(:experience, non_null(:experience))
+
+    field(
+      :entries_errors,
+      :offline_experience_sync_entry_error
+      |> list_of()
+      |> non_null()
+    )
+  end
+
   ############################ INPUT OBJECTS ################################
 
   @desc "Variables for defining a new Experience"
@@ -49,13 +60,20 @@ defmodule EbnisWeb.Schema.Experience do
     field(:field_defs, :create_field_def |> list_of() |> non_null())
 
     @desc ~S"""
-      Uniquely identifies an experience created by client for sync conflict
+      Uniquely identifies and signifies an experience has been created offline.
+      This will be used to prevent sync conflict.
     """
-    field(:client_id, :string)
+    field(:client_id, :id)
 
     @desc "If experience is created on the client, it might include timestamps"
     field(:inserted_at, :iso_datetime)
     field(:updated_at, :iso_datetime)
+
+    @desc ~S"""
+      One may define an experience and create associated entries simultaneously
+      if for instance on the client while backend is offline.
+    """
+    field(:entries, :create_entry |> list_of())
   end
 
   @desc "Variables for getting an experience"
@@ -63,13 +81,22 @@ defmodule EbnisWeb.Schema.Experience do
     field(:id, non_null(:id))
   end
 
+  ######################### END INPUT OBJECTS ################################
+
   @desc "Mutations allowed on Experience object"
   object :exp_mutation do
-    @doc "Create an experience"
+    @desc "Create an experience"
     field :exp, :experience do
       arg(:exp, non_null(:create_exp))
 
       resolve(&Resolver.create/2)
+    end
+
+    @desc "Sync an experience created offline"
+    field :sync_offline_experience, :offline_experience_sync do
+      arg(:input, non_null(:create_exp))
+
+      resolve(&Resolver.sync_offline_experience/2)
     end
   end
 
