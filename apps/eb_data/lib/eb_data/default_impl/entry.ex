@@ -67,50 +67,43 @@ defmodule EbData.DefaultImpl.Entry do
           exp_id :: binary(),
           user_id :: binary()
         ) ::
-          {[{Map.t(), Integer.t()}], [{{:error, %Changeset{}}, Integer.t()}]}
-  def changeset_many(changesets, exp_id, user_id) do
-    {valid_changesets_with_indices, non_valid_changesets_with_indices, _} =
-      Enum.reduce(
+          {[Map.t()], [%Changeset{}]}
+  def changeset_many(
         changesets,
-        {[], [], 0},
-        &separate_valid_from_non_valid_changesets/2
-      )
-
-    case get_definitions_from_experience(exp_id, user_id) do
-      {:error, nil} ->
+        exp_id,
+        user_id
+      ) do
+    case DefaultImpl.get_exp_field_defs(exp_id, user_id) do
+      nil ->
         entries_with_errors =
           Enum.reduce(
-            valid_changesets_with_indices,
-            non_valid_changesets_with_indices,
-            &add_errors_to_all_changesets_with_indices/2
+            changesets,
+            [],
+            &[add_exp_does_not_exist_error(&1) | &2]
           )
 
         {[], entries_with_errors}
 
       field_defs ->
         {
-          valid_changesets_with_indices,
-          non_valid_changesets_with_indices
+          valid_changesets,
+          non_valid_changesets
         } =
           Enum.reduce(
-            valid_changesets_with_indices,
-            {[], non_valid_changesets_with_indices},
-            &changesets_with_indices_validate_fields(
-              &1,
-              &2,
-              field_defs
-            )
+            changesets,
+            {[], []},
+            &changesets_validate_fields(&1, &2, field_defs)
           )
 
         timestamp = DateTime.truncate(DateTime.utc_now(), :second)
 
         entries_to_insert =
           Enum.map(
-            valid_changesets_with_indices,
-            &map_changesets_with_indices_to_insert_data(&1, timestamp)
+            valid_changesets,
+            &map_changesets_to_insert_data(&1, timestamp)
           )
 
-        {entries_to_insert, non_valid_changesets_with_indices}
+        {entries_to_insert, non_valid_changesets}
     end
   end
 
@@ -119,8 +112,8 @@ defmodule EbData.DefaultImpl.Entry do
   end
 
   defp validate_fields(%Changeset{} = changeset, exp_id, user_id) do
-    case get_definitions_from_experience(exp_id, user_id) do
-      {:error, nil} ->
+    case DefaultImpl.get_exp_field_defs(exp_id, user_id) do
+      nil ->
         add_exp_does_not_exist_error(changeset)
 
       field_defs ->
@@ -319,43 +312,8 @@ defmodule EbData.DefaultImpl.Entry do
     end
   end
 
-  defp get_definitions_from_experience(exp_id, user_id) do
-    case DefaultImpl.get_exp_field_defs(exp_id, user_id) do
-      nil ->
-        {:error, nil}
-
-      field_defs ->
-        field_defs
-    end
-  end
-
-  defp separate_valid_from_non_valid_changesets(
+  defp changesets_validate_fields(
          changeset,
-         {valid_changesets, non_valid_changesets, index}
-       ) do
-    case changeset.valid? do
-      true ->
-        {
-          [{changeset, index} | valid_changesets],
-          non_valid_changesets,
-          index + 1
-        }
-
-      false ->
-        {
-          valid_changesets,
-          [{{:error, changeset}, index} | non_valid_changesets],
-          index + 1
-        }
-    end
-  end
-
-  defp add_errors_to_all_changesets_with_indices({changeset, index}, acc) do
-    [{{:error, add_exp_does_not_exist_error(changeset)}, index} | acc]
-  end
-
-  defp changesets_with_indices_validate_fields(
-         {changeset, index},
          {valid_changesets, non_valid_changesets},
          definition_id_type_map
        ) do
@@ -376,45 +334,33 @@ defmodule EbData.DefaultImpl.Entry do
 
     case no_field_changeset_with_error? do
       true ->
-        {[{changeset, index} | valid_changesets], non_valid_changesets}
+        {[changeset | valid_changesets], non_valid_changesets}
 
       _ ->
-        changeset_with_error = {
-          :error,
-          put_change(changeset, :fields, fields_changesets)
-        }
+        changeset_with_error = put_change(changeset, :fields, fields_changesets)
 
-        {
-          valid_changesets,
-          [{changeset_with_error, index} | non_valid_changesets]
-        }
+        {valid_changesets, [changeset_with_error | non_valid_changesets]}
     end
   end
 
-  defp map_changesets_with_indices_to_insert_data(
-         {changeset, index},
-         timestamp
-       ) do
+  defp map_changesets_to_insert_data(changeset, timestamp) do
     fields_structs =
       Enum.map(
         changeset.changes.fields,
         &struct(Field, &1.changes)
       )
 
-    changeset_with_fields =
-      Map.merge(
-        changeset.changes,
-        %{
-          fields: fields_structs,
-          # we will update the changeset with timestamps because
-          # we will be using Repo.insert_all which does not
-          # autogenerate timestamps
-          inserted_at: timestamp,
-          updated_at: timestamp
-        }
-      )
-
-    {changeset_with_fields, index}
+    Map.merge(
+      changeset.changes,
+      %{
+        fields: fields_structs,
+        # we will update the changeset with timestamps because
+        # we will be using Repo.insert_all which does not
+        # autogenerate timestamps
+        inserted_at: timestamp,
+        updated_at: timestamp
+      }
+    )
   end
 
   def sync_offline_experience_validate_entries(entries, experience) do

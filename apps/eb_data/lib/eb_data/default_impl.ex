@@ -285,33 +285,53 @@ defmodule EbData.DefaultImpl do
     |> Repo.insert()
   end
 
-  @spec create_entries(attr :: Impl.create_entries_attributes_t()) :: [any]
-  def create_entries(%{list_of_fields: []}) do
-    []
+  @spec create_entries(attr :: Impl.create_entries_attributes_t()) :: {
+          [Map.t()],
+          [Changeset.t()]
+        }
+  def create_entries(%{entries: []}) do
+    {[], []}
   end
 
-  def create_entries(%{exp_id: exp_id, user_id: user_id} = attrs) do
+  def create_entries(%{entries: entries, user_id: user_id} = _attrs) do
     {entries_to_insert, entries_with_errors} =
-      Enum.map(attrs.list_of_fields, fn fields ->
-        Entry.changeset(%Entry{}, %{exp_id: exp_id, fields: fields})
+      Enum.reduce(entries, {[], []}, fn entry, {valids, invalids} ->
+        case Entry.changeset(%Entry{}, entry) do
+          %{valid?: true} = changeset ->
+            {[changeset | valids], invalids}
+
+          changeset ->
+            {valids, [changeset | invalids]}
+        end
       end)
-      |> Entry.changeset_many(exp_id, user_id)
 
-    case entries_to_insert do
-      [] ->
-        []
+    {entries_to_insert, entries_with_errors} =
+      entries_to_insert
+      |> Enum.group_by(& &1.changes.exp_id)
+      |> Enum.reduce({[], entries_with_errors}, fn
+        {exp_id, changesets}, {valids, invalids} ->
+          {valids_, invalids_} =
+            Entry.changeset_many(
+              changesets,
+              exp_id,
+              user_id
+            )
 
-      entries ->
-        entries = Enum.map(entries, fn {entry, _} -> entry end)
+          {Enum.concat(valids, valids_), Enum.concat(invalids, invalids_)}
+      end)
 
-        {_, results_from_db} = Repo.insert_all(Entry, entries, returning: true)
+    inserted_entries =
+      case entries_to_insert do
+        [] ->
+          []
 
-        Enum.zip(entries_to_insert, results_from_db)
-        |> Enum.map(fn {{_entry_to_insert, index}, result_from_db} ->
-          {{:ok, result_from_db}, index}
-        end)
-    end
-    |> Enum.concat(entries_with_errors)
+        entries ->
+          {_, results} = Repo.insert_all(Entry, entries, returning: true)
+
+          results
+      end
+
+    {inserted_entries, entries_with_errors}
   end
 
   def get_entry(id), do: Repo.get(Entry, id)

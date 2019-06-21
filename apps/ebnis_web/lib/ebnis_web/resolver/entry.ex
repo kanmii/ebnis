@@ -81,40 +81,33 @@ defmodule EbnisWeb.Resolver.Entry do
   end
 
   def create_entries(
-        _,
-        %{create_entries: %{exp_id: experience_id} = attrs},
+        %{create_entries: entries},
         %{context: %{current_user: user}}
       ) do
+    entries =
+      Enum.map(
+        entries,
+        &Map.put(
+          &1,
+          :exp_id,
+          Resolver.convert_from_global_id(&1.exp_id, :experience)
+        )
+      )
+
     result =
-      attrs
-      |> Map.merge(%{
+      %{
         user_id: user.id,
-        exp_id: Resolver.convert_from_global_id(experience_id, :experience)
-      })
+        entries: entries
+      }
       |> EbData.create_entries()
-      |> Enum.reduce({[], []}, &separate_successes_and_failures/2)
 
     # test for where field has error e.g. invalid data type
 
     {:ok, mapify_successes_and_failures(result)}
   end
 
-  def create_entries(_, _, _) do
+  def create_entries(_, _) do
     Resolver.unauthorized()
-  end
-
-  defp separate_successes_and_failures({{:ok, entry}, index}, {oks, errors}) do
-    {[%{index: index, entry: entry} | oks], errors}
-  end
-
-  defp separate_successes_and_failures(
-         {{:error, error}, index},
-         {oks, errors}
-       ) do
-    {
-      oks,
-      [%{index: index, error: stringify_changeset_error(error)} | errors]
-    }
   end
 
   defp mapify_successes_and_failures({[], []}) do
@@ -122,15 +115,34 @@ defmodule EbnisWeb.Resolver.Entry do
   end
 
   defp mapify_successes_and_failures({successes, []}) do
+    successes =
+      successes
+      |> Enum.group_by(& &1.exp_id)
+      |> Enum.reduce([], fn {exp_id, entries}, acc ->
+        [%{exp_id: exp_id, entries: entries} | acc]
+      end)
+
     %{successes: successes}
   end
 
   defp mapify_successes_and_failures({[], failures}) do
+    failures =
+      Enum.map(
+        failures,
+        &%{
+          client_id: &1.changes.client_id,
+          error: stringify_changeset_error(&1)
+        }
+      )
+
     %{failures: failures}
   end
 
   defp mapify_successes_and_failures({successes, failures}) do
-    %{successes: successes, failures: failures}
+    Map.merge(
+      mapify_successes_and_failures({successes, []}),
+      mapify_successes_and_failures({[], failures})
+    )
   end
 
   @spec list_experiences_entries(

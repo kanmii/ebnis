@@ -98,18 +98,20 @@ defmodule EbData.Factory.Entry do
   def data("decimal"),
     do: %{"decimal" => "#{Enum.random(@integers)}.#{Enum.random(@integers)}"}
 
-  def stringify(%{} = attrs) do
+  def stringify(%{} = attrs, settings \\ %{}) do
+    experience_id_to_global = settings[:experience_id_to_global]
+
     Enum.reduce(attrs, %{}, fn
       {:fields, fields}, acc ->
         Map.put(acc, "fields", Enum.map(fields, &stringify_field/1))
 
       {:exp_id, v}, acc ->
         value =
-          case attrs[:client_id] do
-            nil ->
+          cond do
+            experience_id_to_global == true || attrs[:client_id] == nil ->
               Resolver.convert_to_global_id(v, :experience)
 
-            _ ->
+            true ->
               v
           end
 

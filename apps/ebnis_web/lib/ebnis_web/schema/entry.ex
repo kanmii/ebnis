@@ -44,12 +44,12 @@ defmodule EbnisWeb.Schema.Entry do
   end
 
   object :create_entries_response_entry do
-    field(:index, non_null(:integer))
-    field(:entry, non_null(:entry))
+    field(:exp_id, non_null(:id))
+    field(:entries, :entry |> list_of() |> non_null())
   end
 
   object :create_entries_response_error do
-    field(:index, non_null(:integer))
+    field(:client_id, non_null(:string))
     field(:error, non_null(:string))
   end
 
@@ -59,15 +59,19 @@ defmodule EbnisWeb.Schema.Entry do
     It looks like so:
     `typescript
     {
-      successes?: [{
-        index: number;
-        entry: Entry
-      }],
+      successes?: [
+        {
+          expId: string;
+          entries: Entry[]
+        }
+      ],
 
-      failures?: [{
-        index: number;
-        error: string
-      }]
+      failures?: [
+        {
+          clientId: string;
+          error: string
+        }
+      ]
     }
     `
 
@@ -158,45 +162,6 @@ defmodule EbnisWeb.Schema.Entry do
     field(:updated_at, :iso_datetime)
   end
 
-  @desc ~S"""
-    Variables for creating several entries for an experience.
-
-    It is of the form:
-    {
-      // The global ID of the experience
-      expId: string;
-
-      // list of fields making up the entries.
-      listOFields: CreateField[][];
-    }
-
-
-    listOFields is basically a list of lists like so:
-    [
-      [{defId: string, data: string}, {}, {}] // list of fields for entry 1,
-      [{}, {}, {}] // list of fields for entry 2,
-      .
-      .
-      .
-      [{}, {}, {}] // list of fields for entry n,
-    ]
-
-    The length of each member list must be the same because all entries for
-    a particular experience will have the same number of fields
-  """
-  input_object :create_entries_input do
-    @desc "The global ID of the experience"
-    field(:exp_id, non_null(:id))
-
-    field(
-      :list_of_fields,
-      :create_field
-      |> list_of()
-      |> list_of()
-      |> non_null()
-    )
-  end
-
   input_object :list_experiences_entries_input do
     @desc ~S"""
       List of global IDs of experiences we wish to get
@@ -237,10 +202,13 @@ defmodule EbnisWeb.Schema.Entry do
       resolve(&Resolver.create/3)
     end
 
+    @desc ~S"""
+      Create several entries, for several experiences
+    """
     field :create_entries, :create_entries_response do
-      arg(:create_entries, non_null(:create_entries_input))
+      arg(:create_entries, :create_entry |> list_of() |> non_null())
 
-      resolve(&Resolver.create_entries/3)
+      resolve(&Resolver.create_entries/2)
     end
   end
 

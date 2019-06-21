@@ -16,8 +16,12 @@ defmodule EbData.Impl do
         }
 
   @type create_entries_attributes_t :: %{
-          exp_id: String.t(),
-          list_of_fields: [[Map.t()]],
+          entries: [
+            %{
+              exp_id: String.t(),
+              list_of_fields: [[Map.t()]]
+            }
+          ],
           user_id: String.t()
         }
 
@@ -37,7 +41,10 @@ defmodule EbData.Impl do
 
   @callback create_entry(map) :: {:ok, map} | {:error, term, map}
 
-  @callback create_entries(map) :: [any]
+  @callback create_entries(create_entries_attributes_t()) :: {
+              [Map.t()],
+              [Changeset.t()]
+            }
 
   @callback list_experiences_entries(
               user_id :: String.t(),

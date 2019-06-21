@@ -26,8 +26,8 @@ defmodule EbnisWeb.Query.Entry do
   @create_entries_response_fragment """
   fragment #{@create_entries_response_fragment_name} on CreateEntriesResponse {
       successes {
-        index
-        entry {
+        expId
+        entries {
           ...#{@fragment_name}
 
           fields {
@@ -37,7 +37,7 @@ defmodule EbnisWeb.Query.Entry do
       }
 
       failures {
-        index
+        clientId
         error
       }
     }
@@ -62,7 +62,7 @@ defmodule EbnisWeb.Query.Entry do
 
   def create_entries do
     """
-    mutation CreateEntriesMutation($createEntries: CreateEntriesInput!) {
+    mutation CreateEntriesMutation($createEntries: [CreateEntry!]!) {
       createEntries(createEntries: $createEntries) {
         ...#{@create_entries_response_fragment_name}
       }

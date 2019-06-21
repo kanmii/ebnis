@@ -403,29 +403,26 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     # @tag :skip
     test "succeeds" do
       user = RegFactory.insert()
-      exp = ExpFactory.insert(user_id: user.id)
-      exp_id = Integer.to_string(exp.id)
-      params = Factory.params(exp).fields
+      exp1 = ExpFactory.insert(user_id: user.id)
+      exp_id1 = Integer.to_string(exp1.id)
 
-      more_fields =
-        Enum.map(params, fn %{def_id: def_id, data: data} ->
-          [data_type] = Map.keys(data)
-
-          %{
-            def_id: def_id,
-            data: Factory.data(data_type)
-          }
-          |> Factory.stringify_field()
+      {params1, _} =
+        Factory.params_list(2, exp1)
+        |> Enum.reduce({[], 1}, fn p, {acc, i} ->
+          {[Map.put(p, :client_id, i) | acc], i + 1}
         end)
 
+      exp2 = ExpFactory.insert(user_id: user.id)
+      params2 = Factory.params(exp2, client_id: 1)
+      exp_id2 = Integer.to_string(exp2.id)
+
       variables = %{
-        "createEntries" => %{
-          "expId" => Resolver.convert_to_global_id(exp_id, :experience),
-          "listOfFields" => [
-            Enum.map(params, &Factory.stringify_field/1),
-            more_fields
-          ]
-        }
+        "createEntries" =>
+          Enum.map(
+            params1,
+            &Factory.stringify(&1, %{experience_id_to_global: true})
+          )
+          |> Enum.concat([Factory.stringify(params2, %{experience_id_to_global: true})])
       }
 
       query = Query.create_entries()
@@ -435,24 +432,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                 data: %{
                   "createEntries" => %{
                     "failures" => nil,
-                    "successes" => [
-                      %{
-                        "entry" => %{
-                          "_id" => _,
-                          "expId" => ^exp_id,
-                          "fields" => fields1
-                        },
-                        "index" => index1
-                      },
-                      %{
-                        "entry" => %{
-                          "_id" => _,
-                          "expId" => ^exp_id,
-                          "fields" => fields2
-                        },
-                        "index" => index2
-                      }
-                    ]
+                    "successes" => successes
                   }
                 }
               }} =
@@ -463,88 +443,73 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  context: context(user)
                )
 
-      assert Enum.sort([index1, index2]) == [0, 1]
-
-      exp_field_def_ids = Enum.map(exp.field_defs, & &1.id) |> Enum.sort()
-      entry_field_defs_ids1 = Enum.map(fields1, & &1["defId"]) |> Enum.sort()
-      entry_field_defs_ids2 = Enum.map(fields2, & &1["defId"]) |> Enum.sort()
-
-      assert exp_field_def_ids == entry_field_defs_ids1
-      assert exp_field_def_ids == entry_field_defs_ids2
-    end
-
-    # @tag :skip
-    test "fails because listOfFields is empty" do
-      variables = %{
-        "createEntries" => %{
-          # if we ever reach DB, this test will fail because exp_id must be
-          # a non zero integer
-          "expId" => Resolver.convert_to_global_id("0", :experience),
-          "listOfFields" => []
-        }
-      }
-
-      assert {:ok,
-              %{
-                data: %{
-                  "createEntries" => %{
-                    "successes" => nil,
-                    "failures" => nil
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 Query.create_entries(),
-                 Schema,
-                 variables: variables,
-                 context: context(%{id: "1"})
-               )
-    end
-
-    # @tag :skip
-    test "fails if listOfFields has empty array member" do
-      user = RegFactory.insert()
-      exp = ExpFactory.insert(%{user_id: user.id})
-      exp_id = Integer.to_string(exp.id)
-      fields = Factory.params(exp).fields
-
-      # empty array member
-      more_fields = []
-
-      variables = %{
-        "createEntries" => %{
-          "expId" => Resolver.convert_to_global_id(exp_id, :experience),
-          "listOfFields" => [
-            Enum.map(fields, &Factory.stringify_field/1),
-            more_fields
+      [
+        %{
+          "expId" => ^exp_id1,
+          "entries" => [
+            %{
+              "_id" => _,
+              "expId" => ^exp_id1,
+              "clientId" => client_id1,
+              "fields" => fields1
+            },
+            %{
+              "_id" => _,
+              "expId" => ^exp_id1,
+              "clientId" => client_id2,
+              "fields" => fields2
+            }
+          ]
+        },
+        %{
+          "expId" => ^exp_id2,
+          "entries" => [
+            %{
+              "_id" => _,
+              "expId" => ^exp_id2,
+              "clientId" => "1",
+              "fields" => fields
+            }
           ]
         }
+      ] = Enum.sort_by(successes, & &1["expId"])
+
+      assert Enum.sort([client_id1, client_id2]) == ["1", "2"]
+
+      exp_field_def_ids = Enum.map(exp1.field_defs, & &1.id) |> Enum.sort()
+      entry_field_defs_ids1 = Enum.map(fields1, & &1["defId"]) |> Enum.sort()
+      entry_field_defs_ids2 = Enum.map(fields2, & &1["defId"]) |> Enum.sort()
+      assert exp_field_def_ids == entry_field_defs_ids1
+      assert exp_field_def_ids == entry_field_defs_ids2
+
+      assert Enum.map(exp2.field_defs, & &1.id) |> Enum.sort() ==
+               Enum.map(fields, & &1["defId"]) |> Enum.sort()
+    end
+
+    # @tag :skip
+    test "fails if an entry is empty" do
+      user = RegFactory.insert()
+      exp = ExpFactory.insert(%{user_id: user.id})
+      params = Factory.params(exp, client_id: 1)
+
+      empty_entry = %{}
+
+      variables = %{
+        "createEntries" => [
+          Factory.stringify(params),
+          empty_entry
+        ]
       }
 
       query = Query.create_entries()
 
       assert {:ok,
               %{
-                data: %{
-                  "createEntries" => %{
-                    "successes" => [
-                      %{
-                        "entry" => %{
-                          "_id" => _,
-                          "expId" => ^exp_id,
-                          "fields" => _fields1
-                        },
-                        "index" => 0
-                      }
-                    ],
-                    "failures" => [
-                      %{
-                        "error" => "{\"fields\":\"can't be blank\"}",
-                        "index" => 1
-                      }
-                    ]
+                errors: [
+                  %{
+                    message: message
                   }
-                }
+                ]
               }} =
                Absinthe.run(
                  query,
@@ -552,45 +517,27 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  variables: variables,
                  context: context(user)
                )
+
+      assert message =~ "expId"
     end
 
     # @tag :skip
-    test "fails if listOfFields has member with missing data" do
+    test "succeeds for valid and fail for invalid entries" do
       user = RegFactory.insert()
       exp = ExpFactory.insert(%{user_id: user.id}, ["integer", "decimal"])
       exp_id = Integer.to_string(exp.id)
-      fields = Factory.params(exp).fields
-
-      # more_fields will be missing data for integer type
-      [missing_field | more_fields] =
-        Enum.map(fields, fn %{def_id: def_id, data: data} ->
-          [data_type] = Map.keys(data)
-
-          %{def_id: def_id, data: Factory.data(data_type)}
-          |> Factory.stringify_field()
-        end)
-
-      error =
-        Jason.encode!(%{
-          fields: [
-            %{
-              meta: %{
-                def_id: missing_field["defId"],
-                index: 1
-              },
-              errors: %{data: "can't be blank"}
-            }
-          ]
-        })
+      params1 = Factory.params(exp, client_id: 1)
+      params2 = Factory.params(exp, client_id: 2)
+      [field2, _] = params2.fields
 
       variables = %{
-        "createEntries" => %{
-          "expId" => Resolver.convert_to_global_id(exp_id, :experience),
-          "listOfFields" => [
-            more_fields,
-            Enum.map(fields, &Factory.stringify_field/1)
-          ]
-        }
+        "createEntries" => [
+          Factory.stringify(params1, %{experience_id_to_global: true}),
+          Factory.stringify(
+            Map.put(params2, :fields, [field2]),
+            %{experience_id_to_global: true}
+          )
+        ]
       }
 
       query = Query.create_entries()
@@ -601,17 +548,19 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                   "createEntries" => %{
                     "successes" => [
                       %{
-                        "entry" => %{
-                          "id" => _,
-                          "expId" => ^exp_id
-                        },
-                        "index" => 1
+                        "expId" => ^exp_id,
+                        "entries" => [
+                          %{
+                            "id" => _,
+                            "expId" => ^exp_id
+                          }
+                        ]
                       }
                     ],
                     "failures" => [
                       %{
-                        "error" => ^error,
-                        "index" => 0
+                        "error" => error,
+                        "clientId" => "2"
                       }
                     ]
                   }
@@ -623,6 +572,9 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  variables: variables,
                  context: context(user)
                )
+
+      assert error =~ ~s("data":"can't be blank")
+      assert error =~ ~s("def_id":)
     end
   end
 
