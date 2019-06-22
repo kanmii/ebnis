@@ -59,7 +59,7 @@ defmodule EbData do
   end
 
   @spec sync_offline_experience(attr :: Impl.sync_offline_experience_attributes_t()) ::
-          Impl.sync_offline_experience_success_t() | {:error, Changeset.t()}
+          Impl.sync_offline_experience_success_t() | Impl.sync_offline_experience_failure_t()
   def sync_offline_experience(attrs) do
     impl().sync_offline_experience(attrs)
   end

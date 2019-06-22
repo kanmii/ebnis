@@ -88,18 +88,24 @@ defmodule EbnisWeb.Query.Experience do
     """
   end
 
-  def sync_offline_experience do
+  def sync_offline_experiences do
     {field_frag_name, field_frag} = FieldDef.all_fields_fragment()
 
     """
-      mutation CreateAnExperience($input: CreateExp!) {
-        syncOfflineExperience(input: $input) {
+      mutation SyncOfflineExperiences($input: [CreateExp!]!) {
+        syncOfflineExperiences(input: $input) {
           experience {
             ...#{@frag_name}
 
             fieldDefs {
               ...#{field_frag_name}
             }
+          }
+
+          experienceError {
+            index
+            clientId
+            error
           }
 
           entriesErrors {

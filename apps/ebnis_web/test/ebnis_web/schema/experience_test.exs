@@ -411,18 +411,26 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         )
 
       variables = %{
-        "input" => Factory.stringify(params)
+        "input" => [Factory.stringify(params)]
       }
 
-      query = Query.sync_offline_experience()
+      query = Query.sync_offline_experiences()
 
       assert {:ok,
               %{
-                errors: [
-                  %{
-                    message: error
-                  }
-                ]
+                data: %{
+                  "syncOfflineExperiences" => [
+                    %{
+                      "entriesErrors" => nil,
+                      "experience" => nil,
+                      "experienceError" => %{
+                        "error" => error,
+                        "index" => 0,
+                        "clientId" => "abcd"
+                      }
+                    }
+                  ]
+                }
               }} =
                Absinthe.run(
                  query,
@@ -435,44 +443,60 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "succeeds with valid entries" do
-      field_defs =
+    test "one succeeds and one fails when client id not provided" do
+      user = RegFactory.insert()
+
+      field_defs1 =
         FieldDefFactory.params_list(2)
         |> Enum.with_index(1)
         |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
 
-      params = Factory.params(client_id: "olu", field_defs: field_defs)
+      params1 = Factory.params(client_id: "a", field_defs: field_defs1)
 
       entries_params =
-        EntryFactory.params_list(2, params)
+        EntryFactory.params_list(2, params1)
         |> Enum.with_index(1)
         |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
 
-      user = RegFactory.insert()
+      params2 = Factory.params()
 
       variables = %{
-        "input" =>
-          params
+        "input" => [
+          params1
           |> Map.put(:entries, entries_params)
-          |> Factory.stringify()
+          |> Factory.stringify(),
+          Factory.stringify(params2)
+        ]
       }
 
-      query = Query.sync_offline_experience()
+      query = Query.sync_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperience" => %{
-                    "experience" => %{
-                      "id" => _,
-                      "clientId" => "olu",
-                      "fieldDefs" => _,
-                      "entries" => %{
-                        "edges" => edges
-                      }
+                  "syncOfflineExperiences" => [
+                    %{
+                      "entriesErrors" => nil,
+                      "experience" => %{
+                        "id" => _,
+                        "clientId" => "a",
+                        "fieldDefs" => _,
+                        "entries" => %{
+                          "edges" => edges
+                        }
+                      },
+                      "experienceError" => nil
                     },
-                    "entriesErrors" => []
-                  }
+                    %{
+                      "entriesErrors" => nil,
+                      "experience" => nil,
+                      "experienceError" => %{
+                        "error" => error,
+                        "index" => 1,
+                        "clientId" => nil
+                      }
+                    }
+                  ]
                 }
               }} =
                Absinthe.run(
@@ -488,6 +512,8 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                edges
                |> Enum.map(&~s(#{&1["node"]["clientId"]}))
                |> Enum.sort()
+
+      assert error =~ ~S("client_id":)
     end
 
     # @tag :skip
@@ -497,7 +523,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         |> Enum.with_index(1)
         |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
 
-      params = Factory.params(client_id: "olu", field_defs: field_defs)
+      params = Factory.params(client_id: "a", field_defs: field_defs)
 
       [entry_1, entry_2] =
         EntryFactory.params_list(2, params)
@@ -508,34 +534,37 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       entry_1 = Map.put(entry_1, :exp_id, "pat")
 
       variables = %{
-        "input" =>
+        "input" => [
           params
           |> Map.put(:entries, [entry_1, entry_2])
           |> Factory.stringify()
+        ]
       }
 
-      query = Query.sync_offline_experience()
+      query = Query.sync_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperience" => %{
-                    "experience" => %{
-                      "_id" => experience_id,
-                      "clientId" => "olu",
-                      "fieldDefs" => _,
-                      "entries" => %{
-                        "edges" => edges
-                      }
-                    },
-                    "entriesErrors" => [
-                      %{
-                        "clientId" => "1",
-                        "error" => error,
-                        "experienceId" => entry_error_experience_id
-                      }
-                    ]
-                  }
+                  "syncOfflineExperiences" => [
+                    %{
+                      "experience" => %{
+                        "_id" => experience_id,
+                        "clientId" => "a",
+                        "fieldDefs" => _,
+                        "entries" => %{
+                          "edges" => edges
+                        }
+                      },
+                      "entriesErrors" => [
+                        %{
+                          "clientId" => "1",
+                          "error" => error,
+                          "experienceId" => entry_error_experience_id
+                        }
+                      ]
+                    }
+                  ]
                 }
               }} =
                Absinthe.run(
@@ -561,34 +590,37 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       variables = %{
-        "input" =>
+        "input" => [
           params
           |> Map.put(:entries, [entry])
           |> Factory.stringify()
+        ]
       }
 
-      query = Query.sync_offline_experience()
+      query = Query.sync_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperience" => %{
-                    "experience" => %{
-                      "_id" => _,
-                      "clientId" => "a",
-                      "fieldDefs" => _,
-                      "entries" => %{
-                        "edges" => []
-                      }
-                    },
-                    "entriesErrors" => [
-                      %{
-                        "clientId" => "c",
-                        "error" => error,
-                        "experienceId" => _
-                      }
-                    ]
-                  }
+                  "syncOfflineExperiences" => [
+                    %{
+                      "experience" => %{
+                        "_id" => _,
+                        "clientId" => "a",
+                        "fieldDefs" => _,
+                        "entries" => %{
+                          "edges" => []
+                        }
+                      },
+                      "entriesErrors" => [
+                        %{
+                          "clientId" => "c",
+                          "error" => error,
+                          "experienceId" => _
+                        }
+                      ]
+                    }
+                  ]
                 }
               }} =
                Absinthe.run(
@@ -620,34 +652,37 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       variables = %{
-        "input" =>
+        "input" => [
           params
           |> Map.put(:entries, [entry])
           |> Factory.stringify()
+        ]
       }
 
-      query = Query.sync_offline_experience()
+      query = Query.sync_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperience" => %{
-                    "experience" => %{
-                      "_id" => _,
-                      "clientId" => "a",
-                      "fieldDefs" => _,
-                      "entries" => %{
-                        "edges" => []
-                      }
-                    },
-                    "entriesErrors" => [
-                      %{
-                        "clientId" => "c",
-                        "error" => error,
-                        "experienceId" => _
-                      }
-                    ]
-                  }
+                  "syncOfflineExperiences" => [
+                    %{
+                      "experience" => %{
+                        "_id" => _,
+                        "clientId" => "a",
+                        "fieldDefs" => _,
+                        "entries" => %{
+                          "edges" => []
+                        }
+                      },
+                      "entriesErrors" => [
+                        %{
+                          "clientId" => "c",
+                          "error" => error,
+                          "experienceId" => _
+                        }
+                      ]
+                    }
+                  ]
                 }
               }} =
                Absinthe.run(
@@ -684,34 +719,37 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       variables = %{
-        "input" =>
+        "input" => [
           params
           |> Map.put(:entries, [entry])
           |> Factory.stringify()
+        ]
       }
 
-      query = Query.sync_offline_experience()
+      query = Query.sync_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperience" => %{
-                    "experience" => %{
-                      "_id" => _,
-                      "clientId" => "a",
-                      "fieldDefs" => _,
-                      "entries" => %{
-                        "edges" => []
-                      }
-                    },
-                    "entriesErrors" => [
-                      %{
-                        "clientId" => "c",
-                        "error" => error,
-                        "experienceId" => _
-                      }
-                    ]
-                  }
+                  "syncOfflineExperiences" => [
+                    %{
+                      "experience" => %{
+                        "_id" => _,
+                        "clientId" => "a",
+                        "fieldDefs" => _,
+                        "entries" => %{
+                          "edges" => []
+                        }
+                      },
+                      "entriesErrors" => [
+                        %{
+                          "clientId" => "c",
+                          "error" => error,
+                          "experienceId" => _
+                        }
+                      ]
+                    }
+                  ]
                 }
               }} =
                Absinthe.run(
@@ -741,34 +779,37 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       variables = %{
-        "input" =>
+        "input" => [
           params
           |> Map.put(:entries, [entry])
           |> Factory.stringify()
+        ]
       }
 
-      query = Query.sync_offline_experience()
+      query = Query.sync_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperience" => %{
-                    "experience" => %{
-                      "_id" => _,
-                      "clientId" => _,
-                      "fieldDefs" => _,
-                      "entries" => %{
-                        "edges" => []
-                      }
-                    },
-                    "entriesErrors" => [
-                      %{
+                  "syncOfflineExperiences" => [
+                    %{
+                      "experience" => %{
+                        "_id" => _,
                         "clientId" => _,
-                        "error" => error,
-                        "experienceId" => _
-                      }
-                    ]
-                  }
+                        "fieldDefs" => _,
+                        "entries" => %{
+                          "edges" => []
+                        }
+                      },
+                      "entriesErrors" => [
+                        %{
+                          "clientId" => _,
+                          "error" => error,
+                          "experienceId" => _
+                        }
+                      ]
+                    }
+                  ]
                 }
               }} =
                Absinthe.run(
@@ -792,34 +833,37 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       variables = %{
-        "input" =>
+        "input" => [
           params
           |> Map.put(:entries, entries)
           |> Factory.stringify()
+        ]
       }
 
-      query = Query.sync_offline_experience()
+      query = Query.sync_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperience" => %{
-                    "experience" => %{
-                      "_id" => experience_id,
-                      "clientId" => _,
-                      "fieldDefs" => _,
-                      "entries" => %{
-                        "edges" => edges
-                      }
-                    },
-                    "entriesErrors" => [
-                      %{
-                        "clientId" => "b",
-                        "error" => error,
-                        "experienceId" => entry_error_experience_id
-                      }
-                    ]
-                  }
+                  "syncOfflineExperiences" => [
+                    %{
+                      "experience" => %{
+                        "_id" => experience_id,
+                        "clientId" => _,
+                        "fieldDefs" => _,
+                        "entries" => %{
+                          "edges" => edges
+                        }
+                      },
+                      "entriesErrors" => [
+                        %{
+                          "clientId" => "b",
+                          "error" => error,
+                          "experienceId" => entry_error_experience_id
+                        }
+                      ]
+                    }
+                  ]
                 }
               }} =
                Absinthe.run(
@@ -832,6 +876,71 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       assert experience_id == entry_error_experience_id
       assert length(edges) == 1
       assert error =~ ~s("client_id":)
+    end
+
+    # @tag :skip
+    test "fails if no user context" do
+      params = Factory.params()
+
+      variables = %{
+        "input" => [
+          params
+          |> Factory.stringify()
+        ]
+      }
+
+      query = Query.sync_offline_experiences()
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Unauthorized"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    # @tag :skip
+    test "fails if user does not exist" do
+      user = %{id: 0}
+      params = Factory.params(client_id: "a")
+
+      variables = %{
+        "input" => [
+          Factory.stringify(params)
+        ]
+      }
+
+      query = Query.sync_offline_experiences()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "syncOfflineExperiences" => [
+                    %{
+                      "experienceError" => %{
+                        "clientId" => "a",
+                        "index" => 0,
+                        "error" => error
+                      }
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert error =~ ~s("user":)
     end
   end
 

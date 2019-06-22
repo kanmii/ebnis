@@ -222,10 +222,13 @@ defmodule EbData.DefaultImpl do
     |> Repo.insert()
   end
 
-  @spec sync_offline_experience(Impl.sync_offline_experience_attributes_t()) ::
-          Impl.sync_offline_experience_success_t() | {:error, Changeset.t()}
-  def sync_offline_experience(%{client_id: _} = attrs) do
-    case create_exp(attrs) do
+  @spec sync_offline_experience(
+          attrs ::
+            Impl.sync_offline_experience_attributes_t()
+        ) ::
+          Impl.sync_offline_experience_success_t() | Impl.sync_offline_experience_failure_t()
+  def sync_offline_experience(attrs) do
+    case create_exp(Map.put(attrs, :custom_requireds, [:client_id])) do
       {:ok, %Experience{} = experience} ->
         entries = attrs[:entries] || []
 
@@ -246,8 +249,8 @@ defmodule EbData.DefaultImpl do
 
         {:ok, experience_with_entries, entries_errors_changesets}
 
-      {:error, experience_error_changeset} ->
-        {:error, experience_error_changeset}
+      {:error, changeset} ->
+        {:error, changeset}
     end
   end
 

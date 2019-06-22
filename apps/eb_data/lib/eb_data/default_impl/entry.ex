@@ -100,7 +100,7 @@ defmodule EbData.DefaultImpl.Entry do
         entries_to_insert =
           Enum.map(
             valid_changesets,
-            &map_changesets_to_insert_data(&1, timestamp)
+            &map_changeset_to_insert_data(&1, timestamp)
           )
 
         {entries_to_insert, non_valid_changesets}
@@ -343,7 +343,7 @@ defmodule EbData.DefaultImpl.Entry do
     end
   end
 
-  defp map_changesets_to_insert_data(changeset, timestamp) do
+  defp map_changeset_to_insert_data(changeset, timestamp) do
     fields_structs =
       Enum.map(
         changeset.changes.fields,
@@ -365,6 +365,9 @@ defmodule EbData.DefaultImpl.Entry do
 
   def sync_offline_experience_validate_entries(entries, experience) do
     timestamp = DateTime.truncate(DateTime.utc_now(), :second)
+    experience_client_id = experience.client_id
+    field_defs = experience.field_defs
+    experience_id = experience.id
 
     {valid_entries, rejected_changesets, _} =
       Enum.reduce(
@@ -373,8 +376,7 @@ defmodule EbData.DefaultImpl.Entry do
         &sync_offline_experience_validate_entry(
           &1,
           &2,
-          experience,
-          timestamp
+          {timestamp, experience_client_id, field_defs, experience_id}
         )
       )
 
@@ -384,10 +386,8 @@ defmodule EbData.DefaultImpl.Entry do
   defp sync_offline_experience_validate_entry(
          entry,
          {accepted_entries, rejected_changesets, client_ids},
-         experience,
-         timestamp
+         {timestamp, experience_client_id, field_defs, experience_id}
        ) do
-    experience_client_id = experience.client_id
     client_id = entry.client_id
 
     cond do
@@ -405,16 +405,15 @@ defmodule EbData.DefaultImpl.Entry do
         {valid_fields, invalid_fields_changesets} =
           fields_valid_offline_experience?(
             entry.fields,
-            experience.field_defs
+            field_defs
           )
 
         case invalid_fields_changesets do
           [] ->
-            # user supplied timestamps should win
             accepted_entry =
-              sync_offline_experience_validate_entry_with_changeset(
+              sync_offline_experience_changeset_to_insert_data(
                 entry,
-                experience.id,
+                experience_id,
                 valid_fields,
                 timestamp
               )
@@ -434,12 +433,13 @@ defmodule EbData.DefaultImpl.Entry do
     end
   end
 
-  defp sync_offline_experience_validate_entry_with_changeset(
+  defp sync_offline_experience_changeset_to_insert_data(
          entry,
          experience_id,
          fields,
          timestamp
        ) do
+    # user supplied timestamps should win
     entry =
       %{inserted_at: timestamp, updated_at: timestamp}
       |> Map.merge(%{

@@ -40,18 +40,48 @@ defmodule EbnisWeb.Schema.Experience do
     field(:updated_at, non_null(:iso_datetime))
   end
 
-  object :offline_experience_sync do
-    field(:experience, non_null(:experience))
-
-    field(
-      :entries_errors,
-      :offline_experience_sync_entry_error
-      |> list_of()
-      |> non_null()
-    )
+  @desc ~S"""
+    Error object that will be returned when an entry is created along side
+    an offline experience.
+  """
+  object :offline_experience_sync_entry_error do
+    field(:experience_id, non_null(:id))
+    field(:client_id, non_null(:id))
+    field(:error, non_null(:string))
   end
 
-  ############################ INPUT OBJECTS ################################
+  @desc ~S"""
+    The error object that will returned when an offline experience fails to
+    insert into the database. The difference between this and
+    `offlineExperienceSyncEntryError` is that this object signified we are not
+    able to create the experience in the first place in which case we expect
+    `offlineExperienceSyncEntryError` field to be null.
+  """
+  object :offline_experience_sync_experience_error do
+    @desc ~S"""
+      The client ID of the failing experience. As user may not have provided a
+      client ID, this field is nullable and in that case, the index field will
+      be used to identify this error
+    """
+    field(:client_id, :id)
+
+    @desc ~S"""
+      The index of the failing experience in the list of experiences input
+    """
+    field(:index, non_null(:integer))
+
+    field(:error, non_null(:string))
+  end
+
+  object :offline_experience_sync do
+    field(:experience, :experience)
+    field(:experience_error, :offline_experience_sync_experience_error)
+    field(:entries_errors, list_of(:offline_experience_sync_entry_error))
+  end
+
+  ######################### END REGULAR OBJECTS ###########################
+
+  ############################ INPUT OBJECTS ##############################
 
   @desc "Variables for defining a new Experience"
   input_object :create_exp do
@@ -83,6 +113,8 @@ defmodule EbnisWeb.Schema.Experience do
 
   ######################### END INPUT OBJECTS ################################
 
+  ######################### MUTATION ################################
+
   @desc "Mutations allowed on Experience object"
   object :exp_mutation do
     @desc "Create an experience"
@@ -92,13 +124,17 @@ defmodule EbnisWeb.Schema.Experience do
       resolve(&Resolver.create/2)
     end
 
-    @desc "Sync an experience created offline"
-    field :sync_offline_experience, :offline_experience_sync do
-      arg(:input, non_null(:create_exp))
+    @desc "Sync many experiences created offline"
+    field :sync_offline_experiences, list_of(:offline_experience_sync) do
+      arg(:input, :create_exp |> list_of() |> non_null())
 
-      resolve(&Resolver.sync_offline_experience/2)
+      resolve(&Resolver.sync_offline_experiences/2)
     end
   end
+
+  ######################### END MUTATIONS ################################
+
+  ######################### QUERIES ################################
 
   @desc "Queries allowed on Experience object"
   object :exp_query do
@@ -116,6 +152,8 @@ defmodule EbnisWeb.Schema.Experience do
       resolve(&Resolver.get_exp/2)
     end
   end
+
+  ######################### END QUERIES ################################
 
   connection(node_type: :experience)
 end

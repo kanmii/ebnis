@@ -87,16 +87,6 @@ defmodule EbnisWeb.Schema.Entry do
     field(:failures, list_of(:create_entries_response_error))
   end
 
-  @desc ~S"""
-    Error object that will be returned when an entry is created along side
-    an offline experience.
-  """
-  object :offline_experience_sync_entry_error do
-    field(:experience_id, non_null(:id))
-    field(:client_id, non_null(:id))
-    field(:error, non_null(:string))
-  end
-
   ############################## INPUTS #######################################
 
   @desc ~S"""

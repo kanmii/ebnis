@@ -8,6 +8,8 @@ defmodule EbData.DefaultImpl.Experience do
   alias EbData.DefaultImpl.FieldDef
   alias EbData.DefaultImpl.Entry
 
+  @always_required_fields [:title, :user_id, :field_defs]
+
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :utc_datetime]
   schema "experiences" do
@@ -33,7 +35,12 @@ defmodule EbData.DefaultImpl.Experience do
       :updated_at
     ])
     |> cast_embed(:field_defs, required: true)
-    |> validate_required([:title, :user_id, :field_defs])
+    |> validate_required(
+      Enum.concat(
+        @always_required_fields,
+        attrs[:custom_requireds] || []
+      )
+    )
     |> validate_field_defs()
     |> assoc_constraint(:user)
     |> unique_constraint(:title, name: :experiences_user_id_title_index)

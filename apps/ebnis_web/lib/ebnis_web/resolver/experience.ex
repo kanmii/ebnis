@@ -6,45 +6,54 @@ defmodule EbnisWeb.Resolver.Experience do
   alias EbnisWeb.Resolver.Entry, as: EntryResolver
   # alias EbData.Impl
 
-  def sync_offline_experience(
-        %{input: %{} = attrs},
-        %{context: %{current_user: user}}
+  def sync_offline_experiences(
+        %{input: experiences},
+        %{context: %{current_user: %{id: user_id}}}
       ) do
-    case attrs
-         |> Map.put(:user_id, user.id)
-         |> EbData.sync_offline_experience() do
-      {:ok, experience, []} ->
-        {
-          :ok,
-          %{
-            experience: experience,
-            entries_errors: []
-          }
-        }
+    {
+      :ok,
+      experiences
+      |> Enum.with_index()
+      |> Enum.map(&sync_offline_experience(&1, user_id))
+    }
+  end
 
-      {:ok, experience, entries_changeset_errors} ->
-        entries_errors =
+  def sync_offline_experiences(_, _) do
+    Resolver.unauthorized()
+  end
+
+  defp sync_offline_experience({experience, index}, user_id) do
+    case EbData.sync_offline_experience(
+           Map.put(
+             experience,
+             :user_id,
+             user_id
+           )
+         ) do
+      {:ok, experience, []} ->
+        %{experience: experience}
+
+      {:ok, experience, entries_errors} ->
+        errors =
           Enum.map(
-            entries_changeset_errors,
-            fn error ->
-              %{
-                error: EntryResolver.stringify_changeset_error(error),
-                experience_id: experience.id,
-                client_id: error.changes.client_id
-              }
-            end
+            entries_errors,
+            &%{
+              error: EntryResolver.stringify_changeset_error(&1),
+              experience_id: experience.id,
+              client_id: &1.changes.client_id
+            }
           )
 
-        {
-          :ok,
-          %{
-            experience: experience,
-            entries_errors: entries_errors
-          }
-        }
+        %{experience: experience, entries_errors: errors}
 
       {:error, changeset} ->
-        {:error, stringify_changeset_error(changeset)}
+        %{
+          experience_error: %{
+            error: stringify_changeset_error(changeset),
+            index: index,
+            client_id: experience[:client_id]
+          }
+        }
     end
   end
 
@@ -67,7 +76,7 @@ defmodule EbnisWeb.Resolver.Experience do
   defp stringify_changeset_error(changeset) do
     field_def_errors =
       Enum.reduce(
-        changeset.changes.field_defs,
+        changeset.changes[:field_defs] || [],
         [],
         fn
           %{valid?: false, errors: errors}, acc ->

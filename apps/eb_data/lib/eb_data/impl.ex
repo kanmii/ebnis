@@ -3,17 +3,14 @@ defmodule EbData.Impl do
 
   @type sync_offline_experience_attributes_t ::
           %{
-            :client_id => String.t() | Integer.t(),
-            :entries => [Map.t()],
-            optional(:__struct__) => none,
-            optional(atom | binary) => any
+            user_id: String.t(),
+            experience: Map.t()
           }
 
-  @type sync_offline_experience_success_t :: {
-          :ok,
-          Experience.t(),
-          List.t()
-        }
+  @type sync_offline_experience_success_t ::
+          {:ok, Experience.t(), [%Changeset{}]}
+
+  @type sync_offline_experience_failure_t :: {:error, %Changeset{}}
 
   @type create_entries_attributes_t :: %{
           entries: [
@@ -55,5 +52,5 @@ defmodule EbData.Impl do
   @callback get_entry(id :: binary() | Integer.t()) :: map | nil
 
   @callback sync_offline_experience(attr :: sync_offline_experience_attributes_t) ::
-              sync_offline_experience_success_t | {:error, Changeset.t()}
+              sync_offline_experience_success_t | sync_offline_experience_failure_t
 end
