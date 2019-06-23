@@ -576,6 +576,45 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       assert error =~ ~s("data":"can't be blank")
       assert error =~ ~s("def_id":)
     end
+
+    # @tag :skip
+    test "fails for non unique client ids" do
+      user = RegFactory.insert()
+      exp = ExpFactory.insert(%{user_id: user.id})
+      Factory.insert(exp, client_id: "1")
+      params = Factory.params(exp, client_id: 1)
+
+      variables = %{
+        "createEntries" => [
+          Factory.stringify(params, %{experience_id_to_global: true})
+        ]
+      }
+
+      query = Query.create_entries()
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createEntries" => %{
+                    "successes" => nil,
+                    "failures" => [
+                      %{
+                        "clientId" => "1",
+                        "error" => error
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert error =~ ~s("client_id":)
+    end
   end
 
   describe "list_experiences_entries" do

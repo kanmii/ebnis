@@ -396,7 +396,14 @@ defmodule EbData.DefaultImpl.Entry do
         {accepted_entries, [changeset | rejected_changesets], client_ids}
 
       Enum.member?(client_ids, client_id) ->
-        changeset = add_client_id_not_unique_error(entry)
+        changeset =
+          changeset_cast_attrs(
+            %__MODULE__{},
+            update_entry_with_numeric_experience_id(entry)
+          )
+          |> put_change(:exp_id, entry.exp_id)
+          |> add_client_id_not_unique_error()
+
         {accepted_entries, [changeset | rejected_changesets], client_ids}
 
       true ->
@@ -493,11 +500,9 @@ defmodule EbData.DefaultImpl.Entry do
     Map.put(changeset_with_errors, :errors, errors)
   end
 
-  def add_client_id_not_unique_error(entry) do
-    %__MODULE__{}
-    |> changeset_cast_attrs(update_entry_with_numeric_experience_id(entry))
-    |> put_change(:exp_id, entry.exp_id)
-    |> add_error(
+  def add_client_id_not_unique_error(changeset) do
+    add_error(
+      changeset,
       :client_id,
       "has already been taken",
       validation: :unique

@@ -301,7 +301,14 @@ defmodule EbData.DefaultImpl do
       Enum.reduce(entries, {[], []}, fn entry, {valids, invalids} ->
         case Entry.changeset(%Entry{}, entry) do
           %{valid?: true} = changeset ->
-            {[changeset | valids], invalids}
+            case get_entry_by_client_id(entry.client_id) do
+              nil ->
+                {[changeset | valids], invalids}
+
+              _ ->
+                changeset = Entry.add_client_id_not_unique_error(changeset)
+                {valids, [changeset | invalids]}
+            end
 
           changeset ->
             {valids, [changeset | invalids]}
@@ -309,8 +316,7 @@ defmodule EbData.DefaultImpl do
       end)
 
     {entries_to_insert, entries_with_errors} =
-      entries_to_insert
-      |> Enum.group_by(& &1.changes.exp_id)
+      Enum.group_by(entries_to_insert, & &1.changes.exp_id)
       |> Enum.reduce({[], entries_with_errors}, fn
         {exp_id, changesets}, {valids, invalids} ->
           {valids_, invalids_} =
@@ -335,6 +341,12 @@ defmodule EbData.DefaultImpl do
       end
 
     {inserted_entries, entries_with_errors}
+  end
+
+  defp get_entry_by_client_id(client_id) do
+    Entry
+    |> where([e], e.client_id == ^client_id)
+    |> Repo.one()
   end
 
   def get_entry(id), do: Repo.get(Entry, id)
