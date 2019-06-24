@@ -3,7 +3,6 @@ defmodule EbData do
 
   alias EbData.DefaultImpl
   alias EbData.Impl
-  alias Ecto.Changeset
 
   @behaviour Impl
 
@@ -70,10 +69,9 @@ defmodule EbData do
     impl().create_entry(attrs)
   end
 
-  @spec create_entries(attr :: Impl.create_entries_attributes_t()) :: {
-          [Map.t()],
-          [Changeset.t()]
-        }
+  @spec create_entries(attr :: Impl.create_entries_attributes_t()) ::
+          Impl.create_entries_returned_t()
+
   def create_entries(attrs) do
     impl().create_entries(attrs)
   end

@@ -1,5 +1,6 @@
 defmodule EbData.Impl do
   alias Ecto.Changeset
+  alias EbData.DefaultImpl.Entry
 
   @type sync_offline_experience_attributes_t ::
           %{
@@ -22,6 +23,19 @@ defmodule EbData.Impl do
           user_id: String.t()
         }
 
+  @type create_entries_returned_t :: %{
+          required(String.t()) => %{
+            exp_id: String.t(),
+            entries: [Entry.t()],
+            errors: [
+              %{
+                client_id: String.t(),
+                error: Changeset.t()
+              }
+            ]
+          }
+        }
+
   @callback create_exp(map) :: {:ok, map} | {:error, term, map}
 
   @callback get_exp(
@@ -38,10 +52,7 @@ defmodule EbData.Impl do
 
   @callback create_entry(map) :: {:ok, map} | {:error, term, map}
 
-  @callback create_entries(create_entries_attributes_t()) :: {
-              [Map.t()],
-              [Changeset.t()]
-            }
+  @callback create_entries(create_entries_attributes_t()) :: create_entries_returned_t()
 
   @callback list_experiences_entries(
               user_id :: String.t(),

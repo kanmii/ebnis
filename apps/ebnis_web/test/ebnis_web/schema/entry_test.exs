@@ -430,10 +430,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntries" => %{
-                    "failures" => nil,
-                    "successes" => successes
-                  }
+                  "createEntries" => successes
                 }
               }} =
                Absinthe.run(
@@ -459,7 +456,8 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
               "clientId" => client_id2,
               "fields" => fields2
             }
-          ]
+          ],
+          "errors" => nil
         },
         %{
           "expId" => ^exp_id2,
@@ -470,7 +468,8 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
               "clientId" => "1",
               "fields" => fields
             }
-          ]
+          ],
+          "errors" => nil
         }
       ] = Enum.sort_by(successes, & &1["expId"])
 
@@ -548,25 +547,18 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntries" => %{
-                    "successes" => [
-                      %{
-                        "expId" => ^exp_id,
-                        "entries" => [
-                          %{
-                            "id" => _,
-                            "expId" => ^exp_id
-                          }
-                        ]
-                      }
-                    ],
-                    "failures" => [
-                      %{
-                        "expId" => ^exp_id,
-                        "errors" => errors
-                      }
-                    ]
-                  }
+                  "createEntries" => [
+                    %{
+                      "expId" => ^exp_id,
+                      "entries" => [
+                        %{
+                          "id" => _,
+                          "expId" => ^exp_id
+                        }
+                      ],
+                      "errors" => errors
+                    }
+                  ]
                 }
               }} =
                Absinthe.run(
@@ -606,20 +598,18 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntries" => %{
-                    "successes" => nil,
-                    "failures" => [
-                      %{
-                        "expId" => ^exp_id,
-                        "errors" => [
-                          %{
-                            "clientId" => "1",
-                            "error" => error
-                          }
-                        ]
-                      }
-                    ]
-                  }
+                  "createEntries" => [
+                    %{
+                      "expId" => ^exp_id,
+                      "entries" => [],
+                      "errors" => [
+                        %{
+                          "clientId" => "1",
+                          "error" => error
+                        }
+                      ]
+                    }
+                  ]
                 }
               }} =
                Absinthe.run(

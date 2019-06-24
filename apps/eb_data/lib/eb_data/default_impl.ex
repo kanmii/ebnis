@@ -10,7 +10,6 @@ defmodule EbData.DefaultImpl do
   alias EbData.DefaultImpl.Entry
   alias Ecto.Multi
   alias EbData.Impl
-  alias Ecto.Changeset
 
   @behaviour Impl
 
@@ -296,22 +295,33 @@ defmodule EbData.DefaultImpl do
     |> Repo.insert()
   end
 
-  @spec create_entries(attr :: Impl.create_entries_attributes_t()) :: {
-          [Map.t()],
-          [Changeset.t()]
-        }
+  @spec create_entries(attr :: Impl.create_entries_attributes_t()) ::
+          Impl.create_entries_returned_t()
   def create_entries(%{entries: []}) do
-    {[], []}
+    %{}
   end
 
   def create_entries(%{entries: entries, user_id: user_id} = _attrs) do
-    Enum.reduce(entries, {[], []}, fn entry, {valids, invalids} ->
+    Enum.reduce(entries, %{}, fn entry, acc ->
+      id = entry.exp_id
+
       case create_entry(Map.put(entry, :user_id, user_id)) do
-        {:ok, entry} ->
-          {[entry | valids], invalids}
+        {:ok, created} ->
+          Map.update(acc, id, %{entries: [created], exp_id: id}, fn value ->
+            update_in(value, [:entries], &[created | &1 || []])
+          end)
 
         {:error, changeset} ->
-          {valids, [changeset | invalids]}
+          error = %{
+            client_id: entry[:client_id],
+            error: changeset
+          }
+
+          initial = %{errors: [error], exp_id: id, entries: []}
+
+          Map.update(acc, id, initial, fn value ->
+            update_in(value, [:errors], &[error | &1 || []])
+          end)
       end
     end)
   end

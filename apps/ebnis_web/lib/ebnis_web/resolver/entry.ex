@@ -100,56 +100,38 @@ defmodule EbnisWeb.Resolver.Entry do
         entries: entries
       }
       |> EbData.create_entries()
+      |> Enum.reduce([], fn {_, values}, acc ->
+        case values[:errors] do
+          nil ->
+            [values | acc]
 
-    # test for where field has error e.g. invalid data type
+          errors ->
+            errors =
+              Enum.map(
+                errors,
+                &Map.put(
+                  &1,
+                  :error,
+                  stringify_changeset_error(&1.error)
+                )
+              )
 
-    {:ok, mapify_successes_and_failures(result)}
+            values =
+              Map.put(
+                values,
+                :errors,
+                errors
+              )
+
+            [values | acc]
+        end
+      end)
+
+    {:ok, result}
   end
 
   def create_entries(_, _) do
     Resolver.unauthorized()
-  end
-
-  defp mapify_successes_and_failures({[], []}) do
-    %{}
-  end
-
-  defp mapify_successes_and_failures({successes, []}) do
-    successes =
-      successes
-      |> Enum.group_by(& &1.exp_id)
-      |> Enum.reduce([], fn {exp_id, entries}, acc ->
-        [%{exp_id: exp_id, entries: entries} | acc]
-      end)
-
-    %{successes: successes}
-  end
-
-  defp mapify_successes_and_failures({[], failures}) do
-    failures =
-      failures
-      |> Enum.reduce(%{}, fn changeset, acc ->
-        %{exp_id: exp_id, client_id: client_id} = changeset.changes
-
-        error_value = %{
-          client_id: client_id,
-          error: stringify_changeset_error(changeset)
-        }
-
-        Map.update(acc, exp_id, [error_value], &[error_value | &1])
-      end)
-      |> Enum.reduce([], fn {exp_id, errors}, acc ->
-        [%{exp_id: exp_id, errors: errors} | acc]
-      end)
-
-    %{failures: failures}
-  end
-
-  defp mapify_successes_and_failures({successes, failures}) do
-    Map.merge(
-      mapify_successes_and_failures({successes, []}),
-      mapify_successes_and_failures({[], failures})
-    )
   end
 
   @spec list_experiences_entries(

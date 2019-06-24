@@ -25,24 +25,18 @@ defmodule EbnisWeb.Query.Entry do
 
   @create_entries_response_fragment """
   fragment #{@create_entries_response_fragment_name} on CreateEntriesResponse {
-      successes {
-        expId
-        entries {
-          ...#{@fragment_name}
+      expId
+      entries {
+        ...#{@fragment_name}
 
-          fields {
-            ...#{@field_frag_name}
-          }
+        fields {
+          ...#{@field_frag_name}
         }
       }
 
-      failures {
-        expId
-
-        errors {
-          clientId
-          error
-        }
+      errors {
+        clientId
+        error
       }
     }
   """
