@@ -43,14 +43,19 @@ defmodule EbnisWeb.Schema.Entry do
     field(:updated_at, non_null(:iso_datetime))
   end
 
-  object :create_entries_response_entry do
+  object :create_entries_experience_id_entries do
     field(:exp_id, non_null(:id))
     field(:entries, :entry |> list_of() |> non_null())
   end
 
-  object :create_entries_response_error do
+  object :create_entries_error do
     field(:client_id, non_null(:string))
     field(:error, non_null(:string))
+  end
+
+  object :create_entries_experience_id_errors do
+    field(:exp_id, non_null(:id))
+    field(:errors, :create_entries_error |> list_of() |> non_null())
   end
 
   @desc ~S"""
@@ -83,8 +88,8 @@ defmodule EbnisWeb.Schema.Entry do
     and we only get `failures` field if at least one input fails
   """
   object :create_entries_response do
-    field(:successes, list_of(:create_entries_response_entry))
-    field(:failures, list_of(:create_entries_response_error))
+    field(:successes, list_of(:create_entries_experience_id_entries))
+    field(:failures, list_of(:create_entries_experience_id_errors))
   end
 
   ############################## INPUTS #######################################

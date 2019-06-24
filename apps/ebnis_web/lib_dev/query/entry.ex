@@ -37,8 +37,12 @@ defmodule EbnisWeb.Query.Entry do
       }
 
       failures {
-        clientId
-        error
+        expId
+
+        errors {
+          clientId
+          error
+        }
       }
     }
   """

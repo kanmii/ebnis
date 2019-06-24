@@ -235,11 +235,19 @@ defmodule EbData.DefaultImpl do
         {valid_entries, entries_errors_changesets} =
           Entry.sync_offline_experience_validate_entries(entries, experience)
 
-        {_, created_entries} =
-          Repo.insert_all(
-            Entry,
+        {created_entries, entries_errors_changesets} =
+          Enum.reduce(
             valid_entries,
-            returning: true
+            {[], entries_errors_changesets},
+            fn entry_attrs, {valids, invalids} ->
+              case create_entry(entry_attrs) do
+                {:ok, entry} ->
+                  {[entry | valids], invalids}
+
+                {:error, changeset} ->
+                  {valids, [changeset | invalids]}
+              end
+            end
           )
 
         experience_with_entries = %Experience{
@@ -297,56 +305,15 @@ defmodule EbData.DefaultImpl do
   end
 
   def create_entries(%{entries: entries, user_id: user_id} = _attrs) do
-    {entries_to_insert, entries_with_errors} =
-      Enum.reduce(entries, {[], []}, fn entry, {valids, invalids} ->
-        case Entry.changeset(%Entry{}, entry) do
-          %{valid?: true} = changeset ->
-            case get_entry_by_client_id(entry.client_id) do
-              nil ->
-                {[changeset | valids], invalids}
+    Enum.reduce(entries, {[], []}, fn entry, {valids, invalids} ->
+      case create_entry(Map.put(entry, :user_id, user_id)) do
+        {:ok, entry} ->
+          {[entry | valids], invalids}
 
-              _ ->
-                changeset = Entry.add_client_id_not_unique_error(changeset)
-                {valids, [changeset | invalids]}
-            end
-
-          changeset ->
-            {valids, [changeset | invalids]}
-        end
-      end)
-
-    {entries_to_insert, entries_with_errors} =
-      Enum.group_by(entries_to_insert, & &1.changes.exp_id)
-      |> Enum.reduce({[], entries_with_errors}, fn
-        {exp_id, changesets}, {valids, invalids} ->
-          {valids_, invalids_} =
-            Entry.changeset_many(
-              changesets,
-              exp_id,
-              user_id
-            )
-
-          {Enum.concat(valids, valids_), Enum.concat(invalids, invalids_)}
-      end)
-
-    inserted_entries =
-      case entries_to_insert do
-        [] ->
-          []
-
-        entries ->
-          {_, results} = Repo.insert_all(Entry, entries, returning: true)
-
-          results
+        {:error, changeset} ->
+          {valids, [changeset | invalids]}
       end
-
-    {inserted_entries, entries_with_errors}
-  end
-
-  defp get_entry_by_client_id(client_id) do
-    Entry
-    |> where([e], e.client_id == ^client_id)
-    |> Repo.one()
+    end)
   end
 
   def get_entry(id), do: Repo.get(Entry, id)

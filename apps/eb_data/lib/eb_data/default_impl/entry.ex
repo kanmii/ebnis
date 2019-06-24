@@ -364,10 +364,9 @@ defmodule EbData.DefaultImpl.Entry do
   end
 
   def sync_offline_experience_validate_entries(entries, experience) do
-    timestamp = DateTime.truncate(DateTime.utc_now(), :second)
     experience_client_id = experience.client_id
     field_defs = experience.field_defs
-    experience_id = experience.id
+    %{id: experience_id, user_id: user_id} = experience
 
     {valid_entries, rejected_changesets, _} =
       Enum.reduce(
@@ -376,7 +375,7 @@ defmodule EbData.DefaultImpl.Entry do
         &sync_offline_experience_validate_entry(
           &1,
           &2,
-          {timestamp, experience_client_id, field_defs, experience_id}
+          {experience_client_id, field_defs, experience_id, user_id}
         )
       )
 
@@ -386,7 +385,7 @@ defmodule EbData.DefaultImpl.Entry do
   defp sync_offline_experience_validate_entry(
          entry,
          {accepted_entries, rejected_changesets, client_ids},
-         {timestamp, experience_client_id, field_defs, experience_id}
+         {experience_client_id, field_defs, experience_id, user_id}
        ) do
     client_id = entry.client_id
 
@@ -418,12 +417,11 @@ defmodule EbData.DefaultImpl.Entry do
         case invalid_fields_changesets do
           [] ->
             accepted_entry =
-              sync_offline_experience_changeset_to_insert_data(
-                entry,
-                experience_id,
-                valid_fields,
-                timestamp
-              )
+              Map.merge(entry, %{
+                user_id: user_id,
+                exp_id: experience_id,
+                fields: Enum.map(valid_fields, &Map.from_struct/1)
+              })
 
             accepted_entries = [accepted_entry | accepted_entries]
             {accepted_entries, rejected_changesets, client_ids}
@@ -438,24 +436,6 @@ defmodule EbData.DefaultImpl.Entry do
             {accepted_entries, [changeset | rejected_changesets], client_ids}
         end
     end
-  end
-
-  defp sync_offline_experience_changeset_to_insert_data(
-         entry,
-         experience_id,
-         fields,
-         timestamp
-       ) do
-    # user supplied timestamps should win
-    entry =
-      %{inserted_at: timestamp, updated_at: timestamp}
-      |> Map.merge(%{
-        entry
-        | exp_id: experience_id,
-          fields: fields
-      })
-
-    entry
   end
 
   defp sync_offline_experience_update_entry_with_field_errors(

@@ -127,13 +127,20 @@ defmodule EbnisWeb.Resolver.Entry do
 
   defp mapify_successes_and_failures({[], failures}) do
     failures =
-      Enum.map(
-        failures,
-        &%{
-          client_id: &1.changes.client_id,
-          error: stringify_changeset_error(&1)
+      failures
+      |> Enum.reduce(%{}, fn changeset, acc ->
+        %{exp_id: exp_id, client_id: client_id} = changeset.changes
+
+        error_value = %{
+          client_id: client_id,
+          error: stringify_changeset_error(changeset)
         }
-      )
+
+        Map.update(acc, exp_id, [error_value], &[error_value | &1])
+      end)
+      |> Enum.reduce([], fn {exp_id, errors}, acc ->
+        [%{exp_id: exp_id, errors: errors} | acc]
+      end)
 
     %{failures: failures}
   end

@@ -825,9 +825,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
 
     # @tag :skip
     test "fails if entry.client_ids not unique for experience" do
-      field_defs = [FieldDefFactory.params()]
-
-      params = Factory.params(client_id: "a", field_defs: field_defs)
+      params = Factory.params(client_id: "a")
       entries = EntryFactory.params_list(2, params, client_id: "b")
 
       user = RegFactory.insert()

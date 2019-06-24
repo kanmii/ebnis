@@ -522,13 +522,15 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
 
     # @tag :skip
-    test "succeeds for valid and fail for invalid entries" do
+    test "succeeds for valid and fails for invalid entries" do
       user = RegFactory.insert()
       exp = ExpFactory.insert(%{user_id: user.id}, ["integer", "decimal"])
       exp_id = Integer.to_string(exp.id)
-      params1 = Factory.params(exp, client_id: 1)
-      params2 = Factory.params(exp, client_id: 2)
+      params1 = Factory.params(exp, client_id: 2)
+      params2 = Factory.params(exp, client_id: 1)
       [field2, _] = params2.fields
+
+      params3 = Factory.params(exp, client_id: 2)
 
       variables = %{
         "createEntries" => [
@@ -536,7 +538,8 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
           Factory.stringify(
             Map.put(params2, :fields, [field2]),
             %{experience_id_to_global: true}
-          )
+          ),
+          Factory.stringify(params3, %{experience_id_to_global: true})
         ]
       }
 
@@ -559,8 +562,8 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                     ],
                     "failures" => [
                       %{
-                        "error" => error,
-                        "clientId" => "2"
+                        "expId" => ^exp_id,
+                        "errors" => errors
                       }
                     ]
                   }
@@ -573,14 +576,22 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  context: context(user)
                )
 
-      assert error =~ ~s("data":"can't be blank")
-      assert error =~ ~s("def_id":)
+      [error1, error2] =
+        errors
+        |> Enum.sort_by(& &1["clientId"])
+        |> Enum.map(& &1["error"])
+
+      assert error1 =~ ~s("data":"can't be blank")
+      assert error1 =~ ~s("def_id":)
+
+      assert error2 =~ ~s("client_id":)
     end
 
     # @tag :skip
     test "fails for non unique client ids" do
       user = RegFactory.insert()
       exp = ExpFactory.insert(%{user_id: user.id})
+      exp_id = Integer.to_string(exp.id)
       Factory.insert(exp, client_id: "1")
       params = Factory.params(exp, client_id: 1)
 
@@ -599,8 +610,13 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                     "successes" => nil,
                     "failures" => [
                       %{
-                        "clientId" => "1",
-                        "error" => error
+                        "expId" => ^exp_id,
+                        "errors" => [
+                          %{
+                            "clientId" => "1",
+                            "error" => error
+                          }
+                        ]
                       }
                     ]
                   }
