@@ -57,7 +57,7 @@ defmodule EbnisWeb.Resolver.Experience do
     end
   end
 
-  def create(%{exp: attrs}, %{context: %{current_user: user}}) do
+  def create(%{input: attrs}, %{context: %{current_user: user}}) do
     case attrs
          |> Map.put(:user_id, user.id)
          |> EbData.create_exp() do

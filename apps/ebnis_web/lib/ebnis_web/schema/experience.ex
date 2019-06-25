@@ -84,7 +84,7 @@ defmodule EbnisWeb.Schema.Experience do
   ############################ INPUT OBJECTS ##############################
 
   @desc "Variables for defining a new Experience"
-  input_object :create_exp do
+  input_object :create_experience_input do
     field(:title, non_null(:string))
     field(:description, :string)
     field(:field_defs, :create_field_def |> list_of() |> non_null())
@@ -128,17 +128,17 @@ defmodule EbnisWeb.Schema.Experience do
   ######################### MUTATION ################################
 
   @desc "Mutations allowed on Experience object"
-  object :exp_mutation do
+  object :experience_mutation do
     @desc "Create an experience"
-    field :exp, :experience do
-      arg(:exp, non_null(:create_exp))
+    field :create_experience, :experience do
+      arg(:input, non_null(:create_experience_input))
 
       resolve(&Resolver.create/2)
     end
 
     @desc "Sync many experiences created offline"
     field :sync_offline_experiences, list_of(:offline_experience_sync) do
-      arg(:input, :create_exp |> list_of() |> non_null())
+      arg(:input, :create_experience_input |> list_of() |> non_null())
 
       resolve(&Resolver.sync_offline_experiences/2)
     end
@@ -149,7 +149,7 @@ defmodule EbnisWeb.Schema.Experience do
   ######################### QUERIES ######################################
 
   @desc "Queries allowed on Experience object"
-  object :exp_query do
+  object :experience_query do
     @desc ~S"""
       Get all experiences belonging to a user. The experiences returned may be
       paginated

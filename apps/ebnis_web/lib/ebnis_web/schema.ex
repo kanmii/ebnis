@@ -15,13 +15,13 @@ defmodule EbnisWeb.Schema do
 
   query do
     import_fields(:user_query)
-    import_fields(:exp_query)
+    import_fields(:experience_query)
     import_fields(:entry_query)
   end
 
   mutation do
     import_fields(:user_mutation)
-    import_fields(:exp_mutation)
+    import_fields(:experience_mutation)
     import_fields(:entry_mutation)
   end
 

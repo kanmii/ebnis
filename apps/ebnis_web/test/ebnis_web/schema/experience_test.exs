@@ -24,7 +24,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       variables = %{
-        "exp" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       query = Query.create()
@@ -32,7 +32,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "exp" => %{
+                  "createExperience" => %{
                     "id" => _,
                     "title" => ^title,
                     "fieldDefs" => _,
@@ -54,7 +54,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       Factory.insert(title: "Good experience", user_id: user.id)
 
       variables = %{
-        "exp" =>
+        "input" =>
           Factory.params(title: "good Experience")
           |> Factory.stringify()
       }
@@ -91,7 +91,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       }
 
       variables = %{
-        "exp" =>
+        "input" =>
           attrs
           |> Factory.params()
           |> Factory.stringify()
@@ -134,7 +134,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       }
 
       variables = %{
-        "exp" => Factory.params(attrs) |> Factory.stringify()
+        "input" => Factory.params(attrs) |> Factory.stringify()
       }
 
       query = Query.create()
@@ -158,7 +158,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     # @tag :skip
     test "fails if user context not supplied" do
       variables = %{
-        "exp" =>
+        "input" =>
           Factory.params()
           |> Factory.stringify()
       }
@@ -201,7 +201,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       variables = %{
-        "exp" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       query = Query.create()
@@ -209,7 +209,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "exp" => %{
+                  "createExperience" => %{
                     "id" => _,
                     "fieldDefs" => _,
                     "insertedAt" => ^inserted_at_string,
