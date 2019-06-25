@@ -49,6 +49,13 @@ defmodule EbData.Impl do
           }
         ]
 
+  @type get_experiences_args_t :: %{
+          pagination_args: Absinthe.Relay.Connection.Options.t(),
+          user_id: binary() | Integer.t(),
+          ids: [binary() | Integer.t()],
+          client_ids: [binary() | Integer.t()]
+        }
+
   @callback create_exp(map) :: {:ok, map} | {:error, term, map}
 
   @callback get_exp(
@@ -58,10 +65,8 @@ defmodule EbData.Impl do
 
   @callback get_exp(id :: binary()) :: nil | map
 
-  @callback get_user_exps(
-              user_id :: binary() | Integer.t(),
-              pagination_args :: Absinthe.Relay.Connection.Options.t()
-            ) :: {:ok, map} | {:error, any}
+  @callback get_experiences(args :: get_experiences_args_t) ::
+              {:ok, Absinthe.Relay.Connection.t()} | {:error, any}
 
   @callback create_entry(map) :: {:ok, map} | {:error, term, map}
 

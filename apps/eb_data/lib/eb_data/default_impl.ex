@@ -269,13 +269,32 @@ defmodule EbData.DefaultImpl do
 
   def get_exp(id), do: Repo.get(Experience, id)
 
-  def get_user_exps(user_id, pagination_args) do
-    Experience
-    |> where([e], e.user_id == ^user_id)
-    |> Absinthe.Relay.Connection.from_query(
-      &Repo.all(&1),
-      pagination_args
-    )
+  @spec get_experiences(args :: Impl.get_experiences_args_t()) ::
+          {:ok, Absinthe.Relay.Connection.t()} | {:error, any}
+  def get_experiences(args) do
+    query = query_experience(args)
+
+    case args[:pagination] do
+      nil ->
+        experiences = Repo.all(query)
+
+        experience_connection = %{
+          edges: Enum.map(experiences, &%{node: &1, cursor: ""}),
+          page_info: %{
+            has_next_page: false,
+            has_previous_page: false
+          }
+        }
+
+        {:ok, experience_connection}
+
+      pagination_args ->
+        Absinthe.Relay.Connection.from_query(
+          query,
+          &Repo.all(&1),
+          pagination_args
+        )
+    end
   end
 
   def get_exp_field_defs(exp_id, user_id) do
@@ -283,6 +302,22 @@ defmodule EbData.DefaultImpl do
     |> where([e], e.id == ^exp_id and e.user_id == ^user_id)
     |> select([e], e.field_defs)
     |> Repo.one()
+  end
+
+  defp query_experience(%{} = args) do
+    Enum.reduce(args, Experience, &query_experience(&2, &1))
+  end
+
+  defp query_experience(queryable, {:user_id, id}) do
+    where(queryable, [e], e.user_id == ^id)
+  end
+
+  defp query_experience(queryable, {:ids, ids}) do
+    where(queryable, [e], e.id in ^ids)
+  end
+
+  defp query_experience(queryable, _) do
+    queryable
   end
 
   #########################  END  EXPERIENCES ###############################

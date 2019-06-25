@@ -111,6 +111,18 @@ defmodule EbnisWeb.Schema.Experience do
     field(:id, non_null(:id))
   end
 
+  input_object :get_experiences_input do
+    @desc ~S"""
+      Optionally paginate the experiences
+    """
+    field(:pagination, :pagination_input)
+
+    @desc ~S"""
+      Optionally filter by IDs
+    """
+    field(:ids, list_of(:id))
+  end
+
   ######################### END INPUT OBJECTS ################################
 
   ######################### MUTATION ################################
@@ -134,16 +146,17 @@ defmodule EbnisWeb.Schema.Experience do
 
   ######################### END MUTATIONS ################################
 
-  ######################### QUERIES ################################
+  ######################### QUERIES ######################################
 
   @desc "Queries allowed on Experience object"
   object :exp_query do
     @desc ~S"""
-      Get all experiences belonging to a user
+      Get all experiences belonging to a user. The experiences returned may be
+      paginated
     """
     connection field(:exps, node_type: :experience) do
-      arg(:pagination, non_null(:pagination_input))
-      resolve(&Resolver.get_user_exps/2)
+      arg(:input, :get_experiences_input)
+      resolve(&Resolver.get_experiences/2)
     end
 
     @desc "get an experience"

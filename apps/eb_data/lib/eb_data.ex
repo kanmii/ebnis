@@ -53,8 +53,10 @@ defmodule EbData do
     impl().get_exp_field_defs(exp_id, user_id)
   end
 
-  def get_user_exps(user_id, pagination_args) do
-    impl().get_user_exps(user_id, pagination_args)
+  @spec get_experiences(args :: Impl.get_experiences_args_t()) ::
+          {:ok, Absinthe.Relay.Connection.t()} | {:error, any}
+  def get_experiences(args) do
+    impl().get_experiences(args)
   end
 
   @spec sync_offline_experience(attr :: Impl.sync_offline_experience_attributes_t()) ::

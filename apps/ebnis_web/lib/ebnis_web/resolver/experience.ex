@@ -119,11 +119,16 @@ defmodule EbnisWeb.Resolver.Experience do
     Resolver.unauthorized()
   end
 
-  def get_user_exps(args, %{context: %{current_user: user}}) do
-    EbData.get_user_exps(user.id, args.pagination)
+  def get_experiences(
+        %{input: args},
+        %{context: %{current_user: user}}
+      ) do
+    args
+    |> Map.put(:user_id, user.id)
+    |> EbData.get_experiences()
   end
 
-  def get_user_exps(_, _) do
+  def get_experiences(_, _) do
     Resolver.unauthorized()
   end
 

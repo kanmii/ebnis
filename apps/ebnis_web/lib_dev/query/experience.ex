@@ -68,8 +68,8 @@ defmodule EbnisWeb.Query.Experience do
 
   def gets do
     """
-      query GetExperiences($pagination: PaginationInput!) {
-        exps(pagination: $pagination) {
+      query GetExperiences($input: GetExperiencesInput) {
+        exps(input: $input) {
           pageInfo {
             hasNextPage
             hasPreviousPage

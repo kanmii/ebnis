@@ -226,9 +226,9 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
   end
 
-  describe "get experience definition" do
+  describe "get one experience" do
     # @tag :skip
-    test "get experience def succeeds for existing definition" do
+    test "succeeds for existing experience" do
       user = RegFactory.insert()
       %{id: id} = Factory.insert(user_id: user.id)
       id = Integer.to_string(id)
@@ -257,7 +257,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "get experience def fails for non existing definition" do
+    test "fails if experience does not exist" do
       user = RegFactory.insert()
 
       variables = %{
@@ -283,7 +283,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "get experience fails for wrong user" do
+    test "fails for wrong user" do
       user = RegFactory.insert()
       %{id: id} = Factory.insert(user_id: user.id)
       id = Integer.to_string(id)
@@ -311,16 +311,20 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                  context: context(another_user)
                )
     end
+  end
 
+  describe "get many experiences" do
     # @tag :skip
-    test "get experience defs succeeds for existing definitions" do
+    test "succeeds" do
       user = RegFactory.insert()
       %{id: id1} = Factory.insert(user_id: user.id)
       %{id: id2} = Factory.insert(user_id: user.id)
 
       variables = %{
-        "pagination" => %{
-          "first" => 2
+        "input" => %{
+          "pagination" => %{
+            "first" => 2
+          }
         }
       }
 
@@ -365,12 +369,14 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "get experience defs returns [] for none existing definitions" do
+    test "returns [] if no experience exists" do
       user = RegFactory.insert()
 
       variables = %{
-        "pagination" => %{
-          "first" => 2
+        "input" => %{
+          "pagination" => %{
+            "first" => 2
+          }
         }
       }
 
@@ -383,6 +389,49 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                       "hasNextPage" => false,
                       "hasPreviousPage" => false
                     }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.gets(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "by IDs succeeds" do
+      user = RegFactory.insert()
+      %{id: id1} = Factory.insert(user_id: user.id)
+      Factory.insert(user_id: user.id)
+
+      id1_string = Integer.to_string(id1)
+
+      variables = %{
+        "input" => %{
+          "ids" => [id1]
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "exps" => %{
+                    "edges" => [
+                      %{
+                        "node" => %{
+                          "_id" => ^id1_string,
+                          "entries" => %{
+                            "edges" => [],
+                            "pageInfo" => %{
+                              "hasNextPage" => false,
+                              "hasPreviousPage" => false
+                            }
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               }} =

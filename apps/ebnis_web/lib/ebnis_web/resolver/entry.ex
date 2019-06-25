@@ -164,7 +164,7 @@ defmodule EbnisWeb.Resolver.Entry do
     {:ok, result}
   end
 
-  def list_entries_from_experiences_ids(_, _, _) do
+  def list_entries_from_experiences_ids(_, _) do
     Resolver.unauthorized()
   end
 end
