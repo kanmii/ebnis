@@ -410,7 +410,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
 
       variables = %{
         "input" => %{
-          "ids" => [id1]
+          "ids" => [Resolver.convert_to_global_id(id1, :experience)]
         }
       }
 

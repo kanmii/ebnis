@@ -123,7 +123,17 @@ defmodule EbnisWeb.Resolver.Experience do
         %{input: args},
         %{context: %{current_user: user}}
       ) do
-    args
+    case args[:ids] do
+      nil ->
+        args
+
+      ids ->
+        Map.put(
+          args,
+          :ids,
+          Enum.map(ids, &Resolver.convert_from_global_id(&1, :experience))
+        )
+    end
     |> Map.put(:user_id, user.id)
     |> EbData.get_experiences()
   end
