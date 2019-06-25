@@ -58,12 +58,12 @@ defmodule EbData.Impl do
 
   @callback create_exp(map) :: {:ok, map} | {:error, term, map}
 
-  @callback get_exp(
+  @callback get_experience(
               id :: binary(),
               user_id :: binary() | Integer.t()
             ) :: nil | map
 
-  @callback get_exp(id :: binary()) :: nil | map
+  @callback get_experience(id :: binary()) :: nil | map
 
   @callback get_experiences(args :: get_experiences_args_t) ::
               {:ok, Absinthe.Relay.Connection.t()} | {:error, any}

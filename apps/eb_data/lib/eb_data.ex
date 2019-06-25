@@ -41,12 +41,12 @@ defmodule EbData do
     impl().create_exp(attrs)
   end
 
-  def get_exp(id, user_id) do
-    impl().get_exp(id, user_id)
+  def get_experience(id, user_id) do
+    impl().get_experience(id, user_id)
   end
 
-  def get_exp(id) do
-    impl().get_exp(id)
+  def get_experience(id) do
+    impl().get_experience(id)
   end
 
   def get_exp_field_defs(exp_id, user_id) do

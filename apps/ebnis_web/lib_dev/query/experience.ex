@@ -55,8 +55,8 @@ defmodule EbnisWeb.Query.Experience do
 
   def get do
     """
-      query GetAnExperience($exp: GetExp!) {
-        exp(exp: $exp) {
+      query GetAnExperience($id: ID!) {
+        getExperience(id: $id) {
           ...#{@frag_name}
 
         }

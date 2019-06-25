@@ -261,13 +261,13 @@ defmodule EbData.DefaultImpl do
     end
   end
 
-  def get_exp(id, user_id) do
+  def get_experience(id, user_id) do
     Experience
     |> where([e], e.id == ^id and e.user_id == ^user_id)
     |> Repo.one()
   end
 
-  def get_exp(id), do: Repo.get(Experience, id)
+  def get_experience(id), do: Repo.get(Experience, id)
 
   @spec get_experiences(args :: Impl.get_experiences_args_t()) ::
           {:ok, Absinthe.Relay.Connection.t()} | {:error, any}
@@ -310,6 +310,10 @@ defmodule EbData.DefaultImpl do
 
   defp query_experience(queryable, {:user_id, id}) do
     where(queryable, [e], e.user_id == ^id)
+  end
+
+  defp query_experience(queryable, {:id, id}) do
+    where(queryable, [e], e.id == ^id)
   end
 
   defp query_experience(queryable, {:ids, ids}) do

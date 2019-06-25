@@ -106,11 +106,6 @@ defmodule EbnisWeb.Schema.Experience do
     field(:entries, :create_entry |> list_of())
   end
 
-  @desc "Variables for getting an experience"
-  input_object :get_exp do
-    field(:id, non_null(:id))
-  end
-
   input_object :get_experiences_input do
     @desc ~S"""
       Optionally paginate the experiences
@@ -160,9 +155,9 @@ defmodule EbnisWeb.Schema.Experience do
     end
 
     @desc "get an experience"
-    field :exp, :experience do
-      arg(:exp, non_null(:get_exp))
-      resolve(&Resolver.get_exp/2)
+    field :get_experience, :experience do
+      arg(:id, non_null(:id))
+      resolve(&Resolver.get_experience/2)
     end
   end
 

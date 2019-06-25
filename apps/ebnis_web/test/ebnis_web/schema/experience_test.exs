@@ -234,15 +234,13 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       id = Integer.to_string(id)
 
       variables = %{
-        "exp" => %{
-          "id" => Resolver.convert_to_global_id(id, :experience)
-        }
+        "id" => Resolver.convert_to_global_id(id, :experience)
       }
 
       assert {:ok,
               %{
                 data: %{
-                  "exp" => %{
+                  "getExperience" => %{
                     "_id" => ^id,
                     "id" => _
                   }
@@ -261,9 +259,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       variables = %{
-        "exp" => %{
-          "id" => Resolver.convert_to_global_id("0", :experience)
-        }
+        "id" => Resolver.convert_to_global_id("0", :experience)
       }
 
       assert {:ok,
@@ -289,9 +285,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       id = Integer.to_string(id)
 
       variables = %{
-        "exp" => %{
-          "id" => Resolver.convert_to_global_id(id, :experience)
-        }
+        "id" => Resolver.convert_to_global_id(id, :experience)
       }
 
       another_user = RegFactory.insert()
