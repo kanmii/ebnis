@@ -36,6 +36,19 @@ defmodule EbData.Impl do
           }
         }
 
+  @type list_entries_from_experiences_ids_args_t :: %{
+          user_id: String.t(),
+          experiences_ids: [String.t()],
+          pagination_args: Absinthe.Relay.Connection.Options.t()
+        }
+
+  @type list_entries_from_experiences_ids_return_t :: [
+          %{
+            exp_id: String.t(),
+            entry_connection: Absinthe.Relay.Connection.t()
+          }
+        ]
+
   @callback create_exp(map) :: {:ok, map} | {:error, term, map}
 
   @callback get_exp(
@@ -54,11 +67,8 @@ defmodule EbData.Impl do
 
   @callback create_entries(create_entries_attributes_t()) :: create_entries_returned_t()
 
-  @callback list_entries_from_experiences_ids(
-              user_id :: String.t(),
-              experiences_ids :: [String.t()],
-              pagination_args :: Absinthe.Relay.Connection.Options.t()
-            ) :: [Absinthe.Relay.Connection.t()]
+  @callback list_entries_from_experiences_ids(args :: list_entries_from_experiences_ids_args_t) ::
+              list_entries_from_experiences_ids_return_t
 
   @callback get_entry(id :: binary() | Integer.t()) :: map | nil
 

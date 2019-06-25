@@ -653,24 +653,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "listEntriesFromExperiencesIds" => [
-                    %{
-                      "edges" => [
-                        %{
-                          "cursor" => _,
-                          "node" => %{
-                            "expId" => ^string_experience_id1,
-                            "id" => _
-                          }
-                        }
-                      ],
-                      "pageInfo" => %{
-                        "hasNextPage" => true,
-                        "hasPreviousPage" => false
-                      }
-                    },
-                    _other
-                  ]
+                  "listEntriesFromExperiencesIds" => response
                 }
               }} =
                Absinthe.run(
@@ -679,6 +662,28 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  variables: variables,
                  context: context(user)
                )
+
+      [entry_connection1, _] =
+        response
+        |> Enum.map(&{&1["expId"], &1["entryConnection"]})
+        |> Enum.sort_by(fn {k, _} -> k end)
+        |> Enum.map(fn {_, v} -> v end)
+
+      assert %{
+               "edges" => [
+                 %{
+                   "cursor" => _,
+                   "node" => %{
+                     "expId" => ^string_experience_id1,
+                     "id" => _
+                   }
+                 }
+               ],
+               "pageInfo" => %{
+                 "hasNextPage" => true,
+                 "hasPreviousPage" => false
+               }
+             } = entry_connection1
     end
   end
 

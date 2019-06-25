@@ -83,6 +83,11 @@ defmodule EbnisWeb.Schema.Entry do
     field(:errors, :create_entries_error |> list_of())
   end
 
+  object :experience_id_to_entry_connection do
+    field(:exp_id, non_null(:id))
+    field(:entry_connection, :entry_connection |> non_null())
+  end
+
   ############################## INPUTS #######################################
 
   @desc ~S"""
@@ -247,7 +252,10 @@ defmodule EbnisWeb.Schema.Entry do
       }
       ```
     """
-    field(:list_entries_from_experiences_ids, list_of(:entry_connection)) do
+    field(
+      :list_entries_from_experiences_ids,
+      list_of(:experience_id_to_entry_connection)
+    ) do
       arg(:input, non_null(:list_entries_from_experiences_ids_input))
       resolve(&Resolver.list_entries_from_experiences_ids/2)
     end

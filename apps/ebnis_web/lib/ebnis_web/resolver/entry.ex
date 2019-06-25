@@ -3,6 +3,7 @@ defmodule EbnisWeb.Resolver.Entry do
 
   alias EbnisWeb.Resolver
   alias EbData.DefaultImpl.{User, Entry}
+  alias EbData.Impl
 
   def create(_, %{entry: attrs}, %{context: %{current_user: user}}) do
     case attrs
@@ -142,7 +143,7 @@ defmodule EbnisWeb.Resolver.Entry do
             }
           },
           %{context: %{current_user: %User{}}}
-        ) :: {:ok, [Absinthe.Relay.Connection.t()]}
+        ) :: {:ok, Impl.list_entries_from_experiences_ids_return_t()}
   def list_entries_from_experiences_ids(
         %{input: input},
         %{context: %{current_user: user}}
@@ -153,14 +154,14 @@ defmodule EbnisWeb.Resolver.Entry do
         &Resolver.convert_from_global_id(&1, :experience)
       )
 
-    entries_connections =
-      EbData.list_entries_from_experiences_ids(
-        user.id,
-        internal_experience_ids,
-        input.pagination
-      )
+    result =
+      EbData.list_entries_from_experiences_ids(%{
+        user_id: user.id,
+        experiences_ids: internal_experience_ids,
+        pagination_args: input.pagination
+      })
 
-    {:ok, entries_connections}
+    {:ok, result}
   end
 
   def list_entries_from_experiences_ids(_, _, _) do
