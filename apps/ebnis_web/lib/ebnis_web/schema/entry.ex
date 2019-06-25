@@ -148,7 +148,7 @@ defmodule EbnisWeb.Schema.Entry do
     field(:updated_at, :iso_datetime)
   end
 
-  input_object :list_experiences_entries_input do
+  input_object :list_entries_from_experiences_ids_input do
     @desc ~S"""
       List of global IDs of experiences we wish to get
     """
@@ -198,17 +198,17 @@ defmodule EbnisWeb.Schema.Entry do
     end
   end
 
-  ################### end mutations #########################################
+  ################### END MUTATIONS #########################################
 
-  ################### queries #########################################
+  ################### QUERIES #########################################
 
   @desc "Queries allowed on Experience object"
   object :entry_query do
     @desc ~S"""
       Get entries for many experiences simultaneously. Use like so:
 
-      query ListExperiencesEntries($input: ListExperiencesEntriesInput!) {
-        listExperiencesEntries(input: $input) {
+      query listEntriesFromExperiencesIds($input: listEntriesFromExperiencesIdsInput!) {
+        listEntriesFromExperiencesIds(input: $input) {
           pageInfo {
             hasNextPage
             hasPreviousPage
@@ -226,7 +226,7 @@ defmodule EbnisWeb.Schema.Entry do
       You get:
       ```typescript
       {
-        listExperiencesEntries: [
+        listEntriesFromExperiencesIds: [
           {
             edges: [
               {
@@ -247,9 +247,9 @@ defmodule EbnisWeb.Schema.Entry do
       }
       ```
     """
-    field(:list_experiences_entries, list_of(:entry_connection)) do
-      arg(:input, non_null(:list_experiences_entries_input))
-      resolve(&Resolver.list_experiences_entries/2)
+    field(:list_entries_from_experiences_ids, list_of(:entry_connection)) do
+      arg(:input, non_null(:list_entries_from_experiences_ids_input))
+      resolve(&Resolver.list_entries_from_experiences_ids/2)
     end
   end
 

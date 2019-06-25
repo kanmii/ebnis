@@ -134,7 +134,7 @@ defmodule EbnisWeb.Resolver.Entry do
     Resolver.unauthorized()
   end
 
-  @spec list_experiences_entries(
+  @spec list_entries_from_experiences_ids(
           %{
             input: %{
               experiences_ids: [String.t()],
@@ -143,7 +143,7 @@ defmodule EbnisWeb.Resolver.Entry do
           },
           %{context: %{current_user: %User{}}}
         ) :: {:ok, [Absinthe.Relay.Connection.t()]}
-  def list_experiences_entries(
+  def list_entries_from_experiences_ids(
         %{input: input},
         %{context: %{current_user: user}}
       ) do
@@ -154,7 +154,7 @@ defmodule EbnisWeb.Resolver.Entry do
       )
 
     entries_connections =
-      EbData.list_experiences_entries(
+      EbData.list_entries_from_experiences_ids(
         user.id,
         internal_experience_ids,
         input.pagination
@@ -163,7 +163,7 @@ defmodule EbnisWeb.Resolver.Entry do
     {:ok, entries_connections}
   end
 
-  def list_experiences_entries(_, _, _) do
+  def list_entries_from_experiences_ids(_, _, _) do
     Resolver.unauthorized()
   end
 end

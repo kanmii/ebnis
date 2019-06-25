@@ -623,7 +623,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
   end
 
-  describe "list_experiences_entries" do
+  describe "list_entries_from_experiences_ids" do
     test "succeeds" do
       user = RegFactory.insert()
       [exp1, exp2] = ExpFactory.insert_list(2, %{user_id: user.id})
@@ -635,7 +635,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       Factory.insert(exp2, user_id: user.id)
 
-      query = Query.list_experiences_entries()
+      query = Query.list_entries_from_experiences_ids()
 
       variables = %{
         "input" => %{
@@ -653,7 +653,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "listExperiencesEntries" => [
+                  "listEntriesFromExperiencesIds" => [
                     %{
                       "edges" => [
                         %{

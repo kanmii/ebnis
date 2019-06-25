@@ -54,7 +54,7 @@ defmodule EbData.Impl do
 
   @callback create_entries(create_entries_attributes_t()) :: create_entries_returned_t()
 
-  @callback list_experiences_entries(
+  @callback list_entries_from_experiences_ids(
               user_id :: String.t(),
               experiences_ids :: [String.t()],
               pagination_args :: Absinthe.Relay.Connection.Options.t()

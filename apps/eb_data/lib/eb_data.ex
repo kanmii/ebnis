@@ -78,13 +78,13 @@ defmodule EbData do
 
   def get_entry(id), do: impl().get_entry(id)
 
-  @spec list_experiences_entries(
+  @spec list_entries_from_experiences_ids(
           user_id :: String.t(),
           experiences_ids :: [String.t()],
           pagination_args :: Absinthe.Relay.Connection.Options.t()
         ) :: [Absinthe.Relay.Connection.t()]
-  def list_experiences_entries(user_id, experiences_ids, pagination_args) do
-    impl().list_experiences_entries(user_id, experiences_ids, pagination_args)
+  def list_entries_from_experiences_ids(user_id, experiences_ids, pagination_args) do
+    impl().list_entries_from_experiences_ids(user_id, experiences_ids, pagination_args)
   end
 
   def get_paginated_entries(

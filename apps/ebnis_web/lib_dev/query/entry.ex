@@ -72,10 +72,10 @@ defmodule EbnisWeb.Query.Entry do
     """
   end
 
-  def list_experiences_entries do
+  def list_entries_from_experiences_ids do
     """
-    query ListExperiencesEntries($input: ListExperiencesEntriesInput!) {
-      listExperiencesEntries(input: $input) {
+    query listEntriesFromExperiencesIds($input: ListEntriesFromExperiencesIdsInput!) {
+      listEntriesFromExperiencesIds(input: $input) {
         pageInfo {
           hasNextPage
           hasPreviousPage
