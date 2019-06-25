@@ -367,22 +367,6 @@ defmodule EbData.DefaultImpl do
 
   def get_entry(id), do: Repo.get(Entry, id)
 
-  @spec list_entries_from_experiences_ids(args :: Impl.list_entries_from_experiences_ids_args_t()) ::
-          Impl.list_entries_from_experiences_ids_return_t()
-  def list_entries_from_experiences_ids(args) do
-    %{
-      experiences_ids: experiences_ids,
-      pagination_args: pagination_args
-    } = args
-
-    Enum.map(experiences_ids, fn experience_id ->
-      %{
-        exp_id: experience_id,
-        entry_connection: get_paginated_entries(experience_id, pagination_args)
-      }
-    end)
-  end
-
   @spec get_paginated_entries(
           experience_id :: String.t(),
           pagination_args :: Absinthe.Relay.Connection.Options.t(),

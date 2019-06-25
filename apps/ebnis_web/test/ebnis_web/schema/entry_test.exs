@@ -19,7 +19,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       params = Factory.params(exp)
 
       variables = %{
-        "entry" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       query = Query.create()
@@ -27,7 +27,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "entry" => %{
+                  "createEntry" => %{
                     "_id" => _,
                     "id" => _,
                     "expId" => _global_experience_id,
@@ -57,7 +57,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       }
 
       variables = %{
-        "entry" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       query = Query.create()
@@ -89,7 +89,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       another_user = RegFactory.insert()
 
       variables = %{
-        "entry" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       assert {:ok,
@@ -131,7 +131,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
         })
 
       variables = %{
-        "entry" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       assert {:ok,
@@ -176,7 +176,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
         })
 
       variables = %{
-        "entry" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       assert {:ok,
@@ -215,7 +215,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       }
 
       variables = %{
-        "entry" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       query = Query.create()
@@ -260,7 +260,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
         |> Map.put(:exp_id, Resolver.convert_to_global_id(exp.id, :experience))
 
       variables = %{
-        "entry" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       query = Query.create()
@@ -268,7 +268,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "entry" => %{
+                  "createEntry" => %{
                     "_id" => _,
                     "id" => _,
                     "expId" => _global_experience_id,
@@ -300,7 +300,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
         |> Map.put(:exp_id, Resolver.convert_to_global_id(exp.id, :experience))
 
       variables = %{
-        "entry" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       query = Query.create()
@@ -330,7 +330,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       params = Factory.params(exp)
 
       variables = %{
-        "entry" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       query = Query.create()
@@ -372,7 +372,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
         )
 
       variables = %{
-        "entry" => Factory.stringify(params)
+        "input" => Factory.stringify(params)
       }
 
       query = Query.create()
@@ -380,7 +380,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "entry" => %{
+                  "createEntry" => %{
                     "_id" => _,
                     "id" => _,
                     "expId" => _global_experience_id,
@@ -620,70 +620,6 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                )
 
       assert error =~ ~s("client_id":)
-    end
-  end
-
-  describe "list_entries_from_experiences_ids" do
-    test "succeeds" do
-      user = RegFactory.insert()
-      [exp1, exp2] = ExpFactory.insert_list(2, %{user_id: user.id})
-      string_experience_id1 = Integer.to_string(exp1.id)
-      string_experience_id2 = Integer.to_string(exp2.id)
-
-      Factory.insert(exp1, user_id: user.id)
-      Factory.insert(exp1, user_id: user.id)
-
-      Factory.insert(exp2, user_id: user.id)
-
-      query = Query.list_entries_from_experiences_ids()
-
-      variables = %{
-        "input" => %{
-          "experiencesIds" =>
-            Enum.map(
-              [string_experience_id1, string_experience_id2],
-              &Resolver.convert_to_global_id(&1, :experience)
-            ),
-          "pagination" => %{
-            "first" => 1
-          }
-        }
-      }
-
-      assert {:ok,
-              %{
-                data: %{
-                  "listEntriesFromExperiencesIds" => response
-                }
-              }} =
-               Absinthe.run(
-                 query,
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-
-      [entry_connection1, _] =
-        response
-        |> Enum.map(&{&1["expId"], &1["entryConnection"]})
-        |> Enum.sort_by(fn {k, _} -> k end)
-        |> Enum.map(fn {_, v} -> v end)
-
-      assert %{
-               "edges" => [
-                 %{
-                   "cursor" => _,
-                   "node" => %{
-                     "expId" => ^string_experience_id1,
-                     "id" => _
-                   }
-                 }
-               ],
-               "pageInfo" => %{
-                 "hasNextPage" => true,
-                 "hasPreviousPage" => false
-               }
-             } = entry_connection1
     end
   end
 

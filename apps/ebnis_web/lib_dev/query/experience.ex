@@ -69,7 +69,7 @@ defmodule EbnisWeb.Query.Experience do
   def gets do
     """
       query GetExperiences($input: GetExperiencesInput) {
-        exps(input: $input) {
+        getExperiences(input: $input) {
           pageInfo {
             hasNextPage
             hasPreviousPage

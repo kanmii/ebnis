@@ -80,12 +80,6 @@ defmodule EbData do
 
   def get_entry(id), do: impl().get_entry(id)
 
-  @spec list_entries_from_experiences_ids(args :: Impl.list_entries_from_experiences_ids_args_t()) ::
-          Impl.list_entries_from_experiences_ids_return_t()
-  def list_entries_from_experiences_ids(args) do
-    impl().list_entries_from_experiences_ids(args)
-  end
-
   def get_paginated_entries(
         experience_id,
         pagination_args,

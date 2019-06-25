@@ -2,10 +2,9 @@ defmodule EbnisWeb.Resolver.Entry do
   import Absinthe.Resolution.Helpers, only: [on_load: 2]
 
   alias EbnisWeb.Resolver
-  alias EbData.DefaultImpl.{User, Entry}
-  alias EbData.Impl
+  alias EbData.DefaultImpl.{Entry}
 
-  def create(_, %{entry: attrs}, %{context: %{current_user: user}}) do
+  def create(_, %{input: attrs}, %{context: %{current_user: user}}) do
     case attrs
          |> Map.put(
            :exp_id,
@@ -132,39 +131,6 @@ defmodule EbnisWeb.Resolver.Entry do
   end
 
   def create_entries(_, _) do
-    Resolver.unauthorized()
-  end
-
-  @spec list_entries_from_experiences_ids(
-          %{
-            input: %{
-              experiences_ids: [String.t()],
-              pagination: Absinthe.Relay.Connection.Options.t()
-            }
-          },
-          %{context: %{current_user: %User{}}}
-        ) :: {:ok, Impl.list_entries_from_experiences_ids_return_t()}
-  def list_entries_from_experiences_ids(
-        %{input: input},
-        %{context: %{current_user: user}}
-      ) do
-    internal_experience_ids =
-      Enum.map(
-        input.experiences_ids,
-        &Resolver.convert_from_global_id(&1, :experience)
-      )
-
-    result =
-      EbData.list_entries_from_experiences_ids(%{
-        user_id: user.id,
-        experiences_ids: internal_experience_ids,
-        pagination_args: input.pagination
-      })
-
-    {:ok, result}
-  end
-
-  def list_entries_from_experiences_ids(_, _) do
     Resolver.unauthorized()
   end
 end

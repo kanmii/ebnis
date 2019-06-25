@@ -103,7 +103,7 @@ defmodule EbnisWeb.Schema.Experience do
       One may define an experience and create associated entries simultaneously
       if for instance on the client while backend is offline.
     """
-    field(:entries, :create_entry |> list_of())
+    field(:entries, :create_entry_input |> list_of())
   end
 
   input_object :get_experiences_input do
@@ -149,7 +149,7 @@ defmodule EbnisWeb.Schema.Experience do
       Get all experiences belonging to a user. The experiences returned may be
       paginated
     """
-    connection field(:exps, node_type: :experience) do
+    connection field(:get_experiences, node_type: :experience) do
       arg(:input, :get_experiences_input)
       resolve(&Resolver.get_experiences/2)
     end

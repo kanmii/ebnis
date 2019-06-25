@@ -132,7 +132,7 @@ defmodule EbnisWeb.Schema.Entry do
   end
 
   @desc "Variables for creating an experience entry"
-  input_object :create_entry do
+  input_object :create_entry_input do
     @desc ~S"""
       The global ID of the experience or if the associated
       experience has been created offline, then this must be the same as the
@@ -151,15 +151,6 @@ defmodule EbnisWeb.Schema.Entry do
     @desc "If entry is created on the client, it might include timestamps"
     field(:inserted_at, :iso_datetime)
     field(:updated_at, :iso_datetime)
-  end
-
-  input_object :list_entries_from_experiences_ids_input do
-    @desc ~S"""
-      List of global IDs of experiences we wish to get
-    """
-    field(:experiences_ids, :id |> list_of() |> non_null())
-
-    field(:pagination, :pagination_input)
   end
 
   ############################# END INPUTS ##################################
@@ -187,8 +178,8 @@ defmodule EbnisWeb.Schema.Entry do
         ]
       }
     """
-    field :entry, :entry do
-      arg(:entry, non_null(:create_entry))
+    field :create_entry, :entry do
+      arg(:input, non_null(:create_entry_input))
 
       resolve(&Resolver.create/3)
     end
@@ -197,7 +188,7 @@ defmodule EbnisWeb.Schema.Entry do
       Create several entries, for several experiences
     """
     field :create_entries, list_of(:create_entries_response) do
-      arg(:create_entries, :create_entry |> list_of() |> non_null())
+      arg(:create_entries, :create_entry_input |> list_of() |> non_null())
 
       resolve(&Resolver.create_entries/2)
     end
@@ -206,60 +197,6 @@ defmodule EbnisWeb.Schema.Entry do
   ################### END MUTATIONS #########################################
 
   ################### QUERIES #########################################
-
-  @desc "Queries allowed on Experience object"
-  object :entry_query do
-    @desc ~S"""
-      Get entries for many experiences simultaneously. Use like so:
-
-      query listEntriesFromExperiencesIds($input: listEntriesFromExperiencesIdsInput!) {
-        listEntriesFromExperiencesIds(input: $input) {
-          pageInfo {
-            hasNextPage
-            hasPreviousPage
-          }
-
-          edges {
-            cursor
-            node {
-              ...EntryFragment
-            }
-          }
-        }
-      }
-
-      You get:
-      ```typescript
-      {
-        listEntriesFromExperiencesIds: [
-          {
-            edges: [
-              {
-                cursor: string;
-                node: {
-                  id: string;
-                  _id: string;
-                }
-              }
-            ],
-
-            pageInfo: {
-              hasNextPage: boolean;
-              hasPreviousPage: boolean;
-            }
-          }
-        ]
-      }
-      ```
-    """
-    field(
-      :list_entries_from_experiences_ids,
-      list_of(:experience_id_to_entry_connection)
-    ) do
-      arg(:input, non_null(:list_entries_from_experiences_ids_input))
-      resolve(&Resolver.list_entries_from_experiences_ids/2)
-    end
-  end
 
   connection(node_type: :entry)
 end

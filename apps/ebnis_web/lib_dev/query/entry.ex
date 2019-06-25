@@ -41,28 +41,10 @@ defmodule EbnisWeb.Query.Entry do
     }
   """
 
-  @entry_connection_fragment_name "EntryConnectionFragment"
-
-  @entry_connection_fragment """
-    fragment #{@entry_connection_fragment_name} on EntryConnection {
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-      }
-
-      edges {
-        cursor
-        node {
-          ...#{@fragment_name}
-        }
-      }
-    }
-  """
-
   def create do
     """
-    mutation CreateAnExperienceEntry($entry: CreateEntry!) {
-      entry(entry: $entry) {
+    mutation CreateAnExperienceEntry($input: CreateEntryInput!) {
+      createEntry(input: $input) {
         ...#{@fragment_name}
 
         fields {
@@ -78,7 +60,7 @@ defmodule EbnisWeb.Query.Entry do
 
   def create_entries do
     """
-    mutation CreateEntriesMutation($createEntries: [CreateEntry!]!) {
+    mutation CreateEntriesMutation($createEntries: [CreateEntryInput!]!) {
       createEntries(createEntries: $createEntries) {
         ...#{@create_entries_response_fragment_name}
       }
@@ -87,23 +69,6 @@ defmodule EbnisWeb.Query.Entry do
     #{@fragment}
     #{@field_frag}
     #{@create_entries_response_fragment}
-    """
-  end
-
-  def list_entries_from_experiences_ids do
-    """
-    query listEntriesFromExperiencesIds($input: ListEntriesFromExperiencesIdsInput!) {
-      listEntriesFromExperiencesIds(input: $input) {
-        expId
-
-        entryConnection {
-          ...#{@entry_connection_fragment_name}
-        }
-      }
-    }
-
-    #{@fragment}
-    #{@entry_connection_fragment}
     """
   end
 end

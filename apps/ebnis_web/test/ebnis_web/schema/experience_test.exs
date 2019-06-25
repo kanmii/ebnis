@@ -325,7 +325,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "exps" => %{
+                  "getExperiences" => %{
                     "edges" => [
                       %{
                         "node" => %{
@@ -377,7 +377,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "exps" => %{
+                  "getExperiences" => %{
                     "edges" => [],
                     "pageInfo" => %{
                       "hasNextPage" => false,
@@ -411,7 +411,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "exps" => %{
+                  "getExperiences" => %{
                     "edges" => [
                       %{
                         "node" => %{
