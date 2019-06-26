@@ -438,7 +438,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
   end
 
-  describe "sync offline experience" do
+  describe "save offline experience" do
     # @tag :skip
     test "fails if client id not unique for user" do
       user = RegFactory.insert()
@@ -457,12 +457,12 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         "input" => [Factory.stringify(params)]
       }
 
-      query = Query.sync_offline_experiences()
+      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperiences" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "entriesErrors" => nil,
                       "experience" => nil,
@@ -512,12 +512,12 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         ]
       }
 
-      query = Query.sync_offline_experiences()
+      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperiences" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "entriesErrors" => nil,
                       "experience" => %{
@@ -584,12 +584,12 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         ]
       }
 
-      query = Query.sync_offline_experiences()
+      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperiences" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "experience" => %{
                         "_id" => experience_id,
@@ -640,12 +640,12 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         ]
       }
 
-      query = Query.sync_offline_experiences()
+      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperiences" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "experience" => %{
                         "_id" => _,
@@ -702,12 +702,12 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         ]
       }
 
-      query = Query.sync_offline_experiences()
+      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperiences" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "experience" => %{
                         "_id" => _,
@@ -769,12 +769,12 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         ]
       }
 
-      query = Query.sync_offline_experiences()
+      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperiences" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "experience" => %{
                         "_id" => _,
@@ -829,12 +829,12 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         ]
       }
 
-      query = Query.sync_offline_experiences()
+      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperiences" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "experience" => %{
                         "_id" => _,
@@ -881,12 +881,12 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         ]
       }
 
-      query = Query.sync_offline_experiences()
+      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperiences" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "experience" => %{
                         "_id" => experience_id,
@@ -930,7 +930,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         ]
       }
 
-      query = Query.sync_offline_experiences()
+      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
@@ -958,12 +958,12 @@ defmodule EbnisWeb.Schema.ExperienceTest do
         ]
       }
 
-      query = Query.sync_offline_experiences()
+      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "syncOfflineExperiences" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "experienceError" => %{
                         "clientId" => "a",

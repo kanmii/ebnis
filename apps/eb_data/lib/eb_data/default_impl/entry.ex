@@ -363,7 +363,7 @@ defmodule EbData.DefaultImpl.Entry do
     )
   end
 
-  def sync_offline_experience_validate_entries(entries, experience) do
+  def save_offline_experience_validate_entries(entries, experience) do
     experience_client_id = experience.client_id
     field_defs = experience.field_defs
     %{id: experience_id, user_id: user_id} = experience
@@ -372,7 +372,7 @@ defmodule EbData.DefaultImpl.Entry do
       Enum.reduce(
         entries,
         {[], [], []},
-        &sync_offline_experience_validate_entry(
+        &save_offline_experience_validate_entry(
           &1,
           &2,
           {experience_client_id, field_defs, experience_id, user_id}
@@ -382,7 +382,7 @@ defmodule EbData.DefaultImpl.Entry do
     {valid_entries, rejected_changesets}
   end
 
-  defp sync_offline_experience_validate_entry(
+  defp save_offline_experience_validate_entry(
          entry,
          {accepted_entries, rejected_changesets, client_ids},
          {experience_client_id, field_defs, experience_id, user_id}
@@ -428,7 +428,7 @@ defmodule EbData.DefaultImpl.Entry do
 
           fields_changesets ->
             changeset =
-              sync_offline_experience_update_entry_with_field_errors(
+              save_offline_experience_update_entry_with_field_errors(
                 entry,
                 fields_changesets
               )
@@ -438,7 +438,7 @@ defmodule EbData.DefaultImpl.Entry do
     end
   end
 
-  defp sync_offline_experience_update_entry_with_field_errors(
+  defp save_offline_experience_update_entry_with_field_errors(
          entry,
          fields_changesets
        ) do

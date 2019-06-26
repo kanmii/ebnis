@@ -2,16 +2,16 @@ defmodule EbData.Impl do
   alias Ecto.Changeset
   alias EbData.DefaultImpl.Entry
 
-  @type sync_offline_experience_attributes_t ::
+  @type save_offline_experience_attributes_t ::
           %{
             user_id: String.t(),
             experience: Map.t()
           }
 
-  @type sync_offline_experience_success_t ::
+  @type save_offline_experience_success_t ::
           {:ok, Experience.t(), [%Changeset{}]}
 
-  @type sync_offline_experience_failure_t :: {:error, %Changeset{}}
+  @type save_offline_experience_failure_t :: {:error, %Changeset{}}
 
   @type create_entries_attributes_t :: %{
           entries: [
@@ -61,6 +61,6 @@ defmodule EbData.Impl do
 
   @callback get_entry(id :: binary() | Integer.t()) :: map | nil
 
-  @callback sync_offline_experience(attr :: sync_offline_experience_attributes_t) ::
-              sync_offline_experience_success_t | sync_offline_experience_failure_t
+  @callback save_offline_experience(attr :: save_offline_experience_attributes_t) ::
+              save_offline_experience_success_t | save_offline_experience_failure_t
 end

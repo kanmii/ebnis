@@ -6,7 +6,7 @@ defmodule EbnisWeb.Resolver.Experience do
   alias EbnisWeb.Resolver.Entry, as: EntryResolver
   # alias EbData.Impl
 
-  def sync_offline_experiences(
+  def save_offline_experiences(
         %{input: experiences},
         %{context: %{current_user: %{id: user_id}}}
       ) do
@@ -14,16 +14,16 @@ defmodule EbnisWeb.Resolver.Experience do
       :ok,
       experiences
       |> Enum.with_index()
-      |> Enum.map(&sync_offline_experience(&1, user_id))
+      |> Enum.map(&save_offline_experience(&1, user_id))
     }
   end
 
-  def sync_offline_experiences(_, _) do
+  def save_offline_experiences(_, _) do
     Resolver.unauthorized()
   end
 
-  defp sync_offline_experience({experience, index}, user_id) do
-    case EbData.sync_offline_experience(
+  defp save_offline_experience({experience, index}, user_id) do
+    case EbData.save_offline_experience(
            Map.put(
              experience,
              :user_id,

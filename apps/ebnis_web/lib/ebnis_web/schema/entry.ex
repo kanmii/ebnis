@@ -25,9 +25,10 @@ defmodule EbnisWeb.Schema.Entry do
     field(:exp_id, non_null(:id))
 
     @desc ~S"""
-      The client ID which indicates that an entry has been created offline
-      and is to be synced with the server, the client ID uniquely identifies
-      this entry and will be used prevent sync conflict.
+      The client ID which indicates that an entry has been created while server
+      is offline and is to be saved with the server, the client ID uniquely
+      identifies this entry and will be used prevent conflict while saving entry
+      created while server offline.
     """
     field(:client_id, :id)
 
@@ -144,7 +145,7 @@ defmodule EbnisWeb.Schema.Entry do
     field(:fields, :create_field |> list_of() |> non_null())
 
     @desc ~S"""
-      Client id for entries created offline and to be synced with server.
+      Client id for entries created while server is offline and to be saved.
     """
     field(:client_id, :id)
 

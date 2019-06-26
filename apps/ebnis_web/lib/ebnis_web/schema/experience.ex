@@ -20,10 +20,10 @@ defmodule EbnisWeb.Schema.Experience do
     field(:description, :string)
 
     @desc ~S"""
-      The client ID. For experiences created on the client and to be synced
-      with the server, the client ID uniquely identifies such and can be used
-      to enforce uniqueness at the DB level. Not providing client_id assumes
-      a fresh experience.
+      The client ID. For experiences created on the client while server is
+      offline and to be saved , the client ID uniquely identifies such and can
+      be used to enforce uniqueness at the DB level. Not providing client_id
+      assumes a fresh experience.
     """
     field(:client_id, :id)
 
@@ -44,7 +44,7 @@ defmodule EbnisWeb.Schema.Experience do
     Error object that will be returned when an entry is created along side
     an offline experience.
   """
-  object :offline_experience_sync_entry_error do
+  object :offline_experience_entry_error do
     field(:experience_id, non_null(:id))
     field(:client_id, non_null(:id))
     field(:error, non_null(:string))
@@ -53,11 +53,11 @@ defmodule EbnisWeb.Schema.Experience do
   @desc ~S"""
     The error object that will returned when an offline experience fails to
     insert into the database. The difference between this and
-    `offlineExperienceSyncEntryError` is that this object signified we are not
+    `offlineExperienceEntryError` is that this object signified we are not
     able to create the experience in the first place in which case we expect
-    `offlineExperienceSyncEntryError` field to be null.
+    `offlineExperienceEntryError` field to be null.
   """
-  object :offline_experience_sync_experience_error do
+  object :offline_experience_experience_error do
     @desc ~S"""
       The client ID of the failing experience. As user may not have provided a
       client ID, this field is nullable and in that case, the index field will
@@ -73,10 +73,10 @@ defmodule EbnisWeb.Schema.Experience do
     field(:error, non_null(:string))
   end
 
-  object :offline_experience_sync do
+  object :offline_experience do
     field(:experience, :experience)
-    field(:experience_error, :offline_experience_sync_experience_error)
-    field(:entries_errors, list_of(:offline_experience_sync_entry_error))
+    field(:experience_error, :offline_experience_experience_error)
+    field(:entries_errors, list_of(:offline_experience_entry_error))
   end
 
   ######################### END REGULAR OBJECTS ###########################
@@ -91,7 +91,7 @@ defmodule EbnisWeb.Schema.Experience do
 
     @desc ~S"""
       Uniquely identifies and signifies an experience has been created offline.
-      This will be used to prevent sync conflict.
+      This will be used to prevent offline save conflict.
     """
     field(:client_id, :id)
 
@@ -131,11 +131,11 @@ defmodule EbnisWeb.Schema.Experience do
       resolve(&Resolver.create/2)
     end
 
-    @desc "Sync many experiences created offline"
-    field :sync_offline_experiences, list_of(:offline_experience_sync) do
+    @desc "Save many experiences created offline"
+    field :save_offline_experiences, list_of(:offline_experience) do
       arg(:input, :create_experience_input |> list_of() |> non_null())
 
-      resolve(&Resolver.sync_offline_experiences/2)
+      resolve(&Resolver.save_offline_experiences/2)
     end
   end
 
