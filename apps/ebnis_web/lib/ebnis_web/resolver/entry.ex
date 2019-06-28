@@ -82,23 +82,19 @@ defmodule EbnisWeb.Resolver.Entry do
 
   def create_entries(
         %{create_entries: entries},
-        %{context: %{current_user: user}}
+        %{context: %{current_user: %{id: user_id}}}
       ) do
-    entries =
-      Enum.map(
-        entries,
-        &Map.put(
+    result =
+      entries
+      |> Enum.map(
+        &Map.merge(
           &1,
-          :exp_id,
-          Resolver.convert_from_global_id(&1.exp_id, :experience)
+          %{
+            user_id: user_id,
+            exp_id: Resolver.convert_from_global_id(&1.exp_id, :experience)
+          }
         )
       )
-
-    result =
-      %{
-        user_id: user.id,
-        entries: entries
-      }
       |> EbData.create_entries()
       |> Enum.reduce([], fn {_, values}, acc ->
         case values[:errors] do

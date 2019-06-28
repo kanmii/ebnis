@@ -10,6 +10,7 @@ defmodule EbData.DefaultImpl do
   alias EbData.DefaultImpl.Entry
   alias Ecto.Multi
   alias EbData.Impl
+  alias EbnisWeb.Resolver
 
   @behaviour Impl
 
@@ -336,16 +337,18 @@ defmodule EbData.DefaultImpl do
 
   @spec create_entries(attr :: Impl.create_entries_attributes_t()) ::
           Impl.create_entries_returned_t()
-  def create_entries(%{entries: []}) do
+  def create_entries([]) do
     %{}
   end
 
-  def create_entries(%{entries: entries, user_id: user_id} = _attrs) do
+  def create_entries(entries) do
     Enum.reduce(entries, %{}, fn entry, acc ->
-      id = entry.exp_id
+      id = Resolver.convert_to_global_id(entry.exp_id, :experience)
 
-      case create_entry(Map.put(entry, :user_id, user_id)) do
+      case create_entry(entry) do
         {:ok, created} ->
+          created = Map.put(created, :exp_id, id)
+
           Map.update(acc, id, %{entries: [created], exp_id: id}, fn value ->
             update_in(value, [:entries], &[created | &1 || []])
           end)

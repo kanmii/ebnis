@@ -427,6 +427,9 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       query = Query.create_entries()
 
+      exp_id1_global = Resolver.convert_to_global_id(exp_id1, :experience)
+      exp_id2_global = Resolver.convert_to_global_id(exp_id2, :experience)
+
       assert {:ok,
               %{
                 data: %{
@@ -442,17 +445,17 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       [
         %{
-          "expId" => ^exp_id1,
+          "expId" => ^exp_id1_global,
           "entries" => [
             %{
               "_id" => _,
-              "expId" => ^exp_id1,
+              "expId" => ^exp_id1_global,
               "clientId" => client_id1,
               "fields" => fields1
             },
             %{
               "_id" => _,
-              "expId" => ^exp_id1,
+              "expId" => ^exp_id1_global,
               "clientId" => client_id2,
               "fields" => fields2
             }
@@ -460,11 +463,11 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
           "errors" => nil
         },
         %{
-          "expId" => ^exp_id2,
+          "expId" => ^exp_id2_global,
           "entries" => [
             %{
               "_id" => _,
-              "expId" => ^exp_id2,
+              "expId" => ^exp_id2_global,
               "clientId" => "1",
               "fields" => fields
             }
@@ -544,16 +547,18 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       query = Query.create_entries()
 
+      exp_id_global = Resolver.convert_to_global_id(exp_id, :experience)
+
       assert {:ok,
               %{
                 data: %{
                   "createEntries" => [
                     %{
-                      "expId" => ^exp_id,
+                      "expId" => ^exp_id_global,
                       "entries" => [
                         %{
                           "id" => _,
-                          "expId" => ^exp_id
+                          "expId" => ^exp_id_global
                         }
                       ],
                       "errors" => errors
@@ -594,13 +599,14 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
       }
 
       query = Query.create_entries()
+      exp_id_global = Resolver.convert_to_global_id(exp_id, :experience)
 
       assert {:ok,
               %{
                 data: %{
                   "createEntries" => [
                     %{
-                      "expId" => ^exp_id,
+                      "expId" => ^exp_id_global,
                       "entries" => [],
                       "errors" => [
                         %{

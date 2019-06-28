@@ -13,15 +13,7 @@ defmodule EbData.Impl do
 
   @type save_offline_experience_failure_t :: {:error, %Changeset{}}
 
-  @type create_entries_attributes_t :: %{
-          entries: [
-            %{
-              exp_id: String.t(),
-              list_of_fields: [[Map.t()]]
-            }
-          ],
-          user_id: String.t()
-        }
+  @type create_entries_attributes_t :: [Map.t()]
 
   @type create_entries_returned_t :: %{
           required(String.t()) => %{
