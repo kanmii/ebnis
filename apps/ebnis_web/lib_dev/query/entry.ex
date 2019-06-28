@@ -25,7 +25,8 @@ defmodule EbnisWeb.Query.Entry do
 
   @create_entries_response_fragment """
   fragment #{@create_entries_response_fragment_name} on CreateEntriesResponse {
-      expId
+      experienceId
+
       entries {
         ...#{@fragment_name}
 
@@ -35,6 +36,7 @@ defmodule EbnisWeb.Query.Entry do
       }
 
       errors {
+        experienceId
         clientId
         error
       }

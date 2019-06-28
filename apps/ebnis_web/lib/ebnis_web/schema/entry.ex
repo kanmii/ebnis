@@ -45,8 +45,20 @@ defmodule EbnisWeb.Schema.Entry do
   end
 
   object :create_entries_error do
+    @desc ~S"""
+      The client ID of the entry which fails to save
+    """
     field(:client_id, non_null(:string))
+
+    @desc ~S"""
+      The failure error
+    """
     field(:error, non_null(:string))
+
+    @desc ~S"""
+      The experience ID of the entry which fails to save
+    """
+    field(:experience_id, non_null(:string))
   end
 
   @desc ~S"""
@@ -79,8 +91,16 @@ defmodule EbnisWeb.Schema.Entry do
     and we only get `failures` field if at least one input fails
   """
   object :create_entries_response do
-    field(:exp_id, non_null(:id))
+    field(:experience_id, non_null(:id))
+
+    @desc ~S"""
+      The entries that were successfully inserted
+    """
     field(:entries, :entry |> list_of() |> non_null())
+
+    @desc ~S"""
+      List of error objects denoting entries that fail to insert
+    """
     field(:errors, :create_entries_error |> list_of())
   end
 

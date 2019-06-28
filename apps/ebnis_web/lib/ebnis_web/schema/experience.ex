@@ -41,23 +41,13 @@ defmodule EbnisWeb.Schema.Experience do
   end
 
   @desc ~S"""
-    Error object that will be returned when an entry is created along side
-    an offline experience.
-  """
-  object :offline_experience_entry_error do
-    field(:experience_id, non_null(:id))
-    field(:client_id, non_null(:id))
-    field(:error, non_null(:string))
-  end
-
-  @desc ~S"""
     The error object that will returned when an offline experience fails to
     insert into the database. The difference between this and
     `offlineExperienceEntryError` is that this object signified we are not
     able to create the experience in the first place in which case we expect
     `offlineExperienceEntryError` field to be null.
   """
-  object :offline_experience_experience_error do
+  object :offline_experience_error do
     @desc ~S"""
       The client ID of the failing experience. As user may not have provided a
       client ID, this field is nullable and in that case, the index field will
@@ -70,13 +60,29 @@ defmodule EbnisWeb.Schema.Experience do
     """
     field(:index, non_null(:integer))
 
+    @desc ~S"""
+      The error string explaining why experience fails to insert.
+    """
     field(:error, non_null(:string))
   end
 
   object :offline_experience do
+    @desc ~S"""
+      The experience which was successfully inserted - will be null if
+      experience fails to insert
+    """
     field(:experience, :experience)
-    field(:experience_error, :offline_experience_experience_error)
-    field(:entries_errors, list_of(:offline_experience_entry_error))
+
+    @desc ~S"""
+      If the experience fails to insert, then this is the error object
+      returned
+    """
+    field(:experience_error, :offline_experience_error)
+
+    @desc ~S"""
+      A list of error objects denoting entries which fail to insert
+    """
+    field(:entries_errors, list_of(:create_entries_error))
   end
 
   ######################### END REGULAR OBJECTS ###########################

@@ -445,7 +445,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       [
         %{
-          "expId" => ^exp_id1_global,
+          "experienceId" => ^exp_id1_global,
           "entries" => [
             %{
               "_id" => _,
@@ -463,7 +463,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
           "errors" => nil
         },
         %{
-          "expId" => ^exp_id2_global,
+          "experienceId" => ^exp_id2_global,
           "entries" => [
             %{
               "_id" => _,
@@ -474,7 +474,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
           ],
           "errors" => nil
         }
-      ] = Enum.sort_by(successes, & &1["expId"])
+      ] = Enum.sort_by(successes, & &1["experienceId"])
 
       assert Enum.sort([client_id1, client_id2]) == ["1", "2"]
 
@@ -554,7 +554,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                 data: %{
                   "createEntries" => [
                     %{
-                      "expId" => ^exp_id_global,
+                      "experienceId" => ^exp_id_global,
                       "entries" => [
                         %{
                           "id" => _,
@@ -606,12 +606,13 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                 data: %{
                   "createEntries" => [
                     %{
-                      "expId" => ^exp_id_global,
+                      "experienceId" => ^exp_id_global,
                       "entries" => [],
                       "errors" => [
                         %{
                           "clientId" => "1",
-                          "error" => error
+                          "error" => error,
+                          "experienceId" => ^exp_id_global
                         }
                       ]
                     }

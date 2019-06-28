@@ -348,18 +348,20 @@ defmodule EbData.DefaultImpl do
       case create_entry(entry) do
         {:ok, created} ->
           created = Map.put(created, :exp_id, id)
+          initial = %{entries: [created], experience_id: id}
 
-          Map.update(acc, id, %{entries: [created], exp_id: id}, fn value ->
+          Map.update(acc, id, initial, fn value ->
             update_in(value, [:entries], &[created | &1 || []])
           end)
 
         {:error, changeset} ->
           error = %{
             client_id: entry[:client_id],
-            error: changeset
+            error: changeset,
+            experience_id: id
           }
 
-          initial = %{errors: [error], exp_id: id, entries: []}
+          initial = %{errors: [error], experience_id: id, entries: []}
 
           Map.update(acc, id, initial, fn value ->
             update_in(value, [:errors], &[error | &1 || []])
