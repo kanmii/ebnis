@@ -138,9 +138,7 @@ defmodule EbData.Factory.Entry do
         {"defId", v}
 
       {:data, data} ->
-        {:ok, val} = FieldType.serialize_k_v(data)
-
-        {"data", Jason.encode!(val)}
+        {"data", Jason.encode!(data)}
     end)
     |> Enum.into(%{})
   end

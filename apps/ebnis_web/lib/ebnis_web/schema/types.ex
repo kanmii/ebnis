@@ -37,7 +37,7 @@ defmodule EbnisWeb.Schema.Types do
   defp parse_entry_field(%Absinthe.Blueprint.Input.String{value: value}) do
     case Jason.decode(value) do
       {:ok, parsed} ->
-        FieldType.parse(parsed)
+        {:ok, parsed}
 
       {:error, _} ->
         :error

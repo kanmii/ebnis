@@ -220,24 +220,11 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       query = Query.create()
 
-      error =
-        Jason.encode!(%{
-          fields: [
-            %{
-              meta: %{
-                def_id: fdef.id,
-                index: 0
-              },
-              errors: %{def_id: "invalid data type"}
-            }
-          ]
-        })
-
       assert {:ok,
               %{
                 errors: [
                   %{
-                    message: ^error
+                    message: error
                   }
                 ]
               }} =
@@ -247,6 +234,8 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  variables: variables,
                  context: context(user)
                )
+
+      assert error =~ ~s("def_id":)
     end
 
     # @tag :skip
@@ -396,6 +385,50 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  variables: variables,
                  context: context(user)
                )
+    end
+
+    # @tag :skip
+    test "fails if fields.data can not be cast" do
+      user = RegFactory.insert()
+
+      exp =
+        %{
+          user_id: user.id,
+          title: Faker.String.base64(),
+          field_defs: [%{name: Faker.String.base64(), type: "integer"}]
+        }
+        |> ExpFactory.insert()
+
+      [fdef | _] = exp.field_defs
+
+      params = %{
+        exp_id: exp.id,
+        # notice how we specified a decimal value for an integer data
+        fields: [%{def_id: fdef.id, data: %{integer: "50.77"}}]
+      }
+
+      variables = %{
+        "input" => Factory.stringify(params)
+      }
+
+      query = Query.create()
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 query,
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert error =~ ~s("data":)
     end
   end
 
