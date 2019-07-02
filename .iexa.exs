@@ -1,3 +1,5 @@
+import Ecto.Query
+
 alias EbData.DefaultImpl.Repo
 alias EbData.DefaultImpl.{User, Credential, Entry, Experience}
 alias EbData.DefaultImpl.Registration
