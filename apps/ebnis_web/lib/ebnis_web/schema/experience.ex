@@ -143,6 +143,13 @@ defmodule EbnisWeb.Schema.Experience do
 
       resolve(&Resolver.save_offline_experiences/2)
     end
+
+    @desc "Delete an experience"
+    field :delete_experience, :boolean do
+      arg(:id, non_null(:id))
+
+      resolve(&Resolver.delete_experience/2)
+    end
   end
 
   ######################### END MUTATIONS ################################

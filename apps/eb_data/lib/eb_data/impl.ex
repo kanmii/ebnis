@@ -1,6 +1,7 @@
 defmodule EbData.Impl do
   alias Ecto.Changeset
   alias EbData.DefaultImpl.Entry
+  alias EbData.DefaultImpl.Experience
 
   @type save_offline_experience_attributes_t ::
           %{
@@ -55,4 +56,6 @@ defmodule EbData.Impl do
 
   @callback save_offline_experience(attr :: save_offline_experience_attributes_t) ::
               save_offline_experience_success_t | save_offline_experience_failure_t
+
+  @callback delete_experience(id :: String.t()) :: {:ok, Experience.t()} | {:error, Changeset.t()}
 end

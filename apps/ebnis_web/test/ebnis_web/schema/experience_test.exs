@@ -985,5 +985,95 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
   end
 
+  describe "delete experience mutation" do
+    test "succeeds" do
+      user = RegFactory.insert()
+      experience = Factory.insert(user_id: user.id)
+
+      variables = %{
+        "id" => Resolver.convert_to_global_id(experience.id, :experience)
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "deleteExperience" => true
+                }
+              }} =
+               Absinthe.run(
+                 Query.delete_experience(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    test "fails if experience does not exist" do
+      variables = %{
+        "id" => Resolver.convert_to_global_id("0", :experience)
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.delete_experience(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: "0"})
+               )
+
+      assert error =~ ~s("id":)
+    end
+
+    test "fails if we did not supply global id" do
+      variables = %{
+        "id" => "0"
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.delete_experience(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: "0"})
+               )
+
+      assert error =~ ~s("id":)
+    end
+
+    test "fails if no user context" do
+      variables = %{
+        "id" => "a"
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Unauthorized"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.delete_experience(),
+                 Schema,
+                 variables: variables
+               )
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

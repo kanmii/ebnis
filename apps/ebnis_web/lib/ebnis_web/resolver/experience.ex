@@ -168,4 +168,21 @@ defmodule EbnisWeb.Resolver.Experience do
     # get first 100 entries by default
     entries(experience, %{pagination: %{first: 100}}, context)
   end
+
+  @spec delete_experience(%{id: String.t()}, any) ::
+          {:error, binary | [{:message, <<_::96>>}, ...]} | {:ok, true}
+  def delete_experience(%{id: id}, %{context: %{current_user: _}}) do
+    case Resolver.convert_from_global_id(id, :experience)
+         |> EbData.delete_experience() do
+      {:ok, _} ->
+        {:ok, true}
+
+      {:error, changeset} ->
+        {:error, stringify_changeset_error(changeset)}
+    end
+  end
+
+  def delete_experience(_, _) do
+    Resolver.unauthorized()
+  end
 end

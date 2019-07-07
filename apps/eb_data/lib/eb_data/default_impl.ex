@@ -11,6 +11,7 @@ defmodule EbData.DefaultImpl do
   alias Ecto.Multi
   alias EbData.Impl
   alias EbnisWeb.Resolver
+  alias Ecto.Changeset
 
   @behaviour Impl
 
@@ -323,6 +324,30 @@ defmodule EbData.DefaultImpl do
 
   defp query_experience(queryable, _) do
     queryable
+  end
+
+  @spec delete_experience(id :: String.t()) :: {:ok, Experience.t()} | {:error, Changeset.t()}
+  def delete_experience(id) do
+    try do
+      with %{} = experience <- get_experience(id),
+           {:ok, experience} <- Repo.delete(experience) do
+        {:ok, experience}
+      else
+        nil ->
+          {:error, make_experience_invalid_id_changeset_error()}
+
+        error ->
+          error
+      end
+    rescue
+      _e ->
+        {:error, make_experience_invalid_id_changeset_error()}
+    end
+  end
+
+  defp make_experience_invalid_id_changeset_error do
+    changeset = Experience.changeset(%Experience{}, %{})
+    Map.put(changeset, :errors, id: {"is invalid", [validation: :required]})
   end
 
   #########################  END  EXPERIENCES ###############################

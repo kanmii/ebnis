@@ -120,4 +120,12 @@ defmodule EbnisWeb.Query.Experience do
       #{field_frag}
     """
   end
+
+  def delete_experience do
+    """
+      mutation DeleteExperience($id: String!) {
+        deleteExperience(id: $id)
+      }
+    """
+  end
 end

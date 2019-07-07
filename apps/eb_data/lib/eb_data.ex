@@ -3,6 +3,8 @@ defmodule EbData do
 
   alias EbData.DefaultImpl
   alias EbData.Impl
+  alias EbData.DefaultImpl.Experience
+  alias Ecto.Changeset
 
   @behaviour Impl
 
@@ -63,6 +65,11 @@ defmodule EbData do
           Impl.save_offline_experience_success_t() | Impl.save_offline_experience_failure_t()
   def save_offline_experience(attrs) do
     impl().save_offline_experience(attrs)
+  end
+
+  @spec delete_experience(id :: String.t()) :: {:ok, Experience.t()} | {:error, Changeset.t()}
+  def delete_experience(id) do
+    impl().delete_experience(id)
   end
 
   ##########################   END EXPERIENCES ###############################
