@@ -72,6 +72,12 @@ defmodule EbData do
     impl().delete_experience(id)
   end
 
+  @spec update_experience(id :: String.t(), args :: Impl.update_experience_args_t()) ::
+          {:ok, Experience.t()} | {:error, Changeset.t() | String.t()}
+  def update_experience(id, args) do
+    impl().update_experience(id, args)
+  end
+
   ##########################   END EXPERIENCES ###############################
 
   def create_entry(attrs) do

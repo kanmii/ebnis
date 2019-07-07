@@ -4,6 +4,7 @@ defmodule EbnisWeb.Resolver.Experience do
   alias EbnisWeb.Resolver
   alias EbData.DefaultImpl.Entry
   alias EbnisWeb.Resolver.Entry, as: EntryResolver
+  alias Ecto.Changeset
   # alias EbData.Impl
 
   def save_offline_experiences(
@@ -183,6 +184,26 @@ defmodule EbnisWeb.Resolver.Experience do
   end
 
   def delete_experience(_, _) do
+    Resolver.unauthorized()
+  end
+
+  def update_experience(
+        %{input: %{id: id} = args},
+        %{context: %{current_user: _}}
+      ) do
+    args = Map.delete(args, :id)
+
+    case Resolver.convert_from_global_id(id, :experience)
+         |> EbData.update_experience(args) do
+      {:error, %Changeset{} = changeset} ->
+        {:error, stringify_changeset_error(changeset)}
+
+      error ->
+        error
+    end
+  end
+
+  def update_experience(_, _) do
     Resolver.unauthorized()
   end
 end

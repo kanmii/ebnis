@@ -124,6 +124,23 @@ defmodule EbnisWeb.Schema.Experience do
     field(:ids, list_of(:id))
   end
 
+  @desc "Variables for updating an existing Experience"
+  input_object :update_experience_input do
+    @desc ~S"""
+      The ID of experience to be updated
+    """
+    field(:id, non_null(:id))
+
+    field(:title, :string)
+    field(:description, :string)
+    field(:field_definitions, :update_field_definition_input |> list_of())
+
+    # @desc ~S"""
+    #   One may update one or more entries simultaneously
+    # """
+    # field(:entries, :create_entry_input |> list_of())
+  end
+
   ######################### END INPUT OBJECTS ################################
 
   ######################### MUTATION ################################
@@ -149,6 +166,13 @@ defmodule EbnisWeb.Schema.Experience do
       arg(:id, non_null(:id))
 
       resolve(&Resolver.delete_experience/2)
+    end
+
+    @desc "Update an experience"
+    field :update_experience, :experience do
+      arg(:input, non_null(:update_experience_input))
+
+      resolve(&Resolver.update_experience/2)
     end
   end
 

@@ -43,4 +43,18 @@ defmodule EbnisWeb.Schema.FieldDef do
     """
     field(:client_id, :id)
   end
+
+  @desc "Variables for updating an experience field definition"
+  input_object :update_field_definition_input do
+    @desc ~S"""
+      The ID of field definition to be updated
+    """
+    field(:id, non_null(:id))
+
+    @desc ~S"""
+      The name of the field is the only one allowed to be updated. One may
+      not update field types as this may invalidate all entries.
+    """
+    field(:name, non_null(:string))
+  end
 end

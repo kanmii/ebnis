@@ -36,6 +36,17 @@ defmodule EbData.Impl do
           client_ids: [binary() | Integer.t()]
         }
 
+  @type update_experience_args_t :: %{
+          title: String.t(),
+          description: binary(),
+          field_definitions: [
+            %{
+              id: String.t(),
+              name: String.t()
+            }
+          ]
+        }
+
   @callback create_exp(map) :: {:ok, map} | {:error, term, map}
 
   @callback get_experience(
@@ -58,4 +69,7 @@ defmodule EbData.Impl do
               save_offline_experience_success_t | save_offline_experience_failure_t
 
   @callback delete_experience(id :: String.t()) :: {:ok, Experience.t()} | {:error, Changeset.t()}
+
+  @callback update_experience(id :: String.t(), args :: update_experience_args_t) ::
+              {:ok, Experience.t()} | {:error, Changeset.t() | String.t()}
 end

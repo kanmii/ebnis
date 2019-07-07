@@ -128,4 +128,22 @@ defmodule EbnisWeb.Query.Experience do
       }
     """
   end
+
+  def update_experience do
+    {field_frag_name, field_frag} = FieldDef.all_fields_fragment()
+
+    """
+      mutation UpdateAnExperience($input: UpdateExperienceInput!) {
+        updateExperience(input: $input) {
+          ...#{@frag_name}
+          fieldDefs {
+            ...#{field_frag_name}
+          }
+        }
+      }
+
+      #{@fragment}
+      #{field_frag}
+    """
+  end
 end

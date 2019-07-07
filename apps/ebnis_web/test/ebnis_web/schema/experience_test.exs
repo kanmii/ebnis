@@ -1075,5 +1075,255 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     end
   end
 
+  describe "update experience mutation" do
+    # @tag :skip
+    test "fails if no user context" do
+      variables = %{
+        "input" => %{
+          "id" => "1"
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Unauthorized"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_experience(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    # @tag :skip
+    test "fails when there is nothing to update" do
+      variables = %{
+        "input" => %{
+          "id" => 0
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "nothing to update"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_experience(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: 0})
+               )
+    end
+
+    # @tag :skip
+    test "fails if we are not using global ID for experience" do
+      variables = %{
+        "input" => %{
+          "id" => 0,
+          "title" => "a"
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_experience(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: 0})
+               )
+
+      assert error =~ ~s("id":)
+    end
+
+    # @tag :skip
+    test "fails if experience does not exist" do
+      variables = %{
+        "input" => %{
+          "id" => Resolver.convert_to_global_id(0, :experience),
+          "title" => "a"
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_experience(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: 0})
+               )
+
+      assert error =~ ~s("id":)
+    end
+
+    # @tag :skip
+    test "succeeds with experience definition updates" do
+      user = RegFactory.insert()
+      field_definition = FieldDefFactory.params()
+
+      experience =
+        Factory.insert(
+          user_id: user.id,
+          field_defs: [field_definition]
+        )
+
+      string_id = Integer.to_string(experience.id)
+      global_id = Resolver.convert_to_global_id(string_id, :experience)
+      field_definition_id = hd(experience.field_defs).id
+
+      variables = %{
+        "input" => %{
+          "id" => global_id,
+          "title" => "aa",
+          "description" => "b",
+          "fieldDefinitions" => [
+            %{
+              "id" => field_definition_id,
+              "name" => "cc"
+            }
+          ]
+        }
+      }
+
+      refute experience.title == "aa"
+      refute experience.description == "b"
+      refute field_definition.name == "cc"
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateExperience" => %{
+                    "_id" => ^string_id,
+                    "id" => ^global_id,
+                    "title" => "aa",
+                    "description" => "b",
+                    "fieldDefs" => [
+                      %{
+                        "id" => ^field_definition_id,
+                        "name" => "cc"
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_experience(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "succeeds without experience definition updates" do
+      user = RegFactory.insert()
+      field_definition = FieldDefFactory.params()
+
+      experience =
+        Factory.insert(
+          user_id: user.id,
+          field_defs: [field_definition]
+        )
+
+      string_id = Integer.to_string(experience.id)
+      global_id = Resolver.convert_to_global_id(string_id, :experience)
+
+      variables = %{
+        "input" => %{
+          "id" => global_id,
+          "title" => "aa",
+          "description" => "b"
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateExperience" => %{
+                    "_id" => ^string_id,
+                    "id" => ^global_id,
+                    "title" => "aa",
+                    "description" => "b",
+                    "fieldDefs" => [query_field_definition]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_experience(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert query_field_definition["name"] == field_definition.name
+    end
+
+    # @tag :skip
+    test "succeeds with empty list of definition updates" do
+      user = RegFactory.insert()
+      field_definition = FieldDefFactory.params()
+
+      experience =
+        Factory.insert(
+          user_id: user.id,
+          field_defs: [field_definition]
+        )
+
+      string_id = Integer.to_string(experience.id)
+      global_id = Resolver.convert_to_global_id(string_id, :experience)
+
+      variables = %{
+        "input" => %{
+          "id" => global_id,
+          "title" => "aa",
+          "description" => "b",
+          "fieldDefinitions" => []
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateExperience" => %{
+                    "_id" => ^string_id,
+                    "id" => ^global_id,
+                    "title" => "aa",
+                    "description" => "b",
+                    "fieldDefs" => [query_field_definition]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_experience(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert query_field_definition["name"] == field_definition.name
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

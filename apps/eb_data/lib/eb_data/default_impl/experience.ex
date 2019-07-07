@@ -24,7 +24,25 @@ defmodule EbData.DefaultImpl.Experience do
   end
 
   @doc "changeset"
-  def changeset(%__MODULE__{} = schema, %{} = attrs) do
+  def changeset(schema, attrs) do
+    schema
+    |> changeset_common(attrs)
+    |> validate_field_defs()
+    |> assoc_constraint(:user)
+    |> unique_constraint(:title, name: :experiences_user_id_title_index)
+    |> unique_constraint(:client_id, name: :experiences_client_id_user_id_index)
+  end
+
+  @doc "changeset"
+  def changeset_for_update(schema, attrs) do
+    schema
+    |> changeset_common(attrs)
+    |> assoc_constraint(:user)
+    |> unique_constraint(:title, name: :experiences_user_id_title_index)
+    |> unique_constraint(:client_id, name: :experiences_client_id_user_id_index)
+  end
+
+  defp changeset_common(%__MODULE__{} = schema, %{} = attrs) do
     schema
     |> cast(attrs, [
       :description,
@@ -41,10 +59,6 @@ defmodule EbData.DefaultImpl.Experience do
         attrs[:custom_requireds] || []
       )
     )
-    |> validate_field_defs()
-    |> assoc_constraint(:user)
-    |> unique_constraint(:title, name: :experiences_user_id_title_index)
-    |> unique_constraint(:client_id, name: :experiences_client_id_user_id_index)
   end
 
   defp validate_field_defs(%Changeset{valid?: false} = changeset) do
