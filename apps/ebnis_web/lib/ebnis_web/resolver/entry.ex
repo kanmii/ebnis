@@ -52,13 +52,12 @@ defmodule EbnisWeb.Resolver.Entry do
         {[], 0},
         fn
           %{valid?: false, errors: errors, changes: changes}, {acc, index} ->
-            errors = %{
-              meta: %{
-                def_id: changes.def_id,
-                index: index
-              },
-              errors: Resolver.changeset_errors_to_map(errors)
-            }
+            errors =
+              EbData.mapify_entry_field_error(
+                changes.def_id,
+                errors,
+                index
+              )
 
             {[errors | acc], index + 1}
 
@@ -127,6 +126,29 @@ defmodule EbnisWeb.Resolver.Entry do
   end
 
   def create_entries(_, _) do
+    Resolver.unauthorized()
+  end
+
+  def update_entry(
+        %{input: %{id: id} = args},
+        %{context: %{current_user: _}}
+      ) do
+    args = Map.delete(args, :id)
+    id = Resolver.convert_from_global_id(id, :entry)
+
+    case EbData.update_entry(id, args) do
+      {:error, %{fields: _} = errors} ->
+        {:error, Jason.encode!(errors)}
+
+      {:error, changeset} ->
+        {:error, stringify_changeset_error(changeset)}
+
+      result ->
+        result
+    end
+  end
+
+  def update_entry(_, _) do
     Resolver.unauthorized()
   end
 end

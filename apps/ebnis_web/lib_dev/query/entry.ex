@@ -73,4 +73,21 @@ defmodule EbnisWeb.Query.Entry do
     #{@create_entries_response_fragment}
     """
   end
+
+  def update_entry do
+    """
+    mutation UpdateAnExperienceEntry($input: UpdateEntryInput!) {
+      updateEntry(input: $input) {
+        ...#{@fragment_name}
+
+        fields {
+          ...#{@field_frag_name}
+        }
+      }
+    }
+
+    #{@fragment}
+    #{@field_frag}
+    """
+  end
 end

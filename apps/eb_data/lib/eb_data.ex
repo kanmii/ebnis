@@ -80,6 +80,7 @@ defmodule EbData do
 
   ##########################   END EXPERIENCES ###############################
 
+  ##########################   ENTRIES ######################################
   def create_entry(attrs) do
     impl().create_entry(attrs)
   end
@@ -106,6 +107,62 @@ defmodule EbData do
       repo_opts
     )
   end
+
+  @spec update_entry(id :: String.t(), attrs :: Impl.update_entry_args_t()) ::
+          {:ok, Entry.t()}
+          | {
+              :error,
+              Changeset.t() | String.t() | %{fields: [Map.t()]}
+            }
+  def update_entry(id, args) do
+    impl().update_entry(id, args)
+  end
+
+  @spec mapify_entry_field_error(
+          def_id :: String.t(),
+          errors :: [Map.t()],
+          index :: Integer.t() | nil
+        ) :: Map.t()
+  def mapify_entry_field_error(def_id, errors, index \\ nil) do
+    meta = %{
+      def_id: def_id
+    }
+
+    meta = if(index, do: Map.put(meta, :index, index), else: meta)
+
+    %{
+      meta: meta,
+      errors: changeset_errors_to_map(errors)
+    }
+  end
+
+  ################################ END ENTRIES ###############################
+
+  ################################ UTILITIES #################################
+
+  def changeset_errors_to_map(errors),
+    do:
+      errors
+      |> Enum.map(fn
+        {k, {v, opts}} ->
+          {k, error_value(v, opts)}
+
+        kv ->
+          kv
+      end)
+      |> Enum.into(%{})
+
+  defp error_value(v, opts) do
+    case(Keyword.fetch(opts, :count)) do
+      :error ->
+        v
+
+      {:ok, count} ->
+        String.replace(v, "%{count}", to_string(count))
+    end
+  end
+
+  ################################ END UTILITIES #############################
 
   defconstp impl do
     Application.get_env(:eb_data, :impl, DefaultImpl)

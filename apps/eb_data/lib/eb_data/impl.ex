@@ -47,6 +47,15 @@ defmodule EbData.Impl do
           ]
         }
 
+  @type update_entry_args_t :: %{
+          fields: [
+            %{
+              def_id: String.t(),
+              data: %{required(String.t()) => String.t()}
+            }
+          ]
+        }
+
   @callback create_exp(map) :: {:ok, map} | {:error, term, map}
 
   @callback get_experience(
@@ -72,4 +81,11 @@ defmodule EbData.Impl do
 
   @callback update_experience(id :: String.t(), args :: update_experience_args_t) ::
               {:ok, Experience.t()} | {:error, Changeset.t() | String.t()}
+
+  @callback update_entry(id :: String.t(), attrs :: update_entry_args_t) ::
+              {:ok, Entry.t()}
+              | {
+                  :error,
+                  Changeset.t() | String.t() | %{fields: [Map.t()]}
+                }
 end

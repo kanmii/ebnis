@@ -7,6 +7,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
   alias EbData.Factory.Registration, as: RegFactory
   alias EbnisWeb.Query.Entry, as: Query
   alias EbnisWeb.Resolver
+  alias EbData.Factory.FieldDef, as: FieldDefFactory
 
   @moduletag :db
   @iso_extended_format "{ISO:Extended:Z}"
@@ -660,6 +661,214 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                )
 
       assert error =~ ~s("client_id":)
+    end
+  end
+
+  describe "update entry mutation" do
+    test "fails if no user context" do
+      variables = %{
+        "input" => %{
+          "id" => 0,
+          "fields" => [
+            %{
+              "defId" => 1,
+              "data" => ~s({"a":1})
+            }
+          ]
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Unauthorized"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_entry(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    test "fails if not using global ID" do
+      variables = %{
+        "input" => %{
+          "id" => 0,
+          "fields" => [
+            %{
+              "defId" => 1,
+              "data" => ~s({"a":1})
+            }
+          ]
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_entry(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: 0})
+               )
+
+      assert error =~ ~s("id":)
+    end
+
+    test "fails if entry ID does not exist" do
+      variables = %{
+        "input" => %{
+          "id" => Resolver.convert_to_global_id(0, :entry),
+          "fields" => [
+            %{
+              "defId" => 1,
+              "data" => ~s({"a":1})
+            }
+          ]
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_entry(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: 0})
+               )
+
+      assert error =~ ~s("id":)
+    end
+
+    test "fails if field's definition ID does not exist or field.data.type != field_definition.type " do
+      user = RegFactory.insert()
+      exp = ExpFactory.insert(user_id: user.id)
+      entry = Factory.insert(exp)
+      bogus_field1 = Factory.field(def_id: Ecto.UUID.generate())
+      bogus_field2 = Factory.field(def_id: Ecto.UUID.generate())
+
+      [field | _] = entry.fields
+
+      error =
+        Jason.encode!(%{
+          fields: [
+            %{
+              meta: %{
+                def_id: bogus_field1.def_id
+              },
+              errors: %{def_id: "does not exist"}
+            },
+            %{
+              meta: %{
+                def_id: bogus_field2.def_id
+              },
+              errors: %{def_id: "does not exist"}
+            },
+            %{
+              meta: %{
+                def_id: field.def_id
+              },
+              errors: %{data: "is invalid"}
+            }
+          ]
+        })
+
+      variables = %{
+        "input" => %{
+          "id" => Resolver.convert_to_global_id(entry.id, :entry),
+          "fields" => [
+            Factory.stringify_field(bogus_field1),
+            Factory.stringify_field(bogus_field2),
+            field
+            |> Map.from_struct()
+            |> Map.put(:data, %{"a" => 1})
+            |> Factory.stringify_field()
+          ]
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: ^error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_entry(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    test "succeeds" do
+      user = RegFactory.insert()
+
+      exp =
+        ExpFactory.insert(
+          user_id: user.id,
+          field_defs: [
+            FieldDefFactory.params(type: "integer")
+          ]
+        )
+
+      entry = Factory.insert(exp)
+
+      [field | _] = entry.fields
+      refute field.data["integer"] == 1
+
+      field_definition_id = field.def_id
+
+      variables = %{
+        "input" => %{
+          "id" => Resolver.convert_to_global_id(entry.id, :entry),
+          "fields" => [
+            %{
+              "data" => ~s({"integer":1}),
+              "defId" => field_definition_id
+            }
+          ]
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateEntry" => %{
+                    "id" => _,
+                    "_id" => _,
+                    "fields" => [
+                      %{
+                        "defId" => ^field_definition_id,
+                        "data" => ~s({"integer":1})
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_entry(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
     end
   end
 

@@ -1,4 +1,5 @@
 defmodule EbData.DefaultImpl do
+  require Logger
   import Ecto.Query, warn: false
   import Comeonin.Bcrypt, only: [{:dummy_checkpw, 0}, {:checkpw, 2}]
 
@@ -12,8 +13,11 @@ defmodule EbData.DefaultImpl do
   alias EbData.Impl
   alias EbnisWeb.Resolver
   alias Ecto.Changeset
+  alias EbData.FieldType
+  alias EbData.DefaultImpl.Field
 
   @behaviour Impl
+  @is_invalid_changeset_error {"is invalid", [validation: :required]}
 
   # ACCOUNTS
 
@@ -346,8 +350,8 @@ defmodule EbData.DefaultImpl do
   end
 
   defp make_experience_invalid_id_changeset_error do
-    changeset = Experience.changeset(%Experience{}, %{})
-    Map.put(changeset, :errors, id: {"is invalid", [validation: :required]})
+    changeset = Experience.changeset_for_update(%Experience{}, %{})
+    Map.put(changeset, :errors, id: @is_invalid_changeset_error)
   end
 
   @spec update_experience(id :: String.t(), args :: Impl.update_experience_args_t()) ::
@@ -502,6 +506,103 @@ defmodule EbData.DefaultImpl do
       )
 
     entries_connection
+  end
+
+  @spec update_entry(id :: String.t(), attrs :: Impl.update_entry_args_t()) ::
+          {:ok, Entry.t()}
+          | {
+              :error,
+              Changeset.t() | String.t() | %{fields: [Map.t()]}
+            }
+  def update_entry(id, args) do
+    query = where(Entry, [e], e.id == ^id)
+
+    case query
+         |> preload([_, ex], exp: ex)
+         |> join(:inner, [e], ex in assoc(e, :exp))
+         |> Repo.all() do
+      [] ->
+        {:error, make_entry_invalid_id_changeset_error()}
+
+      [entry] ->
+        entry.exp.field_defs
+        |> update_entry_validate_fields(args[:fields])
+        |> case do
+          {valid_fields, []} ->
+            now =
+              DateTime.utc_now()
+              |> DateTime.truncate(:second)
+
+            {1, [updated_entry]} =
+              query
+              |> select([e], e)
+              |> update(
+                [e],
+                set: [fields: ^valid_fields, updated_at: ^now]
+              )
+              |> Repo.update_all([])
+
+            {:ok, updated_entry}
+
+          {_, fields_with_errors} ->
+            {:error, %{fields: Enum.reverse(fields_with_errors)}}
+        end
+    end
+  rescue
+    exception ->
+      case exception do
+        %Ecto.Query.CastError{type: :id, value: :error} ->
+          {:error, make_entry_invalid_id_changeset_error()}
+
+        _ ->
+          Logger.error(fn ->
+            Exception.format(:error, exception, __STACKTRACE__)
+          end)
+
+          {:error, "Unknown error"}
+      end
+  end
+
+  defp update_entry_validate_fields(definitions, fields) do
+    definitions_map =
+      definitions
+      |> Enum.reduce(%{}, &Map.put(&2, &1.id, :ok))
+
+    fields
+    |> Enum.reduce({[], []}, fn
+      field, {valids, invalids} ->
+        case definitions_map[field.def_id] do
+          nil ->
+            error =
+              EbData.mapify_entry_field_error(
+                field.def_id,
+                def_id: {"does not exist", validation: :assoc}
+              )
+
+            {valids, [error | invalids]}
+
+          _type ->
+            case FieldType.parse(field.data) do
+              :error ->
+                error =
+                  EbData.mapify_entry_field_error(
+                    field.def_id,
+                    data: {"is invalid", validation: :cast}
+                  )
+
+                {valids, [error | invalids]}
+
+              _ ->
+                {[struct(Field, field) | valids], invalids}
+            end
+        end
+    end)
+  end
+
+  defp make_entry_invalid_id_changeset_error do
+    %Entry{}
+    |> Entry.changeset_cast_attrs(%{})
+    |> Map.put(:errors, id: @is_invalid_changeset_error)
   end
 
   #########################  END ENTRIES #####################################

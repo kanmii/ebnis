@@ -11,6 +11,7 @@ defmodule EbData.DefaultImpl.Field do
 
   @doc "changeset"
   def changeset, do: changeset(%__MODULE__{}, %{})
+  @spec changeset(EbData.DefaultImpl.Field.t()) :: Ecto.Changeset.t()
   def changeset(%__MODULE__{} = schema), do: changeset(schema, %{})
 
   def changeset(%__MODULE__{} = schema, attrs) when is_list(attrs),

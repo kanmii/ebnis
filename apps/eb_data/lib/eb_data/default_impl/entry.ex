@@ -11,6 +11,7 @@ defmodule EbData.DefaultImpl.Entry do
   @moduledoc ~S"""
     For the changeset - when we are inserting an entry. The attribute expected
     is of the form:
+
       %{
         exp_id: :the_id_of_the_experience,
         user_id: :the_owner_of_the_experience,
@@ -53,6 +54,13 @@ defmodule EbData.DefaultImpl.Entry do
       :inserted_at,
       :updated_at
     ])
+  end
+
+  @doc "changeset_for_update"
+  def changeset_for_update(schema, attrs) do
+    schema
+    |> changeset_cast_attrs(attrs)
+    |> cast_embed(:fields, required: true)
   end
 
   @doc "changeset_one"
@@ -155,7 +163,7 @@ defmodule EbData.DefaultImpl.Entry do
          field_defs,
          fields_changesets
        ) do
-    {definition_id_to_type_map, definition_ids} =
+    {definitions_ids_to_type_map, definition_ids} =
       Enum.reduce(
         field_defs,
         {%{}, []},
@@ -165,40 +173,43 @@ defmodule EbData.DefaultImpl.Entry do
         end
       )
 
-    {fields_changesets, fields_def_ids} =
+    {fields_changesets, seen_definition_ids} =
       Enum.reduce(
         # represents list of all fields that will be used to create an entry
         fields_changesets,
         {[], []},
-        fn field_changeset, {fields_changesets_acc, fields_def_ids} ->
+        fn field_changeset, {fields_changesets_acc, seen_definition_ids} ->
           def_id = field_changeset.changes.def_id
 
           [data_type | _] = Map.keys(field_changeset.changes.data)
 
-          modified_changeset =
+          maybe_changeset_with_error =
             cond do
-              definition_id_to_type_map[def_id] == nil ->
+              definitions_ids_to_type_map[def_id] == nil ->
                 add_def_id_does_not_exist_error(field_changeset)
 
-              Enum.member?(fields_def_ids, def_id) ->
+              Enum.member?(seen_definition_ids, def_id) ->
                 add_def_id_unique_error(field_changeset)
 
-              definition_id_to_type_map[def_id] != data_type ->
+              definitions_ids_to_type_map[def_id] != data_type ->
                 add_invalid_data_type_error(field_changeset)
 
               true ->
                 field_changeset
             end
 
-          fields_changesets_acc = [modified_changeset | fields_changesets_acc]
-          {fields_changesets_acc, [def_id | fields_def_ids]}
+          fields_changesets_acc = [
+            maybe_changeset_with_error | fields_changesets_acc
+          ]
+
+          {fields_changesets_acc, [def_id | seen_definition_ids]}
         end
       )
 
     not_in_definitions =
       get_fields_missing_from_definitions(
         definition_ids,
-        fields_def_ids
+        seen_definition_ids
       )
 
     fields_changesets

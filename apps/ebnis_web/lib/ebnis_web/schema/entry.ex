@@ -174,6 +174,18 @@ defmodule EbnisWeb.Schema.Entry do
     field(:updated_at, :iso_datetime)
   end
 
+  @desc "Variables for updating an experience entry"
+  input_object :update_entry_input do
+    @desc ~S"""
+        The ID of entry to be updated
+    """
+
+    field(:id, non_null(:id))
+
+    @desc "fields making up the experience entry"
+    field(:fields, :create_field |> list_of() |> non_null())
+  end
+
   ############################# END INPUTS ##################################
 
   ################### mutations #########################################
@@ -212,6 +224,12 @@ defmodule EbnisWeb.Schema.Entry do
       arg(:create_entries, :create_entry_input |> list_of() |> non_null())
 
       resolve(&Resolver.create_entries/2)
+    end
+
+    field :update_entry, :entry do
+      arg(:input, non_null(:update_entry_input))
+
+      resolve(&Resolver.update_entry/2)
     end
   end
 

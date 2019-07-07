@@ -4,7 +4,7 @@ defmodule EbData.Factory.Entry do
   alias EbnisWeb.Resolver
   alias EbData.DefaultImpl.Experience
 
-  @integers 0..1_000
+  @integers 100..1_000
 
   @all_types FieldType.all_types_string()
 
