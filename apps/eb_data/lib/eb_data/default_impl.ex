@@ -512,7 +512,7 @@ defmodule EbData.DefaultImpl do
           {:ok, Entry.t()}
           | {
               :error,
-              Changeset.t() | String.t() | %{fields: [Map.t()]}
+              Changeset.t() | String.t() | %{fields_errors: [Map.t()]}
             }
   def update_entry(id, args) do
     query = where(Entry, [e], e.id == ^id)
@@ -544,8 +544,8 @@ defmodule EbData.DefaultImpl do
 
             {:ok, updated_entry}
 
-          {_, fields_with_errors} ->
-            {:error, %{fields: Enum.reverse(fields_with_errors)}}
+          {_, fields_errors} ->
+            {:error, %{fields_errors: Enum.reverse(fields_errors)}}
         end
     end
   rescue
@@ -573,22 +573,24 @@ defmodule EbData.DefaultImpl do
       field, {valids, invalids} ->
         case definitions_map[field.def_id] do
           nil ->
-            error =
-              EbData.mapify_entry_field_error(
-                field.def_id,
-                def_id: {"does not exist", validation: :assoc}
-              )
+            error = %{
+              def_id: field.def_id,
+              error: %{
+                def_id: "does not exist"
+              }
+            }
 
             {valids, [error | invalids]}
 
           _type ->
             case FieldType.parse(field.data) do
               :error ->
-                error =
-                  EbData.mapify_entry_field_error(
-                    field.def_id,
-                    data: {"is invalid", validation: :cast}
-                  )
+                error = %{
+                  def_id: field.def_id,
+                  error: %{
+                    data: "is invalid"
+                  }
+                }
 
                 {valids, [error | invalids]}
 

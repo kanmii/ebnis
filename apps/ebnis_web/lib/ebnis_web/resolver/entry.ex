@@ -137,14 +137,17 @@ defmodule EbnisWeb.Resolver.Entry do
     id = Resolver.convert_from_global_id(id, :entry)
 
     case EbData.update_entry(id, args) do
-      {:error, %{fields: _} = errors} ->
-        {:error, Jason.encode!(errors)}
+      {:error, %{fields_errors: _} = errors} ->
+        {:ok, errors}
 
       {:error, changeset} ->
-        {:error, stringify_changeset_error(changeset)}
+        {:ok,
+         %{
+           entry_error: EbData.changeset_errors_to_map(changeset.errors)
+         }}
 
-      result ->
-        result
+      {:ok, updated_entry} ->
+        {:ok, %{entry: updated_entry}}
     end
   end
 

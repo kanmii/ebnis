@@ -109,6 +109,26 @@ defmodule EbnisWeb.Schema.Entry do
     field(:entry_connection, :entry_connection |> non_null())
   end
 
+  object :entry_field_error do
+    field(:def_id, :id)
+    field(:data, :string)
+  end
+
+  object :entry_field_error_meta do
+    field(:def_id, non_null(:id))
+    field(:error, :entry_field_error)
+  end
+
+  object :entry_error do
+    field(:id, :string)
+  end
+
+  object :entry_update_returned do
+    field(:entry, :entry)
+    field(:entry_error, :entry_error)
+    field(:fields_errors, list_of(:entry_field_error_meta))
+  end
+
   ############################## INPUTS #######################################
 
   @desc ~S"""
@@ -226,7 +246,7 @@ defmodule EbnisWeb.Schema.Entry do
       resolve(&Resolver.create_entries/2)
     end
 
-    field :update_entry, :entry do
+    field :update_entry, :entry_update_returned do
       arg(:input, non_null(:update_entry_input))
 
       resolve(&Resolver.update_entry/2)

@@ -112,7 +112,7 @@ defmodule EbData do
           {:ok, Entry.t()}
           | {
               :error,
-              Changeset.t() | String.t() | %{fields: [Map.t()]}
+              Changeset.t() | String.t() | %{fields_errors: [Map.t()]}
             }
   def update_entry(id, args) do
     impl().update_entry(id, args)

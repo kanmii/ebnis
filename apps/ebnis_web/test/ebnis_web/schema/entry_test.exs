@@ -665,6 +665,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
   end
 
   describe "update entry mutation" do
+    # @tag :skip
     test "fails if no user context" do
       variables = %{
         "input" => %{
@@ -693,6 +694,7 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                )
     end
 
+    # @tag :skip
     test "fails if not using global ID" do
       variables = %{
         "input" => %{
@@ -708,11 +710,13 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       assert {:ok,
               %{
-                errors: [
-                  %{
-                    message: error
+                data: %{
+                  "updateEntry" => %{
+                    "entryError" => %{
+                      "id" => "is invalid"
+                    }
                   }
-                ]
+                }
               }} =
                Absinthe.run(
                  Query.update_entry(),
@@ -720,10 +724,9 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  variables: variables,
                  context: context(%{id: 0})
                )
-
-      assert error =~ ~s("id":)
     end
 
+    # @tag :skip
     test "fails if entry ID does not exist" do
       variables = %{
         "input" => %{
@@ -739,11 +742,13 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       assert {:ok,
               %{
-                errors: [
-                  %{
-                    message: error
+                data: %{
+                  "updateEntry" => %{
+                    "entryError" => %{
+                      "id" => "is invalid"
+                    }
                   }
-                ]
+                }
               }} =
                Absinthe.run(
                  Query.update_entry(),
@@ -751,8 +756,6 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
                  variables: variables,
                  context: context(%{id: 0})
                )
-
-      assert error =~ ~s("id":)
     end
 
     test "fails if field's definition ID does not exist or field.data.type != field_definition.type " do
@@ -764,29 +767,9 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       [field | _] = entry.fields
 
-      error =
-        Jason.encode!(%{
-          fields: [
-            %{
-              meta: %{
-                def_id: bogus_field1.def_id
-              },
-              errors: %{def_id: "does not exist"}
-            },
-            %{
-              meta: %{
-                def_id: bogus_field2.def_id
-              },
-              errors: %{def_id: "does not exist"}
-            },
-            %{
-              meta: %{
-                def_id: field.def_id
-              },
-              errors: %{data: "is invalid"}
-            }
-          ]
-        })
+      definition_id1 = bogus_field1.def_id
+      definition_id2 = bogus_field2.def_id
+      definition_id3 = field.def_id
 
       variables = %{
         "input" => %{
@@ -804,11 +787,31 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       assert {:ok,
               %{
-                errors: [
-                  %{
-                    message: ^error
+                data: %{
+                  "updateEntry" => %{
+                    "entry" => nil,
+                    "fieldsErrors" => [
+                      %{
+                        "defId" => ^definition_id1,
+                        "error" => %{
+                          "defId" => "does not exist"
+                        }
+                      },
+                      %{
+                        "defId" => ^definition_id2,
+                        "error" => %{
+                          "defId" => "does not exist"
+                        }
+                      },
+                      %{
+                        "defId" => ^definition_id3,
+                        "error" => %{
+                          "data" => "is invalid"
+                        }
+                      }
+                    ]
                   }
-                ]
+                }
               }} =
                Absinthe.run(
                  Query.update_entry(),
@@ -852,14 +855,17 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
               %{
                 data: %{
                   "updateEntry" => %{
-                    "id" => _,
-                    "_id" => _,
-                    "fields" => [
-                      %{
-                        "defId" => ^field_definition_id,
-                        "data" => ~s({"integer":1})
-                      }
-                    ]
+                    "fieldsErrors" => nil,
+                    "entry" => %{
+                      "id" => _,
+                      "_id" => _,
+                      "fields" => [
+                        %{
+                          "defId" => ^field_definition_id,
+                          "data" => ~s({"integer":1})
+                        }
+                      ]
+                    }
                   }
                 }
               }} =

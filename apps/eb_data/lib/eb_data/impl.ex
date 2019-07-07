@@ -86,6 +86,6 @@ defmodule EbData.Impl do
               {:ok, Entry.t()}
               | {
                   :error,
-                  Changeset.t() | String.t() | %{fields: [Map.t()]}
+                  Changeset.t() | String.t() | %{fields_errors: [Map.t()]}
                 }
 end

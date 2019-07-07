@@ -78,10 +78,24 @@ defmodule EbnisWeb.Query.Entry do
     """
     mutation UpdateAnExperienceEntry($input: UpdateEntryInput!) {
       updateEntry(input: $input) {
-        ...#{@fragment_name}
+        entry {
+          ...#{@fragment_name}
 
-        fields {
-          ...#{@field_frag_name}
+          fields {
+            ...#{@field_frag_name}
+          }
+        }
+
+        entryError {
+          id
+        }
+
+        fieldsErrors {
+          defId
+          error {
+            data
+            defId
+          }
         }
       }
     }
