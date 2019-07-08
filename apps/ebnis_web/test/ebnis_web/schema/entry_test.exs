@@ -878,5 +878,81 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
     end
   end
 
+  describe "delete entry mutations" do
+    test "fails if user context not supplied" do
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Unauthorized"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.delete_entry(),
+                 Schema,
+                 variables: %{"id" => "0"}
+               )
+    end
+
+    test "fails if not using global ID" do
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Invalid ID"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.delete_entry(),
+                 Schema,
+                 variables: %{"id" => "0"},
+                 context: context(%{})
+               )
+    end
+
+    test "fails if entry not found" do
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Entry does not exist"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.delete_entry(),
+                 Schema,
+                 variables: %{"id" => Resolver.convert_to_global_id(0, :entry)},
+                 context: context(%{})
+               )
+    end
+
+    test "succeeds" do
+      user = RegFactory.insert()
+      experience = ExpFactory.insert(user_id: user.id)
+      entry = Factory.insert(experience)
+      string_id = Integer.to_string(entry.id)
+      global_id = Resolver.convert_to_global_id(string_id, :entry)
+
+      assert {:ok,
+              %{
+                data: %{
+                  "deleteEntry" => %{
+                    "id" => ^global_id,
+                    "_id" => ^string_id
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.delete_entry(),
+                 Schema,
+                 variables: %{"id" => global_id},
+                 context: context(user)
+               )
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

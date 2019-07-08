@@ -607,5 +607,20 @@ defmodule EbData.DefaultImpl do
     |> Map.put(:errors, id: @is_invalid_changeset_error)
   end
 
+  @spec delete_entry(id :: String.t()) ::
+          {:ok, Entry.t()}
+          | {:error, Changeset.t() | String.t()}
+  def delete_entry(id) do
+    case Entry
+         |> where([e], e.id == ^id)
+         |> Repo.all() do
+      [] ->
+        {:error, "Entry does not exist"}
+
+      [entry] ->
+        Repo.delete(entry)
+    end
+  end
+
   #########################  END ENTRIES #####################################
 end

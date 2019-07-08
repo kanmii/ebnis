@@ -251,6 +251,12 @@ defmodule EbnisWeb.Schema.Entry do
 
       resolve(&Resolver.update_entry/2)
     end
+
+    field :delete_entry, :entry do
+      arg(:id, non_null(:id))
+
+      resolve(&Resolver.delete_entry/2)
+    end
   end
 
   ################### END MUTATIONS #########################################

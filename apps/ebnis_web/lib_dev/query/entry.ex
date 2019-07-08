@@ -104,4 +104,21 @@ defmodule EbnisWeb.Query.Entry do
     #{@field_frag}
     """
   end
+
+  def delete_entry do
+    """
+      mutation DeleteEntry($id: ID!) {
+        deleteEntry(id: $id) {
+          ...#{@fragment_name}
+
+          fields {
+            ...#{@field_frag_name}
+          }
+        }
+      }
+
+      #{@fragment}
+      #{@field_frag}
+    """
+  end
 end

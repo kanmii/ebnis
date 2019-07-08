@@ -154,4 +154,18 @@ defmodule EbnisWeb.Resolver.Entry do
   def update_entry(_, _) do
     Resolver.unauthorized()
   end
+
+  def delete_entry(%{id: id}, %{context: %{current_user: _}}) do
+    case Resolver.convert_from_global_id(id, :entry) do
+      :error ->
+        {:error, "Invalid ID"}
+
+      id ->
+        EbData.delete_entry(id)
+    end
+  end
+
+  def delete_entry(_, _) do
+    Resolver.unauthorized()
+  end
 end

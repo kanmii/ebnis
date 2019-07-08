@@ -88,4 +88,8 @@ defmodule EbData.Impl do
                   :error,
                   Changeset.t() | String.t() | %{fields_errors: [Map.t()]}
                 }
+
+  @callback delete_entry(id :: String.t()) ::
+              {:ok, Entry.t()}
+              | {:error, Changeset.t() | String.t()}
 end

@@ -136,6 +136,13 @@ defmodule EbData do
     }
   end
 
+  @spec delete_entry(id :: String.t()) ::
+          {:ok, Entry.t()}
+          | {:error, Changeset.t() | String.t()}
+  def delete_entry(id) do
+    impl().delete_entry(id)
+  end
+
   ################################ END ENTRIES ###############################
 
   ################################ UTILITIES #################################
