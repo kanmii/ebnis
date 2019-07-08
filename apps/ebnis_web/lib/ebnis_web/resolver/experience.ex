@@ -196,10 +196,16 @@ defmodule EbnisWeb.Resolver.Experience do
     case Resolver.convert_from_global_id(id, :experience)
          |> EbData.update_experience(args) do
       {:error, %Changeset{} = changeset} ->
-        {:error, stringify_changeset_error(changeset)}
+        {:ok,
+         %{
+           experience_error: EbData.changeset_errors_to_map(changeset.errors)
+         }}
 
-      error ->
-        error
+      {:ok, experience} ->
+        {:ok, %{experience: experience}}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 

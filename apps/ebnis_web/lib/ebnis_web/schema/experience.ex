@@ -85,6 +85,15 @@ defmodule EbnisWeb.Schema.Experience do
     field(:entries_errors, list_of(:create_entries_error))
   end
 
+  object :experience_error do
+    field(:id, :id)
+  end
+
+  object :experience_update_returned do
+    field(:experience, :experience)
+    field(:experience_error, :experience_error)
+  end
+
   ######################### END REGULAR OBJECTS ###########################
 
   ############################ INPUT OBJECTS ##############################
@@ -169,7 +178,7 @@ defmodule EbnisWeb.Schema.Experience do
     end
 
     @desc "Update an experience"
-    field :update_experience, :experience do
+    field :update_experience, :experience_update_returned do
       arg(:input, non_null(:update_experience_input))
 
       resolve(&Resolver.update_experience/2)

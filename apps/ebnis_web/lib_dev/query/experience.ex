@@ -135,9 +135,15 @@ defmodule EbnisWeb.Query.Experience do
     """
       mutation UpdateAnExperience($input: UpdateExperienceInput!) {
         updateExperience(input: $input) {
-          ...#{@frag_name}
-          fieldDefs {
-            ...#{field_frag_name}
+          experience {
+            ...#{@frag_name}
+            fieldDefs {
+              ...#{field_frag_name}
+            }
+          }
+
+          experienceError {
+            id
           }
         }
       }

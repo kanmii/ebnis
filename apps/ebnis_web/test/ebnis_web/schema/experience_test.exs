@@ -1134,11 +1134,13 @@ defmodule EbnisWeb.Schema.ExperienceTest do
 
       assert {:ok,
               %{
-                errors: [
-                  %{
-                    message: error
+                data: %{
+                  "updateExperience" => %{
+                    "experienceError" => %{
+                      "id" => "is invalid"
+                    }
                   }
-                ]
+                }
               }} =
                Absinthe.run(
                  Query.update_experience(),
@@ -1146,8 +1148,6 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                  variables: variables,
                  context: context(%{id: 0})
                )
-
-      assert error =~ ~s("id":)
     end
 
     # @tag :skip
@@ -1161,11 +1161,13 @@ defmodule EbnisWeb.Schema.ExperienceTest do
 
       assert {:ok,
               %{
-                errors: [
-                  %{
-                    message: error
+                data: %{
+                  "updateExperience" => %{
+                    "experienceError" => %{
+                      "id" => "is invalid"
+                    }
                   }
-                ]
+                }
               }} =
                Absinthe.run(
                  Query.update_experience(),
@@ -1173,8 +1175,6 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                  variables: variables,
                  context: context(%{id: 0})
                )
-
-      assert error =~ ~s("id":)
     end
 
     # @tag :skip
@@ -1214,16 +1214,18 @@ defmodule EbnisWeb.Schema.ExperienceTest do
               %{
                 data: %{
                   "updateExperience" => %{
-                    "_id" => ^string_id,
-                    "id" => ^global_id,
-                    "title" => "aa",
-                    "description" => "b",
-                    "fieldDefs" => [
-                      %{
-                        "id" => ^field_definition_id,
-                        "name" => "cc"
-                      }
-                    ]
+                    "experience" => %{
+                      "_id" => ^string_id,
+                      "id" => ^global_id,
+                      "title" => "aa",
+                      "description" => "b",
+                      "fieldDefs" => [
+                        %{
+                          "id" => ^field_definition_id,
+                          "name" => "cc"
+                        }
+                      ]
+                    }
                   }
                 }
               }} =
@@ -1261,11 +1263,13 @@ defmodule EbnisWeb.Schema.ExperienceTest do
               %{
                 data: %{
                   "updateExperience" => %{
-                    "_id" => ^string_id,
-                    "id" => ^global_id,
-                    "title" => "aa",
-                    "description" => "b",
-                    "fieldDefs" => [query_field_definition]
+                    "experience" => %{
+                      "_id" => ^string_id,
+                      "id" => ^global_id,
+                      "title" => "aa",
+                      "description" => "b",
+                      "fieldDefs" => [query_field_definition]
+                    }
                   }
                 }
               }} =
@@ -1306,11 +1310,13 @@ defmodule EbnisWeb.Schema.ExperienceTest do
               %{
                 data: %{
                   "updateExperience" => %{
-                    "_id" => ^string_id,
-                    "id" => ^global_id,
-                    "title" => "aa",
-                    "description" => "b",
-                    "fieldDefs" => [query_field_definition]
+                    "experience" => %{
+                      "_id" => ^string_id,
+                      "id" => ^global_id,
+                      "title" => "aa",
+                      "description" => "b",
+                      "fieldDefs" => [query_field_definition]
+                    }
                   }
                 }
               }} =
