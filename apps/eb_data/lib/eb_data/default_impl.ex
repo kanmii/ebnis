@@ -330,22 +330,18 @@ defmodule EbData.DefaultImpl do
     queryable
   end
 
-  @spec delete_experience(id :: String.t()) :: {:ok, Experience.t()} | {:error, Changeset.t()}
+  @spec delete_experience(id :: String.t()) ::
+          {:ok, Experience.t()}
+          | {:error, Changeset.t()}
   def delete_experience(id) do
-    try do
-      with %{} = experience <- get_experience(id),
-           {:ok, experience} <- Repo.delete(experience) do
-        {:ok, experience}
-      else
-        nil ->
-          {:error, make_experience_invalid_id_changeset_error()}
+    case Experience
+         |> where([e], e.id == ^id)
+         |> Repo.all() do
+      [] ->
+        {:error, "Experience not found"}
 
-        error ->
-          error
-      end
-    rescue
-      _e ->
-        {:error, make_experience_invalid_id_changeset_error()}
+      [experience] ->
+        Repo.delete(experience)
     end
   end
 

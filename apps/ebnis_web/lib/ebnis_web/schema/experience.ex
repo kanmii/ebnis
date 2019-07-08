@@ -171,7 +171,7 @@ defmodule EbnisWeb.Schema.Experience do
     end
 
     @desc "Delete an experience"
-    field :delete_experience, :boolean do
+    field :delete_experience, :experience do
       arg(:id, non_null(:id))
 
       resolve(&Resolver.delete_experience/2)

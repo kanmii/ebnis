@@ -989,21 +989,20 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     test "succeeds" do
       user = RegFactory.insert()
       experience = Factory.insert(user_id: user.id)
-
-      variables = %{
-        "id" => Resolver.convert_to_global_id(experience.id, :experience)
-      }
+      global_id = Resolver.convert_to_global_id(experience.id, :experience)
 
       assert {:ok,
               %{
                 data: %{
-                  "deleteExperience" => true
+                  "deleteExperience" => %{
+                    "id" => ^global_id
+                  }
                 }
               }} =
                Absinthe.run(
                  Query.delete_experience(),
                  Schema,
-                 variables: variables,
+                 variables: %{"id" => global_id},
                  context: context(user)
                )
     end
@@ -1017,7 +1016,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
               %{
                 errors: [
                   %{
-                    message: error
+                    message: "Experience not found"
                   }
                 ]
               }} =
@@ -1027,8 +1026,6 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                  variables: variables,
                  context: context(%{id: "0"})
                )
-
-      assert error =~ ~s("id":)
     end
 
     test "fails if we did not supply global id" do
@@ -1040,7 +1037,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
               %{
                 errors: [
                   %{
-                    message: error
+                    message: "Invalid ID"
                   }
                 ]
               }} =
@@ -1050,8 +1047,6 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                  variables: variables,
                  context: context(%{id: "0"})
                )
-
-      assert error =~ ~s("id":)
     end
 
     test "fails if no user context" do

@@ -173,13 +173,12 @@ defmodule EbnisWeb.Resolver.Experience do
   @spec delete_experience(%{id: String.t()}, any) ::
           {:error, binary | [{:message, <<_::96>>}, ...]} | {:ok, true}
   def delete_experience(%{id: id}, %{context: %{current_user: _}}) do
-    case Resolver.convert_from_global_id(id, :experience)
-         |> EbData.delete_experience() do
-      {:ok, _} ->
-        {:ok, true}
+    case Resolver.convert_from_global_id(id, :experience) do
+      :error ->
+        {:error, "Invalid ID"}
 
-      {:error, changeset} ->
-        {:error, stringify_changeset_error(changeset)}
+      id ->
+        EbData.delete_experience(id)
     end
   end
 
