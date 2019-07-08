@@ -86,10 +86,6 @@ defmodule EbnisWeb.Query.Entry do
           }
         }
 
-        entryError {
-          id
-        }
-
         fieldsErrors {
           defId
           error {

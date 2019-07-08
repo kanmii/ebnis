@@ -17,9 +17,6 @@ defmodule EbData.DefaultImpl do
   alias EbData.DefaultImpl.Field
 
   @behaviour Impl
-  @is_invalid_changeset_error {"is invalid", [validation: :required]}
-
-  # ACCOUNTS
 
   def register(%{} = params) do
     Multi.new()
@@ -503,7 +500,7 @@ defmodule EbData.DefaultImpl do
          |> join(:inner, [e], ex in assoc(e, :exp))
          |> Repo.all() do
       [] ->
-        {:error, make_entry_invalid_id_changeset_error()}
+        {:error, "Entry not found"}
 
       [entry] ->
         entry.exp.field_defs
@@ -529,19 +526,6 @@ defmodule EbData.DefaultImpl do
             {:error, %{fields_errors: Enum.reverse(fields_errors)}}
         end
     end
-  rescue
-    exception ->
-      case exception do
-        %Ecto.Query.CastError{type: :id, value: :error} ->
-          {:error, make_entry_invalid_id_changeset_error()}
-
-        _ ->
-          Logger.error(fn ->
-            Exception.format(:error, exception, __STACKTRACE__)
-          end)
-
-          {:error, "Unknown error"}
-      end
   end
 
   defp update_entry_validate_fields(definitions, fields) do
@@ -580,12 +564,6 @@ defmodule EbData.DefaultImpl do
             end
         end
     end)
-  end
-
-  defp make_entry_invalid_id_changeset_error do
-    %Entry{}
-    |> Entry.changeset_cast_attrs(%{})
-    |> Map.put(:errors, id: @is_invalid_changeset_error)
   end
 
   @spec delete_entry(id :: String.t()) ::

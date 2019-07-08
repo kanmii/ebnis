@@ -134,20 +134,22 @@ defmodule EbnisWeb.Resolver.Entry do
         %{context: %{current_user: _}}
       ) do
     args = Map.delete(args, :id)
-    id = Resolver.convert_from_global_id(id, :entry)
 
-    case EbData.update_entry(id, args) do
-      {:error, %{fields_errors: _} = errors} ->
-        {:ok, errors}
+    case Resolver.convert_from_global_id(id, :entry) do
+      :error ->
+        {:error, "Invalid ID"}
 
-      {:error, changeset} ->
-        {:ok,
-         %{
-           entry_error: EbData.changeset_errors_to_map(changeset.errors)
-         }}
+      id ->
+        case EbData.update_entry(id, args) do
+          {:ok, updated_entry} ->
+            {:ok, %{entry: updated_entry}}
 
-      {:ok, updated_entry} ->
-        {:ok, %{entry: updated_entry}}
+          {:error, %{fields_errors: _} = errors} ->
+            {:ok, errors}
+
+          error ->
+            error
+        end
     end
   end
 

@@ -119,13 +119,8 @@ defmodule EbnisWeb.Schema.Entry do
     field(:error, :entry_field_error)
   end
 
-  object :entry_error do
-    field(:id, :string)
-  end
-
   object :entry_update_returned do
     field(:entry, :entry)
-    field(:entry_error, :entry_error)
     field(:fields_errors, list_of(:entry_field_error_meta))
   end
 

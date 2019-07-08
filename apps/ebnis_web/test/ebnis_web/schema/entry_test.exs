@@ -710,13 +710,11 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       assert {:ok,
               %{
-                data: %{
-                  "updateEntry" => %{
-                    "entryError" => %{
-                      "id" => "is invalid"
-                    }
+                errors: [
+                  %{
+                    message: "Invalid ID"
                   }
-                }
+                ]
               }} =
                Absinthe.run(
                  Query.update_entry(),
@@ -742,13 +740,11 @@ defmodule EbnisWeb.Schema.ExperienceEntryTest do
 
       assert {:ok,
               %{
-                data: %{
-                  "updateEntry" => %{
-                    "entryError" => %{
-                      "id" => "is invalid"
-                    }
+                errors: [
+                  %{
+                    message: "Entry not found"
                   }
-                }
+                ]
               }} =
                Absinthe.run(
                  Query.update_entry(),
