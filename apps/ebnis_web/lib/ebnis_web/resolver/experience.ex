@@ -192,19 +192,24 @@ defmodule EbnisWeb.Resolver.Experience do
       ) do
     args = Map.delete(args, :id)
 
-    case Resolver.convert_from_global_id(id, :experience)
-         |> EbData.update_experience(args) do
-      {:error, %Changeset{} = changeset} ->
-        {:ok,
-         %{
-           experience_error: EbData.changeset_errors_to_map(changeset.errors)
-         }}
+    case Resolver.convert_from_global_id(id, :experience) do
+      :error ->
+        {:error, "Invalid ID"}
 
-      {:ok, experience} ->
-        {:ok, %{experience: experience}}
+      id ->
+        case EbData.update_experience(id, args) do
+          {:error, %Changeset{} = changeset} ->
+            {:ok,
+             %{
+               experience_error: EbData.changeset_errors_to_map(changeset.errors)
+             }}
 
-      {:error, error} ->
-        {:error, error}
+          {:ok, experience} ->
+            {:ok, %{experience: experience}}
+
+          {:error, error} ->
+            {:error, error}
+        end
     end
   end
 

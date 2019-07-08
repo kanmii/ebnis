@@ -345,57 +345,42 @@ defmodule EbData.DefaultImpl do
     end
   end
 
-  defp make_experience_invalid_id_changeset_error do
-    changeset = Experience.changeset_for_update(%Experience{}, %{})
-    Map.put(changeset, :errors, id: @is_invalid_changeset_error)
-  end
-
   @spec update_experience(id :: String.t(), args :: Impl.update_experience_args_t()) ::
           {:ok, Experience.t()} | {:error, Changeset.t() | String.t()}
   def update_experience(_id, args) when args == %{} do
-    {:error, "nothing to update"}
+    {:error, "Nothing to update"}
   end
 
   def update_experience(id, %{} = args) do
-    try do
-      case get_experience(id) do
-        nil ->
-          {:error, make_experience_invalid_id_changeset_error()}
+    case Experience
+         |> where([e], e.id == ^id)
+         |> Repo.all() do
+      [] ->
+        {:error, "Experience does not exist"}
 
-        experience ->
-          {field_definitions_to_be_updated, _with_error_} =
-            put_field_definition_in_experience_update_args(
-              args[:field_definitions],
-              experience.field_defs
-            )
+      [experience] ->
+        {field_definitions_to_be_updated, _with_error_} =
+          put_field_definition_in_experience_update_args(
+            args[:field_definitions],
+            experience.field_defs
+          )
 
-          update_args =
-            case field_definitions_to_be_updated do
-              nil ->
-                args
+        update_args =
+          case field_definitions_to_be_updated do
+            nil ->
+              args
 
-              _ ->
-                Map.put(
-                  args,
-                  :field_defs,
-                  field_definitions_to_be_updated
-                )
-            end
+            _ ->
+              Map.put(
+                args,
+                :field_defs,
+                field_definitions_to_be_updated
+              )
+          end
 
-          experience
-          |> Experience.changeset_for_update(update_args)
-          |> Repo.update()
-      end
-    rescue
-      exception ->
-        case exception do
-          %Ecto.Query.CastError{type: :id, value: :error} ->
-            {:error, make_experience_invalid_id_changeset_error()}
-
-          _ ->
-            {:error, "Unknown error"}
-            # throw(exception)
-        end
+        experience
+        |> Experience.changeset_for_update(update_args)
+        |> Repo.update()
     end
   end
 

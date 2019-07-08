@@ -87,6 +87,7 @@ defmodule EbnisWeb.Schema.Experience do
 
   object :experience_error do
     field(:id, :id)
+    field(:title, :string)
   end
 
   object :experience_update_returned do

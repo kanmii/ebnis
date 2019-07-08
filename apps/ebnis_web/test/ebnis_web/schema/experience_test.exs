@@ -1098,7 +1098,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
     test "fails when there is nothing to update" do
       variables = %{
         "input" => %{
-          "id" => 0
+          "id" => Resolver.convert_to_global_id(0, :experience)
         }
       }
 
@@ -1106,7 +1106,7 @@ defmodule EbnisWeb.Schema.ExperienceTest do
               %{
                 errors: [
                   %{
-                    message: "nothing to update"
+                    message: "Nothing to update"
                   }
                 ]
               }} =
@@ -1129,13 +1129,11 @@ defmodule EbnisWeb.Schema.ExperienceTest do
 
       assert {:ok,
               %{
-                data: %{
-                  "updateExperience" => %{
-                    "experienceError" => %{
-                      "id" => "is invalid"
-                    }
+                errors: [
+                  %{
+                    message: "Invalid ID"
                   }
-                }
+                ]
               }} =
                Absinthe.run(
                  Query.update_experience(),
@@ -1156,13 +1154,11 @@ defmodule EbnisWeb.Schema.ExperienceTest do
 
       assert {:ok,
               %{
-                data: %{
-                  "updateExperience" => %{
-                    "experienceError" => %{
-                      "id" => "is invalid"
-                    }
+                errors: [
+                  %{
+                    message: "Experience does not exist"
                   }
-                }
+                ]
               }} =
                Absinthe.run(
                  Query.update_experience(),
@@ -1323,6 +1319,42 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                )
 
       assert query_field_definition["name"] == field_definition.name
+    end
+
+    # @tag :skip
+    test "fails if title taken" do
+      user = RegFactory.insert()
+      title = "ab"
+      Factory.insert(user_id: user.id, title: title)
+
+      experience = Factory.insert(user_id: user.id)
+
+      global_id = Resolver.convert_to_global_id(experience.id, :experience)
+
+      variables = %{
+        "input" => %{
+          "id" => global_id,
+          "title" => title
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateExperience" => %{
+                    "experience" => nil,
+                    "experienceError" => %{
+                      "title" => "has already been taken"
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_experience(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
     end
   end
 

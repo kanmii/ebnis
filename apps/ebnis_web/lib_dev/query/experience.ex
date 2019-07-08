@@ -154,6 +154,7 @@ defmodule EbnisWeb.Query.Experience do
 
           experienceError {
             id
+            title
           }
         }
       }
