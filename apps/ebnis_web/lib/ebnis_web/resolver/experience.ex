@@ -198,23 +198,13 @@ defmodule EbnisWeb.Resolver.Experience do
 
       id ->
         case EbData.update_experience(id, args) do
-          {:error, %Changeset{} = changeset} ->
-            errors =
-              case changeset.errors do
-                [] ->
-                  %{}
-
-                experience_errors ->
-                  %{
-                    experience_error: EbData.changeset_errors_to_map(experience_errors)
-                  }
-              end
+          {:error, %Changeset{errors: errors, changes: changes}} ->
+            field_defs = changes[:field_defs]
 
             errors =
-              update_experience_fields_changeset_errors_to_map(
-                changeset.changes[:field_defs],
-                errors
-              )
+              errors
+              |> update_experience_changeset_errors_to_map()
+              |> update_experience_fields_changeset_errors_to_map(field_defs)
 
             {:ok, errors}
 
@@ -231,29 +221,42 @@ defmodule EbnisWeb.Resolver.Experience do
     Resolver.unauthorized()
   end
 
-  defp update_experience_fields_changeset_errors_to_map(nil, errors) do
+  defp update_experience_changeset_errors_to_map([]) do
+    %{}
+  end
+
+  defp update_experience_changeset_errors_to_map(errors) do
+    %{
+      experience_error: EbData.changeset_errors_to_map(errors)
+    }
+  end
+
+  defp update_experience_fields_changeset_errors_to_map(errors, nil) do
     errors
   end
 
-  defp update_experience_fields_changeset_errors_to_map(changesets, errors) do
-    field_errors =
-      Enum.reduce(
-        changesets,
-        [],
-        &[
-          Map.put(
-            EbData.changeset_errors_to_map(&1.errors),
-            :id,
-            &1.changes.id
-          )
-          | &2
-        ]
-      )
+  defp update_experience_fields_changeset_errors_to_map(errors, changesets) do
+    Enum.reduce(
+      changesets,
+      [],
+      fn
+        %{valid?: true}, acc ->
+          acc
 
-    Map.put(
-      errors,
-      :field_definitions_errors,
-      field_errors
+        %{errors: errors, changes: %{id: id}}, acc ->
+          [Map.put(EbData.changeset_errors_to_map(errors), :id, id) | acc]
+      end
     )
+    |> case do
+      [] ->
+        errors
+
+      field_errors ->
+        Map.put(
+          errors,
+          :field_definitions_errors,
+          field_errors
+        )
+    end
   end
 end
