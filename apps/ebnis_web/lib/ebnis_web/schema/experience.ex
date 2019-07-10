@@ -90,9 +90,15 @@ defmodule EbnisWeb.Schema.Experience do
     field(:title, :string)
   end
 
+  object :field_definitions_errors do
+    field(:id, non_null(:id))
+    field(:name, :string)
+  end
+
   object :experience_update_returned do
     field(:experience, :experience)
     field(:experience_error, :experience_error)
+    field(:field_definitions_errors, list_of(:field_definitions_errors))
   end
 
   ######################### END REGULAR OBJECTS ###########################

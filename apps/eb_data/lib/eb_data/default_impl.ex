@@ -15,6 +15,7 @@ defmodule EbData.DefaultImpl do
   alias Ecto.Changeset
   alias EbData.FieldType
   alias EbData.DefaultImpl.Field
+  alias EbData.DefaultImpl.FieldDef
 
   @behaviour Impl
 
@@ -356,28 +357,39 @@ defmodule EbData.DefaultImpl do
         {:error, "Experience does not exist"}
 
       [experience] ->
-        {field_definitions_to_be_updated, _with_error_} =
-          put_field_definition_in_experience_update_args(
-            args[:field_definitions],
-            experience.field_defs
-          )
+        put_field_definition_in_experience_update_args(
+          args[:field_definitions],
+          experience.field_defs
+        )
+        |> case do
+          {nil, _} ->
+            experience
+            |> Experience.changeset_for_update(args)
+            |> Repo.update()
 
-        update_args =
-          case field_definitions_to_be_updated do
-            nil ->
-              args
-
-            _ ->
+          {field_definitions_to_be_updated, []} ->
+            args =
               Map.put(
                 args,
                 :field_defs,
                 field_definitions_to_be_updated
               )
-          end
 
-        experience
-        |> Experience.changeset_for_update(update_args)
-        |> Repo.update()
+            experience
+            |> Experience.changeset_for_update(args)
+            |> Repo.update()
+
+          {_, field_definitions_changesets} ->
+            changeset = Experience.changeset_for_update(experience, args)
+
+            {
+              :error,
+              update_in(
+                changeset.changes[:field_defs],
+                fn _ -> field_definitions_changesets end
+              )
+            }
+        end
     end
   end
 
@@ -402,15 +414,24 @@ defmodule EbData.DefaultImpl do
       )
 
     Enum.reduce(field_definitions, {[], []}, fn
-      definition, {goods, not_found} ->
+      definition, {valids, invalids} ->
         definition = Map.from_struct(definition)
 
         case updates_map[definition.id] do
           nil ->
-            {[definition | goods], [definition.id | not_found]}
+            {[definition | valids], invalids}
 
           name ->
-            {[Map.put(definition, :name, name) | goods], not_found}
+            updated_definition = Map.put(definition, :name, name)
+
+            case FieldDef.changeset(%FieldDef{}, updated_definition) do
+              %{valid?: true} ->
+                {[updated_definition | valids], invalids}
+
+              changeset ->
+                changeset = Changeset.put_change(changeset, :id, definition.id)
+                {valids, [changeset | invalids]}
+            end
         end
     end)
   end

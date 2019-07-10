@@ -156,6 +156,11 @@ defmodule EbnisWeb.Query.Experience do
             id
             title
           }
+
+          fieldDefinitionsErrors {
+            id
+            name
+          }
         }
       }
 

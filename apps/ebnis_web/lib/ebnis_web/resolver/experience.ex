@@ -81,7 +81,7 @@ defmodule EbnisWeb.Resolver.Experience do
         [],
         fn
           %{valid?: false, errors: errors}, acc ->
-            [Resolver.changeset_errors_to_map(errors) | acc]
+            [EbData.changeset_errors_to_map(errors) | acc]
 
           _field, acc ->
             acc
@@ -94,10 +94,10 @@ defmodule EbnisWeb.Resolver.Experience do
           %{}
 
         {[], other_errors} ->
-          Resolver.changeset_errors_to_map(other_errors)
+          EbData.changeset_errors_to_map(other_errors)
 
         {field_def_errors, other_errors} ->
-          Resolver.changeset_errors_to_map(other_errors)
+          EbData.changeset_errors_to_map(other_errors)
           |> Map.put(:field_defs, field_def_errors)
       end
 
@@ -199,10 +199,24 @@ defmodule EbnisWeb.Resolver.Experience do
       id ->
         case EbData.update_experience(id, args) do
           {:error, %Changeset{} = changeset} ->
-            {:ok,
-             %{
-               experience_error: EbData.changeset_errors_to_map(changeset.errors)
-             }}
+            errors =
+              case changeset.errors do
+                [] ->
+                  %{}
+
+                experience_errors ->
+                  %{
+                    experience_error: EbData.changeset_errors_to_map(experience_errors)
+                  }
+              end
+
+            errors =
+              update_experience_fields_changeset_errors_to_map(
+                changeset.changes[:field_defs],
+                errors
+              )
+
+            {:ok, errors}
 
           {:ok, experience} ->
             {:ok, %{experience: experience}}
@@ -215,5 +229,31 @@ defmodule EbnisWeb.Resolver.Experience do
 
   def update_experience(_, _) do
     Resolver.unauthorized()
+  end
+
+  defp update_experience_fields_changeset_errors_to_map(nil, errors) do
+    errors
+  end
+
+  defp update_experience_fields_changeset_errors_to_map(changesets, errors) do
+    field_errors =
+      Enum.reduce(
+        changesets,
+        [],
+        &[
+          Map.put(
+            EbData.changeset_errors_to_map(&1.errors),
+            :id,
+            &1.changes.id
+          )
+          | &2
+        ]
+      )
+
+    Map.put(
+      errors,
+      :field_definitions_errors,
+      field_errors
+    )
   end
 end

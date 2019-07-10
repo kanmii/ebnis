@@ -1356,6 +1356,59 @@ defmodule EbnisWeb.Schema.ExperienceTest do
                  context: context(user)
                )
     end
+
+    # @tag :skip
+    test "fails if field definition update has error" do
+      user = RegFactory.insert()
+      field_definition = FieldDefFactory.params()
+
+      experience =
+        Factory.insert(
+          user_id: user.id,
+          field_defs: [field_definition]
+        )
+
+      [field_definition] = experience.field_defs
+
+      string_id = Integer.to_string(experience.id)
+      global_id = Resolver.convert_to_global_id(string_id, :experience)
+      field_definition_id = field_definition.id
+
+      variables = %{
+        "input" => %{
+          "id" => global_id,
+          "title" => "aa",
+          "description" => "b",
+          "fieldDefinitions" => [
+            %{
+              "id" => field_definition_id,
+              "name" => ""
+            }
+          ]
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateExperience" => %{
+                    "experience" => nil,
+                    "fieldDefinitionsErrors" => [
+                      %{
+                        "id" => ^field_definition_id,
+                        "name" => _
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_experience(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
   end
 
   defp context(user), do: %{current_user: user}
