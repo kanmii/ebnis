@@ -59,6 +59,7 @@ defmodule EbData.DefaultImpl.Experience do
         attrs[:custom_requireds] || []
       )
     )
+    |> validate_length(:title, min: 2)
   end
 
   defp validate_field_defs(%Changeset{valid?: false} = changeset) do
