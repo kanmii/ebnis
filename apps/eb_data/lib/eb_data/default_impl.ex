@@ -532,6 +532,8 @@ defmodule EbData.DefaultImpl do
               DateTime.utc_now()
               |> DateTime.truncate(:second)
 
+            valid_fields = Enum.reverse(valid_fields)
+
             {1, [updated_entry]} =
               query
               |> select([e], e)
