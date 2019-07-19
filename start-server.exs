@@ -34,7 +34,7 @@ Path.expand("_build/dev/lib/jason/ebin", ".")
 env = Keyword.get(args, :env, "dev")
 
 # load the environments
-System.put_env(Enum.to_list(envs[env]))
+System.put_env(Enum.to_list(envs[env] || []))
 
 # execute mix tasks for staging environment
 if env == "staging" do
@@ -55,7 +55,7 @@ case :os.type() do
       "dev" ->
         :os.cmd('start cmd /c "iex --dot-iex .iexa.exs --werl -S mix phx.server"')
 
-      "staging" ->
+      _ ->
         :os.cmd('start cmd /c "iex -S mix phx.server"')
     end
 
@@ -68,7 +68,7 @@ case :os.type() do
       "dev" ->
         :os.cmd(terminal ++ ' -- iex --dot-iex .iexa.exs -S mix phx.server')
 
-      "staging" ->
+      _ ->
         :os.cmd(terminal ++ ' -- iex -S mix phx.server')
     end
 end

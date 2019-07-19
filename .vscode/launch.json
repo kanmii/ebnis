@@ -9,9 +9,6 @@
       "name": "mix (Default task)",
       "request": "launch",
       "projectDir": "${workspaceRoot}",
-      "env": {
-        "EBNIS_PHOENIX_PORT": "4022"
-      },
       "task": "phx.server"
       // "preLaunchTask": "iex --werl -S mix phx.server"
     },

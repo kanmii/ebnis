@@ -1,7 +1,7 @@
 use Mix.Config
 
 config :ebnis_web, EbnisWeb.Endpoint,
-  http: [port: System.get_env("EBNIS_PHOENIX_PORT") || 4022],
+  http: [port: 4022],
   debug_errors: true,
   # code_reloader: true,
   check_origin: false
