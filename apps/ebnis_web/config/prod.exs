@@ -16,7 +16,7 @@ config :ebnis_web, EbnisWeb.Endpoint,
     "https://ebnis.netlify.com"
   ]
 
-config :ebnis_web, EbnisWeb.Auth.Guardian,
+config :ebnis_web, EbData.Guardian,
   issuer: "ebnis",
   secret_key: secret_key
 

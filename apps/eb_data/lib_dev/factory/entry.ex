@@ -1,7 +1,7 @@
 defmodule EbData.Factory.Entry do
   alias EbData.Factory
   alias EbData.FieldType
-  alias EbnisWeb.Resolver
+  alias EbData.Resolver
   alias EbData.DefaultImpl.Experience
 
   @integers 100..1_000

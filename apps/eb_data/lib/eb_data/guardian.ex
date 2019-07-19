@@ -1,5 +1,5 @@
-defmodule EbnisWeb.Auth.Guardian do
-  use Guardian, otp_app: :ebnis_web
+defmodule EbData.Guardian do
+  use Guardian, otp_app: :eb_data
 
   def subject_for_token(%{id: id} = _resource, _claims) do
     # You can use any value for the subject of your token but
@@ -31,10 +31,5 @@ defmodule EbnisWeb.Auth.Guardian do
 
   def resource_from_claims(_claims) do
     {:error, :unable_to_load_resource}
-  end
-
-  def auth_error(conn, {type, _reason}, _opts) do
-    body = Jason.encode!(%{message: to_string(type)})
-    Plug.Conn.send_resp(conn, 401, body)
   end
 end

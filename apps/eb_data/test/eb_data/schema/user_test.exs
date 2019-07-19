@@ -1,12 +1,12 @@
-defmodule EbnisWeb.Schema.UserTest do
-  use EbnisWeb.DataCase
+defmodule EbData.Schema.UserTest do
+  use EbData.DataCase
 
-  alias EbnisWeb.Schema
-  alias EbnisWeb.Query.Registration, as: RegQuery
+  alias EbData.Schema
+  alias EbData.Query.Registration, as: RegQuery
   alias EbData.Factory.Registration, as: RegFactory
-  alias EbnisWeb.Query.User, as: Query
+  alias EbData.Query.User, as: Query
   alias EbData.Factory.User, as: Factory
-  alias EbnisWeb.Auth.Guardian, as: GuardianApp
+  alias EbData.Guardian, as: GuardianApp
 
   @moduletag :db
 

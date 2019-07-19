@@ -1,7 +1,7 @@
-defmodule EbnisWeb.Resolver.Entry do
+defmodule EbData.Resolver.Entry do
   import Absinthe.Resolution.Helpers, only: [on_load: 2]
 
-  alias EbnisWeb.Resolver
+  alias EbData.Resolver
   alias EbData.DefaultImpl.{Entry}
 
   def create(_, %{input: attrs}, %{context: %{current_user: user}}) do

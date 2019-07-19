@@ -1,4 +1,4 @@
-defmodule EbnisWeb.Schema do
+defmodule EbData.Schema do
   use Absinthe.Schema
   use Absinthe.Relay.Schema, :modern
 
@@ -6,12 +6,12 @@ defmodule EbnisWeb.Schema do
   alias EbData.DefaultImpl.Entry
 
   import_types(Absinthe.Type.Custom)
-  import_types(EbnisWeb.Schema.Types)
-  import_types(EbnisWeb.Schema.Credential)
-  import_types(EbnisWeb.Schema.User)
-  import_types(EbnisWeb.Schema.Experience)
-  import_types(EbnisWeb.Schema.FieldDef)
-  import_types(EbnisWeb.Schema.Entry)
+  import_types(EbData.Schema.Types)
+  import_types(EbData.Schema.Credential)
+  import_types(EbData.Schema.User)
+  import_types(EbData.Schema.Experience)
+  import_types(EbData.Schema.FieldDef)
+  import_types(EbData.Schema.Entry)
 
   query do
     import_fields(:user_query)

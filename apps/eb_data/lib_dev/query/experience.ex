@@ -1,5 +1,5 @@
-defmodule EbnisWeb.Query.Experience do
-  alias EbnisWeb.Query.FieldDef
+defmodule EbData.Query.Experience do
+  alias EbData.Query.FieldDef
 
   @frag_name "ExperienceFragment"
 

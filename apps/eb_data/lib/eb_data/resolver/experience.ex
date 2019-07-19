@@ -1,9 +1,9 @@
-defmodule EbnisWeb.Resolver.Experience do
+defmodule EbData.Resolver.Experience do
   import Absinthe.Resolution.Helpers, only: [on_load: 2]
 
-  alias EbnisWeb.Resolver
+  alias EbData.Resolver
   alias EbData.DefaultImpl.Entry
-  alias EbnisWeb.Resolver.Entry, as: EntryResolver
+  alias EbData.Resolver.Entry, as: EntryResolver
   alias Ecto.Changeset
   # alias EbData.Impl
 

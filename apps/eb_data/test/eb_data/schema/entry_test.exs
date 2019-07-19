@@ -1,12 +1,12 @@
-defmodule EbnisWeb.Schema.ExperienceEntryTest do
-  use EbnisWeb.DataCase, async: true
+defmodule EbData.Schema.ExperienceEntryTest do
+  use EbData.DataCase, async: true
 
-  alias EbnisWeb.Schema
+  alias EbData.Schema
   alias EbData.Factory.Entry, as: Factory
   alias EbData.Factory.Experience, as: ExpFactory
   alias EbData.Factory.Registration, as: RegFactory
-  alias EbnisWeb.Query.Entry, as: Query
-  alias EbnisWeb.Resolver
+  alias EbData.Query.Entry, as: Query
+  alias EbData.Resolver
   alias EbData.Factory.FieldDef, as: FieldDefFactory
 
   @moduletag :db

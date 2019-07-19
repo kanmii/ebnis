@@ -1,4 +1,4 @@
-defmodule EbnisWeb.Query.Credential do
+defmodule EbData.Query.Credential do
   def all_fields_fragment do
     name = "CredentialAllFieldsFragment"
 

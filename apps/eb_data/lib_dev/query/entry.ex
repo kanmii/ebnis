@@ -1,4 +1,4 @@
-defmodule EbnisWeb.Query.Entry do
+defmodule EbData.Query.Entry do
   @fragment_name "EntryFragment"
 
   @field_frag_name "EntryFieldFrag"

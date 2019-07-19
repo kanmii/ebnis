@@ -1,4 +1,4 @@
-defmodule EbnisWeb.Schema.FieldDef do
+defmodule EbData.Schema.FieldDef do
   use Absinthe.Schema.Notation
 
   @desc "The possible field type that can be defined for an experience"

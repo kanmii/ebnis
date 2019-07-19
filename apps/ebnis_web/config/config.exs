@@ -13,13 +13,13 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-config :ebnis_web, EbnisWeb.Auth.Guardian,
+config :ebnis_web, EbData.Guardian,
   issuer: "ebnis",
   secret_key: "DfAHXB4gq6YbApF5c5NgBP0kKpaaobjhFodpDzmceiaXfcPMZKDN1sBCTDHQ2RBy"
 
 config :ebnis_web, EbnisWeb.Auth.Pipeline,
-  module: EbnisWeb.Auth.Guardian,
-  error_handler: EbnisWeb.Auth.Guardian
+  module: EbData.Guardian,
+  error_handler: EbnisWeb.Auth.GuardianError
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

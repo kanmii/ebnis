@@ -1,7 +1,7 @@
 defmodule EbnisWeb.Plug.AuthContexts do
   @behaviour Plug
 
-  alias EbnisWeb.Auth.Guardian, as: GuardianApp
+  alias EbData.Guardian, as: GuardianApp
 
   @doc false
   def init(opts), do: opts

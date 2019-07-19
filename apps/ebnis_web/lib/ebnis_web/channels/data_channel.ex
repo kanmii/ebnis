@@ -3,7 +3,7 @@ defmodule EbnisWeb.DataChannel do
 
   @dialyzer {:no_return, run_query: 2, handle_in: 3}
 
-  alias EbnisWeb.Schema
+  alias EbData.Schema
   alias EbData.DefaultImpl.User
 
   @doc ~S"""

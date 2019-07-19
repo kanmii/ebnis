@@ -13,7 +13,7 @@ defmodule EbnisWeb.E2eController do
     end
 
     def create_user(conn, %{"user" => user_creation_params}) do
-      alias EbnisWeb.Auth.Guardian, as: AppGuardian
+      alias EbData.Guardian, as: AppGuardian
 
       with {:ok, user} <- EbData.register(user_creation_params),
            {:ok, jwt, _claim} <- AppGuardian.encode_and_sign(user) do

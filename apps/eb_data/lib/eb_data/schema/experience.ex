@@ -1,8 +1,8 @@
-defmodule EbnisWeb.Schema.Experience do
+defmodule EbData.Schema.Experience do
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
 
-  alias EbnisWeb.Resolver.Experience, as: Resolver
+  alias EbData.Resolver.Experience, as: Resolver
 
   @desc "An Experience schema. Uses relay."
   node object(:experience) do
@@ -10,7 +10,7 @@ defmodule EbnisWeb.Schema.Experience do
     field(
       :_id,
       non_null(:id),
-      resolve: &EbnisWeb.Resolver.resolve_internal_id/3
+      resolve: &EbData.Resolver.resolve_internal_id/3
     )
 
     @desc "The title of the experience"

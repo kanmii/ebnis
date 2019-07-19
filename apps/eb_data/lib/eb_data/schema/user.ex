@@ -1,7 +1,7 @@
-defmodule EbnisWeb.Schema.User do
+defmodule EbData.Schema.User do
   use Absinthe.Schema.Notation
 
-  alias EbnisWeb.User.Resolver
+  alias EbData.User.Resolver
 
   @desc "A User"
   object :user do

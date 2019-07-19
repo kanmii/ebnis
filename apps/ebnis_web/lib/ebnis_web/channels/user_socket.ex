@@ -2,9 +2,9 @@ defmodule EbnisWeb.UserSocket do
   use Phoenix.Socket
 
   use Absinthe.Phoenix.Socket,
-    schema: EbnisWeb.Schema
+    schema: EbData.Schema
 
-  alias EbnisWeb.Auth.Guardian, as: GuardianApp
+  alias EbData.Guardian, as: GuardianApp
 
   ## Channels
   channel("data:*", EbnisWeb.DataChannel)

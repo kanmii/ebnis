@@ -1,8 +1,8 @@
-defmodule EbnisWeb.Schema.Entry do
+defmodule EbData.Schema.Entry do
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
 
-  alias EbnisWeb.Resolver.Entry, as: Resolver
+  alias EbData.Resolver.Entry, as: Resolver
 
   @desc "An entry field"
   object :field do
@@ -16,7 +16,7 @@ defmodule EbnisWeb.Schema.Entry do
     field(
       :_id,
       non_null(:id),
-      resolve: &EbnisWeb.Resolver.resolve_internal_id/3
+      resolve: &EbData.Resolver.resolve_internal_id/3
     )
 
     @desc ~S"""

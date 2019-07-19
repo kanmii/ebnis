@@ -21,7 +21,7 @@ defmodule EbnisWeb.Router do
       forward(
         "/graphql",
         Absinthe.Plug.GraphiQL,
-        schema: EbnisWeb.Schema,
+        schema: EbData.Schema,
         context: %{pubsub: EbnisWeb.Endpoint},
         json_codec: Jason
       )
@@ -30,7 +30,7 @@ defmodule EbnisWeb.Router do
     forward(
       "/",
       Absinthe.Plug,
-      schema: EbnisWeb.Schema,
+      schema: EbData.Schema,
       context: %{pubsub: EbnisWeb.Endpoint},
       json_codec: Jason
     )

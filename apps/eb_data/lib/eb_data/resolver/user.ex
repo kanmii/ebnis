@@ -1,7 +1,7 @@
-defmodule EbnisWeb.User.Resolver do
+defmodule EbData.User.Resolver do
   alias EbData.DefaultImpl.User
-  alias EbnisWeb.Resolver
-  alias EbnisWeb.Auth.Guardian, as: GuardianApp
+  alias EbData.Resolver
+  alias EbData.Guardian, as: GuardianApp
 
   def create(_root, %{registration: params}, _info) do
     with {:ok, user} <- EbData.register(params),

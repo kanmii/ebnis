@@ -1,4 +1,4 @@
-defmodule EbnisWeb.Query.FieldDef do
+defmodule EbData.Query.FieldDef do
   @frag_name "ExpFieldFragment"
 
   def fragment do

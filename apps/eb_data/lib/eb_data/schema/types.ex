@@ -1,4 +1,4 @@
-defmodule EbnisWeb.Schema.Types do
+defmodule EbData.Schema.Types do
   @moduledoc """
   Custom types (scalars, objects and input types) shared among schema types
   """

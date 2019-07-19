@@ -1,4 +1,4 @@
-defmodule EbnisWeb.Query.User do
+defmodule EbData.Query.User do
   @frag_name "UserAllFieldsFragment"
 
   def all_fields_fragment do

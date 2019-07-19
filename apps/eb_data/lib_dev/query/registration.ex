@@ -1,6 +1,6 @@
-defmodule EbnisWeb.Query.Registration do
-  alias EbnisWeb.Query.Credential
-  alias EbnisWeb.Query.User
+defmodule EbData.Query.Registration do
+  alias EbData.Query.Credential
+  alias EbData.Query.User
 
   @doc "Register"
   def register do

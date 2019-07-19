@@ -11,7 +11,7 @@ defmodule EbData.DefaultImpl do
   alias EbData.DefaultImpl.Entry
   alias Ecto.Multi
   alias EbData.Impl
-  alias EbnisWeb.Resolver
+  alias EbData.Resolver
   alias Ecto.Changeset
   alias EbData.FieldType
   alias EbData.DefaultImpl.Field

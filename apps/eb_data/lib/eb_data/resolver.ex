@@ -1,11 +1,11 @@
-defmodule EbnisWeb.Resolver do
+defmodule EbData.Resolver do
   import Absinthe.Relay.Node, only: [from_global_id: 2, to_global_id: 3]
 
   @moduledoc """
   Helper utilities for resolvers
   """
 
-  alias EbnisWeb.Schema
+  alias EbData.Schema
 
   @unauthorized "Unauthorized"
 
