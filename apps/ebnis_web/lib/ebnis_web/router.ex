@@ -19,7 +19,7 @@ defmodule EbnisWeb.Router do
 
     if Mix.env() == :dev do
       forward(
-        "/graphql",
+        "/___graphql",
         Absinthe.Plug.GraphiQL,
         schema: EbData.Schema,
         context: %{pubsub: EbnisWeb.Endpoint},
