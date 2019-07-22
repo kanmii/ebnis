@@ -1,14 +1,12 @@
 defmodule EbnisWeb.Plug.AuthContexts do
   @behaviour Plug
 
-  alias EbData.Guardian, as: GuardianApp
-
   @doc false
   def init(opts), do: opts
 
   @doc false
   def call(conn, _) do
-    case GuardianApp.Plug.current_resource(conn) do
+    case EbData.Guardian.Plug.current_resource(conn) do
       nil ->
         conn
 

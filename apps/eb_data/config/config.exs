@@ -1,6 +1,7 @@
 use Mix.Config
 
-config :eb_data, ecto_repos: [EbData.DefaultImpl.Repo]
+config :eb_data,
+  ecto_repos: [EbData.DefaultImpl.Repo]
 
 config :eb_data, EbData.Guardian,
   issuer: "ebnis",

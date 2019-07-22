@@ -45,7 +45,13 @@ defmodule EbData.MixProject do
       {:mox, "~> 0.4.0", only: :test},
       {:constantizer, "~> 0.2.0"},
       {:faker, "~> 0.12.0", only: [:dev, :test]},
-      {:sequence, github: "samba6/sequence", only: [:dev, :test]}
+      {:sequence, github: "samba6/sequence", only: [:dev, :test]},
+      {:absinthe, "~> 1.4"},
+      {:absinthe_relay, "~> 1.4"},
+      {:dataloader, "~> 1.0"},
+      {:guardian, "~> 1.1"},
+      {:jason, "~> 1.0"},
+      {:eb_emails, in_umbrella: true}
     ]
   end
 

@@ -1,6 +1,6 @@
 use Mix.Config
 
-config :eb_data, sql_sandbox: true
+# config :eb_data, sql_sandbox: true
 
 # Configure your database
 config :eb_data, EbData.DefaultImpl.Repo,
@@ -11,4 +11,4 @@ config :eb_data, EbData.DefaultImpl.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   timeout: 60_000
 
-config :constantizer, resolve_at_compile_time: false
+# config :constantizer, resolve_at_compile_time: false
