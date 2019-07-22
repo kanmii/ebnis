@@ -36,7 +36,8 @@ defmodule EbData.Schema.ExperienceTest do
                     "id" => _,
                     "title" => ^title,
                     "fieldDefs" => _,
-                    "clientId" => nil
+                    "clientId" => nil,
+                    "hasUnsaved" => nil
                   }
                 }
               }} =

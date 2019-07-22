@@ -7,6 +7,7 @@ defmodule EbData.Query.Experience do
     fragment #{@frag_name} on Experience {
       _id
       id
+      hasUnsaved
       title
       description
       clientId

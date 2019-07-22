@@ -38,6 +38,7 @@ defmodule EbData.Schema.Experience do
 
     field(:inserted_at, non_null(:iso_datetime))
     field(:updated_at, non_null(:iso_datetime))
+    field(:has_unsaved, :boolean)
   end
 
   @desc ~S"""
