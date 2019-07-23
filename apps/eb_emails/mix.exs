@@ -29,8 +29,8 @@ defmodule EbEmails.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:swoosh, "~> 0.20"},
-      {:gen_smtp, "~> 0.13.0"},
+      {:gen_smtp, "~> 0.14.0", override: true},
+      {:swoosh, "~> 0.23.3"},
       {:constantizer, "~> 0.2.0"},
       {:mox, "~> 0.4.0", only: :test}
     ]

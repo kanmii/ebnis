@@ -1,5 +1,9 @@
 use Mix.Config
 
+config :ebnis_web,
+  ecto_repos: [EbData.DefaultImpl.Repo],
+  generators: [context_app: :eb_data]
+
 config :ebnis_web, EbnisWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "IgXlpm0kYEMVeuAEMGrEyaHL7bgiY/zbKdHu00dOMwO0IhWKyPA3/Un5zCpz+0u1",
@@ -12,10 +16,6 @@ config :logger, :console,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
-
-config :ebnis_web, EbData.Guardian,
-  issuer: "ebnis",
-  secret_key: "DfAHXB4gq6YbApF5c5NgBP0kKpaaobjhFodpDzmceiaXfcPMZKDN1sBCTDHQ2RBy"
 
 config :ebnis_web, EbnisWeb.Auth.Pipeline,
   module: EbData.Guardian,
