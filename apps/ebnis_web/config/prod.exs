@@ -6,7 +6,7 @@ config :ebnis_web, EbnisWeb.Endpoint,
   url: [
     scheme: "https",
     host: "ebnis.herokuapp.com",
-    port: System.get_env("PORT") |> String.to_integer()
+    port: System.get_env("PORT")
   ],
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
   secret_key_base: System.get_env("SECRET_KEY_BASE"),
