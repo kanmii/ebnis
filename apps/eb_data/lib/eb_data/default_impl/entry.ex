@@ -406,11 +406,11 @@ defmodule EbData.DefaultImpl.Entry do
         {accepted_entries, [changeset | rejected_changesets], client_ids}
 
       Enum.member?(client_ids, client_id) ->
+        entry = update_entry_with_numeric_experience_id(entry)
+
         changeset =
-          changeset_cast_attrs(
-            %__MODULE__{},
-            update_entry_with_numeric_experience_id(entry)
-          )
+          %__MODULE__{}
+          |> changeset_cast_attrs(entry)
           |> put_change(:exp_id, entry.exp_id)
           |> add_client_id_not_unique_error()
 
@@ -453,8 +453,10 @@ defmodule EbData.DefaultImpl.Entry do
          entry,
          fields_changesets
        ) do
+    entry = update_entry_with_numeric_experience_id(entry)
+
     %__MODULE__{}
-    |> changeset_cast_attrs(update_entry_with_numeric_experience_id(entry))
+    |> changeset_cast_attrs(entry)
     |> put_change(:exp_id, entry.exp_id)
     |> put_change(:fields, fields_changesets)
   end
