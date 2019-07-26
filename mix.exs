@@ -1,35 +1,30 @@
-defmodule Ebnis.Umbrella.MixProject do
+defmodule Ebnis do
   use Mix.Project
 
   def project do
     [
+      version: "0.1.0",
       apps_path: "apps",
       start_permanent: Mix.env() == :prod,
-      aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      releases: [
+        ebnis: [
+          include_executables_for: [:unix],
+          applications: [
+            # ebnis_email: :permanent, -- started by ebnis_data
+            # ebnis_data: :permanent, -- started by ebnis_web
+            # this is the entry point of our app
+            ebnis: :permanent,
+            ebnis_web: :permanent
+          ]
+        ]
+      ]
     ]
   end
 
-  # Specifies your project dependencies.
-  #
-  # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false}
-    ]
-  end
-
-  # Aliases are shortcuts or tasks specific to the current project.
-  # For example, to create, migrate and run the seeds file at once:
-  #
-  #     $ mix ecto.setup
-  #
-  # See the documentation for `Mix` for more info on aliases.
-  defp aliases do
-    [
-      # "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-      # "ecto.reset": ["ecto.drop", "ecto.setup"],
-      # test: ["ecto.create --quiet", "ecto.migrate", "test"]
+      {:mix_test_watch, "~> 0.9.0", only: :test, runtime: false}
     ]
   end
 end

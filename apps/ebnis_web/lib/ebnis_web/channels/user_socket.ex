@@ -2,24 +2,13 @@ defmodule EbnisWeb.UserSocket do
   use Phoenix.Socket
 
   use Absinthe.Phoenix.Socket,
-    schema: EbData.Schema
+    schema: EbnisData.Schema
 
-  alias EbData.Guardian, as: GuardianApp
+  alias EbnisData.Guardian, as: GuardianApp
 
   ## Channels
   channel("data:*", EbnisWeb.DataChannel)
 
-  # Socket params are passed from the client and can
-  # be used to verify and authenticate a user. After
-  # verification, you can put default assigns into
-  # the socket that will be set for all channels, ie
-  #
-  #     {:ok, assign(socket, :user_id, verified_user_id)}
-  #
-  # To deny connection, return `:error`.
-  #
-  # See `Phoenix.Token` documentation for examples in
-  # performing token verification on connect.
   def connect(%{"token" => token}, socket) do
     case GuardianApp.resource_from_token(token) do
       {:ok, user, _claims} ->

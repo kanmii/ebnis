@@ -3,11 +3,11 @@ defmodule EbnisWeb.Router do
 
   pipeline :api do
     plug(:accepts, ["json"])
-    plug(EbnisWeb.Auth.Pipeline)
-    plug(EbnisWeb.Plug.AuthContexts)
+    plug(EbnisWeb.Plug.Pipeline)
+    plug(EbnisWeb.Plug.AuthContext)
   end
 
-  if Mix.env() == :e2e do
+  if Application.get_env(:ebnis, :is_e2e) do
     scope "/" do
       get("/reset_db", EbnisWeb.E2eController, :reset_db)
       post("/create_user", EbnisWeb.E2eController, :create_user)
@@ -17,11 +17,16 @@ defmodule EbnisWeb.Router do
   scope "/" do
     pipe_through(:api)
 
-    if Mix.env() == :dev do
+    if Application.get_env(
+         :ebnis_web,
+         Absinthe.Plug.GraphiQL,
+         []
+       )
+       |> Keyword.get(:enabled, false) do
       forward(
         "/___graphql",
         Absinthe.Plug.GraphiQL,
-        schema: EbData.Schema,
+        schema: EbnisData.Schema,
         context: %{pubsub: EbnisWeb.Endpoint},
         json_codec: Jason
       )
@@ -30,20 +35,20 @@ defmodule EbnisWeb.Router do
     forward(
       "/",
       Absinthe.Plug,
-      schema: EbData.Schema,
+      schema: EbnisData.Schema,
       context: %{pubsub: EbnisWeb.Endpoint},
       json_codec: Jason
     )
   end
 end
 
-if Mix.env() == :e2e do
+if Application.get_env(:ebnis, :is_e2e) do
   defmodule EbnisWeb.E2eController do
     use EbnisWeb, :controller
 
     def reset_db(conn, _) do
-      case EbData.DefaultImpl.Repo.reset_db() do
-        {:ok, _} ->
+      case EbnisData.Repo.reset_db() do
+        {:ok, _response} ->
           resp(conn, 200, "ok")
 
         _ ->
@@ -52,9 +57,9 @@ if Mix.env() == :e2e do
     end
 
     def create_user(conn, %{"user" => user_creation_params}) do
-      alias EbData.Guardian, as: AppGuardian
+      alias EbnisData.Guardian, as: AppGuardian
 
-      with {:ok, user} <- EbData.register(user_creation_params),
+      with {:ok, user} <- EbnisData.register(user_creation_params),
            {:ok, jwt, _claim} <- AppGuardian.encode_and_sign(user) do
         json(
           conn,

@@ -24,4 +24,14 @@ defmodule EbnisWeb.ChannelCase do
       @endpoint EbnisWeb.Endpoint
     end
   end
+
+  setup tags do
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(EbnisData.Repo)
+
+    unless tags[:async] do
+      Ecto.Adapters.SQL.Sandbox.mode(EbnisData.Repo, {:shared, self()})
+    end
+
+    :ok
+  end
 end

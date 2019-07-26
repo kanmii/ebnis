@@ -1,5 +1,0 @@
-Absinthe.Test.prime(EbData.Schema)
-Faker.start()
-# ExUnit.start(exclude: [db: true])
-ExUnit.start()
-Ecto.Adapters.SQL.Sandbox.mode(EbData.DefaultImpl.Repo, :manual)
