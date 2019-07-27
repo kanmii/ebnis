@@ -6,21 +6,21 @@ import Config
 
 config :ebnis_data, EbnisData.Repo,
   # ssl: true,
-  url: System.fetch_env!("DATABASE_URL"),
+  url: System.fetch_env!("EBNIS_DATABASE_URL"),
   pool_size:
-    (System.get_env("POOL_SIZE") || "18")
+    (System.get_env("EBNIS_POOL_SIZE") || "18")
     |> String.to_integer()
 
-secret_key_base = System.fetch_env!("SECRET_KEY_BASE")
+secret_key_base = System.fetch_env!("EBNIS_SECRET_KEY_BASE")
 
 port =
-  System.fetch_env!("PORT")
+  System.fetch_env!("EBNIS_PORT")
   |> String.to_integer()
 
 config :ebnis_web, EbnisWeb.Endpoint,
   url: [
-    host: "localhost",
-    port: port
+    host: System.fetch_env!("EBNIS_HOST"),
+    path: System.fetch_env!("EBNIS_PATH")
   ],
   http: [
     :inet6,
