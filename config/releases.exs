@@ -27,7 +27,11 @@ config :ebnis_web, EbnisWeb.Endpoint,
     port: port
   ],
   secret_key_base: secret_key_base,
-  server: true
+  server: true,
+  check_origin:
+    "EBNIS_ORIGINS"
+    |> System.fetch_env!()
+    |> Jason.decode!()
 
 config :ebnis_data, EbnisData.Guardian,
   issuer: "ebnis",

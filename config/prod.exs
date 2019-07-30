@@ -11,8 +11,7 @@ import Config
 # before starting your production server.
 config :ebnis_web, EbnisWeb.Endpoint,
   url: [
-    host: "localhost",
-    port: 4022
+    host: "localhost"
   ],
   server: true
 
