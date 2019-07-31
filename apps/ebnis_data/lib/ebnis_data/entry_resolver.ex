@@ -1,17 +1,27 @@
-defmodule EbnisData.Resolver.Entry do
+defmodule EbnisData.EntryResolver do
+  require Logger
+
   import Absinthe.Resolution.Helpers, only: [on_load: 2]
 
   alias EbnisData.Resolver
   alias EbnisData.Entry
+  alias EbnisData.EntryApi
 
   def create(_, %{input: attrs}, %{context: %{current_user: user}}) do
+    Logger.info(fn ->
+      [
+        "Creating new entry with attributes:\n",
+        inspect(attrs)
+      ]
+    end)
+
     case attrs
          |> Map.put(
            :exp_id,
            Resolver.convert_from_global_id(attrs.exp_id, :experience)
          )
          |> Map.put(:user_id, user.id)
-         |> EbnisData.create_entry() do
+         |> EntryApi.create_entry() do
       {:ok, entry} ->
         {:ok,
          %Entry{
@@ -20,7 +30,17 @@ defmodule EbnisData.Resolver.Entry do
          }}
 
       {:error, changeset} ->
+        Logger.warn(fn ->
+          [
+            "Creating new entry fails with error:\n",
+            inspect(changeset)
+          ]
+        end)
+
         {:error, stringify_changeset_error(changeset)}
+
+      _ ->
+        {:error, "Server error"}
     end
   end
 
@@ -53,7 +73,7 @@ defmodule EbnisData.Resolver.Entry do
         fn
           %{valid?: false, errors: errors, changes: changes}, {acc, index} ->
             errors =
-              EbnisData.mapify_entry_field_error(
+              EntryApi.mapify_entry_field_error(
                 changes.def_id,
                 errors,
                 index
@@ -94,7 +114,7 @@ defmodule EbnisData.Resolver.Entry do
           }
         )
       )
-      |> EbnisData.create_entries()
+      |> EntryApi.create_entries()
       |> Enum.reduce([], &create_entries_reduce_result_fn/2)
 
     {:ok, result}
@@ -177,7 +197,7 @@ defmodule EbnisData.Resolver.Entry do
         {:error, "Invalid ID"}
 
       id ->
-        case EbnisData.update_entry(id, args) do
+        case EntryApi.update_entry(id, args) do
           {:ok, updated_entry} ->
             {:ok, %{entry: updated_entry}}
 
@@ -200,7 +220,7 @@ defmodule EbnisData.Resolver.Entry do
         {:error, "Invalid ID"}
 
       id ->
-        EbnisData.delete_entry(id)
+        EntryApi.delete_entry(id)
     end
   end
 

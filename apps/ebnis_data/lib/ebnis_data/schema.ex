@@ -4,6 +4,7 @@ defmodule EbnisData.Schema do
 
   alias EbnisData.Repo
   alias EbnisData.Entry
+  alias EbnisData.EntryApi
 
   import_types(Absinthe.Type.Custom)
   import_types(EbnisData.Schema.Types)
@@ -11,7 +12,7 @@ defmodule EbnisData.Schema do
   import_types(EbnisData.Schema.User)
   import_types(EbnisData.Schema.Experience)
   import_types(EbnisData.Schema.FieldDef)
-  import_types(EbnisData.Schema.Entry)
+  import_types(EbnisData.EntrySchema)
 
   query do
     import_fields(:user_query)
@@ -55,7 +56,7 @@ defmodule EbnisData.Schema do
         repo_opts
       ) do
     Enum.map(list_experiences_pagination_args, fn {experience, args} ->
-      EbnisData.get_paginated_entries(experience.id, args, query, repo_opts)
+      EntryApi.get_paginated_entries(experience.id, args, query, repo_opts)
     end)
   end
 

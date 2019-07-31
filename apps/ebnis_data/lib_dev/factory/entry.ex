@@ -3,6 +3,7 @@ defmodule EbnisData.Factory.Entry do
   alias EbnisData.FieldType
   alias EbnisData.Resolver
   alias EbnisData.Experience
+  alias EbnisData.EntryApi
 
   @integers 100..1_000
 
@@ -23,7 +24,7 @@ defmodule EbnisData.Factory.Entry do
     {:ok, entry} =
       exp
       |> params(attrs)
-      |> EbnisData.create_entry()
+      |> EntryApi.create_entry()
 
     entry
   end

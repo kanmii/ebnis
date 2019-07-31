@@ -1,8 +1,8 @@
-defmodule EbnisData.Schema.Entry do
+defmodule EbnisData.EntrySchema do
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
 
-  alias EbnisData.Resolver.Entry, as: Resolver
+  alias EbnisData.EntryResolver
 
   @desc "An entry field"
   object :field do
@@ -34,7 +34,7 @@ defmodule EbnisData.Schema.Entry do
 
     @desc "The experience object to which this entry belongs"
     field :exp, non_null(:experience) do
-      resolve(&Resolver.exp/3)
+      resolve(&EntryResolver.exp/3)
     end
 
     @desc "The data fields belonging to this entry"
@@ -229,7 +229,7 @@ defmodule EbnisData.Schema.Entry do
     field :create_entry, :entry do
       arg(:input, non_null(:create_entry_input))
 
-      resolve(&Resolver.create/3)
+      resolve(&EntryResolver.create/3)
     end
 
     @desc ~S"""
@@ -238,19 +238,19 @@ defmodule EbnisData.Schema.Entry do
     field :create_entries, list_of(:create_entries_response) do
       arg(:create_entries, :create_entry_input |> list_of() |> non_null())
 
-      resolve(&Resolver.create_entries/2)
+      resolve(&EntryResolver.create_entries/2)
     end
 
     field :update_entry, :entry_update_returned do
       arg(:input, non_null(:update_entry_input))
 
-      resolve(&Resolver.update_entry/2)
+      resolve(&EntryResolver.update_entry/2)
     end
 
     field :delete_entry, :entry do
       arg(:id, non_null(:id))
 
-      resolve(&Resolver.delete_entry/2)
+      resolve(&EntryResolver.delete_entry/2)
     end
   end
 

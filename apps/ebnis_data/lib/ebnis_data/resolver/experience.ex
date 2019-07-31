@@ -3,7 +3,7 @@ defmodule EbnisData.Resolver.Experience do
 
   alias EbnisData.Resolver
   alias EbnisData.Entry
-  alias EbnisData.Resolver.Entry, as: EntryResolver
+  alias EbnisData.EntryResolver
   alias Ecto.Changeset
   # alias EbnisData.Impl
 

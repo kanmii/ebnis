@@ -4,7 +4,7 @@ import_config "dev.exs"
 
 config :ebnis_data, EbnisData.Repo,
   database: "ebnis_e2e",
-  pool: Ecto.Adapters.SQL.Sandbox
+  pool_size: 20
 
 config :ebnis_web, EbnisWeb.Endpoint, server: true
 

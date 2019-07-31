@@ -9,6 +9,8 @@ defmodule EbnisData.Schema.ExperienceEntryTest do
   alias EbnisData.Resolver
   alias EbnisData.Factory.FieldDef, as: FieldDefFactory
 
+  @moduletag capture_log: true
+
   @moduletag :db
   @iso_extended_format "{ISO:Extended:Z}"
 
