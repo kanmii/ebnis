@@ -10,7 +10,6 @@ defmodule EbnisData do
   alias EbnisData.Credential
   alias EbnisData.User
   alias Ecto.Multi
-  alias EbnisData.Resolver
   alias EbnisData.FieldType
   alias EbnisData.Field
   alias EbnisData.FieldDef
@@ -502,7 +501,7 @@ defmodule EbnisData do
 
   def create_entries(entries) do
     Enum.reduce(entries, %{}, fn entry, acc ->
-      id = Resolver.convert_to_global_id(entry.exp_id, :experience)
+      id = entry.exp_id
 
       case create_entry(entry) do
         {:ok, created} ->

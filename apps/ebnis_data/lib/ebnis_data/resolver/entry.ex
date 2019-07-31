@@ -95,38 +95,75 @@ defmodule EbnisData.Resolver.Entry do
         )
       )
       |> EbnisData.create_entries()
-      |> Enum.reduce([], fn {_, values}, acc ->
-        case values[:errors] do
-          nil ->
-            [values | acc]
-
-          errors ->
-            errors =
-              Enum.map(
-                errors,
-                &Map.put(
-                  &1,
-                  :error,
-                  stringify_changeset_error(&1.error)
-                )
-              )
-
-            values =
-              Map.put(
-                values,
-                :errors,
-                errors
-              )
-
-            [values | acc]
-        end
-      end)
+      |> Enum.reduce([], &create_entries_reduce_result_fn/2)
 
     {:ok, result}
   end
 
   def create_entries(_, _) do
     Resolver.unauthorized()
+  end
+
+  defp create_entries_reduce_result_fn({k, v}, acc) do
+    value =
+      create_entries_convert_to_global_experience_id(
+        k,
+        v
+      )
+
+    case value[:errors] do
+      nil ->
+        [value | acc]
+
+      errors ->
+        errors =
+          Enum.map(
+            errors,
+            &Map.put(
+              &1,
+              :error,
+              stringify_changeset_error(&1.error)
+            )
+          )
+
+        value =
+          Map.put(
+            value,
+            :errors,
+            errors
+          )
+
+        [value | acc]
+    end
+  end
+
+  defp create_entries_convert_to_global_experience_id(
+         experience_db_id,
+         create_entries_value
+       ) do
+    experience_global_id =
+      experience_db_id
+      |> Resolver.convert_to_global_id(:experience)
+
+    create_entries_value
+    |> Enum.map(fn
+      {:experience_id, _} ->
+        {:experience_id, experience_global_id}
+
+      {:entries, entries} ->
+        {:entries,
+         Enum.map(
+           entries,
+           &Map.put(&1, :exp_id, experience_global_id)
+         )}
+
+      {:errors, errors} ->
+        {
+          :errors,
+          Enum.map(errors, &Map.put(&1, :experience_id, experience_global_id))
+        }
+    end)
+    |> Enum.into(%{})
   end
 
   def update_entry(
