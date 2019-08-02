@@ -3,7 +3,7 @@ defmodule EbnisData.Field do
 
   import Ecto.Changeset
 
-  @primary_key false
+  # @primary_key false
   embedded_schema do
     field(:def_id, Ecto.UUID)
     field(:data, EbnisData.FieldType)
