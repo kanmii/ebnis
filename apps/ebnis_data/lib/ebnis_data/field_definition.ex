@@ -29,13 +29,13 @@ defmodule EbnisData.FieldDefinition do
     ])
     |> validate_required([
       :name,
-      :type,
-      :client_id
+      :type
     ])
     |> validate_length(:name, min: 2)
     |> unique_constraint(
       :name,
       name: :field_definitions_name_experience_id_index
     )
+    |> foreign_key_constraint(:type, name: :field_definitions_type_fkey)
   end
 end

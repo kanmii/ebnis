@@ -11,7 +11,9 @@ defmodule EbnisData.Schema do
   import_types(EbnisData.Schema.Credential)
   import_types(EbnisData.Schema.User)
   import_types(EbnisData.Schema.Experience)
+  import_types(EbnisData.Schema.Experience1)
   import_types(EbnisData.Schema.FieldDef)
+  import_types(EbnisData.Schema.FieldDefinition)
   import_types(EbnisData.EntrySchema)
 
   query do
@@ -23,6 +25,7 @@ defmodule EbnisData.Schema do
     import_fields(:user_mutation)
     import_fields(:experience_mutation)
     import_fields(:entry_mutation)
+    import_fields(:experience_mutation1)
   end
 
   def context(ctx) do

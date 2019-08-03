@@ -5,7 +5,6 @@ defmodule EbnisData.Resolver.Experience do
   alias EbnisData.Entry
   alias EbnisData.EntryResolver
   alias Ecto.Changeset
-  # alias EbnisData.Impl
 
   def save_offline_experiences(
         %{input: experiences},

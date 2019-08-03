@@ -9,6 +9,7 @@ defmodule EbnisData.Schema.Types do
   alias EbnisData.FieldType
   alias EbnisData.Entry
   alias EbnisData.Experience
+  alias EbnisData.Experience1
 
   node interface do
     resolve_type(fn
@@ -17,6 +18,9 @@ defmodule EbnisData.Schema.Types do
 
       %Experience{}, _ ->
         :experience
+
+      %Experience1{}, _ ->
+        :experience1
 
       _, _ ->
         nil

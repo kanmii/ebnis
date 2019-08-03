@@ -17,3 +17,5 @@ config :ebnis_emails, EbEmails.DefaultImplementation.Mailer, adapter: Swoosh.Ada
 
 config :mix_test_watch,
   clear: true
+
+config :ebnis, is_test: true

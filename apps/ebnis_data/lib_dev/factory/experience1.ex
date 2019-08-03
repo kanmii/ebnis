@@ -17,6 +17,10 @@ defmodule EbnisData.Factory.Experience1 do
     experience
   end
 
+  def params() do
+    params(%{})
+  end
+
   def params(attrs, data_types_list \\ nil) do
     attrs =
       if is_list(attrs) do

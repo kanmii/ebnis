@@ -1,24 +1,8 @@
-defmodule EbnisData.Schema.FieldDef do
+defmodule EbnisData.Schema.FieldDefinition do
   use Absinthe.Schema.Notation
 
-  @desc "The possible field type that can be defined for an experience"
-  enum :field_type do
-    value(:single_line_text, as: "single_line_text")
-    value(:multi_line_text, as: "multi_line_text")
-    value(:integer, as: "integer")
-
-    value(:decimal, as: "decimal")
-    value(:date, as: "date")
-    value(:datetime, as: "datetime")
-
-    if Application.get_env(:ebnis, :is_test) do
-      # for testing only
-      value(:integer1, as: "integer1")
-    end
-  end
-
   @desc "An Experience definition Field"
-  object :field_def do
+  object :field_definition do
     field(:id, non_null(:id))
 
     @desc "Name of field e.g start, end, meal "
@@ -37,7 +21,7 @@ defmodule EbnisData.Schema.FieldDef do
   end
 
   @desc "Variables for defining field while defining a new experience"
-  input_object :create_field_def do
+  input_object :create_field_definition do
     field(:name, non_null(:string))
     field(:type, non_null(:field_type))
 
@@ -51,7 +35,7 @@ defmodule EbnisData.Schema.FieldDef do
   end
 
   @desc "Variables for updating an experience field definition"
-  input_object :update_field_definition_input do
+  input_object :update_field_definition_input1 do
     @desc ~S"""
       The ID of field definition to be updated
     """

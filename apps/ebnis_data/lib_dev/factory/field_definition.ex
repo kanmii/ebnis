@@ -2,7 +2,6 @@ defmodule EbnisData.Factory.FieldDefinition do
   use EbnisData.Factory
   alias EbnisData.FieldType
   alias EbnisData.Factory
-  alias Ecto.UUID
 
   @field_types FieldType.all_types_string()
 
@@ -21,8 +20,7 @@ defmodule EbnisData.Factory.FieldDefinition do
     %{
       name: name(),
       type: Enum.random(@field_types),
-      client_id: Sequence.next(""),
-      id: UUID.generate()
+      client_id: Sequence.next("")
     }
   end
 
