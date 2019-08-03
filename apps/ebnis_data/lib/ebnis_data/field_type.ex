@@ -183,5 +183,11 @@ defmodule EbnisData.FieldType do
 
   def load(val) when is_map(val), do: parse(val)
 
+  def load(val) when is_binary(val) do
+    val
+    |> Jason.decode!()
+    |> parse()
+  end
+
   def dump(val), do: parse(val)
 end

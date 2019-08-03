@@ -7,6 +7,7 @@ defmodule EbnisData.Entry do
   alias EbnisData.Experience
   alias EbnisData.Field
   alias EbnisData
+  alias EbnisData.EntryData
 
   @moduledoc ~S"""
     For the changeset - when we are inserting an entry. The attribute expected
@@ -29,6 +30,7 @@ defmodule EbnisData.Entry do
     field(:client_id, :string)
     belongs_to(:exp, Experience)
     embeds_many(:fields, Field)
+    has_many(:data, EntryData, foreign_key: :entry_id)
 
     timestamps()
   end

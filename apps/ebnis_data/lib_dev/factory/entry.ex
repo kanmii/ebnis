@@ -134,13 +134,9 @@ defmodule EbnisData.Factory.Entry do
   end
 
   def stringify_field(%{} = field) do
-    Enum.map(field, fn
-      {:def_id, v} ->
-        {"defId", v}
-
-      {:data, data} ->
-        {"data", Jason.encode!(data)}
-    end)
-    |> Enum.into(%{})
+    %{
+      "defId" => field.def_id,
+      "data" => Jason.encode!(field.data)
+    }
   end
 end

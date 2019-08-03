@@ -5,12 +5,15 @@ defmodule EbnisData do
   alias Ecto.Changeset
   alias EbnisData.Entry
   alias EbnisData.Experience
+  alias EbnisData.Experience1
   alias EbnisData.Repo
   alias EbnisData.Registration
   alias EbnisData.Credential
   alias EbnisData.User
   alias Ecto.Multi
   alias EbnisData.FieldDef
+  alias EbnisData.EntryApi
+  alias EbnisData.ExperienceApi
 
   @type save_offline_experience_attributes_t ::
           %{
@@ -238,11 +241,21 @@ defmodule EbnisData do
 
   def get_user_by(attrs), do: Repo.get_by(User, attrs)
 
-  ################################## EXPERIENCES ###############################
+  ################################## EXPERIENCES #############################
+
+  defdelegate list_experiences1(), to: ExperienceApi
 
   def create_exp(attrs) do
     %Experience{}
     |> Experience.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def create_experience(attrs) do
+    attrs = Map.put(attrs, :custom_requireds, [:field_definitions])
+
+    %Experience1{}
+    |> Experience1.changeset(attrs)
     |> Repo.insert()
   end
 
@@ -484,4 +497,12 @@ defmodule EbnisData do
   end
 
   ################################ END UTILITIES #############################
+
+  ################################ START ENTRY #############################
+
+  defdelegate create_entry1(attrs), to: EntryApi
+
+  defdelegate list_entries1(), to: EntryApi
+
+  ################################ END ENTRY #############################
 end

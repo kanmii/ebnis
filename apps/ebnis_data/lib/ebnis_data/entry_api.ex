@@ -6,6 +6,7 @@ defmodule EbnisData.EntryApi do
   alias EbnisData.Entry
   alias EbnisData.FieldType
   alias EbnisData.Field
+  alias EbnisData.Entry1
 
   @type create_entries_attributes_t :: [Map.t()]
 
@@ -47,6 +48,37 @@ defmodule EbnisData.EntryApi do
       end)
 
       :error
+  end
+
+  def create_entry1(%{} = attrs) do
+    attrs = Map.put(attrs, :other_required, [:entry_data_list])
+
+    %Entry1{}
+    |> Entry1.changeset(attrs)
+    |> Repo.insert()
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          "Exception thrown while creating entry:\n\t",
+          :error
+          |> Exception.format(error, __STACKTRACE__)
+          |> Ebnis.prettify_with_new_line()
+        ]
+      end)
+
+      :error
+  end
+
+  def list_entries1 do
+    query_with_data_list()
+    |> Repo.all()
+  end
+
+  defp query_with_data_list do
+    Entry1
+    |> join(:inner, [e], dl in assoc(e, :entry_data_list))
+    |> preload([_, dl], entry_data_list: dl)
   end
 
   @spec create_entries(attr :: create_entries_attributes_t()) ::
