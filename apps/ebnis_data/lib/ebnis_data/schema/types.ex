@@ -16,11 +16,11 @@ defmodule EbnisData.Schema.Types do
       %Entry{}, _ ->
         :entry_relay
 
-      %Experience{}, _ ->
-        :experience
-
       %Experience1{}, _ ->
         :experience1
+
+      %Experience{}, _ ->
+        :experience
 
       _, _ ->
         nil

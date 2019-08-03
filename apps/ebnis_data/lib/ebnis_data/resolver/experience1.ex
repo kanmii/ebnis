@@ -72,4 +72,47 @@ defmodule EbnisData.Resolver.Experience1 do
     |> Enum.map(fn {k, {v, _}} -> {k, v} end)
     |> Enum.into(%{})
   end
+
+  def get_experience(
+        %{id: id},
+        %{context: %{current_user: %{id: user_id}}}
+      ) do
+    id
+    |> Resolver.convert_from_global_id(:experience1)
+    |> EbnisData.get_experience1(user_id)
+    |> case do
+      nil ->
+        {:error, "Experience definition not found"}
+
+      experience ->
+        {:ok, experience}
+    end
+  end
+
+  def get_experience(_, _) do
+    Resolver.unauthorized()
+  end
+
+  def get_experiences(
+        %{input: args},
+        %{context: %{current_user: user}}
+      ) do
+    case args[:ids] do
+      nil ->
+        args
+
+      ids ->
+        Map.put(
+          args,
+          :ids,
+          Enum.map(ids, &Resolver.convert_from_global_id(&1, :experience1))
+        )
+    end
+    |> Map.put(:user_id, user.id)
+    |> EbnisData.get_experiences1()
+  end
+
+  def get_experiences(_, _) do
+    Resolver.unauthorized()
+  end
 end

@@ -13,7 +13,6 @@ defmodule EbnisData.Query.Experience1 do
 
   @fragment """
     fragment #{@fragment_name} on Experience1 {
-      _id
       id
       hasUnsaved
       title
@@ -49,6 +48,40 @@ defmodule EbnisData.Query.Experience1 do
               type
             }
           }
+        }
+      }
+
+      #{@fragment}
+    """
+  end
+
+  def get do
+    """
+      query GetExperience($id: ID!) {
+        getExperience1(id: $id) {
+            ...#{@fragment_name}
+        }
+      }
+
+      #{@fragment}
+    """
+  end
+
+  def gets do
+    """
+      query GetExperiences($input: GetExperiencesInput) {
+        getExperiences1(input: $input) {
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+          }
+
+          edges {
+            node {
+              ...#{@fragment_name}
+            }
+          }
+
         }
       }
 

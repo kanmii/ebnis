@@ -479,38 +479,38 @@ defmodule EbnisData.Schema.ExperienceEntryTest do
                  context: context(user)
                )
 
-      [
-        %{
-          "experienceId" => ^exp_id1_global,
-          "entries" => [
-            %{
-              "_id" => _,
-              "expId" => ^exp_id1_global,
-              "clientId" => client_id1,
-              "fields" => fields1
-            },
-            %{
-              "_id" => _,
-              "expId" => ^exp_id1_global,
-              "clientId" => client_id2,
-              "fields" => fields2
-            }
-          ],
-          "errors" => nil
-        },
-        %{
-          "experienceId" => ^exp_id2_global,
-          "entries" => [
-            %{
-              "_id" => _,
-              "expId" => ^exp_id2_global,
-              "clientId" => "1",
-              "fields" => fields
-            }
-          ],
-          "errors" => nil
-        }
-      ] = Enum.sort_by(successes, & &1["experienceId"])
+      assert [
+               %{
+                 "experienceId" => ^exp_id2_global,
+                 "entries" => [
+                   %{
+                     "_id" => _,
+                     "expId" => ^exp_id2_global,
+                     "clientId" => "1",
+                     "fields" => fields
+                   }
+                 ],
+                 "errors" => nil
+               },
+               %{
+                 "experienceId" => ^exp_id1_global,
+                 "entries" => [
+                   %{
+                     "_id" => _,
+                     "expId" => ^exp_id1_global,
+                     "clientId" => client_id1,
+                     "fields" => fields1
+                   },
+                   %{
+                     "_id" => _,
+                     "expId" => ^exp_id1_global,
+                     "clientId" => client_id2,
+                     "fields" => fields2
+                   }
+                 ],
+                 "errors" => nil
+               }
+             ] = successes
 
       assert Enum.sort([client_id1, client_id2]) == ["1", "2"]
 

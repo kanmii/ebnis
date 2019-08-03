@@ -244,6 +244,8 @@ defmodule EbnisData do
   ################################## EXPERIENCES #############################
 
   defdelegate list_experiences1(), to: ExperienceApi
+  defdelegate get_experience1(id, user_id), to: ExperienceApi
+  defdelegate get_experiences1(args), to: ExperienceApi
 
   def create_exp(attrs) do
     %Experience{}

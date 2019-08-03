@@ -2,19 +2,14 @@ defmodule EbnisData.Schema.Experience1 do
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
 
+  import Absinthe.Resolution.Helpers, only: [dataloader: 1]
+
   alias EbnisData.Resolver.Experience1, as: Resolver
 
   @desc """
     Experience schema. Uses relay.
   """
   node object(:experience1) do
-    @desc "Internal ID of the schema. Field `id` is the global opaque ID"
-    field(
-      :_id,
-      non_null(:id),
-      resolve: &EbnisData.Resolver.resolve_internal_id/3
-    )
-
     @desc "The title of the experience"
     field(:title, non_null(:string))
 
@@ -30,7 +25,13 @@ defmodule EbnisData.Schema.Experience1 do
     field(:client_id, :id)
 
     @desc "The field definitions used for the experience entries"
-    field(:field_definitions, :field_definition |> list_of() |> non_null())
+    field(
+      :field_definitions,
+      :field_definition
+      |> list_of()
+      |> non_null(),
+      resolve: dataloader(:data)
+    )
 
     @desc "The entries of the experience - can be paginated"
     field :entries, :entry_connection |> non_null() do
@@ -108,8 +109,10 @@ defmodule EbnisData.Schema.Experience1 do
 
   ######################### MUTATION ################################
 
-  @desc "Mutations allowed on Experience object"
-  object :experience_mutation1 do
+  @desc """
+    Mutations allowed on Experience object
+  """
+  object :experience_mutations do
     @desc "Create an experience"
     field :create_experience1, :create_experience_return_value do
       arg(:input, non_null(:create_experience_input1))
@@ -120,7 +123,32 @@ defmodule EbnisData.Schema.Experience1 do
 
   ######################### END MUTATIONS ################################
 
-  ######################### QUERIES ######################################
+  ######################### START QUERIES ################################
+
+  @desc """
+    Queries allowed on Experience object
+  """
+  object :experience_queries do
+    @desc """
+
+      Get an experience
+    """
+    field :get_experience1, :experience1 do
+      arg(:id, non_null(:id))
+
+      resolve(&Resolver.get_experience/2)
+    end
+
+    @desc ~S"""
+      Get all experiences belonging to a user.
+      The experiences returned may be paginated
+      and may be filtered by IDs
+    """
+    connection field(:get_experiences1, node_type: :experience1) do
+      arg(:input, :get_experiences_input)
+      resolve(&Resolver.get_experiences/2)
+    end
+  end
 
   ######################### END QUERIES ################################
 

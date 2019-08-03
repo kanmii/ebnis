@@ -19,13 +19,14 @@ defmodule EbnisData.Schema do
   query do
     import_fields(:user_query)
     import_fields(:experience_query)
+    import_fields(:experience_queries)
   end
 
   mutation do
     import_fields(:user_mutation)
     import_fields(:experience_mutation)
     import_fields(:entry_mutation)
-    import_fields(:experience_mutation1)
+    import_fields(:experience_mutations)
   end
 
   def context(ctx) do
