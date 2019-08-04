@@ -139,7 +139,7 @@ defmodule EbnisData.Schema.Entry1Test do
       assert is_binary(fieldDefinitionError)
     end
 
-    # @tag :skip
+    @tag :skip
     test "fails if field definition ID not unique" do
       user = RegFactory.insert()
       experience = ExperienceFactory.insert(user_id: user.id)
@@ -184,7 +184,7 @@ defmodule EbnisData.Schema.Entry1Test do
       assert is_binary(fieldDefinitionId)
     end
 
-    # @tag :skip
+    @tag :skip
     test "fails if entry_data.data.type != field_definition.type" do
       user = RegFactory.insert()
 

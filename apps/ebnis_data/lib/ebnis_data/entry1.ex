@@ -26,14 +26,14 @@ defmodule EbnisData.Entry1 do
     ])
     |> cast_assoc(:entry_data_list, required: false)
     |> validate_required([:exp_id | attrs[:other_required] || []])
-    |> foreign_key_constraint(
-      :experience,
-      name: :entries_exp_id_fkey
-    )
+    # |> foreign_key_constraint(
+    #   :experience,
+    #   name: :entries_exp_id_fkey
+    # )
+    # |> assoc_constraint(:experience)
     |> unique_constraint(
       :client_id,
       name: :entries_client_id_exp_id_index
     )
-    |> assoc_constraint(:experience)
   end
 end

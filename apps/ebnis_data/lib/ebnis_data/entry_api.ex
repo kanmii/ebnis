@@ -50,12 +50,28 @@ defmodule EbnisData.EntryApi do
       :error
   end
 
-  def create_entry1(%{} = attrs) do
-    attrs = Map.put(attrs, :other_required, [:entry_data_list])
+  def create_entry1(
+        %{
+          user_id: user_id,
+          experience_id: experience_id
+        } = attrs
+      ) do
+    case EbnisData.get_experience1(experience_id, user_id) do
+      nil ->
+        :error
 
-    %Entry1{}
-    |> Entry1.changeset(attrs)
-    |> Repo.insert()
+      _experience ->
+        {:ok, result} =
+          Repo.transaction(fn ->
+            attrs = Map.put(attrs, :exp_id, experience_id)
+
+            %Entry1{}
+            |> Entry1.changeset(attrs)
+            |> Repo.insert()
+          end)
+
+        result
+    end
   rescue
     error ->
       Logger.error(fn ->

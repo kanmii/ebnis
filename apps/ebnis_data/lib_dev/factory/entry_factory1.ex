@@ -20,6 +20,7 @@ defmodule EbnisData.Factory.Entry1 do
 
         _ ->
           params(experience, attrs)
+          |> Map.put(:user_id, experience.user_id)
       end
 
     {:ok, entry} = EbnisData.create_entry1(attrs)

@@ -8,7 +8,7 @@ defmodule EbnisData.Resolver.Entry1 do
 
     attrs
     |> Map.merge(%{
-      exp_id: experience_id,
+      experience_id: experience_id,
       user_id: user.id
     })
     |> EbnisData.create_entry1()
@@ -27,6 +27,16 @@ defmodule EbnisData.Resolver.Entry1 do
           changeset.errors
           |> changeset_errors_to_map()
           |> entry_data_list_changeset_errors_to_map(changeset.changes.entry_data_list)
+        }
+
+      :error ->
+        {
+          :ok,
+          %{
+            entry_errors: %{
+              experience: "does not exist"
+            }
+          }
         }
     end
   end
