@@ -7,6 +7,10 @@ defmodule EbnisData.EntryApi do
   alias EbnisData.FieldType
   alias EbnisData.Field
   alias EbnisData.Entry1
+  alias EbnisData.EntryData
+  alias Ecto.Changeset
+  alias Ecto.Multi
+  # alias EbnisData.Experience1
 
   @type create_entries_attributes_t :: [Map.t()]
 
@@ -50,27 +54,136 @@ defmodule EbnisData.EntryApi do
       :error
   end
 
+  defp validate_experience(data_definitions, data_list) do
+    data_definitions_id_map =
+      data_definitions
+      |> Enum.reduce(%{}, &Map.put(&2, &1.id, &1.type))
+
+    {status, result, _} =
+      data_list
+      |> Enum.reduce({:ok, [], []}, fn data_object, {status, acc, seen} ->
+        changeset = EntryData.changeset(%EntryData{}, data_object)
+        field_definition_id = data_object.field_definition_id
+        definition_type = data_definitions_id_map[field_definition_id]
+        [data_type] = Map.keys(data_object.data)
+
+        cond do
+          definition_type == nil ->
+            changeset =
+              changeset
+              |> Changeset.add_error(
+                :field_definition,
+                "does not exist"
+              )
+
+            {:error, [changeset | acc], seen}
+
+          Enum.member?(seen, field_definition_id) ->
+            changeset =
+              changeset
+              |> Changeset.add_error(
+                :field_definition_id,
+                "has already been taken"
+              )
+
+            {:error, [changeset | acc], seen}
+
+          data_type != definition_type ->
+            changeset =
+              changeset
+              |> Changeset.add_error(
+                :data,
+                "has invalid data type: '#{data_type}' instead of '#{definition_type}'"
+              )
+
+            {:error, [changeset | acc], seen}
+
+          true ->
+            seen = [field_definition_id | seen]
+            {status, [changeset | acc], seen}
+        end
+      end)
+
+    {status, Enum.reverse(result)}
+  end
+
+  @doc false
+  defp create_entry_multi(_, _, attrs) do
+    %Entry1{}
+    |> Entry1.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  defp create_data_list(%{"entry" => entry}, data_list_changesets) do
+    entry_id = entry.id
+
+    {multi, _} =
+      data_list_changesets
+      |> Enum.reduce({Multi.new(), 0}, fn data_changeset, {multi, index} ->
+        multi =
+          Multi.insert(
+            multi,
+            "d#{index}",
+            data_changeset
+            |> Changeset.put_change(:entry_id, entry_id),
+            returning: true
+          )
+
+        {multi, index + 1}
+      end)
+
+    multi
+  end
+
   def create_entry1(
         %{
           user_id: user_id,
           experience_id: experience_id
         } = attrs
       ) do
+    attrs = Map.put(attrs, :exp_id, experience_id)
+
     case EbnisData.get_experience1(experience_id, user_id) do
       nil ->
-        :error
+        {
+          :error,
+          %Entry1{}
+          |> Entry1.changeset(attrs)
+          |> Changeset.add_error(:experience, "does not exist"),
+          nil
+        }
 
-      _experience ->
-        {:ok, result} =
-          Repo.transaction(fn ->
-            attrs = Map.put(attrs, :exp_id, experience_id)
+      experience ->
+        case validate_experience(
+               experience.field_definitions,
+               attrs.entry_data_list
+             ) do
+          {:ok, data_list_changesets} ->
+            Multi.new()
+            |> Multi.run("entry", &create_entry_multi(&1, &2, attrs))
+            |> Multi.merge(&create_data_list(&1, data_list_changesets))
+            |> Repo.transaction()
+            |> case do
+              {:ok, result} ->
+                {entry, data_list_map} = Map.pop(result, "entry")
 
-            %Entry1{}
-            |> Entry1.changeset(attrs)
-            |> Repo.insert()
-          end)
+                data_list =
+                  data_list_map
+                  |> Enum.sort_by(fn {"d" <> index, _} -> index end)
+                  |> Enum.map(fn {_, v} -> v end)
 
-        result
+                {:ok, %{entry | entry_data_list: data_list}}
+
+              {:error, "entry", changeset, _rest} ->
+                {:error, changeset, nil}
+
+              {:error, "d" <> index, changeset, _rest} ->
+                {:error, nil, String.to_integer(index), changeset}
+            end
+
+          {:error, data_list_changesets} ->
+            {:error, nil, data_list_changesets}
+        end
     end
   rescue
     error ->

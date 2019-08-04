@@ -40,42 +40,5 @@ defmodule EbnisData.EntryData do
       :field_definition_id,
       name: :entries_data_entry_id_field_definition_id_index
     )
-    # |> foreign_key_constraint(
-    #   :field_definition,
-    #   name: :entries_data_field_definition_id_fkey
-    # )
-    |> validate_data_type()
-  end
-
-  defp validate_data_type(%{valid?: false} = changeset) do
-    changeset
-  end
-
-  defp validate_data_type(changeset) do
-    changes = changeset.changes
-
-    case EbnisData.get_field_definition_by(changes.field_definition_id) do
-      nil ->
-        add_error(
-          changeset,
-          :field_definition,
-          "does not exist"
-        )
-
-      data_definition ->
-        [data_type] = Map.keys(changes.data)
-
-        case data_definition.type do
-          ^data_type ->
-            changeset
-
-          definition_type ->
-            add_error(
-              changeset,
-              :data,
-              "has invalid data type: '#{data_type}' instead of '#{definition_type}'"
-            )
-        end
-    end
   end
 end

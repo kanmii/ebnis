@@ -37,6 +37,7 @@ defmodule EbnisData.Query.Entry1 do
 
         entryErrors {
           experience
+          clientId
         }
 
         entryDataListErrors {

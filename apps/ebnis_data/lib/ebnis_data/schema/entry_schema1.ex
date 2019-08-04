@@ -70,6 +70,7 @@ defmodule EbnisData.Schema.Entry1 do
   """
   object :create_entry_errors do
     field(:experience, :string)
+    field(:client_id, :string)
   end
 
   @desc ~S"""

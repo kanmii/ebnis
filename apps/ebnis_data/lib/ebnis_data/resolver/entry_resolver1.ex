@@ -21,34 +21,47 @@ defmodule EbnisData.Resolver.Entry1 do
           }
         }
 
-      {:error, changeset} ->
-        {
-          :ok,
-          changeset.errors
-          |> changeset_errors_to_map()
-          |> entry_data_list_changeset_errors_to_map(changeset.changes.entry_data_list)
-        }
-
-      :error ->
+      {:error, changeset, nil} ->
         {
           :ok,
           %{
-            entry_errors: %{
-              experience: "does not exist"
-            }
+            entry_errors: Resolver.changeset_errors_to_map(changeset.errors)
           }
         }
+
+      {:error, nil, changesets} ->
+        {
+          :ok,
+          entry_data_list_changeset_errors_to_map(%{}, changesets)
+        }
+
+      {:error, nil, index, changeset} ->
+        {
+          :ok,
+          %{
+            entry_data_list_errors: [
+              %{
+                index: index,
+                errors: Resolver.changeset_errors_to_map(changeset.errors)
+              }
+            ]
+          }
+        }
+
+        # :error ->
+        #   {
+        #     :ok,
+        #     %{
+        #       entry_errors: %{
+        #         entry: "can not be created"
+        #       }
+        #     }
+        #   }
     end
   end
 
-  defp changeset_errors_to_map([]) do
-    %{}
-  end
-
-  defp changeset_errors_to_map(errors) do
-    %{
-      entry_errors: Resolver.changeset_errors_to_map(errors)
-    }
+  def create(_, _) do
+    Resolver.unauthorized()
   end
 
   defp entry_data_list_changeset_errors_to_map(
