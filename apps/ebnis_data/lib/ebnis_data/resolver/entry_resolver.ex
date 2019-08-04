@@ -1,6 +1,4 @@
 defmodule EbnisData.EntryResolver do
-  require Logger
-
   import Absinthe.Resolution.Helpers, only: [on_load: 2]
 
   alias EbnisData.Resolver
@@ -8,13 +6,6 @@ defmodule EbnisData.EntryResolver do
   alias EbnisData.EntryApi
 
   def create(_, %{input: attrs}, %{context: %{current_user: user}}) do
-    Logger.info(fn ->
-      [
-        "Creating new entry with attributes:\n",
-        inspect(attrs)
-      ]
-    end)
-
     case attrs
          |> Map.put(
            :exp_id,
@@ -30,13 +21,6 @@ defmodule EbnisData.EntryResolver do
          }}
 
       {:error, changeset} ->
-        Logger.warn(fn ->
-          [
-            "Creating new entry fails with error:\n",
-            inspect(changeset)
-          ]
-        end)
-
         {:error, stringify_changeset_error(changeset)}
 
       _ ->

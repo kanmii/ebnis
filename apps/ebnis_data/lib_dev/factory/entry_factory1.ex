@@ -2,7 +2,6 @@ defmodule EbnisData.Factory.Entry1 do
   alias EbnisData.Factory
   alias EbnisData.FieldType
   alias EbnisData.Resolver
-  alias Ecto.UUID
 
   @integers 100..1_000
 
@@ -66,14 +65,19 @@ defmodule EbnisData.Factory.Entry1 do
               field_definition[:id] ||
                 field_definition[:client_id] ||
                 "0",
-            data: data(field_definition.type),
-            id: UUID.generate()
+            data: data(field_definition.type)
           }
       end)
 
+    experience_id =
+      experience[:id] ||
+        experience[:client_id] ||
+        "0"
+
     %{
       entry_data_list: entry_data_list,
-      exp_id: experience[:id] || experience[:client_id] || "0"
+      exp_id: experience_id,
+      experience_id: experience_id
     }
     |> Map.merge(attrs)
   end
@@ -105,9 +109,7 @@ defmodule EbnisData.Factory.Entry1 do
   def data("decimal"),
     do: %{"decimal" => "#{Enum.random(@integers)}.#{Enum.random(@integers)}"}
 
-  def stringify(%{} = attrs, settings \\ %{}) do
-    experience_id_to_global = settings[:experience_id_to_global]
-
+  def stringify(%{} = attrs) do
     Enum.reduce(attrs, %{}, fn
       {:entry_data_list, entry_data_list}, acc ->
         Map.put(
@@ -116,17 +118,12 @@ defmodule EbnisData.Factory.Entry1 do
           Enum.map(entry_data_list, &stringify_entry_data/1)
         )
 
-      {:exp_id, v}, acc ->
-        value =
-          cond do
-            experience_id_to_global == true || attrs[:client_id] == nil ->
-              Resolver.convert_to_global_id(v, :experience)
-
-            true ->
-              v
-          end
-
-        Map.put(acc, "expId", value)
+      {:experience_id, v}, acc ->
+        Map.put(
+          acc,
+          "experienceId",
+          Resolver.convert_to_global_id(v, :experience1)
+        )
 
       {k, v}, acc when k in @simple_attributes ->
         Map.put(acc, Factory.to_camel_key(k), v)

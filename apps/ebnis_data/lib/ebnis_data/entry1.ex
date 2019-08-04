@@ -34,5 +34,6 @@ defmodule EbnisData.Entry1 do
       :client_id,
       name: :entries_client_id_exp_id_index
     )
+    |> assoc_constraint(:experience)
   end
 end

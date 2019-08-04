@@ -10,11 +10,15 @@ defmodule EbnisData.Schema.Types do
   alias EbnisData.Entry
   alias EbnisData.Experience
   alias EbnisData.Experience1
+  alias EbnisData.Entry1
 
   node interface do
     resolve_type(fn
       %Entry{}, _ ->
         :entry_relay
+
+      %Entry1{}, _ ->
+        :entry1
 
       %Experience1{}, _ ->
         :experience1

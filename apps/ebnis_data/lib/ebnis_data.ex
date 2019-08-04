@@ -14,6 +14,7 @@ defmodule EbnisData do
   alias EbnisData.FieldDef
   alias EbnisData.EntryApi
   alias EbnisData.ExperienceApi
+  alias EbnisData.FieldDefinition
 
   @type save_offline_experience_attributes_t ::
           %{
@@ -507,4 +508,21 @@ defmodule EbnisData do
   defdelegate list_entries1(), to: EntryApi
 
   ################################ END ENTRY #############################
+
+  ############################# FIELD DEFINITION #########################
+
+  def get_field_definition_by(id) do
+    FieldDefinition
+    |> where([f], f.id == ^id)
+    |> Repo.all()
+    |> case do
+      [] ->
+        nil
+
+      [field_definition] ->
+        field_definition
+    end
+  end
+
+  ########################### END FIELD DEFINITION #######################
 end
