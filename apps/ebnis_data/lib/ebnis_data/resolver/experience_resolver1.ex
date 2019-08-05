@@ -1,6 +1,8 @@
 defmodule EbnisData.Resolver.Experience1 do
   alias EbnisData.Resolver
 
+  import Absinthe.Resolution.Helpers, only: [on_load: 2]
+
   def create_experience(
         %{input: attrs},
         %{context: %{current_user: %{id: id}}}
@@ -114,5 +116,23 @@ defmodule EbnisData.Resolver.Experience1 do
 
   def get_experiences(_, _) do
     Resolver.unauthorized()
+  end
+
+  def entries(experience, args, %{context: ctx}) do
+    # %{pagination: pagination_args}
+
+    ctx.loader
+    |> Dataloader.load(:data, :entries, experience)
+    |> on_load(fn loader ->
+      entries =
+        loader
+        |> Dataloader.get(:data, :entries, experience)
+
+      # figure out a way to use Connection.from_query
+      Absinthe.Relay.Connection.from_list(
+        entries,
+        args[:pagination] || %{first: 100}
+      )
+    end)
   end
 end

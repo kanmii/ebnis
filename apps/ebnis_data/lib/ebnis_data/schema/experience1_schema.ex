@@ -2,7 +2,7 @@ defmodule EbnisData.Schema.Experience1 do
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
 
-  import Absinthe.Resolution.Helpers, only: [dataloader: 1]
+  import Absinthe.Resolution.Helpers, only: [dataloader: 1, dataloader: 2]
 
   alias EbnisData.Resolver.Experience1, as: Resolver
 
@@ -35,8 +35,9 @@ defmodule EbnisData.Schema.Experience1 do
 
     @desc "The entries of the experience - can be paginated"
     field :entries, :entry_connection |> non_null() do
-      arg(:pagination, :pagination_input)
-      # resolve(&Resolver.entries/3)
+      arg(:pagination, non_null(:pagination_input))
+
+      resolve(&Resolver.entries/3)
     end
 
     field(:inserted_at, non_null(:iso_datetime))

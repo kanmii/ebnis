@@ -10,8 +10,6 @@ defmodule EbnisData.Schema.ExperienceTest1 do
   alias EbnisData.Query.Experience1, as: Query
   alias EbnisData.Resolver
 
-  @iso_extended_format "{ISO:Extended:Z}"
-
   describe "create an experience" do
     # @tag :skip
     test "unauthorized" do
@@ -20,8 +18,6 @@ defmodule EbnisData.Schema.ExperienceTest1 do
           Factory.params()
           |> Factory.stringify()
       }
-
-      query = Query.create()
 
       assert {:ok,
               %{
@@ -32,7 +28,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                 ]
               }} =
                Absinthe.run(
-                 query,
+                 Query.create(),
                  Schema,
                  variables: variables
                )
@@ -195,15 +191,8 @@ defmodule EbnisData.Schema.ExperienceTest1 do
 
     # @tag :skip
     test "with timestamps succeeds" do
-      inserted_at =
-        DateTime.utc_now()
-        |> Timex.shift(hours: -5)
-        |> Timex.to_datetime()
-        |> DateTime.truncate(:second)
-
-      inserted_at_string =
-        inserted_at
-        |> Timex.format!(@iso_extended_format)
+      inserted_at = ~U[2016-05-05 09:41:22Z]
+      inserted_at_string = "2016-05-05T09:41:22Z"
 
       params =
         Factory.params(
@@ -217,8 +206,6 @@ defmodule EbnisData.Schema.ExperienceTest1 do
         "input" => Factory.stringify(params)
       }
 
-      query = Query.create()
-
       assert {:ok,
               %{
                 data: %{
@@ -227,13 +214,16 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                       "id" => _,
                       "fieldDefinitions" => _,
                       "insertedAt" => ^inserted_at_string,
-                      "updatedAt" => ^inserted_at_string
+                      "updatedAt" => ^inserted_at_string,
+                      "entries" => %{
+                        "edges" => []
+                      }
                     }
                   }
                 }
               }} =
                Absinthe.run(
-                 query,
+                 Query.create(),
                  Schema,
                  variables: variables,
                  context: context(user)
@@ -392,8 +382,10 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                     "edges" => [
                       %{
                         "node" => %{
-                          "id" => ^id1
-                          # "entries" => %{}
+                          "id" => ^id1,
+                          "entries" => %{
+                            "edges" => _
+                          }
                         }
                       },
                       %{

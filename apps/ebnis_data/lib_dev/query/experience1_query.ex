@@ -20,7 +20,18 @@ defmodule EbnisData.Query.Experience1 do
       clientId
       insertedAt
       updatedAt
+      entries (pagination: {first: 100}) {
+        edges {
+          node {
+            id
+          }
+        }
 
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+        }
+      }
       fieldDefinitions {
         ...#{@field_definition_fragment_name}
       }
