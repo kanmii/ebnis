@@ -23,3 +23,5 @@ alias EbnisWeb.Query.Entry, as: EntryQuery
 alias EbnisWeb.Query.User, as: UserQuery
 alias EbnisWeb.Query.Registration, as: RegistrationQuery
 alias EbnisWeb.Query.FieldDef, as: FieldDefQuery
+alias EbnisData.Resolver
+alias EbnisData.Resolver.Experience1, as: Experience1Resolver

@@ -507,6 +507,12 @@ defmodule EbnisData do
 
   defdelegate list_entries1(), to: EntryApi
 
+  defdelegate get_paginated_entries_1(
+                experiences_ids_pagination_args_tuples,
+                repo_opts
+              ),
+              to: EntryApi
+
   ################################ END ENTRY #############################
 
   ############################# FIELD DEFINITION #########################

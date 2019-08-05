@@ -5,6 +5,8 @@ defmodule EbnisData.Schema do
   alias EbnisData.Repo
   alias EbnisData.Entry
   alias EbnisData.EntryApi
+  alias EbnisData.Experience1
+  alias EbnisData.Entry1
 
   import_types(Absinthe.Type.Custom)
   import_types(EbnisData.Schema.Types)
@@ -54,10 +56,6 @@ defmodule EbnisData.Schema do
         Entry,
         query,
         :paginated_entries,
-        # [
-        #   {experience_struct, pagination_args},
-        #   {experience_struct, pagination_args}
-        # ]
         list_experiences_pagination_args,
         repo_opts
       ) do
@@ -66,7 +64,20 @@ defmodule EbnisData.Schema do
     end)
   end
 
-  def run_batch(queryable, query, col, inputs, repo_opts) do
-    Dataloader.Ecto.run_batch(Repo, queryable, query, col, inputs, repo_opts)
+  def run_batch(
+        Experience1,
+        _query,
+        :entries,
+        experiences_ids_pagination_args_tuples,
+        repo_opts
+      ) do
+    EbnisData.get_paginated_entries_1(
+      experiences_ids_pagination_args_tuples,
+      repo_opts
+    )
+  end
+
+  def run_batch(Entry1, query, col, inputs, repo_opts) do
+    Dataloader.Ecto.run_batch(Repo, Entry1, query, col, inputs, repo_opts)
   end
 end

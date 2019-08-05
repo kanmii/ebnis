@@ -271,6 +271,28 @@ defmodule EbnisData.EntryApi do
     entries_connection
   end
 
+  @spec get_paginated_entries_1(
+          [{integer() | binary(), map()}],
+          list()
+        ) :: [Absinthe.Relay.Connection.t()]
+  def get_paginated_entries_1(
+        experiences_ids_pagination_args_tuples,
+        repo_opts
+      ) do
+    experiences_ids_pagination_args_tuples
+    |> Enum.map(fn {experience_id, pagination_args} ->
+      {:ok, result} =
+        Entry1
+        |> where([e], e.exp_id == ^experience_id)
+        |> Absinthe.Relay.Connection.from_query(
+          &Repo.all(&1, repo_opts),
+          pagination_args[:pagination] || %{first: 100}
+        )
+
+      result
+    end)
+  end
+
   @spec update_entry(id :: String.t(), attrs :: update_entry_args_t()) ::
           {:ok, Entry.t()}
           | {
