@@ -1,12 +1,15 @@
 defmodule EbnisData.Schema.Entry1Test do
   use EbnisData.DataCase, async: true
 
+  import ExUnit.CaptureLog
+
   alias EbnisData.Schema
   alias EbnisData.Factory.Registration, as: RegFactory
   alias EbnisData.Factory.Entry1, as: Factory
   alias EbnisData.Factory.Experience1, as: ExperienceFactory
   alias EbnisData.Query.Entry1, as: Query
   alias EbnisData.Resolver
+  alias EbnisData.Resolver.Entry1, as: Entry1Resolver
 
   @iso_extended_format "{ISO:Extended:Z}"
 
@@ -469,42 +472,35 @@ defmodule EbnisData.Schema.Entry1Test do
       assert is_binary(data_errors)
     end
 
-    @tag :skip
+    # @tag :skip
     test "catches exception and logs stacktrace" do
-      params = %{
-        entry_data_list: [
-          %{
-            field_definition_id: "a",
-            data: %{"integer" => 1}
-          }
-        ]
-      }
+      log =
+        capture_log(fn ->
+          assert {
+                   :ok,
+                   %{
+                     entry_errors: %{
+                       experience: experience
+                     }
+                   }
+                 } =
+                   %{
+                     input: %{
+                       entry_data_list: [
+                         %{
+                           field_definition_id: "a",
+                           data: %{"integer" => 1}
+                         }
+                       ],
+                       experience_id: nil
+                     }
+                   }
+                   |> Entry1Resolver.create(%{context: context(%{id: 1})})
 
-      variables = %{
-        "input" =>
-          params
-          |> Factory.stringify()
-          |> Map.put("experienceId", "a")
-      }
+          assert is_binary(experience)
+        end)
 
-      assert {:ok,
-              %{
-                data: %{
-                  "createEntry1" => %{
-                    "entryErrors" => %{
-                      "entry" => entry_errors
-                    }
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 Query.create(),
-                 Schema,
-                 variables: variables,
-                 context: context(%{id: 1})
-               )
-
-      assert is_binary(entry_errors)
+      assert log =~ "STACK"
     end
   end
 

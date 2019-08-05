@@ -47,16 +47,6 @@ defmodule EbnisData.Resolver.Entry1 do
             ]
           }
         }
-
-        # :error ->
-        #   {
-        #     :ok,
-        #     %{
-        #       entry_errors: %{
-        #         entry: "can not be created"
-        #       }
-        #     }
-        #   }
     end
   end
 
@@ -68,30 +58,25 @@ defmodule EbnisData.Resolver.Entry1 do
          accumulated_errors,
          changesets
        ) do
-    changesets
-    |> Enum.reduce({[], 0}, fn
-      %{valid?: false, errors: errors}, {acc, index} ->
-        {
-          [
-            %{
-              index: index,
-              errors: Resolver.changeset_errors_to_map(errors)
-            }
-            | acc
-          ],
-          index + 1
-        }
+    {errors, _} =
+      changesets
+      |> Enum.reduce({[], 0}, fn
+        %{valid?: false, errors: errors}, {acc, index} ->
+          {
+            [
+              %{
+                index: index,
+                errors: Resolver.changeset_errors_to_map(errors)
+              }
+              | acc
+            ],
+            index + 1
+          }
 
-      _, {acc, index} ->
-        {acc, index + 1}
-    end)
-    |> case do
-      {[], _} ->
-        accumulated_errors
+        _, {acc, index} ->
+          {acc, index + 1}
+      end)
 
-      {errors, _} ->
-        accumulated_errors
-        |> Map.put(:entry_data_list_errors, errors)
-    end
+    Map.put(accumulated_errors, :entry_data_list_errors, errors)
   end
 end

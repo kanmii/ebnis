@@ -195,8 +195,6 @@ defmodule EbnisData.EntryApi do
           |> Ebnis.prettify_with_new_line()
         ]
       end)
-
-      :error
   end
 
   def list_entries1 do
