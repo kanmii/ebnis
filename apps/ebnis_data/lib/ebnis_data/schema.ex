@@ -6,7 +6,6 @@ defmodule EbnisData.Schema do
   alias EbnisData.Entry
   alias EbnisData.EntryApi
   alias EbnisData.Experience1
-  alias EbnisData.Entry1
 
   import_types(Absinthe.Type.Custom)
   import_types(EbnisData.Schema.Types)
@@ -77,7 +76,7 @@ defmodule EbnisData.Schema do
     )
   end
 
-  def run_batch(Entry1, query, col, inputs, repo_opts) do
-    Dataloader.Ecto.run_batch(Repo, Entry1, query, col, inputs, repo_opts)
+  def run_batch(queryable, query, col, inputs, repo_opts) do
+    Dataloader.Ecto.run_batch(Repo, queryable, query, col, inputs, repo_opts)
   end
 end
