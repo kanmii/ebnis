@@ -469,28 +469,28 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                )
     end
 
-    @tag :skip
+    # @tag :skip
     test "by IDs succeeds" do
       user = RegFactory.insert()
-      experience1 = Factory.insert(user_id: user.id)
+      experience = Factory.insert(user_id: user.id)
       Factory.insert(user_id: user.id)
 
-      id1_string = Integer.to_string(experience1.id1)
+      id = Resolver.convert_to_global_id(experience.id, :experience1)
 
       variables = %{
         "input" => %{
-          "ids" => [Resolver.convert_to_global_id(id1_string, :experience1)]
+          "ids" => [id]
         }
       }
 
       assert {:ok,
               %{
                 data: %{
-                  "getExperiences" => %{
+                  "getExperiences1" => %{
                     "edges" => [
                       %{
                         "node" => %{
-                          "_id" => ^id1_string,
+                          "id" => ^id,
                           "entries" => %{
                             "edges" => [],
                             "pageInfo" => %{

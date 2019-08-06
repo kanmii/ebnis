@@ -41,7 +41,7 @@ defmodule EbnisData.ExperienceApi do
 
   @spec get_experiences1(
           args :: %{
-            pagination_args: Absinthe.Relay.Connection.Options.t(),
+            pagination: Absinthe.Relay.Connection.Options.t(),
             user_id: binary() | Integer.t(),
             ids: [binary() | Integer.t()],
             client_ids: [binary() | Integer.t()]
