@@ -10,7 +10,7 @@ defmodule EbnisData.EntryApi do
   alias EbnisData.EntryData
   alias Ecto.Changeset
   alias Ecto.Multi
-  # alias EbnisData.Experience1
+  alias Absinthe.Relay.Connection
 
   @type create_entries_attributes_t :: [Map.t()]
 
@@ -247,9 +247,9 @@ defmodule EbnisData.EntryApi do
 
   @spec get_paginated_entries(
           experience_id :: String.t(),
-          pagination_args :: Absinthe.Relay.Connection.Options.t(),
+          pagination_args :: Connection.Options.t(),
           query :: Ecto.Queryable.t() | nil
-        ) :: Absinthe.Relay.Connection.t()
+        ) :: Connection.t()
   def get_paginated_entries(
         experience_id,
         pagination_args,
@@ -261,7 +261,7 @@ defmodule EbnisData.EntryApi do
       |> join(:inner, [ee], e in assoc(ee, :exp))
       |> where([_, e], e.id == ^experience_id)
       |> order_by([ee], desc: ee.updated_at)
-      |> Absinthe.Relay.Connection.from_query(
+      |> Connection.from_query(
         &Repo.all(&1, repo_opts),
         pagination_args
       )
@@ -269,26 +269,71 @@ defmodule EbnisData.EntryApi do
     entries_connection
   end
 
+  defp get_paginated_query({experience_id, pagination_args}, opts) do
+    pagination = pagination_args[:pagination] || %{first: 100}
+
+    {
+      :ok,
+      offset,
+      limit
+    } = Connection.offset_and_limit_for_query(pagination, opts)
+
+    query =
+      Entry1
+      |> where([e], e.exp_id == ^experience_id)
+      |> limit(^(limit + 1))
+      |> offset(^offset)
+
+    {query, limit, offset}
+  end
+
   @spec get_paginated_entries_1(
           [{integer() | binary(), map()}],
           list()
-        ) :: [Absinthe.Relay.Connection.t()]
+        ) :: [Connection.t()]
   def get_paginated_entries_1(
         experiences_ids_pagination_args_tuples,
         repo_opts
       ) do
-    experiences_ids_pagination_args_tuples
-    |> Enum.map(fn {experience_id, pagination_args} ->
-      {:ok, result} =
-        Entry1
-        |> where([e], e.exp_id == ^experience_id)
-        |> Absinthe.Relay.Connection.from_query(
-          &Repo.all(&1, repo_opts),
-          pagination_args[:pagination] || %{first: 100}
-        )
+    {query, trackers} =
+      Enum.reduce(
+        experiences_ids_pagination_args_tuples,
+        {nil, %{}},
+        fn {experience_id, _} = args, {may_be_query, trackers} ->
+          {next_query, limit, offset} = get_paginated_query(args, [])
+          trackers = Map.put(trackers, experience_id, {limit, offset})
 
-      result
-    end)
+          case may_be_query do
+            nil ->
+              {next_query, trackers}
+
+            query ->
+              {union_all(query, ^next_query), trackers}
+          end
+        end
+      )
+
+    records_union =
+      query
+      |> Repo.all(repo_opts)
+      |> Enum.group_by(& &1.exp_id)
+
+    Enum.map(
+      experiences_ids_pagination_args_tuples,
+      fn {experience_id, _} ->
+        records = records_union[experience_id]
+        {limit, offset} = trackers[experience_id]
+
+        {:ok, connection} =
+          Connection.from_slice(
+            Enum.take(records, limit),
+            offset,
+            []
+          )
+
+        connection
+      end
+    )
   end
 
   @spec update_entry(id :: String.t(), attrs :: update_entry_args_t()) ::

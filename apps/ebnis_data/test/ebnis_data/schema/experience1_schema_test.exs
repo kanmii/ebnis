@@ -9,6 +9,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
   alias EbnisData.Factory.FieldDefinition, as: FieldDefinitionFactory
   alias EbnisData.Query.Experience1, as: Query
   alias EbnisData.Resolver
+  alias EbnisData.Factory.Entry1, as: Entry1Factory
 
   describe "create an experience" do
     # @tag :skip
@@ -376,16 +377,19 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     # @tag :skip
     test "succeeds with pagination only" do
       user = RegFactory.insert()
-      %{id: id1} = Factory.insert(user_id: user.id)
-      experience2 = Factory.insert(user_id: user.id)
+      experience1 = Factory.insert(user_id: user.id)
+      entry1 = Entry1Factory.insert(%{}, experience1)
 
-      id1 = Resolver.convert_to_global_id(id1, :experience1)
-      field_definitions_len = experience2.field_definitions |> length()
+      experience2 = Factory.insert(user_id: user.id)
+      entry2 = Entry1Factory.insert(%{}, experience2)
+
+      experience3 = Factory.insert(user_id: user.id)
+      entry3 = Entry1Factory.insert(%{}, experience3)
 
       variables = %{
         "input" => %{
           "pagination" => %{
-            "first" => 2
+            "first" => 3
           }
         }
       }
@@ -394,28 +398,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
               %{
                 data: %{
                   "getExperiences1" => %{
-                    "edges" => [
-                      %{
-                        "node" => %{
-                          "id" => ^id1,
-                          "entries" => %{
-                            "edges" => _
-                          }
-                        }
-                      },
-                      %{
-                        "node" => %{
-                          "fieldDefinitions" => field_definitions
-                          # "entries" => %{
-                          #   "edges" => [],
-                          #   "pageInfo" => %{
-                          #     "hasNextPage" => false,
-                          #     "hasPreviousPage" => false
-                          #   }
-                          # }
-                        }
-                      }
-                    ],
+                    "edges" => edges,
                     "pageInfo" => %{
                       "hasNextPage" => false,
                       "hasPreviousPage" => false
@@ -430,13 +413,28 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                  context: context(user)
                )
 
-      refute field_definitions |> hd() == nil
-      assert length(field_definitions) == field_definitions_len
+      assert edges
+             |> Enum.flat_map(fn edge ->
+               node = edge["node"]
 
-      # assert [
-      #          Integer.to_string(id1),
-      #          Integer.to_string(id2)
-      #        ] == Enum.sort([ida, idb])
+               [
+                 node["id"],
+                 (node["fieldDefinitions"] |> hd())["id"],
+                 (node["entries"]["edges"] |> hd())["node"]["id"]
+               ]
+             end)
+             |> Enum.sort() ==
+               Enum.sort([
+                 Resolver.convert_to_global_id(experience1.id, :experience1),
+                 Resolver.convert_to_global_id(entry1.id, :entry1),
+                 (experience1.field_definitions |> hd()).id,
+                 Resolver.convert_to_global_id(experience2.id, :experience1),
+                 Resolver.convert_to_global_id(entry2.id, :entry1),
+                 (experience2.field_definitions |> hd()).id,
+                 Resolver.convert_to_global_id(experience3.id, :experience1),
+                 Resolver.convert_to_global_id(entry3.id, :entry1),
+                 (experience3.field_definitions |> hd()).id
+               ])
     end
 
     # @tag :skip
