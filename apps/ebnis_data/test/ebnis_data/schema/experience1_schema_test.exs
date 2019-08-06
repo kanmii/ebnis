@@ -36,7 +36,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "with field values succeeds" do
+    test "succeeds for happy path" do
       %{title: title} = params = Factory.params()
       user = RegFactory.insert()
 
@@ -458,6 +458,49 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                       "hasNextPage" => false,
                       "hasPreviousPage" => false
                     }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.gets(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    @tag :skip
+    test "by IDs succeeds" do
+      user = RegFactory.insert()
+      experience1 = Factory.insert(user_id: user.id)
+      Factory.insert(user_id: user.id)
+
+      id1_string = Integer.to_string(experience1.id1)
+
+      variables = %{
+        "input" => %{
+          "ids" => [Resolver.convert_to_global_id(id1_string, :experience1)]
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "getExperiences" => %{
+                    "edges" => [
+                      %{
+                        "node" => %{
+                          "_id" => ^id1_string,
+                          "entries" => %{
+                            "edges" => [],
+                            "pageInfo" => %{
+                              "hasNextPage" => false,
+                              "hasPreviousPage" => false
+                            }
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               }} =

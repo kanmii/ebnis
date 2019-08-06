@@ -284,7 +284,7 @@ defmodule EbnisData.EntryApi do
       |> limit(^(limit + 1))
       |> offset(^offset)
 
-    {query, limit, offset}
+    {query, {limit, offset}}
   end
 
   @spec get_paginated_entries_1(
@@ -292,48 +292,60 @@ defmodule EbnisData.EntryApi do
           list()
         ) :: [Connection.t()]
   def get_paginated_entries_1(
-        experiences_ids_pagination_args_tuples,
+        experiences_ids_pagination_args,
         repo_opts
       ) do
+    [{experience_id, _} = head | tail] = experiences_ids_pagination_args
+    {query, limit_offset} = get_paginated_query(head, [])
+    tracker = Map.new([{experience_id, limit_offset}])
+
     {query, trackers} =
       Enum.reduce(
-        experiences_ids_pagination_args_tuples,
-        {nil, %{}},
-        fn {experience_id, _} = args, {may_be_query, trackers} ->
-          {next_query, limit, offset} = get_paginated_query(args, [])
-          trackers = Map.put(trackers, experience_id, {limit, offset})
-
-          case may_be_query do
-            nil ->
-              {next_query, trackers}
-
-            query ->
-              {union_all(query, ^next_query), trackers}
-          end
+        tail,
+        {query, tracker},
+        fn {experience_id, _} = args, {query, trackers} ->
+          {next_query, limit_offset} = get_paginated_query(args, [])
+          trackers = Map.put(trackers, experience_id, limit_offset)
+          {union_all(query, ^next_query), trackers}
         end
       )
 
-    records_union =
-      query
-      |> Repo.all(repo_opts)
-      |> Enum.group_by(& &1.exp_id)
+    query
+    |> Repo.all(repo_opts)
+    |> case do
+      [] ->
+        [
+          %{
+            edges: [],
+            page_info: %{
+              start_cursor: "",
+              end_cursor: "",
+              has_previous_page: false,
+              has_next_page: false
+            }
+          }
+        ]
 
-    Enum.map(
-      experiences_ids_pagination_args_tuples,
-      fn {experience_id, _} ->
-        records = records_union[experience_id]
-        {limit, offset} = trackers[experience_id]
+      records_union ->
+        records_union = Enum.group_by(records_union, & &1.exp_id)
 
-        {:ok, connection} =
-          Connection.from_slice(
-            Enum.take(records, limit),
-            offset,
-            []
-          )
+        Enum.map(
+          experiences_ids_pagination_args,
+          fn {experience_id, _} ->
+            records = records_union[experience_id]
+            {limit, offset} = trackers[experience_id]
 
-        connection
-      end
-    )
+            {:ok, connection} =
+              Connection.from_slice(
+                Enum.take(records, limit),
+                offset,
+                []
+              )
+
+            connection
+          end
+        )
+    end
   end
 
   @spec update_entry(id :: String.t(), attrs :: update_entry_args_t()) ::
