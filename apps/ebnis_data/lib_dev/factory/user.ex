@@ -29,8 +29,8 @@ defmodule EbnisData.Factory.User do
 
   defp all do
     %{
-      name: Faker.Name.first_name(),
-      email: Faker.Internet.email()
+      name: "na" <> Sequence.next(""),
+      email: "m#{Sequence.next("")}@b.c"
     }
   end
 end

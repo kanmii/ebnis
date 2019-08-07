@@ -155,4 +155,29 @@ defmodule EbnisData.Resolver.Entry1 do
   def delete(_, _) do
     Resolver.unauthorized()
   end
+
+  def update_data_object(%{input: input}, %{context: %{current_user: %{id: _}}}) do
+    case EbnisData.update_data_object(input) do
+      {:ok, data_object} ->
+        {:ok,
+         %{
+           data_object: data_object
+         }}
+
+      {:error, %{} = changeset} ->
+        {
+          :ok,
+          %{
+            errors: Resolver.changeset_errors_to_map(changeset.errors)
+          }
+        }
+
+      {:error, others} ->
+        {:error, others}
+    end
+  end
+
+  def update_data_object(_, _) do
+    Resolver.unauthorized()
+  end
 end

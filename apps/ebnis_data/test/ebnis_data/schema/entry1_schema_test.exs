@@ -918,5 +918,167 @@ defmodule EbnisData.Schema.Entry1Test do
     end
   end
 
+  describe "update data object" do
+    test "fails: unauthorized" do
+      variables = %{
+        "input" => %{
+          "id" => "a",
+          "data" => ~s({"integer":1})
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_data_object(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    test "fails: data object not found" do
+      variables = %{
+        "input" => %{
+          "id" => Ecto.UUID.generate(),
+          "data" => ~s({"integer":1})
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_data_object(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: 0})
+               )
+    end
+
+    test "recovers from exception" do
+      variables = %{
+        "input" => %{
+          "id" => "1",
+          "data" => ~s({"integer":1})
+        }
+      }
+
+      log_message =
+        capture_log(fn ->
+          assert {:ok,
+                  %{
+                    errors: [
+                      %{
+                        message: _
+                      }
+                    ]
+                  }} =
+                   Absinthe.run(
+                     Query.update_data_object(),
+                     Schema,
+                     variables: variables,
+                     context: context(%{id: 0})
+                   )
+        end)
+
+      assert log_message =~ "STACK"
+    end
+
+    test "fails: data type can not be cast" do
+      user = RegFactory.insert()
+
+      experience =
+        ExperienceFactory.insert(
+          %{user_id: user.id},
+          ["integer"]
+        )
+
+      [data_object] = Factory.insert(%{}, experience).data_objects
+      id = data_object.id
+
+      variables = %{
+        "input" => %{
+          "id" => id,
+          "data" => ~s({"integer":0.1})
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateDataObject" => %{
+                    "dataObject" => nil,
+                    "errors" => %{
+                      "data" => data_error
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_data_object(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(data_error)
+    end
+
+    test "succeeds" do
+      user = RegFactory.insert()
+
+      experience =
+        ExperienceFactory.insert(
+          %{user_id: user.id},
+          ["integer"]
+        )
+
+      [data_object] = Factory.insert(%{}, experience).data_objects
+      id = data_object.id
+
+      refute data_object.data["integer"] == 1
+
+      new_data = ~s({"integer":1})
+
+      variables = %{
+        "input" => %{
+          "id" => id,
+          "data" => new_data
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateDataObject" => %{
+                    "dataObject" => %{
+                      "id" => ^id,
+                      "data" => ^new_data,
+                      "definitionId" => _
+                    },
+                    "errors" => nil
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_data_object(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

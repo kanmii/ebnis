@@ -40,13 +40,16 @@ defmodule EbnisData.EntryApi do
 
   @create_entry_catch_all_error "an error occurred: unable to create entry"
 
-  @create_entry_exception_header "\nCreate entry exception:\nparams:\n\t"
+  @create_entry_exception_header "\nCreate entry exception:\n  params:\n\t"
 
   @delete_entry_exception_header "\nDelete entry exception ID: "
 
   @stacktrace "\n\n----------STACKTRACE---------------\n\n"
 
   @error_not_found {:error, "entry not found"}
+  @data_object_not_found {:error, "data object not found"}
+
+  @update_data_object_exception_header "\nUpdate data object exception:\n  params:\n\t"
 
   def create_entry(%{} = attrs) do
     %Entry{}
@@ -615,5 +618,33 @@ defmodule EbnisData.EntryApi do
       end)
 
       @error_not_found
+  end
+
+  def update_data_object(params) do
+    DataObject
+    |> where([d], d.id == ^params.id)
+    |> Repo.all()
+    |> case do
+      [] ->
+        @data_object_not_found
+
+      [object] ->
+        object
+        |> DataObject.changeset(params)
+        |> Repo.update()
+    end
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @update_data_object_exception_header,
+          inspect(params),
+          @stacktrace,
+          Exception.format(:error, error, __STACKTRACE__)
+          |> Ebnis.prettify_with_new_line()
+        ]
+      end)
+
+      @data_object_not_found
   end
 end

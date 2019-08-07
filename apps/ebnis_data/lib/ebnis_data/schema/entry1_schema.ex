@@ -155,6 +155,11 @@ defmodule EbnisData.Schema.Entry1 do
     field(:errors, :create_entries_errors |> list_of())
   end
 
+  object :update_data_object_response do
+    field(:data_object, :data_object)
+    field(:errors, :data_object_error)
+  end
+
   ############################# END OBJECTS ##################################
 
   ############################# INPUTS ##################################
@@ -247,6 +252,22 @@ defmodule EbnisData.Schema.Entry1 do
     field(:updated_at, :iso_datetime)
   end
 
+  input_object :update_data_object_input do
+    @desc ~S"""
+      The ID of the data object we wish to update
+    """
+    field(:id, non_null(:id))
+
+    @desc ~S"""
+      The data object of the new value. It is of the form:
+
+      ```json
+        {"integer":1}
+      ```
+    """
+    field(:data, non_null(:entry_field_json))
+  end
+
   ############################# END INPUTS ##################################
 
   ################### MUTATIONS #########################################
@@ -280,6 +301,16 @@ defmodule EbnisData.Schema.Entry1 do
       arg(:id, non_null(:id))
 
       resolve(&EntryResolver.delete/2)
+    end
+
+    @desc ~S"""
+      Update an entry data object
+    """
+
+    field :update_data_object, :update_data_object_response do
+      arg(:input, non_null(:update_data_object_input))
+
+      resolve(&EntryResolver.update_data_object/2)
     end
   end
 

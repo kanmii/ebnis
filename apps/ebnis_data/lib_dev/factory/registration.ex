@@ -42,7 +42,7 @@ defmodule EbnisData.Factory.Registration do
   end
 
   defp all do
-    password = Faker.String.base64()
+    password = "x78n" <> Sequence.next("")
 
     %{
       source: "password",

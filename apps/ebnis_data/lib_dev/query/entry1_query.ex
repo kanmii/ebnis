@@ -27,6 +27,16 @@ defmodule EbnisData.Query.Entry1 do
     #{@entry_data_fragment}
   """
 
+  @fragment_data_error_name "DE"
+
+  @fragment_data_error """
+    fragment #{@fragment_data_error_name} on DataObjectError {
+      definition
+      definitionId
+      data
+    }
+  """
+
   @fragment_create_entry_errors_name "CreateEntryErrorsName"
 
   @fragment_create_entry_errors """
@@ -38,12 +48,12 @@ defmodule EbnisData.Query.Entry1 do
       dataObjectsErrors {
         index
         errors {
-          definition
-          definitionId
-          data
+          ...#{@fragment_data_error_name}
         }
       }
     }
+
+    #{@fragment_data_error}
   """
   def create_entry_errors() do
     {@fragment_create_entry_errors, @fragment_create_entry_errors_name}
@@ -105,6 +115,25 @@ defmodule EbnisData.Query.Entry1 do
       }
 
       #{@fragment}
+    """
+  end
+
+  def update_data_object() do
+    """
+      mutation U($input: UpdateDataObjectInput!) {
+        updateDataObject(input: $input) {
+          dataObject {
+            ...#{@entry_data_fragment_name}
+          }
+
+          errors {
+            ...#{@fragment_data_error_name}
+          }
+        }
+      }
+
+      #{@entry_data_fragment}
+      #{@fragment_data_error}
     """
   end
 end
