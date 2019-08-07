@@ -312,4 +312,28 @@ defmodule EbnisData.ExperienceApi do
         Repo.delete(experience)
     end
   end
+
+  @spec update_experience1(
+          id :: integer() | binary(),
+          user_id :: integer() | binary(),
+          update_args :: %{
+            optional(:title) => binary(),
+            optional(:description) => binary()
+          }
+        ) :: {:error, binary()}
+  def update_experience1(_, _, attrs) when attrs == %{} do
+    {:error, "nothing to update"}
+  end
+
+  def update_experience1(id, user_id, attrs) do
+    case get_experience1(id, user_id) do
+      nil ->
+        {:error, "can not find experience"}
+
+      experience ->
+        experience
+        |> Experience1.changeset(attrs)
+        |> Repo.update()
+    end
+  end
 end

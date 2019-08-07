@@ -941,5 +941,177 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
   end
 
+  describe "update experience mutation" do
+    # @tag :skip
+    test "fails: no user context" do
+      variables = %{
+        "input" => %{
+          "id" => "1"
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    # @tag :skip
+    test "fails: nothing to update" do
+      variables = %{
+        "input" => %{
+          "id" => 0
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: 0})
+               )
+    end
+
+    # @tag :skip
+    test "fails: ID is not global" do
+      variables = %{
+        "input" => %{
+          "id" => 0,
+          "title" => "a"
+        }
+      }
+
+      capture_log(fn ->
+        assert {:ok,
+                %{
+                  errors: [
+                    %{
+                      message: _
+                    }
+                  ]
+                }} =
+                 Absinthe.run(
+                   Query.update(),
+                   Schema,
+                   variables: variables,
+                   context: context(%{id: 0})
+                 )
+      end)
+    end
+
+    # @tag :skip
+    test "fails: experience does not exist" do
+      variables = %{
+        "input" => %{
+          "id" => Resolver.convert_to_global_id(0, :experience1),
+          "title" => "a"
+        }
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: 0})
+               )
+    end
+
+    # @tag :skip
+    test "fails: title not unique" do
+      user = RegFactory.insert()
+      title = "ab"
+      Factory.insert(user_id: user.id, title: title)
+
+      experience = Factory.insert(user_id: user.id)
+      id = Resolver.convert_to_global_id(experience.id, :experience1)
+
+      variables = %{
+        "input" => %{
+          "id" => id,
+          "title" => title
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateExperience1" => %{
+                    "experience" => nil,
+                    "errors" => %{
+                      "title" => title_error
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(title_error)
+    end
+
+    # @tag :skip
+    test "succeeds" do
+      user = RegFactory.insert()
+      experience = Factory.insert(user_id: user.id)
+      id = Resolver.convert_to_global_id(experience.id, :experience1)
+
+      variables = %{
+        "input" => %{
+          "id" => id,
+          "title" => "aa",
+          "description" => "b"
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateExperience1" => %{
+                    "experience" => %{
+                      "id" => ^id,
+                      "title" => "aa",
+                      "description" => "b"
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

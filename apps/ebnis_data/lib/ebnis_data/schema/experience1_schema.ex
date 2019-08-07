@@ -114,6 +114,22 @@ defmodule EbnisData.Schema.Experience1 do
     field(:entries_errors, list_of(:create_entries_errors))
   end
 
+  @desc """
+    Experience field errors during update
+  """
+  object :update_experience_errors do
+    field(:title, :string)
+    field(:client_id, :string)
+  end
+
+  @desc """
+    Object returned on experience update
+  """
+  object :update_experience_return_value do
+    field(:experience, :experience1)
+    field(:errors, :update_experience_errors)
+  end
+
   ######################### END REGULAR OBJECTS ###########################
 
   ############################ INPUT OBJECTS ##############################
@@ -149,6 +165,17 @@ defmodule EbnisData.Schema.Experience1 do
     field(:entries, :create_entry_input1 |> list_of())
   end
 
+  @desc "Variables for updating an existing Experience"
+  input_object :update_experience_input1 do
+    @desc ~S"""
+      The global ID of experience to be updated
+    """
+    field(:id, non_null(:id))
+
+    field(:title, :string)
+    field(:description, :string)
+  end
+
   ######################### END INPUT OBJECTS ################################
 
   ######################### MUTATION ################################
@@ -176,6 +203,13 @@ defmodule EbnisData.Schema.Experience1 do
       arg(:id, non_null(:id))
 
       resolve(&Resolver.delete_experience/2)
+    end
+
+    @desc "Update an experience"
+    field :update_experience1, :update_experience_return_value do
+      arg(:input, non_null(:update_experience_input1))
+
+      resolve(&Resolver.update_experience/2)
     end
   end
 

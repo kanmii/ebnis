@@ -234,4 +234,32 @@ defmodule EbnisData.Resolver.Experience1 do
   def delete_experience(_, _) do
     Resolver.unauthorized()
   end
+
+  def update_experience(
+        %{input: %{id: id} = args},
+        %{context: %{current_user: user}}
+      ) do
+    id
+    |> Resolver.convert_from_global_id(:experience1)
+    |> EbnisData.update_experience1(user.id, Map.delete(args, :id))
+    |> case do
+      {:ok, experience} ->
+        {:ok, %{experience: experience}}
+
+      {:error, %{} = changeset} ->
+        {
+          :ok,
+          %{
+            errors: Resolver.changeset_errors_to_map(changeset.errors)
+          }
+        }
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  def update_experience(_, _) do
+    Resolver.unauthorized()
+  end
 end

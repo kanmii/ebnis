@@ -160,4 +160,23 @@ defmodule EbnisData.Query.Experience1 do
       #{@fragment}
     """
   end
+
+  def update do
+    """
+      mutation UpdateExperience($input: UpdateExperienceInput1!) {
+        updateExperience1(input: $input) {
+          experience {
+            ...#{@fragment_name}
+          }
+
+          errors {
+            title
+            clientId
+          }
+        }
+      }
+
+      #{@fragment}
+    """
+  end
 end
