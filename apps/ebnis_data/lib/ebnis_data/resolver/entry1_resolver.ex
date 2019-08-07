@@ -71,4 +71,78 @@ defmodule EbnisData.Resolver.Entry1 do
         Map.put(acc_errors, :data_objects_errors, errors)
     end
   end
+
+  def create_entries(%{input: inputs}, %{context: %{current_user: user}}) do
+    {entries, ids} = update_entries_with_valid_ids(inputs, user.id)
+
+    results_map = EbnisData.create_entries1(entries)
+
+    {
+      :ok,
+      Enum.map(
+        ids,
+        fn id ->
+          result = results_map[id]
+          experience_id = Resolver.convert_to_global_id(id, :experience1)
+
+          update_in(
+            result.errors,
+            &Enum.map(&1, fn changeset ->
+              %{
+                errors: entry_changeset_errors_to_map(changeset),
+                client_id: changeset.changes.client_id,
+                experience_id: experience_id
+              }
+            end)
+          )
+          |> Map.put(:experience_id, experience_id)
+        end
+      )
+    }
+  end
+
+  def create_entries(_, _) do
+    Resolver.unauthorized()
+  end
+
+  defp update_entries_with_valid_ids(entries, user_id) do
+    {entries, ids, _} =
+      Enum.reduce(
+        entries,
+        {[], [], %{}},
+        fn entry, {entries, experiences_ids, seen} ->
+          experience_id =
+            Resolver.convert_from_global_id(
+              entry.experience_id,
+              :experience1
+            )
+
+          experiences_ids =
+            case seen[experience_id] do
+              true ->
+                experiences_ids
+
+              _ ->
+                [experience_id | experiences_ids]
+            end
+
+          {
+            [
+              Map.merge(
+                entry,
+                %{
+                  user_id: user_id,
+                  experience_id: experience_id
+                }
+              )
+              | entries
+            ],
+            experiences_ids,
+            Map.put(seen, experience_id, true)
+          }
+        end
+      )
+
+    {Enum.reverse(entries), Enum.reverse(ids)}
+  end
 end

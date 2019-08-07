@@ -532,4 +532,52 @@ defmodule EbnisData.EntryApi do
       errors: EbnisData.changeset_errors_to_map(errors)
     }
   end
+
+  def create_entries1(attrs) do
+    result =
+      attrs
+      |> Enum.reduce(%{}, fn param, acc ->
+        experience_id = param.experience_id
+
+        case create_entry1(param) do
+          {:ok, entry} ->
+            Map.update(
+              acc,
+              experience_id,
+              %{entries: [entry], errors: []},
+              fn map ->
+                %{
+                  map
+                  | entries: [entry | map.entries]
+                }
+              end
+            )
+
+          {:error, changeset} ->
+            Map.update(
+              acc,
+              experience_id,
+              %{entries: [], errors: [changeset]},
+              fn map ->
+                %{
+                  map
+                  | errors: [changeset | map.errors]
+                }
+              end
+            )
+        end
+      end)
+
+    Enum.reduce(
+      result,
+      %{},
+      fn {k, v}, acc ->
+        Map.put(
+          acc,
+          k,
+          %{v | entries: Enum.reverse(v.entries), errors: Enum.reverse(v.errors)}
+        )
+      end
+    )
+  end
 end

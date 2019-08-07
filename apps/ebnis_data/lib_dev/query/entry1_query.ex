@@ -69,4 +69,29 @@ defmodule EbnisData.Query.Entry1 do
     #{@fragment_create_entry_errors}
     """
   end
+
+  def create_entries do
+    """
+    mutation CreateEntriesMutation($input: [CreateEntriesInput!]!) {
+      createEntries1(input: $input) {
+        experienceId
+
+        entries {
+          ...#{@fragment_name}
+        }
+
+        errors {
+          clientId
+          experienceId
+          errors {
+            ...#{@fragment_create_entry_errors_name}
+          }
+        }
+      }
+    }
+
+    #{@fragment}
+    #{@fragment_create_entry_errors}
+    """
+  end
 end

@@ -561,5 +561,274 @@ defmodule EbnisData.Schema.Entry1Test do
     end
   end
 
+  describe "create entries" do
+    # @tag :skip
+    test "fails: unauthenticated" do
+      variables = %{
+        "input" => [
+          %{
+            experience_id: 0,
+            data_objects: [%{definition_id: "a", data: %{"integer" => 1}}]
+          }
+          |> Factory.stringify()
+        ]
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.create_entries(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    # @tag :skip
+    test "happy path" do
+      user = RegFactory.insert()
+      experience1 = ExperienceFactory.insert(user_id: user.id)
+      id1 = Resolver.convert_to_global_id(experience1.id, :experience1)
+
+      experience2 = ExperienceFactory.insert(user_id: user.id)
+      id2 = Resolver.convert_to_global_id(experience2.id, :experience1)
+
+      {entries_params, _} =
+        Factory.params_list(2, experience1)
+        |> Enum.reduce({[], 1}, fn p, {acc, i} ->
+          {[Map.put(p, :client_id, i) | acc], i + 1}
+        end)
+
+      entry_params = Factory.params(experience2, client_id: 1)
+
+      variables = %{
+        "input" =>
+          Enum.map(
+            [entry_params | entries_params],
+            &Factory.stringify/1
+          )
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createEntries1" => [
+                    %{
+                      "experienceId" => ^id2,
+                      "entries" => [
+                        %{
+                          "id" => _,
+                          "experienceId" => ^id2,
+                          "clientId" => "1",
+                          "dataObjects" => _
+                        }
+                      ],
+                      "errors" => []
+                    },
+                    %{
+                      "experienceId" => ^id1,
+                      "entries" => [
+                        %{
+                          "id" => _,
+                          "experienceId" => ^id1,
+                          "clientId" => "2",
+                          "dataObjects" => _
+                        },
+                        %{
+                          "id" => _,
+                          "experienceId" => ^id1,
+                          "clientId" => "1",
+                          "dataObjects" => _
+                        }
+                      ],
+                      "errors" => []
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.create_entries(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "valids and invalids" do
+      user = RegFactory.insert()
+
+      experience1 =
+        ExperienceFactory.insert(
+          %{user_id: user.id},
+          ["integer"]
+        )
+
+      id1 = Resolver.convert_to_global_id(experience1.id, :experience1)
+
+      params1 = Factory.params(experience1, client_id: "a")
+
+      # notice that we gave a decimal data to an integer field. it will fail
+      params2 =
+        update_in(
+          Factory.params(experience1, client_id: "b").data_objects,
+          fn [object] ->
+            [%{object | data: %{"integer" => 0.1}}]
+          end
+        )
+
+      experience2 =
+        ExperienceFactory.insert(
+          %{user_id: user.id},
+          ["integer"]
+        )
+
+      id2 = Resolver.convert_to_global_id(experience2.id, :experience1)
+
+      # notice that we gave a decimal data to an integer field. it will fail
+      params3 =
+        update_in(
+          Factory.params(experience2, client_id: "c").data_objects,
+          fn [object] ->
+            [%{object | data: %{"integer" => 0.1}}]
+          end
+        )
+
+      variables = %{
+        "input" =>
+          [
+            params1,
+            params2,
+            params3
+          ]
+          |> Enum.map(&Factory.stringify/1)
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createEntries1" => [
+                    %{
+                      "experienceId" => ^id1,
+                      "entries" => [
+                        %{
+                          "id" => _,
+                          "clientId" => "a",
+                          "experienceId" => ^id1
+                        }
+                      ],
+                      "errors" => [
+                        %{
+                          "clientId" => "b",
+                          "experienceId" => ^id1,
+                          "errors" => %{
+                            "dataObjectsErrors" => [
+                              %{
+                                "index" => _,
+                                "errors" => %{
+                                  "data" => data_error_1
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    %{
+                      "experienceId" => ^id2,
+                      "errors" => [
+                        %{
+                          "clientId" => "c",
+                          "experienceId" => ^id2,
+                          "errors" => %{
+                            "dataObjectsErrors" => [
+                              %{
+                                "index" => _,
+                                "errors" => %{
+                                  "data" => data_error_2
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.create_entries(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(data_error_1)
+      assert is_binary(data_error_2)
+    end
+
+    # @tag :skip
+    test "client IDs must be unique" do
+      user = RegFactory.insert()
+
+      experience1 =
+        ExperienceFactory.insert(
+          %{user_id: user.id},
+          ["integer"]
+        )
+
+      id1 = Resolver.convert_to_global_id(experience1.id, :experience1)
+
+      variables = %{
+        "input" =>
+          [
+            Factory.params(experience1, client_id: "a"),
+            Factory.params(experience1, client_id: "a")
+          ]
+          |> Enum.map(&Factory.stringify/1)
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createEntries1" => [
+                    %{
+                      "experienceId" => ^id1,
+                      "entries" => [
+                        %{
+                          "id" => _,
+                          "clientId" => "a",
+                          "experienceId" => ^id1
+                        }
+                      ],
+                      "errors" => [
+                        %{
+                          "clientId" => "a",
+                          "experienceId" => ^id1,
+                          "errors" => %{
+                            "clientId" => client_id_error
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.create_entries(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(client_id_error)
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

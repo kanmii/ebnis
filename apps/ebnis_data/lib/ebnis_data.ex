@@ -499,14 +499,11 @@ defmodule EbnisData do
   ################################ START ENTRY #############################
 
   defdelegate create_entry1(attrs), to: EntryApi
-
   defdelegate list_entries1(), to: EntryApi
+  defdelegate create_entries1(attrs), to: EntryApi
 
-  defdelegate get_paginated_entries_1(
-                experiences_ids_pagination_args_tuples,
-                repo_opts
-              ),
-              to: EntryApi
+  defdelegate get_paginated_entries_1(experiences_ids_pagination_args_tuples, repo_opts),
+    to: EntryApi
 
   ################################ END ENTRY #############################
 
