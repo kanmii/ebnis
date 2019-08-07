@@ -37,8 +37,16 @@ defmodule EbnisData.EntryApi do
         }
 
   @entry_multi_key "e"
+
   @create_entry_catch_all_error "an error occurred: unable to create entry"
-  @create_entry_exception_header "Exception thrown while creating entry:\n\t"
+
+  @create_entry_exception_header "\nCreate entry exception:\nparams:\n\t"
+
+  @delete_entry_exception_header "\nDelete entry exception ID: "
+
+  @stacktrace "\n\n----------STACKTRACE---------------\n\n"
+
+  @error_not_found {:error, "entry not found"}
 
   def create_entry(%{} = attrs) do
     %Entry{}
@@ -49,6 +57,7 @@ defmodule EbnisData.EntryApi do
       Logger.error(fn ->
         [
           @create_entry_exception_header,
+          inspect(attrs),
           :error
           |> Exception.format(error, __STACKTRACE__)
           |> Ebnis.prettify_with_new_line()
@@ -579,5 +588,32 @@ defmodule EbnisData.EntryApi do
         )
       end
     )
+  end
+
+  def delete_entry1(id) do
+    Entry1
+    |> where([e], e.id == ^id)
+    |> Repo.all()
+    |> case do
+      [] ->
+        @error_not_found
+
+      [entry] ->
+        Repo.delete(entry)
+    end
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @delete_entry_exception_header,
+          inspect(id),
+          @stacktrace,
+          :error
+          |> Exception.format(error, __STACKTRACE__)
+          |> Ebnis.prettify_with_new_line()
+        ]
+      end)
+
+      @error_not_found
   end
 end

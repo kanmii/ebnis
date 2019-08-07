@@ -830,5 +830,93 @@ defmodule EbnisData.Schema.Entry1Test do
     end
   end
 
+  describe "delete entry" do
+    test "fails: unauthorized" do
+      variables = %{"id" => 0}
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.delete(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    test "fails: ID is not global" do
+      variables = %{"id" => 0}
+
+      log_message =
+        capture_log(fn ->
+          assert {:ok,
+                  %{
+                    errors: [
+                      %{
+                        message: _
+                      }
+                    ]
+                  }} =
+                   Absinthe.run(
+                     Query.delete(),
+                     Schema,
+                     variables: variables,
+                     context: context(%{id: 0})
+                   )
+        end)
+
+      assert log_message =~ "STACK"
+    end
+
+    test "fails: entry not found" do
+      variables = %{"id" => Resolver.convert_to_global_id(0, :entry1)}
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.delete(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: 0})
+               )
+    end
+
+    test "succeeds" do
+      user = RegFactory.insert()
+      experience = ExperienceFactory.insert(%{user_id: user.id})
+      entry = Factory.insert(%{}, experience)
+      id = Resolver.convert_to_global_id(entry.id, :entry1)
+
+      variables = %{"id" => id}
+
+      assert {:ok,
+              %{
+                data: %{
+                  "deleteEntry1" => %{
+                    "id" => ^id,
+                    "dataObjects" => _
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.delete(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

@@ -145,4 +145,14 @@ defmodule EbnisData.Resolver.Entry1 do
 
     {Enum.reverse(entries), Enum.reverse(ids)}
   end
+
+  def delete(%{id: id}, %{context: %{current_user: %{id: _}}}) do
+    id
+    |> Resolver.convert_from_global_id(:entry1)
+    |> EbnisData.delete_entry1()
+  end
+
+  def delete(_, _) do
+    Resolver.unauthorized()
+  end
 end

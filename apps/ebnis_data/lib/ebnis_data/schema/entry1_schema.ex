@@ -272,6 +272,15 @@ defmodule EbnisData.Schema.Entry1 do
 
       resolve(&EntryResolver.create_entries/2)
     end
+
+    @desc ~S"""
+      Delete an entry
+    """
+    field :delete_entry1, :entry1 do
+      arg(:id, non_null(:id))
+
+      resolve(&EntryResolver.delete/2)
+    end
   end
 
   ################### END MUTATIONS #########################################
