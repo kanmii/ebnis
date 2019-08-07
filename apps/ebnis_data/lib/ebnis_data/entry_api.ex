@@ -58,34 +58,35 @@ defmodule EbnisData.EntryApi do
       :error
   end
 
-  defp validate_experience(data_definitions, data_list) do
-    data_definitions_id_map =
+  defp validate_data_objects_with_definitions(data_definitions, data_list) do
+    {definitions_ids_map, all_definitions_ids} =
       data_definitions
-      |> Enum.reduce(%{}, &Map.put(&2, &1.id, &1.type))
+      |> Enum.reduce({%{}, []}, fn definition, {map, ids} ->
+        {Map.put(map, definition.id, definition.type), [definition.id | ids]}
+      end)
 
-    {status, result, _} =
+    {status, result, seen} =
       data_list
-      |> Enum.reduce({:ok, [], []}, fn data_object, {status, acc, seen} ->
-        changeset = EntryData.changeset(%EntryData{}, data_object)
+      |> Enum.reduce({:ok, [], %{}}, fn data_object, {status, acc, seen} ->
         field_definition_id = data_object.field_definition_id
-        definition_type = data_definitions_id_map[field_definition_id]
+        definition_type = definitions_ids_map[field_definition_id]
         [data_type] = Map.keys(data_object.data)
 
         cond do
           definition_type == nil ->
             changeset =
-              changeset
-              |> Changeset.add_error(
+              add_error_make_fake_data_object_changeset(
+                data_object,
                 :field_definition,
                 "does not exist"
               )
 
             {:error, [changeset | acc], seen}
 
-          Enum.member?(seen, field_definition_id) ->
+          seen[field_definition_id] == true ->
             changeset =
-              changeset
-              |> Changeset.add_error(
+              add_error_make_fake_data_object_changeset(
+                data_object,
                 :field_definition_id,
                 "has already been taken"
               )
@@ -93,9 +94,11 @@ defmodule EbnisData.EntryApi do
             {:error, [changeset | acc], seen}
 
           data_type != definition_type ->
+            seen = Map.put(seen, field_definition_id, true)
+
             changeset =
-              changeset
-              |> Changeset.add_error(
+              add_error_make_fake_data_object_changeset(
+                data_object,
                 :data,
                 "has invalid data type: '#{data_type}' instead of '#{definition_type}'"
               )
@@ -103,15 +106,50 @@ defmodule EbnisData.EntryApi do
             {:error, [changeset | acc], seen}
 
           true ->
-            seen = [field_definition_id | seen]
+            seen = Map.put(seen, field_definition_id, true)
+            changeset = EntryData.changeset(%EntryData{}, data_object)
             {status, [changeset | acc], seen}
         end
       end)
 
-    {status, Enum.reverse(result)}
+    result = Enum.reverse(result)
+
+    all_definitions_ids
+    |> Enum.reduce([], fn definition_id, acc ->
+      case seen[definition_id] do
+        nil ->
+          changeset =
+            add_error_make_fake_data_object_changeset(
+              %{
+                field_definition_id: definition_id
+              },
+              :field_definition_id,
+              "data definition ID #{definition_id} is missing"
+            )
+
+          [changeset | acc]
+
+        _ ->
+          acc
+      end
+    end)
+    |> case do
+      [] ->
+        {status, result}
+
+      missing_definitions_errors ->
+        {:error, Enum.concat(result, missing_definitions_errors)}
+    end
   end
 
-  @doc false
+  defp add_error_make_fake_data_object_changeset(object, field, error) do
+    %{
+      changes: object,
+      errors: [{field, {error, []}}],
+      valid?: false
+    }
+  end
+
   defp create_entry_multi(_, _, attrs) do
     %Entry1{}
     |> Entry1.changeset(attrs)
@@ -160,7 +198,7 @@ defmodule EbnisData.EntryApi do
         {:error, fake_changeset}
 
       experience ->
-        case validate_experience(
+        case validate_data_objects_with_definitions(
                experience.field_definitions,
                attrs.entry_data_list
              ) do

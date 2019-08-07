@@ -783,7 +783,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
       assert is_binary(entry_experience_id_error)
     end
 
-    test "fails if entry.data_list.definition_id != experience.data_definitions.client_id" do
+    test "fails: entry.data_objects.definition_id != experience.data_definitions.client_id" do
       user = RegFactory.insert()
       definitions = FieldDefinitionFactory.params(client_id: "b")
 
@@ -801,7 +801,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
         Map.put(
           entry,
           :entry_data_list,
-          # see we switched field_definition_id from "b" to "d"
+          # see: we switched field_definition_id from "b" to "d"
           [Map.put(entry_data, :field_definition_id, "d")]
         )
 

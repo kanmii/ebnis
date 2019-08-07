@@ -10,6 +10,7 @@ defmodule EbnisData.Schema.Entry1Test do
   alias EbnisData.Query.Entry1, as: Query
   alias EbnisData.Resolver
   alias EbnisData.Resolver.Entry1, as: Entry1Resolver
+  alias EbnisData.Factory.FieldDefinition, as: FieldDefinitionFactory
 
   @iso_extended_format "{ISO:Extended:Z}"
 
@@ -63,7 +64,7 @@ defmodule EbnisData.Schema.Entry1Test do
     end
 
     # @tag :skip
-    test "fails if experience id does not exist" do
+    test "fails: experience id does not exist" do
       user = RegFactory.insert()
 
       params = %{
@@ -102,7 +103,7 @@ defmodule EbnisData.Schema.Entry1Test do
     end
 
     # @tag :skip
-    test "fails if creator of entry is not owner of experience" do
+    test "fails: creator of entry is not owner of experience" do
       user = RegFactory.insert()
       experience = ExperienceFactory.insert(user_id: user.id)
 
@@ -137,7 +138,7 @@ defmodule EbnisData.Schema.Entry1Test do
     end
 
     # @tag :skip
-    test "fails if field definition does not exist" do
+    test "fails: field definition does not exist" do
       user = RegFactory.insert()
       experience = ExperienceFactory.insert(user_id: user.id)
       params = Factory.params(experience)
@@ -182,7 +183,7 @@ defmodule EbnisData.Schema.Entry1Test do
     end
 
     # @tag :skip
-    test "fails if field definition ID not unique" do
+    test "fails: field definition ID not unique" do
       user = RegFactory.insert()
       experience = ExperienceFactory.insert(user_id: user.id)
       params = Factory.params(experience)
@@ -229,7 +230,7 @@ defmodule EbnisData.Schema.Entry1Test do
     end
 
     # @tag :skip
-    test "fails if entry_data.data.type != field_definition.type" do
+    test "fails: entry_data.data.type != field_definition.type" do
       user = RegFactory.insert()
 
       experience =
@@ -348,7 +349,7 @@ defmodule EbnisData.Schema.Entry1Test do
     end
 
     # @tag :skip
-    test "fails if no user context" do
+    test "fails: no user context" do
       params = %{
         experience_id: "0",
         entry_data_list: [
@@ -425,7 +426,7 @@ defmodule EbnisData.Schema.Entry1Test do
     end
 
     # @tag :skip
-    test "fails if entry_data.data can not be cast" do
+    test "fails: entry_data.data can not be cast" do
       user = RegFactory.insert()
 
       experience =
@@ -510,6 +511,53 @@ defmodule EbnisData.Schema.Entry1Test do
         end)
 
       assert log =~ "STACK"
+    end
+
+    # @tag :skip
+    test "fails: data objects must contain all definitions" do
+      user = RegFactory.insert()
+
+      experience =
+        ExperienceFactory.insert(%{
+          user_id: user.id,
+          field_definitions: FieldDefinitionFactory.params_list(2)
+        })
+
+      params = Factory.params(experience)
+
+      # use only one data object
+      params = update_in(params.entry_data_list, &[&1 |> hd()])
+
+      variables = %{
+        "input" => Factory.stringify(params)
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createEntry1" => %{
+                    "entry" => nil,
+                    "errors" => %{
+                      "entryDataListErrors" => [
+                        %{
+                          "index" => 1,
+                          "errors" => %{
+                            "fieldDefinitionId" => fieldDefinitionId
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.create(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(fieldDefinitionId)
     end
   end
 

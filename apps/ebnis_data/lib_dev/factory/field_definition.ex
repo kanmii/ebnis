@@ -25,7 +25,7 @@ defmodule EbnisData.Factory.FieldDefinition do
   end
 
   defp name do
-    Enum.random(["F", "f"]) <> "ield " <> Sequence.next("")
+    Enum.random(["F", "f"]) <> Sequence.next("")
   end
 
   def stringify(field) do

@@ -6,7 +6,6 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.Repo
   alias EbnisData.Experience1
   alias Ecto.Changeset
-  alias EbnisData.Entry1
 
   def list_experiences1 do
     query_with_field_definitions()
