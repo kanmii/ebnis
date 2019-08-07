@@ -211,7 +211,7 @@ defmodule EbnisData.ExperienceApi do
          {created_entries, with_errors}
        ) do
     with {:ok, entry} <-
-           update_entry_data_lists_with_definition_ids(
+           update_data_objects_with_definition_ids(
              entry,
              definitions_map
            ),
@@ -234,12 +234,12 @@ defmodule EbnisData.ExperienceApi do
     )
   end
 
-  defp update_entry_data_lists_with_definition_ids(entry, definitions_map) do
+  defp update_data_objects_with_definition_ids(entry, definitions_map) do
     Enum.reduce(
-      entry.entry_data_list,
+      entry.data_objects,
       {:ok, [], []},
       fn object, acc ->
-        definition_client_id = object.data_definition_id
+        definition_client_id = object.definition_id
 
         case definitions_map[definition_client_id] do
           nil ->
@@ -247,18 +247,18 @@ defmodule EbnisData.ExperienceApi do
               acc,
               object,
               [
-                data_definition_id:
+                definition_id:
                   "data definition client ID '#{definition_client_id}' does not exist"
               ],
               false
             )
 
-          data_definition_id ->
+          definition_id ->
             changes =
               Map.put(
                 object,
-                :data_definition_id,
-                data_definition_id
+                :definition_id,
+                definition_id
               )
 
             map_fake_entry_data_object_changeset(acc, changes, [], true)
@@ -267,13 +267,13 @@ defmodule EbnisData.ExperienceApi do
     )
     |> case do
       {:ok, valids, _} ->
-        {:ok, %{entry | entry_data_list: Enum.reverse(valids)}}
+        {:ok, %{entry | data_objects: Enum.reverse(valids)}}
 
       {:error, _, changesets} ->
         {
           :error,
           %{
-            changes: Map.put(entry, :entry_data_list, Enum.reverse(changesets)),
+            changes: Map.put(entry, :data_objects, Enum.reverse(changesets)),
             errors: []
           }
         }

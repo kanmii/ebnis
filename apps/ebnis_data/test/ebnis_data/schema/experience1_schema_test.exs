@@ -69,7 +69,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "fails if title (case insensitive) not unique for user" do
+    test "fails: title (case insensitive) not unique for user" do
       user = RegFactory.insert()
       Factory.insert(title: "Good experience", user_id: user.id)
 
@@ -103,7 +103,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "fails if data definition name (case insensitive) not unique for experience" do
+    test "fails: data definition name (case insensitive) not unique for experience" do
       user = RegFactory.insert()
 
       attrs = %{
@@ -150,7 +150,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "fails if data definition type does not exist" do
+    test "fails: data definition type does not exist" do
       user = RegFactory.insert()
 
       attrs = %{
@@ -281,7 +281,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "fails if experience does not exist" do
+    test "fails: experience does not exist" do
       user = RegFactory.insert()
 
       variables = %{
@@ -292,7 +292,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
               %{
                 errors: [
                   %{
-                    message: "Experience definition not found"
+                    message: _
                   }
                 ]
               }} =
@@ -305,7 +305,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "fails if global experience id invalid" do
+    test "fails: global experience id invalid" do
       user = RegFactory.insert()
 
       variables = %{
@@ -343,7 +343,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
         "id" => Resolver.convert_to_global_id(id, :experience1)
       }
 
-      another_user = RegFactory.insert()
+      bogus_user = %{id: 0}
 
       assert {:ok,
               %{
@@ -357,7 +357,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                  Query.get(),
                  Schema,
                  variables: variables,
-                 context: context(another_user)
+                 context: context(bogus_user)
                )
     end
   end
@@ -369,7 +369,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                %{
                  errors: [
                    %{
-                     message: "Unauthorized"
+                     message: _
                    }
                  ]
                }
@@ -444,7 +444,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "returns [] if no experience exists" do
+    test "returns []: no experience exists" do
       user = RegFactory.insert()
 
       variables = %{
@@ -521,7 +521,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
 
   describe "save offline experience" do
     # @tag :skip
-    test "fails if no user context" do
+    test "fails: no user context" do
       variables = %{
         "input" => [
           Factory.params()
@@ -533,7 +533,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
               %{
                 errors: [
                   %{
-                    message: "Unauthorized"
+                    message: _
                   }
                 ]
               }} =
@@ -545,7 +545,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "fails if user does not exist" do
+    test "fails: user does not exist" do
       bogus_user = %{id: 0}
 
       variables = %{
@@ -660,7 +660,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "fails if client id not unique for user" do
+    test "fails: client id not unique for user" do
       user = RegFactory.insert()
       Factory.insert(client_id: "a", user_id: user.id)
 
@@ -706,7 +706,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "fails if entry.experience_id != experience.client_id" do
+    test "fails: entry.experience_id != experience.client_id" do
       user = RegFactory.insert()
 
       data_definitions =
@@ -727,7 +727,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
           {map, 1} ->
             %{
               map
-              | # here we have changed the experience_id != params.client_id
+              | # here we have changed: experience_id != params.client_id
                 experience_id: "x"
             }
             |> Map.put(:client_id, 1)
@@ -793,14 +793,14 @@ defmodule EbnisData.Schema.ExperienceTest1 do
 
       entry = Entry1Factory.params(params, %{client_id: "c"})
 
-      [entry_data] = entry.entry_data_list
+      [entry_data] = entry.data_objects
 
       entry =
         Map.put(
           entry,
-          :entry_data_list,
-          # see: we switched field_definition_id from "b" to "d"
-          [Map.put(entry_data, :field_definition_id, "d")]
+          :data_objects,
+          # see: we switched definition_id from "b" to "d"
+          [Map.put(entry_data, :definition_id, "d")]
         )
 
       variables = %{
@@ -832,7 +832,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                               %{
                                 "index" => _,
                                 "errors" => %{
-                                  "dataDefinitionId" => field_definition_id_error
+                                  "definitionId" => definition_id_error
                                 }
                               }
                             ]
@@ -851,7 +851,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                  context: context(user)
                )
 
-      assert is_binary(field_definition_id_error)
+      assert is_binary(definition_id_error)
     end
   end
 
@@ -863,7 +863,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
               %{
                 errors: [
                   %{
-                    message: "Unauthorized"
+                    message: _
                   }
                 ]
               }} =

@@ -7,7 +7,7 @@ defmodule EbnisData.Experience do
   alias EbnisData.User
   alias EbnisData.FieldDef
   alias EbnisData.Entry
-  alias EbnisData.FieldDefinition
+  alias EbnisData.DataDefinition
 
   @always_required_fields [:title, :user_id, :field_defs]
 
@@ -20,7 +20,7 @@ defmodule EbnisData.Experience do
     belongs_to(:user, User)
     embeds_many(:field_defs, FieldDef)
     has_many(:entries, Entry, foreign_key: :exp_id)
-    has_many(:field_definitions, FieldDefinition)
+    has_many(:field_definitions, DataDefinition)
 
     timestamps()
   end
