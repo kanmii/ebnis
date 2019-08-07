@@ -12,6 +12,8 @@ defmodule EbnisData.ExperienceApi do
     |> Repo.all()
   end
 
+  @spec get_experience1(id :: integer() | binary(), user_id :: integer() | binary()) ::
+          Experience1.t() | nil
   def get_experience1(id, user_id) do
     %{id: id, user_id: user_id}
     |> query_with_field_definitions()
@@ -298,6 +300,16 @@ defmodule EbnisData.ExperienceApi do
 
       _ ->
         {:ok, [changes | valids], changesets}
+    end
+  end
+
+  def delete_experience1(id, user_id) do
+    case get_experience1(id, user_id) do
+      nil ->
+        :error
+
+      experience ->
+        Repo.delete(experience)
     end
   end
 end

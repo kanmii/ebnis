@@ -5,6 +5,8 @@ defmodule EbnisData.Resolver.Experience1 do
   alias EbnisData.Experience1
   alias EbnisData.Resolver.Entry1, as: Entry1Resolver
 
+  @experience_not_found "Experience not found"
+
   def create_experience(
         %{input: attrs},
         %{context: %{current_user: %{id: id}}}
@@ -214,5 +216,22 @@ defmodule EbnisData.Resolver.Experience1 do
               )
         }
     end
+  end
+
+  def delete_experience(%{id: id}, %{context: %{current_user: user}}) do
+    id
+    |> Resolver.convert_from_global_id(:experience1)
+    |> EbnisData.delete_experience1(user.id)
+    |> case do
+      :error ->
+        {:error, @experience_not_found}
+
+      {:ok, experience} ->
+        {:ok, experience}
+    end
+  end
+
+  def delete_experience(_, _) do
+    Resolver.unauthorized()
   end
 end

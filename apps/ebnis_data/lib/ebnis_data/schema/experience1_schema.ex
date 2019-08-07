@@ -170,6 +170,13 @@ defmodule EbnisData.Schema.Experience1 do
 
       resolve(&Resolver.save_offline_experiences/2)
     end
+
+    @desc "Delete an experience"
+    field :delete_experience1, :experience1 do
+      arg(:id, non_null(:id))
+
+      resolve(&Resolver.delete_experience/2)
+    end
   end
 
   ######################### END MUTATIONS ################################

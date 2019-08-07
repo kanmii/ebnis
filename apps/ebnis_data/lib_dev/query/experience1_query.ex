@@ -148,4 +148,16 @@ defmodule EbnisData.Query.Experience1 do
       #{fragment_create_entry_errors}
     """
   end
+
+  def delete do
+    """
+      mutation DeleteExperience($id: ID!) {
+        deleteExperience1(id: $id) {
+          ...#{@fragment_name}
+        }
+      }
+
+      #{@fragment}
+    """
+  end
 end
