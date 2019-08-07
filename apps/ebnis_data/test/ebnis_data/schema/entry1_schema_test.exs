@@ -915,6 +915,8 @@ defmodule EbnisData.Schema.Entry1Test do
                  variables: variables,
                  context: context(user)
                )
+
+      assert EbnisData.get_entry1(entry.id) == nil
     end
   end
 

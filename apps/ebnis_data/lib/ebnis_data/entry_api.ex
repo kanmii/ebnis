@@ -593,15 +593,25 @@ defmodule EbnisData.EntryApi do
     )
   end
 
-  def delete_entry1(id) do
+  def get_entry1(id) do
     Entry1
     |> where([e], e.id == ^id)
     |> Repo.all()
     |> case do
       [] ->
-        @error_not_found
+        nil
 
       [entry] ->
+        entry
+    end
+  end
+
+  def delete_entry1(id) do
+    case get_entry1(id) do
+      nil ->
+        @error_not_found
+
+      entry ->
         Repo.delete(entry)
     end
   rescue

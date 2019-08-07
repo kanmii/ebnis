@@ -503,6 +503,7 @@ defmodule EbnisData do
   defdelegate create_entries1(attrs), to: EntryApi
   defdelegate delete_entry1(attrs), to: EntryApi
   defdelegate update_data_object(arg), to: EntryApi
+  defdelegate get_entry1(id), to: EntryApi
 
   defdelegate get_paginated_entries_1(experiences_ids_pagination_args_tuples, repo_opts),
     to: EntryApi
