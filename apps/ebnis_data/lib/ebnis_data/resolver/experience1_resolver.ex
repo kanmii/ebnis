@@ -3,6 +3,7 @@ defmodule EbnisData.Resolver.Experience1 do
 
   alias EbnisData.Resolver
   alias EbnisData.Experience1
+  alias EbnisData.Resolver.Entry1, as: Entry1Resolver
 
   def create_experience(
         %{input: attrs},
@@ -23,9 +24,9 @@ defmodule EbnisData.Resolver.Experience1 do
       {:error, changeset} ->
         {
           :ok,
-          changeset.errors
-          |> experience_changeset_to_error_map()
-          |> field_definition_changeset_to_error_map(changeset.changes.field_definitions)
+          %{
+            errors: create_experience_errors_from_changeset(changeset)
+          }
         }
     end
   end
@@ -34,14 +35,15 @@ defmodule EbnisData.Resolver.Experience1 do
     Resolver.unauthorized()
   end
 
-  defp experience_changeset_to_error_map([]) do
-    %{}
-  end
+  defp create_experience_errors_from_changeset(changeset) do
+    case changeset.errors do
+      [] ->
+        %{}
 
-  defp experience_changeset_to_error_map(errors) do
-    %{
-      experience_errors: changeset_errors_to_map(errors)
-    }
+      errors ->
+        changeset_errors_to_map(errors)
+    end
+    |> field_definition_changeset_to_error_map(changeset.changes.field_definitions)
   end
 
   defp field_definition_changeset_to_error_map(errors, changesets) do
@@ -139,5 +141,78 @@ defmodule EbnisData.Resolver.Experience1 do
 
       {:ok, entries_connection}
     end)
+  end
+
+  def save_offline_experiences(
+        %{input: experiences},
+        %{context: %{current_user: %{id: user_id}}}
+      ) do
+    {
+      :ok,
+      experiences
+      |> Enum.with_index()
+      |> Enum.map(&save_offline_experience(&1, user_id))
+    }
+  end
+
+  def save_offline_experiences(_, _) do
+    Resolver.unauthorized()
+  end
+
+  defp save_offline_experience({experience, index}, user_id) do
+    case experience
+         |> convert_entries_experience_ids_from_global()
+         |> Map.put(:user_id, user_id)
+         |> EbnisData.save_offline_experience1() do
+      {:ok, experience, []} ->
+        %{experience: experience}
+
+      {:ok, experience, entries_changesets} ->
+        experience_id =
+          Resolver.convert_to_global_id(
+            experience.id,
+            :experience1
+          )
+
+        errors =
+          Enum.map(
+            entries_changesets,
+            &%{
+              errors: Entry1Resolver.entry_changeset_errors_to_map(&1),
+              experience_id: experience_id,
+              client_id: &1.changes.client_id
+            }
+          )
+
+        %{experience: experience, entries_errors: errors}
+
+      {:error, changeset} ->
+        %{
+          experience_errors: %{
+            index: index,
+            client_id: experience[:client_id] || index,
+            errors: create_experience_errors_from_changeset(changeset)
+          }
+        }
+    end
+  end
+
+  defp convert_entries_experience_ids_from_global(experience) do
+    case experience[:entries] do
+      nil ->
+        experience
+
+      entries ->
+        %{
+          experience
+          | entries:
+              Enum.map(
+                entries,
+                &update_in(&1.experience_id, fn id ->
+                  Resolver.convert_from_global_id(id, :experience1)
+                end)
+              )
+        }
+    end
   end
 end

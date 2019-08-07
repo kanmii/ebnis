@@ -21,32 +21,8 @@ defmodule EbnisData.Resolver.Entry1 do
           }
         }
 
-      {:error, changeset, nil} ->
-        {
-          :ok,
-          %{
-            entry_errors: Resolver.changeset_errors_to_map(changeset.errors)
-          }
-        }
-
-      {:error, nil, changesets} ->
-        {
-          :ok,
-          entry_data_list_changeset_errors_to_map(%{}, changesets)
-        }
-
-      {:error, nil, index, changeset} ->
-        {
-          :ok,
-          %{
-            entry_data_list_errors: [
-              %{
-                index: index,
-                errors: Resolver.changeset_errors_to_map(changeset.errors)
-              }
-            ]
-          }
-        }
+      {:error, changeset} ->
+        {:ok, %{errors: entry_changeset_errors_to_map(changeset)}}
     end
   end
 
@@ -54,10 +30,22 @@ defmodule EbnisData.Resolver.Entry1 do
     Resolver.unauthorized()
   end
 
-  defp entry_data_list_changeset_errors_to_map(
-         accumulated_errors,
-         changesets
-       ) do
+  def entry_changeset_errors_to_map(changeset) do
+    case changeset.errors do
+      [] ->
+        %{}
+
+      errors ->
+        Resolver.changeset_errors_to_map(errors)
+    end
+    |> data_objects_changeset_errors_to_map(changeset.changes.entry_data_list)
+  end
+
+  defp data_objects_changeset_errors_to_map(errors, []) do
+    errors
+  end
+
+  defp data_objects_changeset_errors_to_map(acc_errors, changesets) do
     {errors, _} =
       changesets
       |> Enum.reduce({[], 0}, fn
@@ -77,6 +65,6 @@ defmodule EbnisData.Resolver.Entry1 do
           {acc, index + 1}
       end)
 
-    Map.put(accumulated_errors, :entry_data_list_errors, errors)
+    Map.put(acc_errors, :entry_data_list_errors, errors)
   end
 end

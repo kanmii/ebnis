@@ -85,8 +85,9 @@ defmodule EbnisData.Schema.ExperienceTest1 do
               %{
                 data: %{
                   "createExperience1" => %{
-                    "experienceErrors" => %{
-                      "title" => _
+                    "experience" => nil,
+                    "errors" => %{
+                      "title" => title_error
                     }
                   }
                 }
@@ -97,6 +98,8 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                  variables: variables,
                  context: context(user)
                )
+
+      assert is_binary(title_error)
     end
 
     # @tag :skip
@@ -123,15 +126,18 @@ defmodule EbnisData.Schema.ExperienceTest1 do
               %{
                 data: %{
                   "createExperience1" => %{
-                    "fieldDefinitionsErrors" => [
-                      %{
-                        "index" => 1,
-                        "errors" => %{
-                          "name" => name,
-                          "type" => nil
+                    "experience" => nil,
+                    "errors" => %{
+                      "fieldDefinitionsErrors" => [
+                        %{
+                          "index" => 1,
+                          "errors" => %{
+                            "name" => name,
+                            "type" => nil
+                          }
                         }
-                      }
-                    ]
+                      ]
+                    }
                   }
                 }
               }} =
@@ -168,15 +174,17 @@ defmodule EbnisData.Schema.ExperienceTest1 do
               %{
                 data: %{
                   "createExperience1" => %{
-                    "fieldDefinitionsErrors" => [
-                      %{
-                        "index" => 0,
-                        "errors" => %{
-                          "type" => type,
-                          "name" => nil
+                    "errors" => %{
+                      "fieldDefinitionsErrors" => [
+                        %{
+                          "index" => 0,
+                          "errors" => %{
+                            "type" => type,
+                            "name" => nil
+                          }
                         }
-                      }
-                    ]
+                      ]
+                    }
                   }
                 }
               }} =
@@ -510,6 +518,342 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                  variables: variables,
                  context: context(user)
                )
+    end
+  end
+
+  describe "save offline experience" do
+    # @tag :skip
+    test "fails if no user context" do
+      variables = %{
+        "input" => [
+          Factory.params()
+          |> Factory.stringify()
+        ]
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Unauthorized"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.save_offline_experiences(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    # @tag :skip
+    test "fails if user does not exist" do
+      bogus_user = %{id: 0}
+
+      variables = %{
+        "input" => [
+          Factory.params(client_id: "a")
+          |> Factory.stringify()
+        ]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "saveOfflineExperiences1" => [
+                    %{
+                      "experienceErrors" => %{
+                        "clientId" => "a",
+                        "index" => 0,
+                        "errors" => %{
+                          "user" => user_error
+                        }
+                      }
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.save_offline_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(bogus_user)
+               )
+
+      assert is_binary(user_error)
+    end
+
+    # @tag :skip
+    test "one succeeds and one fails when client id not provided" do
+      user = RegFactory.insert()
+
+      data_definition1 =
+        FieldDefinitionFactory.params_list(2)
+        |> Enum.with_index(1)
+        |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
+
+      experience_params1 =
+        Factory.params(
+          client_id: "a",
+          field_definitions: data_definition1
+        )
+
+      entries_params =
+        Entry1Factory.params_list(2, experience_params1)
+        |> Enum.with_index(1)
+        |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
+
+      experience_params = Factory.params()
+
+      variables = %{
+        "input" => [
+          experience_params1
+          |> Map.put(:entries, entries_params)
+          |> Factory.stringify(),
+          Factory.stringify(experience_params)
+        ]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "saveOfflineExperiences1" => [
+                    %{
+                      "entriesErrors" => nil,
+                      "experience" => %{
+                        "id" => _,
+                        "clientId" => "a",
+                        "fieldDefinitions" => _,
+                        "entries" => %{
+                          "edges" => edges
+                        }
+                      },
+                      "experienceErrors" => nil
+                    },
+                    %{
+                      "entriesErrors" => nil,
+                      "experience" => nil,
+                      "experienceErrors" => %{
+                        "errors" => %{
+                          "clientId" => client_id_error
+                        },
+                        "index" => 1,
+                        "clientId" => "1"
+                      }
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.save_offline_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(client_id_error)
+
+      assert entries_params
+             |> Enum.map(&"#{&1.client_id}")
+             |> Enum.sort() ==
+               edges
+               |> Enum.map(&~s(#{&1["node"]["clientId"]}))
+               |> Enum.sort()
+    end
+
+    # @tag :skip
+    test "fails if client id not unique for user" do
+      user = RegFactory.insert()
+      Factory.insert(client_id: "a", user_id: user.id)
+
+      params =
+        Factory.params(
+          client_id: "a",
+          field_definitions: [
+            FieldDefinitionFactory.params()
+            |> Map.put(:client_id, 1)
+          ]
+        )
+
+      variables = %{
+        "input" => [Factory.stringify(params)]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "saveOfflineExperiences1" => [
+                    %{
+                      "entriesErrors" => nil,
+                      "experience" => nil,
+                      "experienceErrors" => %{
+                        "errors" => %{
+                          "clientId" => client_id_error
+                        },
+                        "index" => 0,
+                        "clientId" => "a"
+                      }
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.save_offline_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(client_id_error)
+    end
+
+    # @tag :skip
+    test "fails if entry.experience_id != experience.client_id" do
+      user = RegFactory.insert()
+
+      data_definitions =
+        FieldDefinitionFactory.params_list(2)
+        |> Enum.with_index(1)
+        |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
+
+      params =
+        Factory.params(
+          client_id: "a",
+          field_definitions: data_definitions
+        )
+
+      entries =
+        Entry1Factory.params_list(2, params)
+        |> Enum.with_index(1)
+        |> Enum.map(fn
+          {map, 1} ->
+            %{
+              map
+              | # here we have changed the experience_id != params.client_id
+                experience_id: "x"
+            }
+            |> Map.put(:client_id, 1)
+
+          {map, 2} ->
+            Map.put(map, :client_id, 2)
+        end)
+
+      variables = %{
+        "input" => [
+          params
+          |> Map.put(:entries, entries)
+          |> Factory.stringify()
+        ]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "saveOfflineExperiences1" => [
+                    %{
+                      "experience" => %{
+                        "id" => experience_id,
+                        "clientId" => "a",
+                        "fieldDefinitions" => _,
+                        "entries" => %{
+                          "edges" => edges
+                        }
+                      },
+                      "entriesErrors" => [
+                        %{
+                          "clientId" => "1",
+                          "errors" => %{
+                            "experienceId" => entry_experience_id_error
+                          },
+                          "experienceId" => entry_error_experience_id
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.save_offline_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert experience_id == entry_error_experience_id
+      assert is_binary(entry_experience_id_error)
+    end
+
+    test "fails if entry.data_list.definition_id != experience.data_definitions.client_id" do
+      user = RegFactory.insert()
+      definitions = FieldDefinitionFactory.params(client_id: "b")
+
+      params =
+        Factory.params(
+          client_id: "a",
+          field_definitions: [definitions]
+        )
+
+      entry = Entry1Factory.params(params, %{client_id: "c"})
+
+      [entry_data] = entry.entry_data_list
+
+      entry =
+        Map.put(
+          entry,
+          :entry_data_list,
+          # see we switched field_definition_id from "b" to "d"
+          [Map.put(entry_data, :field_definition_id, "d")]
+        )
+
+      variables = %{
+        "input" => [
+          params
+          |> Map.put(:entries, [entry])
+          |> Factory.stringify()
+        ]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "saveOfflineExperiences1" => [
+                    %{
+                      "experience" => %{
+                        "id" => _,
+                        "clientId" => "a",
+                        "fieldDefinitions" => _,
+                        "entries" => %{
+                          "edges" => []
+                        }
+                      },
+                      "entriesErrors" => [
+                        %{
+                          "clientId" => "c",
+                          "errors" => %{
+                            "entryDataListErrors" => [
+                              %{
+                                "index" => _,
+                                "errors" => %{
+                                  "fieldDefinitionId" => field_definition_id_error
+                                }
+                              }
+                            ]
+                          },
+                          "experienceId" => _
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.save_offline_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(field_definition_id_error)
     end
   end
 

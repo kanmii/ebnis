@@ -36,6 +36,10 @@ defmodule EbnisData.EntryApi do
           ]
         }
 
+  @entry_multi_key "e"
+  @create_entry_catch_all_error "an error occurred: unable to create entry"
+  @create_entry_exception_header "Exception thrown while creating entry:\n\t"
+
   def create_entry(%{} = attrs) do
     %Entry{}
     |> Entry.changeset_one(attrs)
@@ -44,7 +48,7 @@ defmodule EbnisData.EntryApi do
     error ->
       Logger.error(fn ->
         [
-          "Exception thrown while creating entry:\n\t",
+          @create_entry_exception_header,
           :error
           |> Exception.format(error, __STACKTRACE__)
           |> Ebnis.prettify_with_new_line()
@@ -114,7 +118,7 @@ defmodule EbnisData.EntryApi do
     |> Repo.insert()
   end
 
-  defp create_data_list(%{"entry" => entry}, data_list_changesets) do
+  defp create_data_list(%{@entry_multi_key => entry}, data_list_changesets) do
     entry_id = entry.id
 
     {multi, _} =
@@ -123,7 +127,7 @@ defmodule EbnisData.EntryApi do
         multi =
           Multi.insert(
             multi,
-            "d#{index}",
+            index,
             data_changeset
             |> Changeset.put_change(:entry_id, entry_id),
             returning: true
@@ -135,23 +139,25 @@ defmodule EbnisData.EntryApi do
     multi
   end
 
-  def create_entry1(
-        %{
-          user_id: user_id,
-          experience_id: experience_id
-        } = attrs
-      ) do
+  @spec create_entry1(
+          attrs :: %{
+            experience_id: integer() | binary(),
+            user_id: integer() | binary()
+          }
+        ) ::
+          {:error, Changeset.t()}
+          | {:ok, Entry1.t()}
+  def create_entry1(%{user_id: user_id, experience_id: experience_id} = attrs) do
     attrs = Map.put(attrs, :exp_id, experience_id)
 
     case EbnisData.get_experience1(experience_id, user_id) do
       nil ->
-        {
-          :error,
-          %Entry1{}
-          |> Entry1.changeset(attrs)
-          |> Changeset.add_error(:experience, "does not exist"),
-          nil
+        fake_changeset = %{
+          errors: [experience: {"does not exist", []}],
+          changes: Map.put(attrs, :entry_data_list, [])
         }
+
+        {:error, fake_changeset}
 
       experience ->
         case validate_experience(
@@ -160,41 +166,67 @@ defmodule EbnisData.EntryApi do
              ) do
           {:ok, data_list_changesets} ->
             Multi.new()
-            |> Multi.run("entry", &create_entry_multi(&1, &2, attrs))
+            |> Multi.run(@entry_multi_key, &create_entry_multi(&1, &2, attrs))
             |> Multi.merge(&create_data_list(&1, data_list_changesets))
             |> Repo.transaction()
             |> case do
               {:ok, result} ->
-                {entry, data_list_map} = Map.pop(result, "entry")
+                {:ok, process_create_entry_result(result)}
 
-                data_list =
-                  data_list_map
-                  |> Enum.sort_by(fn {"d" <> index, _} -> index end)
-                  |> Enum.map(fn {_, v} -> v end)
+              {:error, @entry_multi_key, changeset, _rest} ->
+                {:error, put_empty_data_objects_changes(changeset)}
 
-                {:ok, %{entry | entry_data_list: data_list}}
-
-              {:error, "entry", changeset, _rest} ->
-                {:error, changeset, nil}
-
-              {:error, "d" <> index, changeset, _rest} ->
-                {:error, nil, String.to_integer(index), changeset}
+              {:error, index, changeset, _rest} ->
+                {
+                  :error,
+                  data_list_changesets
+                  |> List.replace_at(index, changeset)
+                  |> fake_changeset_with_data_objects(attrs)
+                }
             end
 
           {:error, data_list_changesets} ->
-            {:error, nil, data_list_changesets}
+            {
+              :error,
+              fake_changeset_with_data_objects(data_list_changesets, attrs)
+            }
         end
     end
   rescue
     error ->
       Logger.error(fn ->
         [
-          "Exception thrown while creating entry:\n\t",
+          @create_entry_exception_header,
           :error
           |> Exception.format(error, __STACKTRACE__)
           |> Ebnis.prettify_with_new_line()
         ]
       end)
+
+      fake_changeset = %{errors: [entry: {@create_entry_catch_all_error, []}]}
+      {:error, fake_changeset}
+  end
+
+  defp process_create_entry_result(result) do
+    {entry, data_list_map} = Map.pop(result, @entry_multi_key)
+
+    data_list =
+      data_list_map
+      |> Enum.sort_by(fn {index, _} -> index end)
+      |> Enum.map(fn {_, v} -> v end)
+
+    %{entry | entry_data_list: data_list}
+  end
+
+  defp fake_changeset_with_data_objects(changesets, attrs) do
+    %{
+      errors: [],
+      changes: Map.put(attrs, :entry_data_list, changesets)
+    }
+  end
+
+  defp put_empty_data_objects_changes(changeset) do
+    Changeset.put_change(changeset, :entry_data_list, [])
   end
 
   def list_entries1 do

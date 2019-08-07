@@ -46,15 +46,21 @@ defmodule EbnisData.Schema.Experience1 do
   end
 
   @desc """
-    Experience field errors during creation
+    Error object returned if data definition refuses to save.
   """
-  object :experience_errors do
-    field(:title, :string)
-  end
-
   object :field_definition_error do
     field(:name, :string)
     field(:type, :string)
+  end
+
+  @desc """
+    Experience field errors during creation
+  """
+  object :create_experience_errors do
+    field(:title, :string)
+    field(:field_definitions_errors, list_of(:field_definition_errors))
+    field(:user, :string)
+    field(:client_id, :string)
   end
 
   object :field_definition_errors do
@@ -67,8 +73,45 @@ defmodule EbnisData.Schema.Experience1 do
   """
   object :create_experience_return_value do
     field(:experience, :experience1)
-    field(:experience_errors, :experience_errors)
-    field(:field_definitions_errors, list_of(:field_definition_errors))
+    field(:errors, :create_experience_errors)
+  end
+
+  object :create_offline_experience_errors do
+    @desc ~S"""
+      The error object representing the insert failure reasons
+    """
+    field(:errors, non_null(:create_experience_errors))
+
+    @desc ~S"""
+      The index of the failing experience in the list of experiences input
+    """
+    field(:index, non_null(:integer))
+
+    @desc ~S"""
+      The client ID of the failing experience. As user may not have provided a
+      client ID, this field is nullable and in that case, the index field will
+      be used to identify this error
+    """
+    field(:client_id, non_null(:id))
+  end
+
+  object :offline_experience1 do
+    @desc ~S"""
+      The experience which was successfully inserted
+      - will be null if experience fails to insert
+    """
+    field(:experience, :experience1)
+
+    @desc ~S"""
+      If the experience fails to insert, then this is the error object
+      returned
+    """
+    field(:experience_errors, :create_offline_experience_errors)
+
+    @desc ~S"""
+      A list of error objects denoting entries which fail to insert
+    """
+    field(:entries_errors, list_of(:create_entries_errors))
   end
 
   ######################### END REGULAR OBJECTS ###########################
@@ -103,7 +146,7 @@ defmodule EbnisData.Schema.Experience1 do
       One may define an experience and create associated entries simultaneously
       if for instance on the client while backend is offline.
     """
-    field(:entries, :create_entry_input |> list_of())
+    field(:entries, :create_entry_input1 |> list_of())
   end
 
   ######################### END INPUT OBJECTS ################################
@@ -119,6 +162,13 @@ defmodule EbnisData.Schema.Experience1 do
       arg(:input, non_null(:create_experience_input1))
 
       resolve(&Resolver.create_experience/2)
+    end
+
+    @desc "Save many experiences created offline"
+    field :save_offline_experiences1, list_of(:offline_experience1) do
+      arg(:input, :create_experience_input1 |> list_of() |> non_null())
+
+      resolve(&Resolver.save_offline_experiences/2)
     end
   end
 

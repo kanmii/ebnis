@@ -85,7 +85,7 @@ defmodule EbnisData.Schema.Entry1Test do
                 data: %{
                   "createEntry1" => %{
                     "entry" => nil,
-                    "entryErrors" => %{
+                    "errors" => %{
                       "experience" => experienceError
                     }
                   }
@@ -120,7 +120,7 @@ defmodule EbnisData.Schema.Entry1Test do
                 data: %{
                   "createEntry1" => %{
                     "entry" => nil,
-                    "entryErrors" => %{
+                    "errors" => %{
                       "experience" => experienceError
                     }
                   }
@@ -158,14 +158,16 @@ defmodule EbnisData.Schema.Entry1Test do
                 data: %{
                   "createEntry1" => %{
                     "entry" => nil,
-                    "entryDataListErrors" => [
-                      %{
-                        "index" => 0,
-                        "errors" => %{
-                          "fieldDefinition" => fieldDefinitionError
+                    "errors" => %{
+                      "entryDataListErrors" => [
+                        %{
+                          "index" => 0,
+                          "errors" => %{
+                            "fieldDefinition" => fieldDefinitionError
+                          }
                         }
-                      }
-                    ]
+                      ]
+                    }
                   }
                 }
               }} =
@@ -203,14 +205,16 @@ defmodule EbnisData.Schema.Entry1Test do
                 data: %{
                   "createEntry1" => %{
                     "entry" => nil,
-                    "entryDataListErrors" => [
-                      %{
-                        "index" => ^index_of_duplicate_entry_data,
-                        "errors" => %{
-                          "fieldDefinitionId" => fieldDefinitionId
+                    "errors" => %{
+                      "entryDataListErrors" => [
+                        %{
+                          "index" => ^index_of_duplicate_entry_data,
+                          "errors" => %{
+                            "fieldDefinitionId" => fieldDefinitionId
+                          }
                         }
-                      }
-                    ]
+                      ]
+                    }
                   }
                 }
               }} =
@@ -254,14 +258,16 @@ defmodule EbnisData.Schema.Entry1Test do
                 data: %{
                   "createEntry1" => %{
                     "entry" => nil,
-                    "entryDataListErrors" => [
-                      %{
-                        "index" => 0,
-                        "errors" => %{
-                          "data" => data
+                    "errors" => %{
+                      "entryDataListErrors" => [
+                        %{
+                          "index" => 0,
+                          "errors" => %{
+                            "data" => data
+                          }
                         }
-                      }
-                    ]
+                      ]
+                    }
                   }
                 }
               }} =
@@ -325,7 +331,7 @@ defmodule EbnisData.Schema.Entry1Test do
               %{
                 data: %{
                   "createEntry1" => %{
-                    "entryErrors" => %{
+                    "errors" => %{
                       "clientId" => client_id_error
                     }
                   }
@@ -451,14 +457,16 @@ defmodule EbnisData.Schema.Entry1Test do
               %{
                 data: %{
                   "createEntry1" => %{
-                    "entryDataListErrors" => [
-                      %{
-                        "index" => 0,
-                        "errors" => %{
-                          "data" => data_errors
+                    "errors" => %{
+                      "entryDataListErrors" => [
+                        %{
+                          "index" => 0,
+                          "errors" => %{
+                            "data" => data_errors
+                          }
                         }
-                      }
-                    ]
+                      ]
+                    }
                   }
                 }
               }} =
@@ -479,7 +487,7 @@ defmodule EbnisData.Schema.Entry1Test do
           assert {
                    :ok,
                    %{
-                     entry_errors: %{
+                     errors: %{
                        experience: experience
                      }
                    }
@@ -492,6 +500,7 @@ defmodule EbnisData.Schema.Entry1Test do
                            data: %{"integer" => 1}
                          }
                        ],
+                       # This will cause an exception. DB ID can not be nil
                        experience_id: nil
                      }
                    }

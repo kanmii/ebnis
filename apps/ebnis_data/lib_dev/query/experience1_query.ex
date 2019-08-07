@@ -1,4 +1,6 @@
 defmodule EbnisData.Query.Experience1 do
+  alias EbnisData.Query.Entry1
+
   @fragment_name "ExperienceFragment"
 
   @field_definition_fragment_name "FieldDefinitionFragment"
@@ -24,6 +26,7 @@ defmodule EbnisData.Query.Experience1 do
         edges {
           node {
             id
+            clientId
           }
         }
 
@@ -40,6 +43,24 @@ defmodule EbnisData.Query.Experience1 do
     #{@field_definition_fragment}
   """
 
+  @fragment_create_experience_errors_name "CreateExperienceErrorFragment"
+
+  @fragment_create_experience_errors """
+    fragment #{@fragment_create_experience_errors_name}
+      on CreateExperienceErrors {
+        title
+        user
+        clientId
+        fieldDefinitionsErrors {
+          index
+          errors {
+            name
+            type
+          }
+        }
+      }
+  """
+
   def create do
     """
       mutation CreateExperience($input: CreateExperienceInput1!) {
@@ -48,21 +69,14 @@ defmodule EbnisData.Query.Experience1 do
             ...#{@fragment_name}
           }
 
-          experienceErrors {
-            title
-          }
-
-          fieldDefinitionsErrors {
-            index
-            errors {
-              name
-              type
-            }
+          errors {
+            ...#{@fragment_create_experience_errors_name}
           }
         }
       }
 
       #{@fragment}
+      #{@fragment_create_experience_errors}
     """
   end
 
@@ -97,6 +111,41 @@ defmodule EbnisData.Query.Experience1 do
       }
 
       #{@fragment}
+    """
+  end
+
+  def save_offline_experiences do
+    {fragment_create_entry_errors, fragment_create_entry_errors_name} =
+      Entry1.create_entry_errors()
+
+    """
+      mutation SaveOfflineExperiences($input: [CreateExperienceInput1!]!) {
+        saveOfflineExperiences1(input: $input) {
+          experience {
+            ...#{@fragment_name}
+          }
+
+          experienceErrors {
+            index
+            clientId
+            errors {
+              ...#{@fragment_create_experience_errors_name}
+            }
+          }
+
+          entriesErrors {
+            experienceId
+            clientId
+            errors {
+              ...#{fragment_create_entry_errors_name}
+            }
+          }
+        }
+      }
+
+      #{@fragment}
+      #{@fragment_create_experience_errors}
+      #{fragment_create_entry_errors}
     """
   end
 end

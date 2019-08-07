@@ -2,7 +2,7 @@ defmodule EbnisData.Factory.Experience1 do
   alias EbnisData.Factory
   alias EbnisData.Factory.FieldDefinition, as: FieldDefinitionFactory
   alias EbnisData.Experience1
-  alias EbnisData.Factory.Entry, as: EntryFactory
+  alias EbnisData.Factory.Entry1, as: Entry1Factory
 
   @count 1..5
   @simple_attrs [:user_id, :title, :description, :client_id, :id]
@@ -74,7 +74,7 @@ defmodule EbnisData.Factory.Experience1 do
         {Factory.to_camel_key(k), Timex.format!(v, @iso_extended_format)}
 
       {:entries, v} ->
-        {"entries", Enum.map(v, &EntryFactory.stringify/1)}
+        {"entries", Enum.map(v, &Entry1Factory.stringify/1)}
     end)
     |> Enum.into(%{})
   end

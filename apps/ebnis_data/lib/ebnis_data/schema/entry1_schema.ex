@@ -66,14 +66,6 @@ defmodule EbnisData.Schema.Entry1 do
   end
 
   @desc ~S"""
-    Create entry error
-  """
-  object :create_entry_errors do
-    field(:experience, :string)
-    field(:client_id, :string)
-  end
-
-  @desc ~S"""
     Entry data list error (errors field) while creating an entry
   """
   object :entry_data_list_error do
@@ -95,8 +87,53 @@ defmodule EbnisData.Schema.Entry1 do
   """
   object :entry_creation_return_value do
     field(:entry, :entry1)
-    field(:entry_errors, :create_entry_errors)
+    field(:errors, :create_entry_errors)
+  end
+
+  object :create_entry_errors do
+    @desc ~S"""
+      Did we fail because there are errors in the data list object?
+    """
     field(:entry_data_list_errors, list_of(:entry_data_list_errors))
+
+    @desc ~S"""
+      Did we fail because, say, we did could not fetch the experience
+    """
+    field(:experience, :string)
+
+    @desc ~S"""
+      While saving an offline entry, its experience ID must be same as
+      experience.clientId if saving entry via offline experience
+    """
+    field(:experience_id, :string)
+
+    @desc ~S"""
+      May be because client ID is not unique for experience
+    """
+    field(:client_id, :string)
+
+    @desc ~S"""
+      A catch-all field for when we are unable to create an entry
+    """
+    field(:entry, :string)
+  end
+
+  @desc ~S"""
+    Error object returned if we are creating multiple entries simultaneously.
+    This will be returned by a single entry which fails to save.
+  """
+  object :create_entries_errors do
+    @desc ~S"""
+      The client ID of the entry which fails to save
+    """
+    field(:client_id, non_null(:string))
+
+    @desc ~S"""
+      The experience ID of the entry which fails to save
+    """
+    field(:experience_id, non_null(:string))
+
+    field(:errors, :create_entry_errors)
   end
 
   ############################# END OBJECTS ##################################

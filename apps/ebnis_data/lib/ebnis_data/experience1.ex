@@ -43,5 +43,6 @@ defmodule EbnisData.Experience1 do
     |> unique_constraint(:title, name: :experiences_user_id_title_index)
     |> unique_constraint(:client_id, name: :experiences_client_id_user_id_index)
     |> validate_length(:title, min: 2)
+    |> assoc_constraint(:user)
   end
 end
