@@ -45,10 +45,10 @@ defmodule EbnisData.Resolver.Experience1 do
       errors ->
         changeset_errors_to_map(errors)
     end
-    |> field_definition_changeset_to_error_map(changeset.changes.field_definitions)
+    |> data_definition_changeset_to_error_map(changeset.changes.data_definitions)
   end
 
-  defp field_definition_changeset_to_error_map(errors, changesets) do
+  defp data_definition_changeset_to_error_map(errors, changesets) do
     changesets
     |> Enum.reduce(
       {[], 0},
@@ -69,8 +69,8 @@ defmodule EbnisData.Resolver.Experience1 do
       {[], _} ->
         errors
 
-      {field_definitions_errors, _} ->
-        Map.put(errors, :field_definitions_errors, field_definitions_errors)
+      {data_definitions_errors, _} ->
+        Map.put(errors, :data_definitions_errors, data_definitions_errors)
     end
   end
 

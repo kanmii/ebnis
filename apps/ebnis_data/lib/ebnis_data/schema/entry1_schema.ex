@@ -10,10 +10,10 @@ defmodule EbnisData.Schema.Entry1 do
   @desc """
       An entry data object
   """
-  object :entry_data do
-    field(:id, :id)
+  object :data_object do
+    field(:id, non_null(:id))
     field(:data, non_null(:entry_field_json))
-    field(:field_definition_id, :id)
+    field(:definition_id, non_null(:id))
   end
 
   @desc """
@@ -35,9 +35,9 @@ defmodule EbnisData.Schema.Entry1 do
 
     @desc ~S"""
       The client ID which indicates that an entry has been created while server
-      is offline and is to be saved with the server, the client ID uniquely
+      is offline and is to be saved. The client ID uniquely
       identifies this entry and will be used prevent conflict while saving entry
-      created while server offline.
+      created offline and must thus be non null in this situation.
     """
     field(:client_id, :id)
 
@@ -54,8 +54,8 @@ defmodule EbnisData.Schema.Entry1 do
       The list of data belonging to this entry
     """
     field(
-      :entry_data_list,
-      :entry_data
+      :data_objects,
+      :data_object
       |> list_of()
       |> non_null(),
       resolve: dataloader(:data)
@@ -66,20 +66,20 @@ defmodule EbnisData.Schema.Entry1 do
   end
 
   @desc ~S"""
-    Entry data list error (errors field) while creating an entry
+    Entry data object error (errors field) while creating an entry
   """
-  object :entry_data_list_error do
-    field(:field_definition, :string)
-    field(:field_definition_id, :string)
+  object :data_object_error do
+    field(:definition, :string)
+    field(:definition_id, :string)
     field(:data, :string)
   end
 
   @desc ~S"""
-    Entry data list errors while creating an entry
+    Entry data object errors while creating an entry
   """
-  object :entry_data_list_errors do
+  object :data_objects_errors do
     field(:index, non_null(:integer))
-    field(:errors, non_null(:entry_data_list_error))
+    field(:errors, non_null(:data_object_error))
   end
 
   @desc ~S"""
@@ -92,9 +92,9 @@ defmodule EbnisData.Schema.Entry1 do
 
   object :create_entry_errors do
     @desc ~S"""
-      Did we fail because there are errors in the data list object?
+      Did we fail because there are errors in the data object object?
     """
-    field(:entry_data_list_errors, list_of(:entry_data_list_errors))
+    field(:data_objects_errors, list_of(:data_objects_errors))
 
     @desc ~S"""
       Did we fail because, say, we did could not fetch the experience
@@ -143,14 +143,14 @@ defmodule EbnisData.Schema.Entry1 do
   @desc ~S"""
     Variables for creating an entry field
   """
-  input_object :create_entry_data do
+  input_object :create_data_object do
     @desc ~S"""
       The experience definition ID for which the experience data is to be
       generated. If the associated experience of this entry has been created
       offline, then this field **MUST BE THE SAME** as
       `createEntryData.clientId` and will be rejected if not.
     """
-    field(:field_definition_id, non_null(:id))
+    field(:definition_id, non_null(:id))
 
     @desc ~S"""
       The data of this entry. It is a JSON string of the form:
@@ -175,11 +175,11 @@ defmodule EbnisData.Schema.Entry1 do
     field(:experience_id, non_null(:id))
 
     @desc """
-      The entry data list for the experience entry
+      The entry data object for the experience entry
     """
     field(
-      :entry_data_list,
-      :create_entry_data
+      :data_objects,
+      :create_data_object
       |> list_of()
       |> non_null()
     )

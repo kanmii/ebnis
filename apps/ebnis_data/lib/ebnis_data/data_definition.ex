@@ -1,4 +1,4 @@
-defmodule EbnisData.FieldDefinition do
+defmodule EbnisData.DataDefinition do
   use Ecto.Schema, warn: true
 
   import Ecto.Changeset
@@ -6,7 +6,7 @@ defmodule EbnisData.FieldDefinition do
   alias EbnisData.Experience
 
   @primary_key {:id, :binary_id, autogenerate: true}
-  schema "field_definitions" do
+  schema "data_definitions" do
     field(:name, :string)
     field(:type, :string)
     field(:client_id, :string)
@@ -34,8 +34,8 @@ defmodule EbnisData.FieldDefinition do
     |> validate_length(:name, min: 2)
     |> unique_constraint(
       :name,
-      name: :field_definitions_name_experience_id_index
+      name: :data_definitions_name_experience_id_index
     )
-    |> foreign_key_constraint(:type, name: :field_definitions_type_fkey)
+    |> foreign_key_constraint(:type, name: :data_definitions_type_fkey)
   end
 end

@@ -7,7 +7,7 @@ defmodule EbnisData.EntryApi do
   alias EbnisData.FieldType
   alias EbnisData.Field
   alias EbnisData.Entry1
-  alias EbnisData.EntryData
+  alias EbnisData.DataObject
   alias Ecto.Changeset
   alias Ecto.Multi
   alias Absinthe.Relay.Connection
@@ -68,8 +68,8 @@ defmodule EbnisData.EntryApi do
     {status, result, seen} =
       data_list
       |> Enum.reduce({:ok, [], %{}}, fn data_object, {status, acc, seen} ->
-        field_definition_id = data_object.field_definition_id
-        definition_type = definitions_ids_map[field_definition_id]
+        definition_id = data_object.definition_id
+        definition_type = definitions_ids_map[definition_id]
         [data_type] = Map.keys(data_object.data)
 
         cond do
@@ -77,24 +77,24 @@ defmodule EbnisData.EntryApi do
             changeset =
               add_error_make_fake_data_object_changeset(
                 data_object,
-                :field_definition,
+                :definition,
                 "does not exist"
               )
 
             {:error, [changeset | acc], seen}
 
-          seen[field_definition_id] == true ->
+          seen[definition_id] == true ->
             changeset =
               add_error_make_fake_data_object_changeset(
                 data_object,
-                :field_definition_id,
+                :definition_id,
                 "has already been taken"
               )
 
             {:error, [changeset | acc], seen}
 
           data_type != definition_type ->
-            seen = Map.put(seen, field_definition_id, true)
+            seen = Map.put(seen, definition_id, true)
 
             changeset =
               add_error_make_fake_data_object_changeset(
@@ -106,8 +106,8 @@ defmodule EbnisData.EntryApi do
             {:error, [changeset | acc], seen}
 
           true ->
-            seen = Map.put(seen, field_definition_id, true)
-            changeset = EntryData.changeset(%EntryData{}, data_object)
+            seen = Map.put(seen, definition_id, true)
+            changeset = DataObject.changeset(%DataObject{}, data_object)
             {status, [changeset | acc], seen}
         end
       end)
@@ -121,9 +121,9 @@ defmodule EbnisData.EntryApi do
           changeset =
             add_error_make_fake_data_object_changeset(
               %{
-                field_definition_id: definition_id
+                definition_id: definition_id
               },
-              :field_definition_id,
+              :definition_id,
               "data definition ID #{definition_id} is missing"
             )
 
@@ -156,11 +156,11 @@ defmodule EbnisData.EntryApi do
     |> Repo.insert()
   end
 
-  defp create_data_list(%{@entry_multi_key => entry}, data_list_changesets) do
+  defp create_data_objects(%{@entry_multi_key => entry}, data_objects_changesets) do
     entry_id = entry.id
 
     {multi, _} =
-      data_list_changesets
+      data_objects_changesets
       |> Enum.reduce({Multi.new(), 0}, fn data_changeset, {multi, index} ->
         multi =
           Multi.insert(
@@ -192,20 +192,20 @@ defmodule EbnisData.EntryApi do
       nil ->
         fake_changeset = %{
           errors: [experience: {"does not exist", []}],
-          changes: Map.put(attrs, :entry_data_list, [])
+          changes: Map.put(attrs, :data_objects, [])
         }
 
         {:error, fake_changeset}
 
       experience ->
         case validate_data_objects_with_definitions(
-               experience.field_definitions,
-               attrs.entry_data_list
+               experience.data_definitions,
+               attrs.data_objects
              ) do
-          {:ok, data_list_changesets} ->
+          {:ok, data_objects_changesets} ->
             Multi.new()
             |> Multi.run(@entry_multi_key, &create_entry_multi(&1, &2, attrs))
-            |> Multi.merge(&create_data_list(&1, data_list_changesets))
+            |> Multi.merge(&create_data_objects(&1, data_objects_changesets))
             |> Repo.transaction()
             |> case do
               {:ok, result} ->
@@ -217,16 +217,16 @@ defmodule EbnisData.EntryApi do
               {:error, index, changeset, _rest} ->
                 {
                   :error,
-                  data_list_changesets
+                  data_objects_changesets
                   |> List.replace_at(index, changeset)
                   |> fake_changeset_with_data_objects(attrs)
                 }
             end
 
-          {:error, data_list_changesets} ->
+          {:error, data_objects_changesets} ->
             {
               :error,
-              fake_changeset_with_data_objects(data_list_changesets, attrs)
+              fake_changeset_with_data_objects(data_objects_changesets, attrs)
             }
         end
     end
@@ -253,18 +253,18 @@ defmodule EbnisData.EntryApi do
       |> Enum.sort_by(fn {index, _} -> index end)
       |> Enum.map(fn {_, v} -> v end)
 
-    %{entry | entry_data_list: data_list}
+    %{entry | data_objects: data_list}
   end
 
   defp fake_changeset_with_data_objects(changesets, attrs) do
     %{
       errors: [],
-      changes: Map.put(attrs, :entry_data_list, changesets)
+      changes: Map.put(attrs, :data_objects, changesets)
     }
   end
 
   defp put_empty_data_objects_changes(changeset) do
-    Changeset.put_change(changeset, :entry_data_list, [])
+    Changeset.put_change(changeset, :data_objects, [])
   end
 
   def list_entries1 do
@@ -274,8 +274,8 @@ defmodule EbnisData.EntryApi do
 
   defp query_with_data_list do
     Entry1
-    |> join(:inner, [e], dl in assoc(e, :entry_data_list))
-    |> preload([_, dl], entry_data_list: dl)
+    |> join(:inner, [e], dl in assoc(e, :data_objects))
+    |> preload([_, dl], data_objects: dl)
   end
 
   @spec create_entries(attr :: create_entries_attributes_t()) ::

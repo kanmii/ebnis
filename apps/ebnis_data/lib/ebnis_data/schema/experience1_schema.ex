@@ -26,8 +26,8 @@ defmodule EbnisData.Schema.Experience1 do
 
     @desc "The field definitions used for the experience entries"
     field(
-      :field_definitions,
-      :field_definition
+      :data_definitions,
+      :data_definition
       |> list_of()
       |> non_null(),
       resolve: dataloader(:data)
@@ -48,7 +48,7 @@ defmodule EbnisData.Schema.Experience1 do
   @desc """
     Error object returned if data definition refuses to save.
   """
-  object :field_definition_error do
+  object :data_definition_error do
     field(:name, :string)
     field(:type, :string)
   end
@@ -58,14 +58,14 @@ defmodule EbnisData.Schema.Experience1 do
   """
   object :create_experience_errors do
     field(:title, :string)
-    field(:field_definitions_errors, list_of(:field_definition_errors))
+    field(:data_definitions_errors, list_of(:data_definition_errors))
     field(:user, :string)
     field(:client_id, :string)
   end
 
-  object :field_definition_errors do
+  object :data_definition_errors do
     field(:index, non_null(:integer))
-    field(:errors, non_null(:field_definition_error))
+    field(:errors, non_null(:data_definition_error))
   end
 
   @desc """
@@ -126,8 +126,8 @@ defmodule EbnisData.Schema.Experience1 do
     field(:description, :string)
 
     field(
-      :field_definitions,
-      :create_field_definition
+      :data_definitions,
+      :create_data_definition
       |> list_of()
       |> non_null()
     )

@@ -41,7 +41,7 @@ defmodule EbnisData.Factory.Entry1 do
   end
 
   def params(
-        %{field_definitions: field_definitions} = experience,
+        %{data_definitions: data_definitions} = experience,
         %{} = attrs
       ) do
     experience =
@@ -51,22 +51,22 @@ defmodule EbnisData.Factory.Entry1 do
         experience
       end
 
-    entry_data_list =
-      Enum.map(field_definitions, fn
-        field_definition ->
-          field_definition =
-            if match?(%_{}, field_definition) do
-              Map.from_struct(field_definition)
+    data_objects =
+      Enum.map(data_definitions, fn
+        data_definition ->
+          data_definition =
+            if match?(%_{}, data_definition) do
+              Map.from_struct(data_definition)
             else
-              field_definition
+              data_definition
             end
 
           %{
-            field_definition_id:
-              field_definition[:id] ||
-                field_definition[:client_id] ||
+            definition_id:
+              data_definition[:id] ||
+                data_definition[:client_id] ||
                 "0",
-            data: data(field_definition.type)
+            data: data(data_definition.type)
           }
       end)
 
@@ -76,7 +76,7 @@ defmodule EbnisData.Factory.Entry1 do
         "0"
 
     %{
-      entry_data_list: entry_data_list,
+      data_objects: data_objects,
       exp_id: experience_id,
       experience_id: experience_id
     }
@@ -102,21 +102,21 @@ defmodule EbnisData.Factory.Entry1 do
   def data("datetime"), do: %{"datetime" => Factory.random_datetime()}
 
   def data("multi_line_text"),
-    do: %{"multi_line_text" => Faker.Lorem.Shakespeare.En.hamlet()}
+    do: %{"multi_line_text" => "m" <> Sequence.next("")}
 
   def data("single_line_text"),
-    do: %{"single_line_text" => Faker.Lorem.Shakespeare.En.as_you_like_it()}
+    do: %{"single_line_text" => "s" <> Sequence.next("")}
 
   def data("decimal"),
-    do: %{"decimal" => "#{Enum.random(@integers)}.#{Enum.random(@integers)}"}
+    do: %{"decimal" => "0.#{Enum.random(@integers)}"}
 
   def stringify(%{} = attrs) do
     Enum.reduce(attrs, %{}, fn
-      {:entry_data_list, entry_data_list}, acc ->
+      {:data_objects, data_objects}, acc ->
         Map.put(
           acc,
-          "entryDataList",
-          Enum.map(entry_data_list, &stringify_entry_data/1)
+          "dataObjects",
+          Enum.map(data_objects, &stringify_entry_data/1)
         )
 
       {:experience_id, v}, acc ->

@@ -5,12 +5,12 @@ defmodule EbnisData.Entry1 do
 
   alias EbnisData.Experience1
   alias EbnisData
-  alias EbnisData.EntryData
+  alias EbnisData.DataObject
 
   schema "entries" do
     field(:client_id, :string)
     belongs_to(:experience, Experience1, foreign_key: :exp_id)
-    has_many(:entry_data_list, EntryData, foreign_key: :entry_id)
+    has_many(:data_objects, DataObject, foreign_key: :entry_id)
 
     timestamps(type: :utc_datetime)
   end

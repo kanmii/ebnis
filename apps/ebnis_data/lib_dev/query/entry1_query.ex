@@ -1,12 +1,12 @@
 defmodule EbnisData.Query.Entry1 do
   @fragment_name "Entry1Fragment"
 
-  @entry_data_fragment_name "EntryDataFragment"
+  @entry_data_fragment_name "DataObjectFragment"
 
   @entry_data_fragment """
-    fragment #{@entry_data_fragment_name} on EntryData {
+    fragment #{@entry_data_fragment_name} on DataObject {
       id
-      fieldDefinitionId
+      definitionId
       data
     }
   """
@@ -19,7 +19,7 @@ defmodule EbnisData.Query.Entry1 do
       insertedAt
       updatedAt
 
-      entryDataList {
+      dataObjects {
         ...#{@entry_data_fragment_name}
       }
     }
@@ -35,11 +35,11 @@ defmodule EbnisData.Query.Entry1 do
       experienceId
       clientId
       entry
-      entryDataListErrors {
+      dataObjectsErrors {
         index
         errors {
-          fieldDefinition
-          fieldDefinitionId
+          definition
+          definitionId
           data
         }
       }

@@ -8,7 +8,7 @@ defmodule EbnisData.ExperienceApi do
   alias Ecto.Changeset
 
   def list_experiences1 do
-    query_with_field_definitions()
+    query_with_data_definitions()
     |> Repo.all()
   end
 
@@ -16,7 +16,7 @@ defmodule EbnisData.ExperienceApi do
           Experience1.t() | nil
   def get_experience1(id, user_id) do
     %{id: id, user_id: user_id}
-    |> query_with_field_definitions()
+    |> query_with_data_definitions()
     |> Repo.all()
     |> case do
       [experience] ->
@@ -56,7 +56,7 @@ defmodule EbnisData.ExperienceApi do
       nil ->
         experiences =
           args
-          |> query_with_field_definitions()
+          |> query_with_data_definitions()
           |> Repo.all()
 
         experience_connection = %{
@@ -79,11 +79,11 @@ defmodule EbnisData.ExperienceApi do
     end
   end
 
-  defp query_with_field_definitions(args \\ nil) do
+  defp query_with_data_definitions(args \\ nil) do
     query =
       Experience1
-      |> join(:inner, [e], fd in assoc(e, :field_definitions))
-      |> preload([_, fd], field_definitions: fd)
+      |> join(:inner, [e], fd in assoc(e, :data_definitions))
+      |> preload([_, fd], data_definitions: fd)
 
     case args do
       nil ->
@@ -119,8 +119,8 @@ defmodule EbnisData.ExperienceApi do
       Map.update(
         attrs,
         :custom_requireds,
-        [:field_definitions],
-        &[:field_definitions | &1]
+        [:data_definitions],
+        &[:data_definitions | &1]
       )
 
     %Experience1{}
@@ -228,7 +228,7 @@ defmodule EbnisData.ExperienceApi do
 
   defp definition_client_id_map(experience) do
     Enum.reduce(
-      experience.field_definitions,
+      experience.data_definitions,
       %{},
       &Map.put(&2, &1.client_id, &1.id)
     )
@@ -239,7 +239,7 @@ defmodule EbnisData.ExperienceApi do
       entry.entry_data_list,
       {:ok, [], []},
       fn object, acc ->
-        definition_client_id = object.field_definition_id
+        definition_client_id = object.data_definition_id
 
         case definitions_map[definition_client_id] do
           nil ->
@@ -247,18 +247,18 @@ defmodule EbnisData.ExperienceApi do
               acc,
               object,
               [
-                field_definition_id:
+                data_definition_id:
                   "data definition client ID '#{definition_client_id}' does not exist"
               ],
               false
             )
 
-          field_definition_id ->
+          data_definition_id ->
             changes =
               Map.put(
                 object,
-                :field_definition_id,
-                field_definition_id
+                :data_definition_id,
+                data_definition_id
               )
 
             map_fake_entry_data_object_changeset(acc, changes, [], true)

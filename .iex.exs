@@ -8,20 +8,23 @@ alias EbnisData.FieldDef
 alias EbnisData.Schema
 alias EbnisData.Field
 alias EbnisData.FieldType
-alias EbnisData.FieldDefinition
+alias EbnisData.DataDefinition
 alias EbnisData.EntryData
 alias EbnisData.Factory
 alias EbnisData.Factory.User, as: UserFactory
 alias EbnisData.Factory.Registration, as: RegFactory
-alias EbnisData.Factory.FieldDefinition, as: FieldDefinitionFactory
+alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
 alias EbnisData.Factory.Experience, as: ExperienceFactory
 alias EbnisData.Factory.Experience1, as: Experience1Factory
 alias EbnisData.Factory.Entry, as: EntryFactory
 alias EbnisData.Factory.Entry1, as: Entry1Factory
-alias EbnisWeb.Query.Experience, as: ExperienceQuery
-alias EbnisWeb.Query.Entry, as: EntryQuery
-alias EbnisWeb.Query.User, as: UserQuery
-alias EbnisWeb.Query.Registration, as: RegistrationQuery
-alias EbnisWeb.Query.FieldDef, as: FieldDefQuery
+alias EbnisData.Query.Experience, as: ExperienceQuery
+alias EbnisData.Query.Experience1, as: Experience1Query
+alias EbnisData.Query.Entry, as: EntryQuery
+alias EbnisData.Query.Entry1, as: Entry1Query
+alias EbnisData.Query.User, as: UserQuery
+alias EbnisData.Query.Registration, as: RegistrationQuery
+alias EbnisData.Query.FieldDef, as: FieldDefQuery
 alias EbnisData.Resolver
 alias EbnisData.Resolver.Experience1, as: Experience1Resolver
+alias EbnisData.DataObject

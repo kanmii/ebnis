@@ -10,11 +10,42 @@ defmodule EbnisData.Schema.Entry1Test do
   alias EbnisData.Query.Entry1, as: Query
   alias EbnisData.Resolver
   alias EbnisData.Resolver.Entry1, as: Entry1Resolver
-  alias EbnisData.Factory.FieldDefinition, as: FieldDefinitionFactory
+  alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
 
   @iso_extended_format "{ISO:Extended:Z}"
 
   describe "create entry" do
+    # @tag :skip
+    test "fails: no user context" do
+      params = %{
+        experience_id: "0",
+        data_objects: [
+          %{
+            definition_id: "a",
+            data: %{"integer" => 1}
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => Factory.stringify(params)
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Unauthorized"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.create(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
     # @tag :skip
     test "succeeds without client ID" do
       user = RegFactory.insert()
@@ -40,7 +71,7 @@ defmodule EbnisData.Schema.Entry1Test do
                     "entry" => %{
                       "id" => _,
                       "experienceId" => ^global_experience_id,
-                      "entryDataList" => entry_data_list,
+                      "dataObjects" => data_objects,
                       "clientId" => _
                     }
                   }
@@ -53,14 +84,14 @@ defmodule EbnisData.Schema.Entry1Test do
                  context: context(user)
                )
 
-      entry_data_list_ids =
-        entry_data_list
-        |> Enum.map(& &1["fieldDefinitionId"])
+      data_objects_ids =
+        data_objects
+        |> Enum.map(& &1["definitionId"])
         |> Enum.sort()
 
-      assert experience.field_definitions
+      assert experience.data_definitions
              |> Enum.map(& &1.id)
-             |> Enum.sort() == entry_data_list_ids
+             |> Enum.sort() == data_objects_ids
     end
 
     # @tag :skip
@@ -69,9 +100,9 @@ defmodule EbnisData.Schema.Entry1Test do
 
       params = %{
         experience_id: "0",
-        entry_data_list: [
+        data_objects: [
           %{
-            field_definition_id: Ecto.UUID.generate(),
+            definition_id: Ecto.UUID.generate(),
             data: %{"integer" => 1}
           }
         ]
@@ -138,17 +169,17 @@ defmodule EbnisData.Schema.Entry1Test do
     end
 
     # @tag :skip
-    test "fails: field definition does not exist" do
+    test "fails: data definition does not exist" do
       user = RegFactory.insert()
       experience = ExperienceFactory.insert(user_id: user.id)
       params = Factory.params(experience)
 
       bogus_field = %{
         data: %{"integer" => 1},
-        field_definition_id: Ecto.UUID.generate()
+        definition_id: Ecto.UUID.generate()
       }
 
-      params = update_in(params.entry_data_list, &[bogus_field | &1])
+      params = update_in(params.data_objects, &[bogus_field | &1])
 
       variables = %{
         "input" => Factory.stringify(params)
@@ -160,11 +191,11 @@ defmodule EbnisData.Schema.Entry1Test do
                   "createEntry1" => %{
                     "entry" => nil,
                     "errors" => %{
-                      "entryDataListErrors" => [
+                      "dataObjectsErrors" => [
                         %{
                           "index" => 0,
                           "errors" => %{
-                            "fieldDefinition" => fieldDefinitionError
+                            "definition" => field_definition_error
                           }
                         }
                       ]
@@ -179,23 +210,23 @@ defmodule EbnisData.Schema.Entry1Test do
                  context: context(user)
                )
 
-      assert is_binary(fieldDefinitionError)
+      assert is_binary(field_definition_error)
     end
 
     # @tag :skip
-    test "fails: field definition ID not unique" do
+    test "fails: data definition ID not unique" do
       user = RegFactory.insert()
       experience = ExperienceFactory.insert(user_id: user.id)
       params = Factory.params(experience)
 
-      # duplicate the first entry_data
+      # duplicate the first data_object
       params =
         update_in(
-          params.entry_data_list,
+          params.data_objects,
           &(&1 ++ [hd(&1)])
         )
 
-      index_of_duplicate_entry_data = length(params.entry_data_list) - 1
+      index_of_duplicate_data_object = length(params.data_objects) - 1
 
       variables = %{
         "input" => Factory.stringify(params)
@@ -207,11 +238,11 @@ defmodule EbnisData.Schema.Entry1Test do
                   "createEntry1" => %{
                     "entry" => nil,
                     "errors" => %{
-                      "entryDataListErrors" => [
+                      "dataObjectsErrors" => [
                         %{
-                          "index" => ^index_of_duplicate_entry_data,
+                          "index" => ^index_of_duplicate_data_object,
                           "errors" => %{
-                            "fieldDefinitionId" => fieldDefinitionId
+                            "definitionId" => field_definition_id
                           }
                         }
                       ]
@@ -226,26 +257,26 @@ defmodule EbnisData.Schema.Entry1Test do
                  context: context(user)
                )
 
-      assert is_binary(fieldDefinitionId)
+      assert is_binary(field_definition_id)
     end
 
     # @tag :skip
-    test "fails: entry_data.data.type != field_definition.type" do
+    test "fails: data_object.data.type != definition.type" do
       user = RegFactory.insert()
 
       experience =
         %{
           user_id: user.id,
-          field_definitions: [%{name: "aa", type: "integer"}]
+          data_definitions: [%{name: "aa", type: "integer"}]
         }
         |> ExperienceFactory.insert()
 
       params = %{
         experience_id: experience.id,
-        entry_data_list: [
+        data_objects: [
           %{
-            field_definition_id: hd(experience.field_definitions).id,
-            data: %{decimal: 1.0}
+            definition_id: hd(experience.data_definitions).id,
+            data: %{decimal: 0.1}
           }
         ]
       }
@@ -260,11 +291,11 @@ defmodule EbnisData.Schema.Entry1Test do
                   "createEntry1" => %{
                     "entry" => nil,
                     "errors" => %{
-                      "entryDataListErrors" => [
+                      "dataObjectsErrors" => [
                         %{
                           "index" => 0,
                           "errors" => %{
-                            "data" => data
+                            "data" => data_error
                           }
                         }
                       ]
@@ -279,7 +310,7 @@ defmodule EbnisData.Schema.Entry1Test do
                  context: context(user)
                )
 
-      assert is_binary(data)
+      assert is_binary(data_error)
     end
 
     # @tag :skip
@@ -349,37 +380,6 @@ defmodule EbnisData.Schema.Entry1Test do
     end
 
     # @tag :skip
-    test "fails: no user context" do
-      params = %{
-        experience_id: "0",
-        entry_data_list: [
-          %{
-            field_definition_id: "a",
-            data: %{"integer" => 1}
-          }
-        ]
-      }
-
-      variables = %{
-        "input" => Factory.stringify(params)
-      }
-
-      assert {:ok,
-              %{
-                errors: [
-                  %{
-                    message: "Unauthorized"
-                  }
-                ]
-              }} =
-               Absinthe.run(
-                 Query.create(),
-                 Schema,
-                 variables: variables
-               )
-    end
-
-    # @tag :skip
     test "succeeds with timestamps" do
       inserted_at =
         DateTime.utc_now()
@@ -426,24 +426,24 @@ defmodule EbnisData.Schema.Entry1Test do
     end
 
     # @tag :skip
-    test "fails: entry_data.data can not be cast" do
+    test "fails: data_object.data can not be cast" do
       user = RegFactory.insert()
 
       experience =
         %{
           user_id: user.id,
           title: "aa",
-          field_definitions: [%{name: "bb", type: "integer"}]
+          data_definitions: [%{name: "bb", type: "integer"}]
         }
         |> ExperienceFactory.insert()
 
-      [field_definition | _] = experience.field_definitions
+      [definition | _] = experience.data_definitions
 
       params = %{
         experience_id: experience.id,
-        entry_data_list: [
+        data_objects: [
           %{
-            field_definition_id: field_definition.id,
+            definition_id: definition.id,
             # notice how we specified a decimal value for an integer data
             data: %{integer: 0.1}
           }
@@ -459,7 +459,7 @@ defmodule EbnisData.Schema.Entry1Test do
                 data: %{
                   "createEntry1" => %{
                     "errors" => %{
-                      "entryDataListErrors" => [
+                      "dataObjectsErrors" => [
                         %{
                           "index" => 0,
                           "errors" => %{
@@ -495,9 +495,9 @@ defmodule EbnisData.Schema.Entry1Test do
                  } =
                    %{
                      input: %{
-                       entry_data_list: [
+                       data_objects: [
                          %{
-                           field_definition_id: "a",
+                           definition_id: "a",
                            data: %{"integer" => 1}
                          }
                        ],
@@ -520,13 +520,13 @@ defmodule EbnisData.Schema.Entry1Test do
       experience =
         ExperienceFactory.insert(%{
           user_id: user.id,
-          field_definitions: FieldDefinitionFactory.params_list(2)
+          data_definitions: DataDefinitionFactory.params_list(2)
         })
 
       params = Factory.params(experience)
 
       # use only one data object
-      params = update_in(params.entry_data_list, &[&1 |> hd()])
+      params = update_in(params.data_objects, &[&1 |> hd()])
 
       variables = %{
         "input" => Factory.stringify(params)
@@ -538,11 +538,11 @@ defmodule EbnisData.Schema.Entry1Test do
                   "createEntry1" => %{
                     "entry" => nil,
                     "errors" => %{
-                      "entryDataListErrors" => [
+                      "dataObjectsErrors" => [
                         %{
                           "index" => 1,
                           "errors" => %{
-                            "fieldDefinitionId" => fieldDefinitionId
+                            "definitionId" => field_definition_id
                           }
                         }
                       ]
@@ -557,7 +557,7 @@ defmodule EbnisData.Schema.Entry1Test do
                  context: context(user)
                )
 
-      assert is_binary(fieldDefinitionId)
+      assert is_binary(field_definition_id)
     end
   end
 

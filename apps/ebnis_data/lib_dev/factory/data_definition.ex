@@ -1,5 +1,6 @@
-defmodule EbnisData.Factory.FieldDefinition do
+defmodule EbnisData.Factory.DataDefinition do
   use EbnisData.Factory
+
   alias EbnisData.FieldType
   alias EbnisData.Factory
 

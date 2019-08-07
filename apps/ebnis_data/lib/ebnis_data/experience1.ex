@@ -5,7 +5,7 @@ defmodule EbnisData.Experience1 do
 
   alias EbnisData.User
   alias EbnisData.Entry1
-  alias EbnisData.FieldDefinition
+  alias EbnisData.DataDefinition
 
   @always_required_fields [:title, :user_id]
 
@@ -17,7 +17,7 @@ defmodule EbnisData.Experience1 do
     field(:client_id, :string)
     belongs_to(:user, User)
     has_many(:entries, Entry1, foreign_key: :exp_id)
-    has_many(:field_definitions, FieldDefinition, foreign_key: :experience_id)
+    has_many(:data_definitions, DataDefinition, foreign_key: :experience_id)
 
     timestamps()
   end
@@ -33,7 +33,7 @@ defmodule EbnisData.Experience1 do
       :inserted_at,
       :updated_at
     ])
-    |> cast_assoc(:field_definitions, required: false)
+    |> cast_assoc(:data_definitions, required: false)
     |> validate_required(
       Enum.concat(
         @always_required_fields,

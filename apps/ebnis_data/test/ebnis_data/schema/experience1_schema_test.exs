@@ -6,7 +6,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
   alias EbnisData.Schema
   alias EbnisData.Factory.Registration, as: RegFactory
   alias EbnisData.Factory.Experience1, as: Factory
-  alias EbnisData.Factory.FieldDefinition, as: FieldDefinitionFactory
+  alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
   alias EbnisData.Query.Experience1, as: Query
   alias EbnisData.Resolver
   alias EbnisData.Factory.Entry1, as: Entry1Factory
@@ -53,7 +53,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                     "experience" => %{
                       "id" => _,
                       "title" => ^title,
-                      "fieldDefinitions" => _,
+                      "dataDefinitions" => _,
                       "clientId" => nil,
                       "hasUnsaved" => nil
                     }
@@ -103,13 +103,13 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "fails if field definition name (case insensitive) not unique for experience" do
+    test "fails if data definition name (case insensitive) not unique for experience" do
       user = RegFactory.insert()
 
       attrs = %{
-        field_definitions: [
-          FieldDefinitionFactory.params(name: "Field 0"),
-          FieldDefinitionFactory.params(name: "field 0")
+        data_definitions: [
+          DataDefinitionFactory.params(name: "F0"),
+          DataDefinitionFactory.params(name: "f0")
         ]
       }
 
@@ -120,15 +120,13 @@ defmodule EbnisData.Schema.ExperienceTest1 do
           |> Factory.stringify()
       }
 
-      query = Query.create()
-
       assert {:ok,
               %{
                 data: %{
                   "createExperience1" => %{
                     "experience" => nil,
                     "errors" => %{
-                      "fieldDefinitionsErrors" => [
+                      "dataDefinitionsErrors" => [
                         %{
                           "index" => 1,
                           "errors" => %{
@@ -142,7 +140,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                 }
               }} =
                Absinthe.run(
-                 query,
+                 Query.create(),
                  Schema,
                  variables: variables,
                  context: context(user)
@@ -152,11 +150,11 @@ defmodule EbnisData.Schema.ExperienceTest1 do
     end
 
     # @tag :skip
-    test "fails if field definition type does not exist" do
+    test "fails if data definition type does not exist" do
       user = RegFactory.insert()
 
       attrs = %{
-        field_definitions: [
+        data_definitions: [
           %{
             name: "ff",
             type: "integer1"
@@ -175,7 +173,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                 data: %{
                   "createExperience1" => %{
                     "errors" => %{
-                      "fieldDefinitionsErrors" => [
+                      "dataDefinitionsErrors" => [
                         %{
                           "index" => 0,
                           "errors" => %{
@@ -221,7 +219,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                   "createExperience1" => %{
                     "experience" => %{
                       "id" => _,
-                      "fieldDefinitions" => _,
+                      "dataDefinitions" => _,
                       "insertedAt" => ^inserted_at_string,
                       "updatedAt" => ^inserted_at_string,
                       "entries" => %{
@@ -427,7 +425,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
 
                [
                  node["id"],
-                 (node["fieldDefinitions"] |> hd())["id"],
+                 (node["dataDefinitions"] |> hd())["id"],
                  (node["entries"]["edges"] |> hd())["node"]["id"]
                ]
              end)
@@ -435,13 +433,13 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                Enum.sort([
                  Resolver.convert_to_global_id(experience1.id, :experience1),
                  Resolver.convert_to_global_id(entry1.id, :entry1),
-                 (experience1.field_definitions |> hd()).id,
+                 (experience1.data_definitions |> hd()).id,
                  Resolver.convert_to_global_id(experience2.id, :experience1),
                  Resolver.convert_to_global_id(entry2.id, :entry1),
-                 (experience2.field_definitions |> hd()).id,
+                 (experience2.data_definitions |> hd()).id,
                  Resolver.convert_to_global_id(experience3.id, :experience1),
                  Resolver.convert_to_global_id(entry3.id, :entry1),
-                 (experience3.field_definitions |> hd()).id
+                 (experience3.data_definitions |> hd()).id
                ])
     end
 
@@ -588,14 +586,14 @@ defmodule EbnisData.Schema.ExperienceTest1 do
       user = RegFactory.insert()
 
       data_definition1 =
-        FieldDefinitionFactory.params_list(2)
+        DataDefinitionFactory.params_list(2)
         |> Enum.with_index(1)
         |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
 
       experience_params1 =
         Factory.params(
           client_id: "a",
-          field_definitions: data_definition1
+          data_definitions: data_definition1
         )
 
       entries_params =
@@ -623,7 +621,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                       "experience" => %{
                         "id" => _,
                         "clientId" => "a",
-                        "fieldDefinitions" => _,
+                        "dataDefinitions" => _,
                         "entries" => %{
                           "edges" => edges
                         }
@@ -669,8 +667,8 @@ defmodule EbnisData.Schema.ExperienceTest1 do
       params =
         Factory.params(
           client_id: "a",
-          field_definitions: [
-            FieldDefinitionFactory.params()
+          data_definitions: [
+            DataDefinitionFactory.params()
             |> Map.put(:client_id, 1)
           ]
         )
@@ -712,14 +710,14 @@ defmodule EbnisData.Schema.ExperienceTest1 do
       user = RegFactory.insert()
 
       data_definitions =
-        FieldDefinitionFactory.params_list(2)
+        DataDefinitionFactory.params_list(2)
         |> Enum.with_index(1)
         |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
 
       params =
         Factory.params(
           client_id: "a",
-          field_definitions: data_definitions
+          data_definitions: data_definitions
         )
 
       entries =
@@ -754,7 +752,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                       "experience" => %{
                         "id" => experience_id,
                         "clientId" => "a",
-                        "fieldDefinitions" => _,
+                        "dataDefinitions" => _,
                         "entries" => %{
                           "edges" => edges
                         }
@@ -785,12 +783,12 @@ defmodule EbnisData.Schema.ExperienceTest1 do
 
     test "fails: entry.data_objects.definition_id != experience.data_definitions.client_id" do
       user = RegFactory.insert()
-      definitions = FieldDefinitionFactory.params(client_id: "b")
+      definitions = DataDefinitionFactory.params(client_id: "b")
 
       params =
         Factory.params(
           client_id: "a",
-          field_definitions: [definitions]
+          data_definitions: [definitions]
         )
 
       entry = Entry1Factory.params(params, %{client_id: "c"})
@@ -821,7 +819,7 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                       "experience" => %{
                         "id" => _,
                         "clientId" => "a",
-                        "fieldDefinitions" => _,
+                        "dataDefinitions" => _,
                         "entries" => %{
                           "edges" => []
                         }
@@ -830,11 +828,11 @@ defmodule EbnisData.Schema.ExperienceTest1 do
                         %{
                           "clientId" => "c",
                           "errors" => %{
-                            "entryDataListErrors" => [
+                            "dataObjectsErrors" => [
                               %{
                                 "index" => _,
                                 "errors" => %{
-                                  "fieldDefinitionId" => field_definition_id_error
+                                  "dataDefinitionId" => field_definition_id_error
                                 }
                               }
                             ]

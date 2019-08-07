@@ -3,10 +3,10 @@ defmodule EbnisData.Query.Experience1 do
 
   @fragment_name "ExperienceFragment"
 
-  @field_definition_fragment_name "FieldDefinitionFragment"
+  @data_definition_fragment_name "DataDefinitionFragment"
 
-  @field_definition_fragment """
-    fragment #{@field_definition_fragment_name} on FieldDefinition {
+  @data_definition_fragment """
+    fragment #{@data_definition_fragment_name} on DataDefinition {
       id
       name
       type
@@ -35,12 +35,12 @@ defmodule EbnisData.Query.Experience1 do
           hasPreviousPage
         }
       }
-      fieldDefinitions {
-        ...#{@field_definition_fragment_name}
+      dataDefinitions {
+        ...#{@data_definition_fragment_name}
       }
     }
 
-    #{@field_definition_fragment}
+    #{@data_definition_fragment}
   """
 
   @fragment_create_experience_errors_name "CreateExperienceErrorFragment"
@@ -51,7 +51,7 @@ defmodule EbnisData.Query.Experience1 do
         title
         user
         clientId
-        fieldDefinitionsErrors {
+        dataDefinitionsErrors {
           index
           errors {
             name

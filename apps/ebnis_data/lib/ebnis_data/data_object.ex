@@ -1,4 +1,4 @@
-defmodule EbnisData.EntryData do
+defmodule EbnisData.DataObject do
   use Ecto.Schema, warn: true
 
   import Ecto.Changeset
@@ -6,9 +6,9 @@ defmodule EbnisData.EntryData do
   alias EbnisData.FieldType
 
   @primary_key {:id, :binary_id, autogenerate: true}
-  schema "entries_data" do
+  schema "data_objects" do
     field(:data, FieldType)
-    field(:field_definition_id, Ecto.UUID)
+    field(:definition_id, Ecto.UUID)
     field(:entry_id, :id)
 
     timestamps(type: :utc_datetime)
@@ -25,7 +25,7 @@ defmodule EbnisData.EntryData do
   def changeset(%__MODULE__{} = schema, %{} = attrs) do
     schema
     |> cast(attrs, [
-      :field_definition_id,
+      :definition_id,
       :data,
       :entry_id,
       :id,
@@ -33,12 +33,12 @@ defmodule EbnisData.EntryData do
       :updated_at
     ])
     |> validate_required([
-      :field_definition_id,
+      :definition_id,
       :data
     ])
     |> unique_constraint(
-      :field_definition_id,
-      name: :entries_data_entry_id_field_definition_id_index
+      :definition_id,
+      name: :data_objects_entry_id_definition_id_index
     )
   end
 end

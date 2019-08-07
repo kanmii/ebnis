@@ -38,7 +38,7 @@ defmodule EbnisData.Resolver.Entry1 do
       errors ->
         Resolver.changeset_errors_to_map(errors)
     end
-    |> data_objects_changeset_errors_to_map(changeset.changes.entry_data_list)
+    |> data_objects_changeset_errors_to_map(changeset.changes.data_objects)
   end
 
   defp data_objects_changeset_errors_to_map(errors, []) do
@@ -46,25 +46,29 @@ defmodule EbnisData.Resolver.Entry1 do
   end
 
   defp data_objects_changeset_errors_to_map(acc_errors, changesets) do
-    {errors, _} =
-      changesets
-      |> Enum.reduce({[], 0}, fn
-        %{valid?: false, errors: errors}, {acc, index} ->
-          {
-            [
-              %{
-                index: index,
-                errors: Resolver.changeset_errors_to_map(errors)
-              }
-              | acc
-            ],
-            index + 1
-          }
+    changesets
+    |> Enum.reduce({[], 0}, fn
+      %{valid?: false, errors: errors}, {acc, index} ->
+        {
+          [
+            %{
+              index: index,
+              errors: Resolver.changeset_errors_to_map(errors)
+            }
+            | acc
+          ],
+          index + 1
+        }
 
-        _, {acc, index} ->
-          {acc, index + 1}
-      end)
+      _, {acc, index} ->
+        {acc, index + 1}
+    end)
+    |> case do
+      {[], _} ->
+        acc_errors
 
-    Map.put(acc_errors, :entry_data_list_errors, errors)
+      {errors, _} ->
+        Map.put(acc_errors, :data_objects_errors, errors)
+    end
   end
 end
