@@ -13,6 +13,7 @@ defmodule EbnisData.Schema.Entry1Test do
   alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
 
   @iso_extended_format "{ISO:Extended:Z}"
+  @moduletag capture_log: true
 
   describe "create entry" do
     # @tag :skip

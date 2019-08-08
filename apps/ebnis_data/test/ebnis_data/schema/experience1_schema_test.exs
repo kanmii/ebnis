@@ -11,6 +11,8 @@ defmodule EbnisData.Schema.ExperienceTest1 do
   alias EbnisData.Resolver
   alias EbnisData.Factory.Entry1, as: Entry1Factory
 
+  @moduletag capture_log: true
+
   describe "create an experience" do
     # @tag :skip
     test "unauthorized" do
@@ -879,22 +881,20 @@ defmodule EbnisData.Schema.ExperienceTest1 do
         "id" => "0"
       }
 
-      capture_log(fn ->
-        assert {:ok,
-                %{
-                  errors: [
-                    %{
-                      message: _
-                    }
-                  ]
-                }} =
-                 Absinthe.run(
-                   Query.delete(),
-                   Schema,
-                   variables: variables,
-                   context: context(%{id: "0"})
-                 )
-      end)
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.delete(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: "0"})
+               )
     end
 
     test "fails: experience does not exist" do
@@ -998,22 +998,20 @@ defmodule EbnisData.Schema.ExperienceTest1 do
         }
       }
 
-      capture_log(fn ->
-        assert {:ok,
-                %{
-                  errors: [
-                    %{
-                      message: _
-                    }
-                  ]
-                }} =
-                 Absinthe.run(
-                   Query.update(),
-                   Schema,
-                   variables: variables,
-                   context: context(%{id: 0})
-                 )
-      end)
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: 0})
+               )
     end
 
     # @tag :skip
