@@ -3,7 +3,7 @@ defmodule EbnisData.EntryApi do
   import Ecto.Query, warn: false
 
   alias EbnisData.Repo
-  alias EbnisData.Entry1
+  alias EbnisData.Entry
   alias EbnisData.DataObject
   alias Ecto.Changeset
   alias Ecto.Multi
@@ -117,8 +117,8 @@ defmodule EbnisData.EntryApi do
   end
 
   defp create_entry_multi(_, _, attrs) do
-    %Entry1{}
-    |> Entry1.changeset(attrs)
+    %Entry{}
+    |> Entry.changeset(attrs)
     |> Repo.insert()
   end
 
@@ -143,18 +143,18 @@ defmodule EbnisData.EntryApi do
     multi
   end
 
-  @spec create_entry1(
+  @spec create_entry(
           attrs :: %{
             experience_id: integer() | binary(),
             user_id: integer() | binary()
           }
         ) ::
           {:error, Changeset.t()}
-          | {:ok, Entry1.t()}
-  def create_entry1(%{user_id: user_id, experience_id: experience_id} = attrs) do
+          | {:ok, Entry.t()}
+  def create_entry(%{user_id: user_id, experience_id: experience_id} = attrs) do
     attrs = Map.put(attrs, :exp_id, experience_id)
 
-    case EbnisData.get_experience1(experience_id, user_id) do
+    case EbnisData.get_experience(experience_id, user_id) do
       nil ->
         fake_changeset = %{
           errors: [experience: {"does not exist", []}],
@@ -233,13 +233,13 @@ defmodule EbnisData.EntryApi do
     Changeset.put_change(changeset, :data_objects, [])
   end
 
-  def list_entries1 do
+  def list_entries do
     query_with_data_list()
     |> Repo.all()
   end
 
   defp query_with_data_list do
-    Entry1
+    Entry
     |> join(:inner, [e], dl in assoc(e, :data_objects))
     |> preload([_, dl], data_objects: dl)
   end
@@ -254,7 +254,7 @@ defmodule EbnisData.EntryApi do
     } = Connection.offset_and_limit_for_query(pagination, opts)
 
     query =
-      Entry1
+      Entry
       |> where([e], e.exp_id == ^experience_id)
       |> limit(^(limit + 1))
       |> offset(^offset)
@@ -262,11 +262,11 @@ defmodule EbnisData.EntryApi do
     {query, {limit, offset}}
   end
 
-  @spec get_paginated_entries_1(
+  @spec get_paginated_entries(
           [{integer() | binary(), map()}],
           list()
         ) :: [Connection.t()]
-  def get_paginated_entries_1(
+  def get_paginated_entries(
         experiences_ids_pagination_args,
         repo_opts
       ) do
@@ -323,13 +323,13 @@ defmodule EbnisData.EntryApi do
     end
   end
 
-  def create_entries1(attrs) do
+  def create_entries(attrs) do
     result =
       attrs
       |> Enum.reduce(%{}, fn param, acc ->
         experience_id = param.experience_id
 
-        case create_entry1(param) do
+        case create_entry(param) do
           {:ok, entry} ->
             Map.update(
               acc,
@@ -371,8 +371,8 @@ defmodule EbnisData.EntryApi do
     )
   end
 
-  def get_entry1(id) do
-    Entry1
+  def get_entry(id) do
+    Entry
     |> where([e], e.id == ^id)
     |> Repo.all()
     |> case do
@@ -384,8 +384,8 @@ defmodule EbnisData.EntryApi do
     end
   end
 
-  def delete_entry1(id) do
-    case get_entry1(id) do
+  def delete_entry(id) do
+    case get_entry(id) do
       nil ->
         @error_not_found
 

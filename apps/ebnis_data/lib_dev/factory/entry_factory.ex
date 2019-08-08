@@ -1,4 +1,4 @@
-defmodule EbnisData.Factory.Entry1 do
+defmodule EbnisData.Factory.Entry do
   alias EbnisData.Factory
   alias EbnisData.FieldType
   alias EbnisData.Resolver
@@ -23,7 +23,7 @@ defmodule EbnisData.Factory.Entry1 do
           |> Map.put(:user_id, experience.user_id)
       end
 
-    {:ok, entry} = EbnisData.create_entry1(attrs)
+    {:ok, entry} = EbnisData.create_entry(attrs)
 
     entry
   end
@@ -123,7 +123,7 @@ defmodule EbnisData.Factory.Entry1 do
         Map.put(
           acc,
           "experienceId",
-          Resolver.convert_to_global_id(v, :experience1)
+          Resolver.convert_to_global_id(v, :experience)
         )
 
       {k, v}, acc when k in @simple_attributes ->

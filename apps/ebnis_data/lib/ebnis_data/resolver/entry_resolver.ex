@@ -1,17 +1,17 @@
-defmodule EbnisData.Resolver.Entry1 do
+defmodule EbnisData.Resolver.Entry do
   alias EbnisData.Resolver
 
   def create(%{input: attrs}, %{context: %{current_user: user}}) do
     experience_id =
       attrs.experience_id
-      |> Resolver.convert_from_global_id(:experience1)
+      |> Resolver.convert_from_global_id(:experience)
 
     attrs
     |> Map.merge(%{
       experience_id: experience_id,
       user_id: user.id
     })
-    |> EbnisData.create_entry1()
+    |> EbnisData.create_entry()
     |> case do
       {:ok, entry} ->
         {
@@ -75,7 +75,7 @@ defmodule EbnisData.Resolver.Entry1 do
   def create_entries(%{input: inputs}, %{context: %{current_user: user}}) do
     {entries, ids} = update_entries_with_valid_ids(inputs, user.id)
 
-    results_map = EbnisData.create_entries1(entries)
+    results_map = EbnisData.create_entries(entries)
 
     {
       :ok,
@@ -83,7 +83,7 @@ defmodule EbnisData.Resolver.Entry1 do
         ids,
         fn id ->
           result = results_map[id]
-          experience_id = Resolver.convert_to_global_id(id, :experience1)
+          experience_id = Resolver.convert_to_global_id(id, :experience)
 
           update_in(
             result.errors,
@@ -114,7 +114,7 @@ defmodule EbnisData.Resolver.Entry1 do
           experience_id =
             Resolver.convert_from_global_id(
               entry.experience_id,
-              :experience1
+              :experience
             )
 
           experiences_ids =
@@ -148,8 +148,8 @@ defmodule EbnisData.Resolver.Entry1 do
 
   def delete(%{id: id}, %{context: %{current_user: %{id: _}}}) do
     id
-    |> Resolver.convert_from_global_id(:entry1)
-    |> EbnisData.delete_entry1()
+    |> Resolver.convert_from_global_id(:entry)
+    |> EbnisData.delete_entry()
   end
 
   def delete(_, _) do

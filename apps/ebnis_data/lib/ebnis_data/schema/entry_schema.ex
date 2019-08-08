@@ -4,7 +4,7 @@ defmodule EbnisData.Schema.Entry do
 
   import Absinthe.Resolution.Helpers, only: [dataloader: 1]
 
-  alias EbnisData.Resolver.Entry1, as: EntryResolver
+  alias EbnisData.Resolver.Entry, as: EntryResolver
   alias EbnisData.Resolver
 
   @desc """
@@ -19,7 +19,7 @@ defmodule EbnisData.Schema.Entry do
   @desc """
     An Experience entry that supports relay
   """
-  node object(:entry1) do
+  node object(:entry) do
     @desc ~S"""
       The ID of experience to which this entry belongs.
     """
@@ -28,7 +28,7 @@ defmodule EbnisData.Schema.Entry do
         {
           :ok,
           root.exp_id
-          |> Resolver.convert_to_global_id(:experience1)
+          |> Resolver.convert_to_global_id(:experience)
         }
       end)
     end
@@ -46,7 +46,7 @@ defmodule EbnisData.Schema.Entry do
     """
     field(
       :experience,
-      non_null(:experience1),
+      non_null(:experience),
       resolve: dataloader(:data)
     )
 
@@ -86,7 +86,7 @@ defmodule EbnisData.Schema.Entry do
     Object returned when entry created
   """
   object :create_entry_response do
-    field(:entry, :entry1)
+    field(:entry, :entry)
     field(:errors, :create_entry_errors)
   end
 
@@ -136,7 +136,7 @@ defmodule EbnisData.Schema.Entry do
     field(:errors, non_null(:create_entry_errors))
   end
 
-  object :create_entries_response1 do
+  object :create_entries_response do
     @desc ~S"""
       Experience ID of an entry we are trying to create
     """
@@ -146,7 +146,7 @@ defmodule EbnisData.Schema.Entry do
       The entries that were successfully inserted for a particular
       experience ID
     """
-    field(:entries, :entry1 |> list_of() |> non_null())
+    field(:entries, :entry |> list_of() |> non_null())
 
     @desc ~S"""
       List of error objects denoting entries that fail to insert for
@@ -219,7 +219,7 @@ defmodule EbnisData.Schema.Entry do
   @desc """
     Variables for creating an experience entry
   """
-  input_object :create_entry_input1 do
+  input_object :create_entry_input do
     @desc ~S"""
       The global ID of the experience or if the associated
       experience has been created offline, then this must be the same as the
@@ -308,8 +308,8 @@ defmodule EbnisData.Schema.Entry do
     @desc ~S"""
       Create an experience entry
     """
-    field :create_entry1, :create_entry_response do
-      arg(:input, non_null(:create_entry_input1))
+    field :create_entry, :create_entry_response do
+      arg(:input, non_null(:create_entry_input))
 
       resolve(&EntryResolver.create/2)
     end
@@ -317,7 +317,7 @@ defmodule EbnisData.Schema.Entry do
     @desc ~S"""
       Create several entries, for one or more experiences
     """
-    field :create_entries1, list_of(:create_entries_response1) do
+    field :create_entries, list_of(:create_entries_response) do
       arg(:input, :create_entries_input |> list_of() |> non_null())
 
       resolve(&EntryResolver.create_entries/2)
@@ -326,7 +326,7 @@ defmodule EbnisData.Schema.Entry do
     @desc ~S"""
       Delete an entry
     """
-    field :delete_entry1, :entry1 do
+    field :delete_entry, :entry do
       arg(:id, non_null(:id))
 
       resolve(&EntryResolver.delete/2)
@@ -351,5 +351,5 @@ defmodule EbnisData.Schema.Entry do
 
   ################### END MUTATIONS #########################################
 
-  connection(node_type: :entry1)
+  connection(node_type: :entry)
 end

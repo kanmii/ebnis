@@ -4,7 +4,7 @@ defmodule EbnisData.Schema.Experience do
 
   import Absinthe.Resolution.Helpers, only: [dataloader: 1]
 
-  alias EbnisData.Resolver.Experience1, as: Resolver
+  alias EbnisData.Resolver.Experience, as: Resolver
 
   ################################ START ENUMS ##########################
 
@@ -29,7 +29,7 @@ defmodule EbnisData.Schema.Experience do
   @desc """
     Experience schema. Uses relay.
   """
-  node object(:experience1) do
+  node object(:experience) do
     @desc "The title of the experience"
     field(:title, non_null(:string))
 
@@ -54,7 +54,7 @@ defmodule EbnisData.Schema.Experience do
     )
 
     @desc "The entries of the experience - can be paginated"
-    field :entries, :entry1_connection |> non_null() do
+    field :entries, :entry_connection |> non_null() do
       arg(:pagination, non_null(:pagination_input))
 
       resolve(&Resolver.entries/3)
@@ -111,7 +111,7 @@ defmodule EbnisData.Schema.Experience do
     Object returned on experience creation
   """
   object :create_experience_return_value do
-    field(:experience, :experience1)
+    field(:experience, :experience)
     field(:errors, :create_experience_errors)
   end
 
@@ -134,12 +134,12 @@ defmodule EbnisData.Schema.Experience do
     field(:client_id, non_null(:id))
   end
 
-  object :offline_experience1 do
+  object :offline_experience do
     @desc ~S"""
       The experience which was successfully inserted
       - will be null if experience fails to insert
     """
-    field(:experience, :experience1)
+    field(:experience, :experience)
 
     @desc ~S"""
       If the experience fails to insert, then this is the error object
@@ -165,7 +165,7 @@ defmodule EbnisData.Schema.Experience do
     Object returned on experience update
   """
   object :update_experience_return_value do
-    field(:experience, :experience1)
+    field(:experience, :experience)
     field(:errors, :update_experience_errors)
   end
 
@@ -190,7 +190,7 @@ defmodule EbnisData.Schema.Experience do
   @desc """
     Input object for defining a new Experience
   """
-  input_object :create_experience_input1 do
+  input_object :create_experience_input do
     field(:title, non_null(:string))
     field(:description, :string)
 
@@ -215,11 +215,11 @@ defmodule EbnisData.Schema.Experience do
       One may define an experience and create associated entries simultaneously
       if for instance on the client while backend is offline.
     """
-    field(:entries, :create_entry_input1 |> list_of())
+    field(:entries, :create_entry_input |> list_of())
   end
 
   @desc "Variables for updating an existing Experience"
-  input_object :update_experience_input1 do
+  input_object :update_experience_input do
     @desc ~S"""
       The global ID of experience to be updated
     """
@@ -250,29 +250,29 @@ defmodule EbnisData.Schema.Experience do
   """
   object :experience_mutations do
     @desc "Create an experience"
-    field :create_experience1, :create_experience_return_value do
-      arg(:input, non_null(:create_experience_input1))
+    field :create_experience, :create_experience_return_value do
+      arg(:input, non_null(:create_experience_input))
 
       resolve(&Resolver.create_experience/2)
     end
 
     @desc "Save many experiences created offline"
-    field :save_offline_experiences1, list_of(:offline_experience1) do
-      arg(:input, :create_experience_input1 |> list_of() |> non_null())
+    field :save_offline_experiences, list_of(:offline_experience) do
+      arg(:input, :create_experience_input |> list_of() |> non_null())
 
       resolve(&Resolver.save_offline_experiences/2)
     end
 
     @desc "Delete an experience"
-    field :delete_experience1, :experience1 do
+    field :delete_experience, :experience do
       arg(:id, non_null(:id))
 
       resolve(&Resolver.delete_experience/2)
     end
 
     @desc "Update an experience"
-    field :update_experience1, :update_experience_return_value do
-      arg(:input, non_null(:update_experience_input1))
+    field :update_experience, :update_experience_return_value do
+      arg(:input, non_null(:update_experience_input))
 
       resolve(&Resolver.update_experience/2)
     end
@@ -290,7 +290,7 @@ defmodule EbnisData.Schema.Experience do
 
       Get an experience
     """
-    field :get_experience1, :experience1 do
+    field :get_experience, :experience do
       arg(:id, non_null(:id))
 
       resolve(&Resolver.get_experience/2)
@@ -301,7 +301,7 @@ defmodule EbnisData.Schema.Experience do
       The experiences returned may be paginated
       and may be filtered by IDs
     """
-    connection field(:get_experiences1, node_type: :experience1) do
+    connection field(:get_experiences, node_type: :experience) do
       arg(:input, :get_experiences_input)
       resolve(&Resolver.get_experiences/2)
     end
@@ -309,5 +309,5 @@ defmodule EbnisData.Schema.Experience do
 
   ######################### END QUERIES ################################
 
-  connection(node_type: :experience1)
+  connection(node_type: :experience)
 end

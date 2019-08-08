@@ -118,26 +118,26 @@ defmodule EbnisData do
 
   ################################## EXPERIENCES #############################
 
-  defdelegate list_experiences1(), to: ExperienceApi
-  defdelegate get_experience1(id, user_id), to: ExperienceApi
-  defdelegate get_experiences1(args), to: ExperienceApi
-  defdelegate save_offline_experience1(args), to: ExperienceApi
+  defdelegate list_experiences(), to: ExperienceApi
+  defdelegate get_experience(id, user_id), to: ExperienceApi
+  defdelegate get_experiences(args), to: ExperienceApi
+  defdelegate save_offline_experience(args), to: ExperienceApi
   defdelegate create_experience(args), to: ExperienceApi
-  defdelegate delete_experience1(id, user_id), to: ExperienceApi
-  defdelegate update_experience1(id, user_id, update_args), to: ExperienceApi
+  defdelegate delete_experience(id, user_id), to: ExperienceApi
+  defdelegate update_experience(id, user_id, update_args), to: ExperienceApi
 
   #########################  END  EXPERIENCES ###############################
 
   ################################ START ENTRY #############################
 
-  defdelegate create_entry1(attrs), to: EntryApi
-  defdelegate list_entries1(), to: EntryApi
-  defdelegate create_entries1(attrs), to: EntryApi
-  defdelegate delete_entry1(attrs), to: EntryApi
+  defdelegate create_entry(attrs), to: EntryApi
+  defdelegate list_entries(), to: EntryApi
+  defdelegate create_entries(attrs), to: EntryApi
+  defdelegate delete_entry(attrs), to: EntryApi
   defdelegate update_data_object(arg), to: EntryApi
-  defdelegate get_entry1(id), to: EntryApi
+  defdelegate get_entry(id), to: EntryApi
 
-  defdelegate get_paginated_entries_1(experiences_ids_pagination_args_tuples, repo_opts),
+  defdelegate get_paginated_entries(experiences_ids_pagination_args_tuples, repo_opts),
     to: EntryApi
 
   ################################ END ENTRY #############################

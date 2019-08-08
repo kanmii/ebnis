@@ -1,15 +1,15 @@
-defmodule EbnisData.Entry1 do
+defmodule EbnisData.Entry do
   use Ecto.Schema, warn: true
 
   import Ecto.Changeset
 
-  alias EbnisData.Experience1
+  alias EbnisData.Experience
   alias EbnisData
   alias EbnisData.DataObject
 
   schema "entries" do
     field(:client_id, :string)
-    belongs_to(:experience, Experience1, foreign_key: :exp_id)
+    belongs_to(:experience, Experience, foreign_key: :exp_id)
     has_many(:data_objects, DataObject, foreign_key: :entry_id)
 
     timestamps(type: :utc_datetime)

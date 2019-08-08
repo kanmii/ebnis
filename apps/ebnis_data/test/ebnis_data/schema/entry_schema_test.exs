@@ -5,11 +5,11 @@ defmodule EbnisData.Schema.EntryTest do
 
   alias EbnisData.Schema
   alias EbnisData.Factory.Registration, as: RegFactory
-  alias EbnisData.Factory.Entry1, as: Factory
-  alias EbnisData.Factory.Experience1, as: ExperienceFactory
-  alias EbnisData.Query.Entry1, as: Query
+  alias EbnisData.Factory.Entry, as: Factory
+  alias EbnisData.Factory.Experience, as: ExperienceFactory
+  alias EbnisData.Query.Entry, as: Query
   alias EbnisData.Resolver
-  alias EbnisData.Resolver.Entry1, as: Entry1Resolver
+  alias EbnisData.Resolver.Entry, as: EntryResolver
   alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
 
   @iso_extended_format "{ISO:Extended:Z}"
@@ -54,7 +54,7 @@ defmodule EbnisData.Schema.EntryTest do
 
       global_experience_id =
         experience.id
-        |> Resolver.convert_to_global_id(:experience1)
+        |> Resolver.convert_to_global_id(:experience)
 
       params =
         experience
@@ -68,7 +68,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntry1" => %{
+                  "createEntry" => %{
                     "entry" => %{
                       "id" => _,
                       "experienceId" => ^global_experience_id,
@@ -116,7 +116,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntry1" => %{
+                  "createEntry" => %{
                     "entry" => nil,
                     "errors" => %{
                       "experience" => experienceError
@@ -151,7 +151,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntry1" => %{
+                  "createEntry" => %{
                     "entry" => nil,
                     "errors" => %{
                       "experience" => experienceError
@@ -189,7 +189,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntry1" => %{
+                  "createEntry" => %{
                     "entry" => nil,
                     "errors" => %{
                       "dataObjectsErrors" => [
@@ -236,7 +236,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntry1" => %{
+                  "createEntry" => %{
                     "entry" => nil,
                     "errors" => %{
                       "dataObjectsErrors" => [
@@ -289,7 +289,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntry1" => %{
+                  "createEntry" => %{
                     "entry" => nil,
                     "errors" => %{
                       "dataObjectsErrors" => [
@@ -330,7 +330,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntry1" => %{
+                  "createEntry" => %{
                     "entry" => %{
                       "id" => _,
                       "clientId" => ^client_id
@@ -363,7 +363,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntry1" => %{
+                  "createEntry" => %{
                     "errors" => %{
                       "clientId" => client_id_error
                     }
@@ -409,7 +409,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntry1" => %{
+                  "createEntry" => %{
                     "entry" => %{
                       "id" => _,
                       "insertedAt" => ^inserted_at_string,
@@ -458,7 +458,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntry1" => %{
+                  "createEntry" => %{
                     "errors" => %{
                       "dataObjectsErrors" => [
                         %{
@@ -506,7 +506,7 @@ defmodule EbnisData.Schema.EntryTest do
                        experience_id: nil
                      }
                    }
-                   |> Entry1Resolver.create(%{context: context(%{id: 1})})
+                   |> EntryResolver.create(%{context: context(%{id: 1})})
 
           assert is_binary(experience)
         end)
@@ -536,7 +536,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntry1" => %{
+                  "createEntry" => %{
                     "entry" => nil,
                     "errors" => %{
                       "dataObjectsErrors" => [
@@ -594,10 +594,10 @@ defmodule EbnisData.Schema.EntryTest do
     test "happy path" do
       user = RegFactory.insert()
       experience1 = ExperienceFactory.insert(user_id: user.id)
-      id1 = Resolver.convert_to_global_id(experience1.id, :experience1)
+      id1 = Resolver.convert_to_global_id(experience1.id, :experience)
 
       experience2 = ExperienceFactory.insert(user_id: user.id)
-      id2 = Resolver.convert_to_global_id(experience2.id, :experience1)
+      id2 = Resolver.convert_to_global_id(experience2.id, :experience)
 
       {entries_params, _} =
         Factory.params_list(2, experience1)
@@ -618,7 +618,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntries1" => [
+                  "createEntries" => [
                     %{
                       "experienceId" => ^id2,
                       "entries" => [
@@ -670,7 +670,7 @@ defmodule EbnisData.Schema.EntryTest do
           ["integer"]
         )
 
-      id1 = Resolver.convert_to_global_id(experience1.id, :experience1)
+      id1 = Resolver.convert_to_global_id(experience1.id, :experience)
 
       params1 = Factory.params(experience1, client_id: "a")
 
@@ -689,7 +689,7 @@ defmodule EbnisData.Schema.EntryTest do
           ["integer"]
         )
 
-      id2 = Resolver.convert_to_global_id(experience2.id, :experience1)
+      id2 = Resolver.convert_to_global_id(experience2.id, :experience)
 
       # notice that we gave a decimal data to an integer field. it will fail
       params3 =
@@ -713,7 +713,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntries1" => [
+                  "createEntries" => [
                     %{
                       "experienceId" => ^id1,
                       "entries" => [
@@ -783,7 +783,7 @@ defmodule EbnisData.Schema.EntryTest do
           ["integer"]
         )
 
-      id1 = Resolver.convert_to_global_id(experience1.id, :experience1)
+      id1 = Resolver.convert_to_global_id(experience1.id, :experience)
 
       variables = %{
         "input" =>
@@ -797,7 +797,7 @@ defmodule EbnisData.Schema.EntryTest do
       assert {:ok,
               %{
                 data: %{
-                  "createEntries1" => [
+                  "createEntries" => [
                     %{
                       "experienceId" => ^id1,
                       "entries" => [
@@ -875,7 +875,7 @@ defmodule EbnisData.Schema.EntryTest do
     end
 
     test "fails: entry not found" do
-      variables = %{"id" => Resolver.convert_to_global_id(0, :entry1)}
+      variables = %{"id" => Resolver.convert_to_global_id(0, :entry)}
 
       assert {:ok,
               %{
@@ -897,14 +897,14 @@ defmodule EbnisData.Schema.EntryTest do
       user = RegFactory.insert()
       experience = ExperienceFactory.insert(%{user_id: user.id})
       entry = Factory.insert(%{}, experience)
-      id = Resolver.convert_to_global_id(entry.id, :entry1)
+      id = Resolver.convert_to_global_id(entry.id, :entry)
 
       variables = %{"id" => id}
 
       assert {:ok,
               %{
                 data: %{
-                  "deleteEntry1" => %{
+                  "deleteEntry" => %{
                     "id" => ^id,
                     "dataObjects" => _
                   }
@@ -917,7 +917,7 @@ defmodule EbnisData.Schema.EntryTest do
                  context: context(user)
                )
 
-      assert EbnisData.get_entry1(entry.id) == nil
+      assert EbnisData.get_entry(entry.id) == nil
     end
   end
 

@@ -1,5 +1,5 @@
-defmodule EbnisData.Query.Entry1 do
-  @fragment_name "Entry1Fragment"
+defmodule EbnisData.Query.Entry do
+  @fragment_name "EntryFragment"
 
   @entry_data_fragment_name "DataObjectFragment"
 
@@ -12,7 +12,7 @@ defmodule EbnisData.Query.Entry1 do
   """
 
   @fragment """
-    fragment #{@fragment_name} on Entry1 {
+    fragment #{@fragment_name} on Entry {
       id
       experienceId
       clientId
@@ -61,8 +61,8 @@ defmodule EbnisData.Query.Entry1 do
 
   def create do
     """
-    mutation C($input: CreateEntryInput1!) {
-      createEntry1(input: $input) {
+    mutation C($input: CreateEntryInput!) {
+      createEntry(input: $input) {
         entry {
           ...#{@fragment_name}
         }
@@ -83,7 +83,7 @@ defmodule EbnisData.Query.Entry1 do
   def create_entries do
     """
     mutation C($input: [CreateEntriesInput!]!) {
-      createEntries1(input: $input) {
+      createEntries(input: $input) {
         experienceId
 
         entries {
@@ -108,7 +108,7 @@ defmodule EbnisData.Query.Entry1 do
   def delete do
     """
       mutation D($id: ID!) {
-        deleteEntry1(id: $id) {
+        deleteEntry(id: $id) {
           ...#{@fragment_name}
 
         }

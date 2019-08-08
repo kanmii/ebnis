@@ -1,5 +1,5 @@
-defmodule EbnisData.Query.Experience1 do
-  alias EbnisData.Query.Entry1
+defmodule EbnisData.Query.Experience do
+  alias EbnisData.Query.Entry
 
   @fragment_name "ExperienceFragment"
 
@@ -14,7 +14,7 @@ defmodule EbnisData.Query.Experience1 do
   """
 
   @fragment """
-    fragment #{@fragment_name} on Experience1 {
+    fragment #{@fragment_name} on Experience {
       id
       hasUnsaved
       title
@@ -63,8 +63,8 @@ defmodule EbnisData.Query.Experience1 do
 
   def create do
     """
-      mutation CreateExperience($input: CreateExperienceInput1!) {
-        createExperience1(input: $input) {
+      mutation CreateExperience($input: CreateExperienceInput!) {
+        createExperience(input: $input) {
           experience {
             ...#{@fragment_name}
           }
@@ -83,7 +83,7 @@ defmodule EbnisData.Query.Experience1 do
   def get do
     """
       query GetExperience($id: ID!) {
-        getExperience1(id: $id) {
+        getExperience(id: $id) {
             ...#{@fragment_name}
         }
       }
@@ -95,7 +95,7 @@ defmodule EbnisData.Query.Experience1 do
   def gets do
     """
       query GetExperiences($input: GetExperiencesInput) {
-        getExperiences1(input: $input) {
+        getExperiences(input: $input) {
           pageInfo {
             hasNextPage
             hasPreviousPage
@@ -116,11 +116,11 @@ defmodule EbnisData.Query.Experience1 do
 
   def save_offline_experiences do
     {fragment_create_entry_errors, fragment_create_entry_errors_name} =
-      Entry1.create_entry_errors()
+      Entry.create_entry_errors()
 
     """
-      mutation SaveOfflineExperiences($input: [CreateExperienceInput1!]!) {
-        saveOfflineExperiences1(input: $input) {
+      mutation SaveOfflineExperiences($input: [CreateExperienceInput!]!) {
+        saveOfflineExperiences(input: $input) {
           experience {
             ...#{@fragment_name}
           }
@@ -152,7 +152,7 @@ defmodule EbnisData.Query.Experience1 do
   def delete do
     """
       mutation DeleteExperience($id: ID!) {
-        deleteExperience1(id: $id) {
+        deleteExperience(id: $id) {
           ...#{@fragment_name}
         }
       }
@@ -163,8 +163,8 @@ defmodule EbnisData.Query.Experience1 do
 
   def update do
     """
-      mutation UpdateExperience($input: UpdateExperienceInput1!) {
-        updateExperience1(input: $input) {
+      mutation UpdateExperience($input: UpdateExperienceInput!) {
+        updateExperience(input: $input) {
           experience {
             ...#{@fragment_name}
           }

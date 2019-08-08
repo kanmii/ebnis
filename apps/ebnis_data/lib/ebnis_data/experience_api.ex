@@ -4,17 +4,17 @@ defmodule EbnisData.ExperienceApi do
   import Ecto.Query, warn: true
 
   alias EbnisData.Repo
-  alias EbnisData.Experience1
+  alias EbnisData.Experience
   alias Ecto.Changeset
 
-  def list_experiences1 do
+  def list_experiences do
     query_with_data_definitions()
     |> Repo.all()
   end
 
-  @spec get_experience1(id :: integer() | binary(), user_id :: integer() | binary()) ::
-          Experience1.t() | nil
-  def get_experience1(id, user_id) do
+  @spec get_experience(id :: integer() | binary(), user_id :: integer() | binary()) ::
+          Experience.t() | nil
+  def get_experience(id, user_id) do
     %{id: id, user_id: user_id}
     |> query_with_data_definitions()
     |> Repo.all()
@@ -42,7 +42,7 @@ defmodule EbnisData.ExperienceApi do
       nil
   end
 
-  @spec get_experiences1(
+  @spec get_experiences(
           args :: %{
             pagination: Absinthe.Relay.Connection.Options.t(),
             user_id: binary() | Integer.t(),
@@ -51,7 +51,7 @@ defmodule EbnisData.ExperienceApi do
           }
         ) ::
           {:ok, Absinthe.Relay.Connection.t()} | {:error, any}
-  def get_experiences1(args) do
+  def get_experiences(args) do
     case args[:pagination] do
       nil ->
         experiences =
@@ -81,7 +81,7 @@ defmodule EbnisData.ExperienceApi do
 
   defp query_with_data_definitions(args \\ nil) do
     query =
-      Experience1
+      Experience
       |> join(:inner, [e], fd in assoc(e, :data_definitions))
       |> preload([_, fd], data_definitions: fd)
 
@@ -95,7 +95,7 @@ defmodule EbnisData.ExperienceApi do
   end
 
   defp query(args) do
-    Enum.reduce(args, Experience1, &query(&2, &1))
+    Enum.reduce(args, Experience, &query(&2, &1))
   end
 
   defp query(queryable, {:user_id, id}) do
@@ -123,12 +123,12 @@ defmodule EbnisData.ExperienceApi do
         &[:data_definitions | &1]
       )
 
-    %Experience1{}
-    |> Experience1.changeset(attrs)
+    %Experience{}
+    |> Experience.changeset(attrs)
     |> Repo.insert()
   end
 
-  @spec save_offline_experience1(
+  @spec save_offline_experience(
           attrs ::
             %{
               user_id: String.t(),
@@ -136,17 +136,17 @@ defmodule EbnisData.ExperienceApi do
             }
         ) ::
           {:ok, Experience.t(), [%Changeset{}]} | {:error, %Changeset{}}
-  def save_offline_experience1(attrs) do
+  def save_offline_experience(attrs) do
     case attrs
          |> Map.put(:custom_requireds, [:client_id])
          |> create_experience() do
-      {:ok, %Experience1{} = experience} ->
+      {:ok, %Experience{} = experience} ->
         entries = attrs[:entries] || []
 
         {created_entries, entries_changesets} =
           validate_create_offline_entries(entries, experience)
 
-        experience_with_entries = %Experience1{
+        experience_with_entries = %Experience{
           experience
           | entries: created_entries
         }
@@ -218,7 +218,7 @@ defmodule EbnisData.ExperienceApi do
          {:ok, created} <-
            entry
            |> Map.merge(associations)
-           |> EbnisData.create_entry1() do
+           |> EbnisData.create_entry() do
       {[created | created_entries], with_errors}
     else
       {:error, changeset} ->
@@ -303,8 +303,8 @@ defmodule EbnisData.ExperienceApi do
     end
   end
 
-  def delete_experience1(id, user_id) do
-    case get_experience1(id, user_id) do
+  def delete_experience(id, user_id) do
+    case get_experience(id, user_id) do
       nil ->
         :error
 
@@ -313,7 +313,7 @@ defmodule EbnisData.ExperienceApi do
     end
   end
 
-  @spec update_experience1(
+  @spec update_experience(
           id :: integer() | binary(),
           user_id :: integer() | binary(),
           update_args :: %{
@@ -321,18 +321,18 @@ defmodule EbnisData.ExperienceApi do
             optional(:description) => binary()
           }
         ) :: {:error, binary()}
-  def update_experience1(_, _, attrs) when attrs == %{} do
+  def update_experience(_, _, attrs) when attrs == %{} do
     {:error, "nothing to update"}
   end
 
-  def update_experience1(id, user_id, attrs) do
-    case get_experience1(id, user_id) do
+  def update_experience(id, user_id, attrs) do
+    case get_experience(id, user_id) do
       nil ->
         {:error, "can not find experience"}
 
       experience ->
         experience
-        |> Experience1.changeset(attrs)
+        |> Experience.changeset(attrs)
         |> Repo.update()
     end
   end

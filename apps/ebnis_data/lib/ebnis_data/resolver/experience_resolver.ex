@@ -1,9 +1,9 @@
-defmodule EbnisData.Resolver.Experience1 do
+defmodule EbnisData.Resolver.Experience do
   import Absinthe.Resolution.Helpers, only: [on_load: 2]
 
   alias EbnisData.Resolver
-  alias EbnisData.Experience1
-  alias EbnisData.Resolver.Entry1, as: Entry1Resolver
+  alias EbnisData.Experience
+  alias EbnisData.Resolver.Entry, as: EntryResolver
 
   @experience_not_found "Experience not found"
 
@@ -85,8 +85,8 @@ defmodule EbnisData.Resolver.Experience1 do
         %{context: %{current_user: %{id: user_id}}}
       ) do
     id
-    |> Resolver.convert_from_global_id(:experience1)
-    |> EbnisData.get_experience1(user_id)
+    |> Resolver.convert_from_global_id(:experience)
+    |> EbnisData.get_experience(user_id)
     |> case do
       nil ->
         {:error, "Experience definition not found"}
@@ -112,11 +112,11 @@ defmodule EbnisData.Resolver.Experience1 do
         Map.put(
           args,
           :ids,
-          Enum.map(ids, &Resolver.convert_from_global_id(&1, :experience1))
+          Enum.map(ids, &Resolver.convert_from_global_id(&1, :experience))
         )
     end
     |> Map.put(:user_id, user.id)
-    |> EbnisData.get_experiences1()
+    |> EbnisData.get_experiences()
   end
 
   def get_experiences(_, _) do
@@ -129,7 +129,7 @@ defmodule EbnisData.Resolver.Experience1 do
     Dataloader.load(
       ctx.loader,
       :data,
-      {:one, Experience1},
+      {:one, Experience},
       entries: {experience_id, args}
     )
     |> on_load(fn loader ->
@@ -137,7 +137,7 @@ defmodule EbnisData.Resolver.Experience1 do
         Dataloader.get(
           loader,
           :data,
-          {:one, Experience1},
+          {:one, Experience},
           entries: {experience_id, args}
         )
 
@@ -165,7 +165,7 @@ defmodule EbnisData.Resolver.Experience1 do
     case experience
          |> convert_entries_experience_ids_from_global()
          |> Map.put(:user_id, user_id)
-         |> EbnisData.save_offline_experience1() do
+         |> EbnisData.save_offline_experience() do
       {:ok, experience, []} ->
         %{experience: experience}
 
@@ -173,14 +173,14 @@ defmodule EbnisData.Resolver.Experience1 do
         experience_id =
           Resolver.convert_to_global_id(
             experience.id,
-            :experience1
+            :experience
           )
 
         errors =
           Enum.map(
             entries_changesets,
             &%{
-              errors: Entry1Resolver.entry_changeset_errors_to_map(&1),
+              errors: EntryResolver.entry_changeset_errors_to_map(&1),
               experience_id: experience_id,
               client_id: &1.changes.client_id
             }
@@ -211,7 +211,7 @@ defmodule EbnisData.Resolver.Experience1 do
               Enum.map(
                 entries,
                 &update_in(&1.experience_id, fn id ->
-                  Resolver.convert_from_global_id(id, :experience1)
+                  Resolver.convert_from_global_id(id, :experience)
                 end)
               )
         }
@@ -220,8 +220,8 @@ defmodule EbnisData.Resolver.Experience1 do
 
   def delete_experience(%{id: id}, %{context: %{current_user: user}}) do
     id
-    |> Resolver.convert_from_global_id(:experience1)
-    |> EbnisData.delete_experience1(user.id)
+    |> Resolver.convert_from_global_id(:experience)
+    |> EbnisData.delete_experience(user.id)
     |> case do
       :error ->
         {:error, @experience_not_found}
@@ -240,8 +240,8 @@ defmodule EbnisData.Resolver.Experience1 do
         %{context: %{current_user: user}}
       ) do
     id
-    |> Resolver.convert_from_global_id(:experience1)
-    |> EbnisData.update_experience1(user.id, Map.delete(args, :id))
+    |> Resolver.convert_from_global_id(:experience)
+    |> EbnisData.update_experience(user.id, Map.delete(args, :id))
     |> case do
       {:ok, experience} ->
         {:ok, %{experience: experience}}

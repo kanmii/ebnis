@@ -1,10 +1,10 @@
-defmodule EbnisData.Experience1 do
+defmodule EbnisData.Experience do
   use Ecto.Schema, warn: true
 
   import Ecto.Changeset
 
   alias EbnisData.User
-  alias EbnisData.Entry1
+  alias EbnisData.Entry
   alias EbnisData.DataDefinition
 
   @always_required_fields [:title, :user_id]
@@ -16,7 +16,7 @@ defmodule EbnisData.Experience1 do
     field(:description, :string)
     field(:client_id, :string)
     belongs_to(:user, User)
-    has_many(:entries, Entry1, foreign_key: :exp_id)
+    has_many(:entries, Entry, foreign_key: :exp_id)
     has_many(:data_definitions, DataDefinition, foreign_key: :experience_id)
 
     timestamps()

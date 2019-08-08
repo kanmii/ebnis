@@ -5,11 +5,11 @@ defmodule EbnisData.Schema.ExperienceTest do
 
   alias EbnisData.Schema
   alias EbnisData.Factory.Registration, as: RegFactory
-  alias EbnisData.Factory.Experience1, as: Factory
+  alias EbnisData.Factory.Experience, as: Factory
   alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
-  alias EbnisData.Query.Experience1, as: Query
+  alias EbnisData.Query.Experience, as: Query
   alias EbnisData.Resolver
-  alias EbnisData.Factory.Entry1, as: Entry1Factory
+  alias EbnisData.Factory.Entry, as: EntryFactory
 
   @moduletag capture_log: true
 
@@ -51,7 +51,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "createExperience1" => %{
+                  "createExperience" => %{
                     "experience" => %{
                       "id" => _,
                       "title" => ^title,
@@ -86,7 +86,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "createExperience1" => %{
+                  "createExperience" => %{
                     "experience" => nil,
                     "errors" => %{
                       "title" => title_error
@@ -125,7 +125,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "createExperience1" => %{
+                  "createExperience" => %{
                     "experience" => nil,
                     "errors" => %{
                       "dataDefinitionsErrors" => [
@@ -173,7 +173,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "createExperience1" => %{
+                  "createExperience" => %{
                     "errors" => %{
                       "dataDefinitionsErrors" => [
                         %{
@@ -218,7 +218,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "createExperience1" => %{
+                  "createExperience" => %{
                     "experience" => %{
                       "id" => _,
                       "dataDefinitions" => _,
@@ -247,19 +247,17 @@ defmodule EbnisData.Schema.ExperienceTest do
       experience = Factory.insert(user_id: user.id)
       id = Integer.to_string(experience.id)
 
-      alias EbnisData.Factory.Entry1, as: EntryFactory
-
       entry = EntryFactory.insert(%{}, experience)
-      entry_id = Resolver.convert_to_global_id(entry.id, :entry1)
+      entry_id = Resolver.convert_to_global_id(entry.id, :entry)
 
       variables = %{
-        "id" => Resolver.convert_to_global_id(id, :experience1)
+        "id" => Resolver.convert_to_global_id(id, :experience)
       }
 
       assert {:ok,
               %{
                 data: %{
-                  "getExperience1" => %{
+                  "getExperience" => %{
                     "id" => _,
                     "entries" => %{
                       "edges" => [
@@ -287,7 +285,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       variables = %{
-        "id" => Resolver.convert_to_global_id("0", :experience1)
+        "id" => Resolver.convert_to_global_id("0", :experience)
       }
 
       assert {:ok,
@@ -311,7 +309,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       variables = %{
-        "id" => Resolver.convert_to_global_id("x", :experience1)
+        "id" => Resolver.convert_to_global_id("x", :experience)
       }
 
       message =
@@ -342,7 +340,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       id = Integer.to_string(id)
 
       variables = %{
-        "id" => Resolver.convert_to_global_id(id, :experience1)
+        "id" => Resolver.convert_to_global_id(id, :experience)
       }
 
       bogus_user = %{id: 0}
@@ -386,13 +384,13 @@ defmodule EbnisData.Schema.ExperienceTest do
     test "succeeds with pagination only" do
       user = RegFactory.insert()
       experience1 = Factory.insert(user_id: user.id)
-      entry1 = Entry1Factory.insert(%{}, experience1)
+      entry1 = EntryFactory.insert(%{}, experience1)
 
       experience2 = Factory.insert(user_id: user.id)
-      entry2 = Entry1Factory.insert(%{}, experience2)
+      entry2 = EntryFactory.insert(%{}, experience2)
 
       experience3 = Factory.insert(user_id: user.id)
-      entry3 = Entry1Factory.insert(%{}, experience3)
+      entry3 = EntryFactory.insert(%{}, experience3)
 
       variables = %{
         "input" => %{
@@ -405,7 +403,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "getExperiences1" => %{
+                  "getExperiences" => %{
                     "edges" => edges,
                     "pageInfo" => %{
                       "hasNextPage" => false,
@@ -433,14 +431,14 @@ defmodule EbnisData.Schema.ExperienceTest do
              end)
              |> Enum.sort() ==
                Enum.sort([
-                 Resolver.convert_to_global_id(experience1.id, :experience1),
-                 Resolver.convert_to_global_id(entry1.id, :entry1),
+                 Resolver.convert_to_global_id(experience1.id, :experience),
+                 Resolver.convert_to_global_id(entry1.id, :entry),
                  (experience1.data_definitions |> hd()).id,
-                 Resolver.convert_to_global_id(experience2.id, :experience1),
-                 Resolver.convert_to_global_id(entry2.id, :entry1),
+                 Resolver.convert_to_global_id(experience2.id, :experience),
+                 Resolver.convert_to_global_id(entry2.id, :entry),
                  (experience2.data_definitions |> hd()).id,
-                 Resolver.convert_to_global_id(experience3.id, :experience1),
-                 Resolver.convert_to_global_id(entry3.id, :entry1),
+                 Resolver.convert_to_global_id(experience3.id, :experience),
+                 Resolver.convert_to_global_id(entry3.id, :entry),
                  (experience3.data_definitions |> hd()).id
                ])
     end
@@ -460,7 +458,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "getExperiences1" => %{
+                  "getExperiences" => %{
                     "edges" => [],
                     "pageInfo" => %{
                       "hasNextPage" => false,
@@ -483,7 +481,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       experience = Factory.insert(user_id: user.id)
       Factory.insert(user_id: user.id)
 
-      id = Resolver.convert_to_global_id(experience.id, :experience1)
+      id = Resolver.convert_to_global_id(experience.id, :experience)
 
       variables = %{
         "input" => %{
@@ -494,7 +492,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "getExperiences1" => %{
+                  "getExperiences" => %{
                     "edges" => [
                       %{
                         "node" => %{
@@ -560,7 +558,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "saveOfflineExperiences1" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "experienceErrors" => %{
                         "clientId" => "a",
@@ -599,7 +597,7 @@ defmodule EbnisData.Schema.ExperienceTest do
         )
 
       entries_params =
-        Entry1Factory.params_list(2, experience_params1)
+        EntryFactory.params_list(2, experience_params1)
         |> Enum.with_index(1)
         |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
 
@@ -617,7 +615,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "saveOfflineExperiences1" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "entriesErrors" => nil,
                       "experience" => %{
@@ -682,7 +680,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "saveOfflineExperiences1" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "entriesErrors" => nil,
                       "experience" => nil,
@@ -723,7 +721,7 @@ defmodule EbnisData.Schema.ExperienceTest do
         )
 
       entries =
-        Entry1Factory.params_list(2, params)
+        EntryFactory.params_list(2, params)
         |> Enum.with_index(1)
         |> Enum.map(fn
           {map, 1} ->
@@ -749,7 +747,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "saveOfflineExperiences1" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "experience" => %{
                         "id" => experience_id,
@@ -793,7 +791,7 @@ defmodule EbnisData.Schema.ExperienceTest do
           data_definitions: [definitions]
         )
 
-      entry = Entry1Factory.params(params, %{client_id: "c"})
+      entry = EntryFactory.params(params, %{client_id: "c"})
 
       [entry_data] = entry.data_objects
 
@@ -816,7 +814,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "saveOfflineExperiences1" => [
+                  "saveOfflineExperiences" => [
                     %{
                       "experience" => %{
                         "id" => _,
@@ -899,7 +897,7 @@ defmodule EbnisData.Schema.ExperienceTest do
 
     test "fails: experience does not exist" do
       variables = %{
-        "id" => Resolver.convert_to_global_id("0", :experience1)
+        "id" => Resolver.convert_to_global_id("0", :experience)
       }
 
       assert {:ok,
@@ -921,13 +919,13 @@ defmodule EbnisData.Schema.ExperienceTest do
     test "succeeds" do
       user = RegFactory.insert()
       experience = Factory.insert(user_id: user.id)
-      global_id = Resolver.convert_to_global_id(experience.id, :experience1)
+      global_id = Resolver.convert_to_global_id(experience.id, :experience)
       variables = %{"id" => global_id}
 
       assert {:ok,
               %{
                 data: %{
-                  "deleteExperience1" => %{
+                  "deleteExperience" => %{
                     "id" => ^global_id
                   }
                 }
@@ -1018,7 +1016,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     test "fails: experience does not exist" do
       variables = %{
         "input" => %{
-          "id" => Resolver.convert_to_global_id(0, :experience1),
+          "id" => Resolver.convert_to_global_id(0, :experience),
           "title" => "a"
         }
       }
@@ -1046,7 +1044,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       Factory.insert(user_id: user.id, title: title)
 
       experience = Factory.insert(user_id: user.id)
-      id = Resolver.convert_to_global_id(experience.id, :experience1)
+      id = Resolver.convert_to_global_id(experience.id, :experience)
 
       variables = %{
         "input" => %{
@@ -1058,7 +1056,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "updateExperience1" => %{
+                  "updateExperience" => %{
                     "experience" => nil,
                     "errors" => %{
                       "title" => title_error
@@ -1080,7 +1078,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     test "succeeds" do
       user = RegFactory.insert()
       experience = Factory.insert(user_id: user.id)
-      id = Resolver.convert_to_global_id(experience.id, :experience1)
+      id = Resolver.convert_to_global_id(experience.id, :experience)
 
       variables = %{
         "input" => %{
@@ -1093,7 +1091,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "updateExperience1" => %{
+                  "updateExperience" => %{
                     "experience" => %{
                       "id" => ^id,
                       "title" => "aa",

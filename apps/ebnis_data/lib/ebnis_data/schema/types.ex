@@ -7,16 +7,16 @@ defmodule EbnisData.Schema.Types do
   use Timex
 
   alias EbnisData.FieldType
-  alias EbnisData.Experience1
-  alias EbnisData.Entry1
+  alias EbnisData.Experience
+  alias EbnisData.Entry
 
   node interface do
     resolve_type(fn
-      %Entry1{}, _ ->
-        :entry1
+      %Entry{}, _ ->
+        :entry
 
-      %Experience1{}, _ ->
-        :experience1
+      %Experience{}, _ ->
+        :experience
 
       _, _ ->
         nil

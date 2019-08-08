@@ -3,7 +3,7 @@ defmodule EbnisData.Schema do
   use Absinthe.Relay.Schema, :modern
 
   alias EbnisData.Repo
-  alias EbnisData.Experience1
+  alias EbnisData.Experience
 
   import_types(Absinthe.Type.Custom)
   import_types(EbnisData.Schema.Types)
@@ -43,13 +43,13 @@ defmodule EbnisData.Schema do
   end
 
   def run_batch(
-        Experience1,
+        Experience,
         _query,
         :entries,
         experiences_ids_pagination_args_tuples,
         repo_opts
       ) do
-    EbnisData.get_paginated_entries_1(
+    EbnisData.get_paginated_entries(
       experiences_ids_pagination_args_tuples,
       repo_opts
     )
