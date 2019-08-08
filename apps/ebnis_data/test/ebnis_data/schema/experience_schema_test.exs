@@ -1,25 +1,44 @@
 defmodule EbnisData.Schema.ExperienceTest do
   use EbnisData.DataCase, async: true
 
+  import ExUnit.CaptureLog
+
   alias EbnisData.Schema
-  alias EbnisData.Factory.Experience, as: Factory
   alias EbnisData.Factory.Registration, as: RegFactory
-  alias EbnisData.Factory.FieldDef, as: FieldDefFactory
-  alias EbnisData.Query.Experience, as: Query
+  alias EbnisData.Factory.Experience1, as: Factory
+  alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
+  alias EbnisData.Query.Experience1, as: Query
   alias EbnisData.Resolver
-  alias EbnisData.Factory.Entry, as: EntryFactory
+  alias EbnisData.Factory.Entry1, as: Entry1Factory
 
-  @moduletag :db
-  @iso_extended_format "{ISO:Extended:Z}"
-
-  @invalid_field_types Enum.map(
-                         ["integer1", "date2", "datetime2", "decimal4"],
-                         &%{type: &1}
-                       )
+  @moduletag capture_log: true
 
   describe "create an experience" do
     # @tag :skip
-    test "with field values succeeds" do
+    test "unauthorized" do
+      variables = %{
+        "input" =>
+          Factory.params()
+          |> Factory.stringify()
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Unauthorized"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.create(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    # @tag :skip
+    test "succeeds for happy path" do
       %{title: title} = params = Factory.params()
       user = RegFactory.insert()
 
@@ -32,12 +51,14 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "createExperience" => %{
-                    "id" => _,
-                    "title" => ^title,
-                    "fieldDefs" => _,
-                    "clientId" => nil,
-                    "hasUnsaved" => nil
+                  "createExperience1" => %{
+                    "experience" => %{
+                      "id" => _,
+                      "title" => ^title,
+                      "dataDefinitions" => _,
+                      "clientId" => nil,
+                      "hasUnsaved" => nil
+                    }
                   }
                 }
               }} =
@@ -50,7 +71,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "fails if title (case insensitive) not unique for user" do
+    test "fails: title (case insensitive) not unique for user" do
       user = RegFactory.insert()
       Factory.insert(title: "Good experience", user_id: user.id)
 
@@ -62,15 +83,16 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       query = Query.create()
 
-      error = Jason.encode!(%{title: "has already been taken"})
-
       assert {:ok,
               %{
-                errors: [
-                  %{
-                    message: ^error
+                data: %{
+                  "createExperience1" => %{
+                    "experience" => nil,
+                    "errors" => %{
+                      "title" => title_error
+                    }
                   }
-                ]
+                }
               }} =
                Absinthe.run(
                  query,
@@ -78,16 +100,18 @@ defmodule EbnisData.Schema.ExperienceTest do
                  variables: variables,
                  context: context(user)
                )
+
+      assert is_binary(title_error)
     end
 
     # @tag :skip
-    test "fails if field name (case insensitive) not unique for experience" do
+    test "fails: data definition name (case insensitive) not unique for experience" do
       user = RegFactory.insert()
 
       attrs = %{
-        field_defs: [
-          FieldDefFactory.params(name: "Field 0"),
-          FieldDefFactory.params(name: "field 0")
+        data_definitions: [
+          DataDefinitionFactory.params(name: "F0"),
+          DataDefinitionFactory.params(name: "f0")
         ]
       }
 
@@ -98,39 +122,45 @@ defmodule EbnisData.Schema.ExperienceTest do
           |> Factory.stringify()
       }
 
-      query = Query.create()
-
-      error =
-        %{
-          field_defs: [
-            %{name: "field 0---1 has already been taken"}
-          ]
-        }
-        |> Jason.encode!()
-
       assert {:ok,
               %{
-                errors: [
-                  %{
-                    message: ^error
+                data: %{
+                  "createExperience1" => %{
+                    "experience" => nil,
+                    "errors" => %{
+                      "dataDefinitionsErrors" => [
+                        %{
+                          "index" => 1,
+                          "errors" => %{
+                            "name" => name,
+                            "type" => nil
+                          }
+                        }
+                      ]
+                    }
                   }
-                ]
+                }
               }} =
                Absinthe.run(
-                 query,
+                 Query.create(),
                  Schema,
                  variables: variables,
                  context: context(user)
                )
+
+      assert is_binary(name)
     end
 
     # @tag :skip
-    test "fails if field has wrong data type" do
+    test "fails: data definition type does not exist" do
       user = RegFactory.insert()
 
       attrs = %{
-        field_defs: [
-          Enum.random(@invalid_field_types) |> Map.put(:name, "invalid field")
+        data_definitions: [
+          %{
+            name: "ff",
+            type: "integer1"
+          }
         ]
       }
 
@@ -142,11 +172,21 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       assert {:ok,
               %{
-                errors: [
-                  %{
-                    message: _
+                data: %{
+                  "createExperience1" => %{
+                    "errors" => %{
+                      "dataDefinitionsErrors" => [
+                        %{
+                          "index" => 0,
+                          "errors" => %{
+                            "type" => type,
+                            "name" => nil
+                          }
+                        }
+                      ]
+                    }
                   }
-                ]
+                }
               }} =
                Absinthe.run(
                  query,
@@ -154,44 +194,14 @@ defmodule EbnisData.Schema.ExperienceTest do
                  variables: variables,
                  context: context(user)
                )
-    end
 
-    # @tag :skip
-    test "fails if user context not supplied" do
-      variables = %{
-        "input" =>
-          Factory.params()
-          |> Factory.stringify()
-      }
-
-      query = Query.create()
-
-      assert {:ok,
-              %{
-                errors: [
-                  %{
-                    message: "Unauthorized"
-                  }
-                ]
-              }} =
-               Absinthe.run(
-                 query,
-                 Schema,
-                 variables: variables
-               )
+      assert is_binary(type)
     end
 
     # @tag :skip
     test "with timestamps succeeds" do
-      inserted_at =
-        DateTime.utc_now()
-        |> Timex.shift(hours: -5)
-        |> Timex.to_datetime()
-        |> DateTime.truncate(:second)
-
-      inserted_at_string =
-        inserted_at
-        |> Timex.format!(@iso_extended_format)
+      inserted_at = ~U[2016-05-05 09:41:22Z]
+      inserted_at_string = "2016-05-05T09:41:22Z"
 
       params =
         Factory.params(
@@ -205,21 +215,24 @@ defmodule EbnisData.Schema.ExperienceTest do
         "input" => Factory.stringify(params)
       }
 
-      query = Query.create()
-
       assert {:ok,
               %{
                 data: %{
-                  "createExperience" => %{
-                    "id" => _,
-                    "fieldDefs" => _,
-                    "insertedAt" => ^inserted_at_string,
-                    "updatedAt" => ^inserted_at_string
+                  "createExperience1" => %{
+                    "experience" => %{
+                      "id" => _,
+                      "dataDefinitions" => _,
+                      "insertedAt" => ^inserted_at_string,
+                      "updatedAt" => ^inserted_at_string,
+                      "entries" => %{
+                        "edges" => []
+                      }
+                    }
                   }
                 }
               }} =
                Absinthe.run(
-                 query,
+                 Query.create(),
                  Schema,
                  variables: variables,
                  context: context(user)
@@ -231,19 +244,33 @@ defmodule EbnisData.Schema.ExperienceTest do
     # @tag :skip
     test "succeeds for existing experience" do
       user = RegFactory.insert()
-      %{id: id} = Factory.insert(user_id: user.id)
-      id = Integer.to_string(id)
+      experience = Factory.insert(user_id: user.id)
+      id = Integer.to_string(experience.id)
+
+      alias EbnisData.Factory.Entry1, as: EntryFactory
+
+      entry = EntryFactory.insert(%{}, experience)
+      entry_id = Resolver.convert_to_global_id(entry.id, :entry1)
 
       variables = %{
-        "id" => Resolver.convert_to_global_id(id, :experience)
+        "id" => Resolver.convert_to_global_id(id, :experience1)
       }
 
       assert {:ok,
               %{
                 data: %{
-                  "getExperience" => %{
-                    "_id" => ^id,
-                    "id" => _
+                  "getExperience1" => %{
+                    "id" => _,
+                    "entries" => %{
+                      "edges" => [
+                        %{
+                          "node" => %{
+                            "id" => ^entry_id
+                          }
+                        }
+                      ],
+                      "pageInfo" => %{}
+                    }
                   }
                 }
               }} =
@@ -256,18 +283,18 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "fails if experience does not exist" do
+    test "fails: experience does not exist" do
       user = RegFactory.insert()
 
       variables = %{
-        "id" => Resolver.convert_to_global_id("0", :experience)
+        "id" => Resolver.convert_to_global_id("0", :experience1)
       }
 
       assert {:ok,
               %{
                 errors: [
                   %{
-                    message: "Experience definition not found"
+                    message: _
                   }
                 ]
               }} =
@@ -280,16 +307,45 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
+    test "fails: global experience id invalid" do
+      user = RegFactory.insert()
+
+      variables = %{
+        "id" => Resolver.convert_to_global_id("x", :experience1)
+      }
+
+      message =
+        capture_log(fn ->
+          assert {:ok,
+                  %{
+                    errors: [
+                      %{
+                        message: "Experience definition not found"
+                      }
+                    ]
+                  }} =
+                   Absinthe.run(
+                     Query.get(),
+                     Schema,
+                     variables: variables,
+                     context: context(user)
+                   )
+        end)
+
+      assert message =~ "STACKTRACE"
+    end
+
+    # @tag :skip
     test "fails for wrong user" do
       user = RegFactory.insert()
       %{id: id} = Factory.insert(user_id: user.id)
       id = Integer.to_string(id)
 
       variables = %{
-        "id" => Resolver.convert_to_global_id(id, :experience)
+        "id" => Resolver.convert_to_global_id(id, :experience1)
       }
 
-      another_user = RegFactory.insert()
+      bogus_user = %{id: 0}
 
       assert {:ok,
               %{
@@ -303,22 +359,45 @@ defmodule EbnisData.Schema.ExperienceTest do
                  Query.get(),
                  Schema,
                  variables: variables,
-                 context: context(another_user)
+                 context: context(bogus_user)
                )
     end
   end
 
   describe "get many experiences" do
+    test "fails for unauthorized user" do
+      assert {
+               :ok,
+               %{
+                 errors: [
+                   %{
+                     message: _
+                   }
+                 ]
+               }
+             } =
+               Absinthe.run(
+                 Query.gets(),
+                 Schema
+               )
+    end
+
     # @tag :skip
-    test "succeeds" do
+    test "succeeds with pagination only" do
       user = RegFactory.insert()
-      %{id: id1} = Factory.insert(user_id: user.id)
-      %{id: id2} = Factory.insert(user_id: user.id)
+      experience1 = Factory.insert(user_id: user.id)
+      entry1 = Entry1Factory.insert(%{}, experience1)
+
+      experience2 = Factory.insert(user_id: user.id)
+      entry2 = Entry1Factory.insert(%{}, experience2)
+
+      experience3 = Factory.insert(user_id: user.id)
+      entry3 = Entry1Factory.insert(%{}, experience3)
 
       variables = %{
         "input" => %{
           "pagination" => %{
-            "first" => 2
+            "first" => 3
           }
         }
       }
@@ -326,27 +405,12 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "getExperiences" => %{
-                    "edges" => [
-                      %{
-                        "node" => %{
-                          "_id" => ida,
-                          "entries" => %{}
-                        }
-                      },
-                      %{
-                        "node" => %{
-                          "_id" => idb,
-                          "entries" => %{
-                            "edges" => [],
-                            "pageInfo" => %{
-                              "hasNextPage" => false,
-                              "hasPreviousPage" => false
-                            }
-                          }
-                        }
-                      }
-                    ]
+                  "getExperiences1" => %{
+                    "edges" => edges,
+                    "pageInfo" => %{
+                      "hasNextPage" => false,
+                      "hasPreviousPage" => false
+                    }
                   }
                 }
               }} =
@@ -357,14 +421,32 @@ defmodule EbnisData.Schema.ExperienceTest do
                  context: context(user)
                )
 
-      assert [
-               Integer.to_string(id1),
-               Integer.to_string(id2)
-             ] == Enum.sort([ida, idb])
+      assert edges
+             |> Enum.flat_map(fn edge ->
+               node = edge["node"]
+
+               [
+                 node["id"],
+                 (node["dataDefinitions"] |> hd())["id"],
+                 (node["entries"]["edges"] |> hd())["node"]["id"]
+               ]
+             end)
+             |> Enum.sort() ==
+               Enum.sort([
+                 Resolver.convert_to_global_id(experience1.id, :experience1),
+                 Resolver.convert_to_global_id(entry1.id, :entry1),
+                 (experience1.data_definitions |> hd()).id,
+                 Resolver.convert_to_global_id(experience2.id, :experience1),
+                 Resolver.convert_to_global_id(entry2.id, :entry1),
+                 (experience2.data_definitions |> hd()).id,
+                 Resolver.convert_to_global_id(experience3.id, :experience1),
+                 Resolver.convert_to_global_id(entry3.id, :entry1),
+                 (experience3.data_definitions |> hd()).id
+               ])
     end
 
     # @tag :skip
-    test "returns [] if no experience exists" do
+    test "returns []: no experience exists" do
       user = RegFactory.insert()
 
       variables = %{
@@ -378,7 +460,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "getExperiences" => %{
+                  "getExperiences1" => %{
                     "edges" => [],
                     "pageInfo" => %{
                       "hasNextPage" => false,
@@ -398,25 +480,25 @@ defmodule EbnisData.Schema.ExperienceTest do
     # @tag :skip
     test "by IDs succeeds" do
       user = RegFactory.insert()
-      %{id: id1} = Factory.insert(user_id: user.id)
+      experience = Factory.insert(user_id: user.id)
       Factory.insert(user_id: user.id)
 
-      id1_string = Integer.to_string(id1)
+      id = Resolver.convert_to_global_id(experience.id, :experience1)
 
       variables = %{
         "input" => %{
-          "ids" => [Resolver.convert_to_global_id(id1, :experience)]
+          "ids" => [id]
         }
       }
 
       assert {:ok,
               %{
                 data: %{
-                  "getExperiences" => %{
+                  "getExperiences1" => %{
                     "edges" => [
                       %{
                         "node" => %{
-                          "_id" => ^id1_string,
+                          "id" => ^id,
                           "entries" => %{
                             "edges" => [],
                             "pageInfo" => %{
@@ -441,114 +523,135 @@ defmodule EbnisData.Schema.ExperienceTest do
 
   describe "save offline experience" do
     # @tag :skip
-    test "fails if client id not unique for user" do
-      user = RegFactory.insert()
-      Factory.insert(client_id: "abcd", user_id: user.id)
-      field_def = FieldDefFactory.params()
-
-      params =
-        Factory.params(
-          client_id: "abcd",
-          field_defs: [
-            Map.put(field_def, :client_id, 1)
-          ]
-        )
-
+    test "fails: no user context" do
       variables = %{
-        "input" => [Factory.stringify(params)]
+        "input" => [
+          Factory.params()
+          |> Factory.stringify()
+        ]
       }
 
-      query = Query.save_offline_experiences()
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.save_offline_experiences(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    # @tag :skip
+    test "fails: user does not exist" do
+      bogus_user = %{id: 0}
+
+      variables = %{
+        "input" => [
+          Factory.params(client_id: "a")
+          |> Factory.stringify()
+        ]
+      }
 
       assert {:ok,
               %{
                 data: %{
-                  "saveOfflineExperiences" => [
+                  "saveOfflineExperiences1" => [
                     %{
-                      "entriesErrors" => nil,
-                      "experience" => nil,
-                      "experienceError" => %{
-                        "error" => error,
+                      "experienceErrors" => %{
+                        "clientId" => "a",
                         "index" => 0,
-                        "clientId" => "abcd"
+                        "errors" => %{
+                          "user" => user_error
+                        }
                       }
                     }
                   ]
                 }
               }} =
                Absinthe.run(
-                 query,
+                 Query.save_offline_experiences(),
                  Schema,
                  variables: variables,
-                 context: context(user)
+                 context: context(bogus_user)
                )
 
-      assert error =~ ~S("client_id":)
+      assert is_binary(user_error)
     end
 
     # @tag :skip
     test "one succeeds and one fails when client id not provided" do
       user = RegFactory.insert()
 
-      field_defs1 =
-        FieldDefFactory.params_list(2)
+      data_definition1 =
+        DataDefinitionFactory.params_list(2)
         |> Enum.with_index(1)
         |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
 
-      params1 = Factory.params(client_id: "a", field_defs: field_defs1)
+      experience_params1 =
+        Factory.params(
+          client_id: "a",
+          data_definitions: data_definition1
+        )
 
       entries_params =
-        EntryFactory.params_list(2, params1)
+        Entry1Factory.params_list(2, experience_params1)
         |> Enum.with_index(1)
         |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
 
-      params2 = Factory.params()
+      experience_params = Factory.params()
 
       variables = %{
         "input" => [
-          params1
+          experience_params1
           |> Map.put(:entries, entries_params)
           |> Factory.stringify(),
-          Factory.stringify(params2)
+          Factory.stringify(experience_params)
         ]
       }
-
-      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "saveOfflineExperiences" => [
+                  "saveOfflineExperiences1" => [
                     %{
                       "entriesErrors" => nil,
                       "experience" => %{
                         "id" => _,
                         "clientId" => "a",
-                        "fieldDefs" => _,
+                        "dataDefinitions" => _,
                         "entries" => %{
                           "edges" => edges
                         }
                       },
-                      "experienceError" => nil
+                      "experienceErrors" => nil
                     },
                     %{
                       "entriesErrors" => nil,
                       "experience" => nil,
-                      "experienceError" => %{
-                        "error" => error,
+                      "experienceErrors" => %{
+                        "errors" => %{
+                          "clientId" => client_id_error
+                        },
                         "index" => 1,
-                        "clientId" => nil
+                        "clientId" => "1"
                       }
                     }
                   ]
                 }
               }} =
                Absinthe.run(
-                 query,
+                 Query.save_offline_experiences(),
                  Schema,
                  variables: variables,
                  context: context(user)
                )
+
+      assert is_binary(client_id_error)
 
       assert entries_params
              |> Enum.map(&"#{&1.client_id}")
@@ -556,323 +659,84 @@ defmodule EbnisData.Schema.ExperienceTest do
                edges
                |> Enum.map(&~s(#{&1["node"]["clientId"]}))
                |> Enum.sort()
-
-      assert error =~ ~S("client_id":)
     end
 
     # @tag :skip
-    test "fails if entry.exp_id != experience.client_id" do
-      field_defs =
-        FieldDefFactory.params_list(2)
-        |> Enum.with_index(1)
-        |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
-
-      params = Factory.params(client_id: "a", field_defs: field_defs)
-
-      [entry_1, entry_2] =
-        EntryFactory.params_list(2, params)
-        |> Enum.with_index(1)
-        |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
-
+    test "fails: client id not unique for user" do
       user = RegFactory.insert()
-      entry_1 = Map.put(entry_1, :exp_id, "pat")
-
-      variables = %{
-        "input" => [
-          params
-          |> Map.put(:entries, [entry_1, entry_2])
-          |> Factory.stringify()
-        ]
-      }
-
-      query = Query.save_offline_experiences()
-
-      assert {:ok,
-              %{
-                data: %{
-                  "saveOfflineExperiences" => [
-                    %{
-                      "experience" => %{
-                        "_id" => experience_id,
-                        "clientId" => "a",
-                        "fieldDefs" => _,
-                        "entries" => %{
-                          "edges" => edges
-                        }
-                      },
-                      "entriesErrors" => [
-                        %{
-                          "clientId" => "1",
-                          "error" => error,
-                          "experienceId" => entry_error_experience_id
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }} =
-               Absinthe.run(
-                 query,
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-
-      assert experience_id == entry_error_experience_id
-      assert length(edges) == 1
-      assert error =~ ~s("exp_id":)
-    end
-
-    test "fails if entry.fields.def_id != experience.field_defs.client_id" do
-      field_def = FieldDefFactory.params(client_id: "b")
-
-      params = Factory.params(client_id: "a", field_defs: [field_def])
-      entry = EntryFactory.params(params, %{client_id: "c"})
-      [entry_field] = entry.fields
-      entry = Map.put(entry, :fields, [Map.put(entry_field, :def_id, "d")])
-
-      user = RegFactory.insert()
-
-      variables = %{
-        "input" => [
-          params
-          |> Map.put(:entries, [entry])
-          |> Factory.stringify()
-        ]
-      }
-
-      query = Query.save_offline_experiences()
-
-      assert {:ok,
-              %{
-                data: %{
-                  "saveOfflineExperiences" => [
-                    %{
-                      "experience" => %{
-                        "_id" => _,
-                        "clientId" => "a",
-                        "fieldDefs" => _,
-                        "entries" => %{
-                          "edges" => []
-                        }
-                      },
-                      "entriesErrors" => [
-                        %{
-                          "clientId" => "c",
-                          "error" => error,
-                          "experienceId" => _
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }} =
-               Absinthe.run(
-                 query,
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-
-      assert error =~ ~s("fields":[{"errors":{"def_id":)
-      assert error =~ ~s("meta":{"def_id":"d")
-    end
-
-    test "fails if entry.fields.def_id not unique" do
-      field_def = FieldDefFactory.params()
+      Factory.insert(client_id: "a", user_id: user.id)
 
       params =
         Factory.params(
           client_id: "a",
-          field_defs: [
-            Map.put(field_def, :client_id, "b")
+          data_definitions: [
+            DataDefinitionFactory.params()
+            |> Map.put(:client_id, 1)
           ]
         )
 
-      entry = EntryFactory.params(params, %{client_id: "c"})
-      [entry_field] = entry.fields
-      entry = Map.put(entry, :fields, [entry_field, entry_field])
-
-      user = RegFactory.insert()
-
       variables = %{
-        "input" => [
-          params
-          |> Map.put(:entries, [entry])
-          |> Factory.stringify()
-        ]
+        "input" => [Factory.stringify(params)]
       }
-
-      query = Query.save_offline_experiences()
 
       assert {:ok,
               %{
                 data: %{
-                  "saveOfflineExperiences" => [
+                  "saveOfflineExperiences1" => [
                     %{
-                      "experience" => %{
-                        "_id" => _,
-                        "clientId" => "a",
-                        "fieldDefs" => _,
-                        "entries" => %{
-                          "edges" => []
-                        }
-                      },
-                      "entriesErrors" => [
-                        %{
-                          "clientId" => "c",
-                          "error" => error,
-                          "experienceId" => _
-                        }
-                      ]
+                      "entriesErrors" => nil,
+                      "experience" => nil,
+                      "experienceErrors" => %{
+                        "errors" => %{
+                          "clientId" => client_id_error
+                        },
+                        "index" => 0,
+                        "clientId" => "a"
+                      }
                     }
                   ]
                 }
               }} =
                Absinthe.run(
-                 query,
+                 Query.save_offline_experiences(),
                  Schema,
                  variables: variables,
                  context: context(user)
                )
 
-      assert error =~ ~s("fields":[{"errors":{"def_id":)
-      assert error =~ ~s("meta":{"def_id":"b")
-    end
-
-    test "fails if entry.fields.data.type != experience.field_defs.type" do
-      field_def = FieldDefFactory.params(type: "integer")
-
-      params =
-        Factory.params(
-          client_id: "a",
-          field_defs: [
-            field_def
-          ]
-        )
-
-      entry = EntryFactory.params(params, %{client_id: "c"})
-
-      entry_field = %{
-        data: %{"decimal" => 5.0},
-        def_id: field_def.client_id
-      }
-
-      entry = Map.put(entry, :fields, [entry_field])
-
-      user = RegFactory.insert()
-
-      variables = %{
-        "input" => [
-          params
-          |> Map.put(:entries, [entry])
-          |> Factory.stringify()
-        ]
-      }
-
-      query = Query.save_offline_experiences()
-
-      assert {:ok,
-              %{
-                data: %{
-                  "saveOfflineExperiences" => [
-                    %{
-                      "experience" => %{
-                        "_id" => _,
-                        "clientId" => "a",
-                        "fieldDefs" => _,
-                        "entries" => %{
-                          "edges" => []
-                        }
-                      },
-                      "entriesErrors" => [
-                        %{
-                          "clientId" => "c",
-                          "error" => error,
-                          "experienceId" => _
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }} =
-               Absinthe.run(
-                 query,
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-
-      assert error =~ ~s("fields":[{"errors":{"def_id":)
-      assert error =~ ~s("meta":{"def_id":)
-    end
-
-    test "fails if entry.fields.def_id not in experience.field_defs.client_ids" do
-      field_defs = FieldDefFactory.params_list(2)
-
-      params =
-        Factory.params(
-          client_id: "a",
-          field_defs: field_defs
-        )
-
-      entry = EntryFactory.params(params, %{client_id: "c"})
-      [entry_field, missing_entry_field] = entry.fields
-      entry = Map.put(entry, :fields, [entry_field])
-
-      user = RegFactory.insert()
-
-      variables = %{
-        "input" => [
-          params
-          |> Map.put(:entries, [entry])
-          |> Factory.stringify()
-        ]
-      }
-
-      query = Query.save_offline_experiences()
-
-      assert {:ok,
-              %{
-                data: %{
-                  "saveOfflineExperiences" => [
-                    %{
-                      "experience" => %{
-                        "_id" => _,
-                        "clientId" => _,
-                        "fieldDefs" => _,
-                        "entries" => %{
-                          "edges" => []
-                        }
-                      },
-                      "entriesErrors" => [
-                        %{
-                          "clientId" => _,
-                          "error" => error,
-                          "experienceId" => _
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }} =
-               Absinthe.run(
-                 query,
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-
-      assert error =~ ~s("fields":[{"errors":{"data":)
-      assert error =~ ~s("meta":{"def_id":"#{missing_entry_field.def_id}")
+      assert is_binary(client_id_error)
     end
 
     # @tag :skip
-    test "fails if entry.client_ids not unique for experience" do
-      params = Factory.params(client_id: "a")
-      entries = EntryFactory.params_list(2, params, client_id: "b")
-
+    test "fails: entry.experience_id != experience.client_id" do
       user = RegFactory.insert()
+
+      data_definitions =
+        DataDefinitionFactory.params_list(2)
+        |> Enum.with_index(1)
+        |> Enum.map(fn {map, index} -> Map.put(map, :client_id, index) end)
+
+      params =
+        Factory.params(
+          client_id: "a",
+          data_definitions: data_definitions
+        )
+
+      entries =
+        Entry1Factory.params_list(2, params)
+        |> Enum.with_index(1)
+        |> Enum.map(fn
+          {map, 1} ->
+            %{
+              map
+              | # here we have changed: experience_id != params.client_id
+                experience_id: "x"
+            }
+            |> Map.put(:client_id, 1)
+
+          {map, 2} ->
+            Map.put(map, :client_id, 2)
+        end)
 
       variables = %{
         "input" => [
@@ -882,25 +746,25 @@ defmodule EbnisData.Schema.ExperienceTest do
         ]
       }
 
-      query = Query.save_offline_experiences()
-
       assert {:ok,
               %{
                 data: %{
-                  "saveOfflineExperiences" => [
+                  "saveOfflineExperiences1" => [
                     %{
                       "experience" => %{
-                        "_id" => experience_id,
-                        "clientId" => _,
-                        "fieldDefs" => _,
+                        "id" => experience_id,
+                        "clientId" => "a",
+                        "dataDefinitions" => _,
                         "entries" => %{
                           "edges" => edges
                         }
                       },
                       "entriesErrors" => [
                         %{
-                          "clientId" => "b",
-                          "error" => error,
+                          "clientId" => "1",
+                          "errors" => %{
+                            "experienceId" => entry_experience_id_error
+                          },
                           "experienceId" => entry_error_experience_id
                         }
                       ]
@@ -909,127 +773,110 @@ defmodule EbnisData.Schema.ExperienceTest do
                 }
               }} =
                Absinthe.run(
-                 query,
+                 Query.save_offline_experiences(),
                  Schema,
                  variables: variables,
                  context: context(user)
                )
 
       assert experience_id == entry_error_experience_id
-      assert length(edges) == 1
-      assert error =~ ~s("client_id":)
+      assert is_binary(entry_experience_id_error)
     end
 
-    # @tag :skip
-    test "fails if no user context" do
-      params = Factory.params()
+    test "fails: entry.data_objects.definition_id != experience.data_definitions.client_id" do
+      user = RegFactory.insert()
+      definitions = DataDefinitionFactory.params(client_id: "b")
+
+      params =
+        Factory.params(
+          client_id: "a",
+          data_definitions: [definitions]
+        )
+
+      entry = Entry1Factory.params(params, %{client_id: "c"})
+
+      [entry_data] = entry.data_objects
+
+      entry =
+        Map.put(
+          entry,
+          :data_objects,
+          # see: we switched definition_id from "b" to "d"
+          [Map.put(entry_data, :definition_id, "d")]
+        )
 
       variables = %{
         "input" => [
           params
+          |> Map.put(:entries, [entry])
           |> Factory.stringify()
         ]
       }
 
-      query = Query.save_offline_experiences()
-
-      assert {:ok,
-              %{
-                errors: [
-                  %{
-                    message: "Unauthorized"
-                  }
-                ]
-              }} =
-               Absinthe.run(
-                 query,
-                 Schema,
-                 variables: variables
-               )
-    end
-
-    # @tag :skip
-    test "fails if user does not exist" do
-      user = %{id: 0}
-      params = Factory.params(client_id: "a")
-
-      variables = %{
-        "input" => [
-          Factory.stringify(params)
-        ]
-      }
-
-      query = Query.save_offline_experiences()
-
       assert {:ok,
               %{
                 data: %{
-                  "saveOfflineExperiences" => [
+                  "saveOfflineExperiences1" => [
                     %{
-                      "experienceError" => %{
+                      "experience" => %{
+                        "id" => _,
                         "clientId" => "a",
-                        "index" => 0,
-                        "error" => error
-                      }
+                        "dataDefinitions" => _,
+                        "entries" => %{
+                          "edges" => []
+                        }
+                      },
+                      "entriesErrors" => [
+                        %{
+                          "clientId" => "c",
+                          "errors" => %{
+                            "dataObjectsErrors" => [
+                              %{
+                                "index" => _,
+                                "errors" => %{
+                                  "definitionId" => definition_id_error
+                                }
+                              }
+                            ]
+                          },
+                          "experienceId" => _
+                        }
+                      ]
                     }
                   ]
                 }
               }} =
                Absinthe.run(
-                 query,
+                 Query.save_offline_experiences(),
                  Schema,
                  variables: variables,
                  context: context(user)
                )
 
-      assert error =~ ~s("user":)
+      assert is_binary(definition_id_error)
     end
   end
 
   describe "delete experience mutation" do
-    test "succeeds" do
-      user = RegFactory.insert()
-      experience = Factory.insert(user_id: user.id)
-      global_id = Resolver.convert_to_global_id(experience.id, :experience)
-
-      assert {:ok,
-              %{
-                data: %{
-                  "deleteExperience" => %{
-                    "id" => ^global_id
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 Query.delete_experience(),
-                 Schema,
-                 variables: %{"id" => global_id},
-                 context: context(user)
-               )
-    end
-
-    test "fails if experience does not exist" do
-      variables = %{
-        "id" => Resolver.convert_to_global_id("0", :experience)
-      }
+    test "fails: no user context" do
+      variables = %{"id" => "a"}
 
       assert {:ok,
               %{
                 errors: [
                   %{
-                    message: "Experience not found"
+                    message: _
                   }
                 ]
               }} =
                Absinthe.run(
-                 Query.delete_experience(),
+                 Query.delete(),
                  Schema,
-                 variables: variables,
-                 context: context(%{id: "0"})
+                 variables: variables
                )
     end
 
-    test "fails if we did not supply global id" do
+    test "fails: id is not global" do
       variables = %{
         "id" => "0"
       }
@@ -1038,42 +885,65 @@ defmodule EbnisData.Schema.ExperienceTest do
               %{
                 errors: [
                   %{
-                    message: "Invalid ID"
+                    message: _
                   }
                 ]
               }} =
                Absinthe.run(
-                 Query.delete_experience(),
+                 Query.delete(),
                  Schema,
                  variables: variables,
                  context: context(%{id: "0"})
                )
     end
 
-    test "fails if no user context" do
+    test "fails: experience does not exist" do
       variables = %{
-        "id" => "a"
+        "id" => Resolver.convert_to_global_id("0", :experience1)
       }
 
       assert {:ok,
               %{
                 errors: [
                   %{
-                    message: "Unauthorized"
+                    message: _
                   }
                 ]
               }} =
                Absinthe.run(
-                 Query.delete_experience(),
+                 Query.delete(),
                  Schema,
-                 variables: variables
+                 variables: variables,
+                 context: context(%{id: "0"})
+               )
+    end
+
+    test "succeeds" do
+      user = RegFactory.insert()
+      experience = Factory.insert(user_id: user.id)
+      global_id = Resolver.convert_to_global_id(experience.id, :experience1)
+      variables = %{"id" => global_id}
+
+      assert {:ok,
+              %{
+                data: %{
+                  "deleteExperience1" => %{
+                    "id" => ^global_id
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.delete(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
                )
     end
   end
 
   describe "update experience mutation" do
     # @tag :skip
-    test "fails if no user context" do
+    test "fails: no user context" do
       variables = %{
         "input" => %{
           "id" => "1"
@@ -1084,22 +954,22 @@ defmodule EbnisData.Schema.ExperienceTest do
               %{
                 errors: [
                   %{
-                    message: "Unauthorized"
+                    message: _
                   }
                 ]
               }} =
                Absinthe.run(
-                 Query.update_experience(),
+                 Query.update(),
                  Schema,
                  variables: variables
                )
     end
 
     # @tag :skip
-    test "fails when there is nothing to update" do
+    test "fails: nothing to update" do
       variables = %{
         "input" => %{
-          "id" => Resolver.convert_to_global_id(0, :experience)
+          "id" => 0
         }
       }
 
@@ -1107,12 +977,12 @@ defmodule EbnisData.Schema.ExperienceTest do
               %{
                 errors: [
                   %{
-                    message: "Nothing to update"
+                    message: _
                   }
                 ]
               }} =
                Absinthe.run(
-                 Query.update_experience(),
+                 Query.update(),
                  Schema,
                  variables: variables,
                  context: context(%{id: 0})
@@ -1120,7 +990,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "fails if we are not using global ID for experience" do
+    test "fails: ID is not global" do
       variables = %{
         "input" => %{
           "id" => 0,
@@ -1132,12 +1002,12 @@ defmodule EbnisData.Schema.ExperienceTest do
               %{
                 errors: [
                   %{
-                    message: "Invalid ID"
+                    message: _
                   }
                 ]
               }} =
                Absinthe.run(
-                 Query.update_experience(),
+                 Query.update(),
                  Schema,
                  variables: variables,
                  context: context(%{id: 0})
@@ -1145,10 +1015,10 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "fails if experience does not exist" do
+    test "fails: experience does not exist" do
       variables = %{
         "input" => %{
-          "id" => Resolver.convert_to_global_id(0, :experience),
+          "id" => Resolver.convert_to_global_id(0, :experience1),
           "title" => "a"
         }
       }
@@ -1157,12 +1027,12 @@ defmodule EbnisData.Schema.ExperienceTest do
               %{
                 errors: [
                   %{
-                    message: "Experience does not exist"
+                    message: _
                   }
                 ]
               }} =
                Absinthe.run(
-                 Query.update_experience(),
+                 Query.update(),
                  Schema,
                  variables: variables,
                  context: context(%{id: 0})
@@ -1170,82 +1040,51 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "succeeds with experience definition updates" do
+    test "fails: title not unique" do
       user = RegFactory.insert()
-      field_definition = FieldDefFactory.params()
+      title = "ab"
+      Factory.insert(user_id: user.id, title: title)
 
-      experience =
-        Factory.insert(
-          user_id: user.id,
-          field_defs: [field_definition]
-        )
-
-      string_id = Integer.to_string(experience.id)
-      global_id = Resolver.convert_to_global_id(string_id, :experience)
-      field_definition_id = hd(experience.field_defs).id
+      experience = Factory.insert(user_id: user.id)
+      id = Resolver.convert_to_global_id(experience.id, :experience1)
 
       variables = %{
         "input" => %{
-          "id" => global_id,
-          "title" => "aa",
-          "description" => "b",
-          "fieldDefinitions" => [
-            %{
-              "id" => field_definition_id,
-              "name" => "cc"
-            }
-          ]
+          "id" => id,
+          "title" => title
         }
       }
-
-      refute experience.title == "aa"
-      refute experience.description == "b"
-      refute field_definition.name == "cc"
 
       assert {:ok,
               %{
                 data: %{
-                  "updateExperience" => %{
-                    "experience" => %{
-                      "_id" => ^string_id,
-                      "id" => ^global_id,
-                      "title" => "aa",
-                      "description" => "b",
-                      "fieldDefs" => [
-                        %{
-                          "id" => ^field_definition_id,
-                          "name" => "cc"
-                        }
-                      ]
+                  "updateExperience1" => %{
+                    "experience" => nil,
+                    "errors" => %{
+                      "title" => title_error
                     }
                   }
                 }
               }} =
                Absinthe.run(
-                 Query.update_experience(),
+                 Query.update(),
                  Schema,
                  variables: variables,
                  context: context(user)
                )
+
+      assert is_binary(title_error)
     end
 
     # @tag :skip
-    test "succeeds without experience definition updates" do
+    test "succeeds" do
       user = RegFactory.insert()
-      field_definition = FieldDefFactory.params()
-
-      experience =
-        Factory.insert(
-          user_id: user.id,
-          field_defs: [field_definition]
-        )
-
-      string_id = Integer.to_string(experience.id)
-      global_id = Resolver.convert_to_global_id(string_id, :experience)
+      experience = Factory.insert(user_id: user.id)
+      id = Resolver.convert_to_global_id(experience.id, :experience1)
 
       variables = %{
         "input" => %{
-          "id" => global_id,
+          "id" => id,
           "title" => "aa",
           "description" => "b"
         }
@@ -1254,260 +1093,17 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "updateExperience" => %{
+                  "updateExperience1" => %{
                     "experience" => %{
-                      "_id" => ^string_id,
-                      "id" => ^global_id,
+                      "id" => ^id,
                       "title" => "aa",
-                      "description" => "b",
-                      "fieldDefs" => [query_field_definition]
+                      "description" => "b"
                     }
                   }
                 }
               }} =
                Absinthe.run(
-                 Query.update_experience(),
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-
-      assert query_field_definition["name"] == field_definition.name
-    end
-
-    # @tag :skip
-    test "succeeds with empty list of definition updates" do
-      user = RegFactory.insert()
-      field_definition = FieldDefFactory.params()
-
-      experience =
-        Factory.insert(
-          user_id: user.id,
-          field_defs: [field_definition]
-        )
-
-      string_id = Integer.to_string(experience.id)
-      global_id = Resolver.convert_to_global_id(string_id, :experience)
-
-      variables = %{
-        "input" => %{
-          "id" => global_id,
-          "title" => "aa",
-          "description" => "b",
-          "fieldDefinitions" => []
-        }
-      }
-
-      assert {:ok,
-              %{
-                data: %{
-                  "updateExperience" => %{
-                    "experience" => %{
-                      "_id" => ^string_id,
-                      "id" => ^global_id,
-                      "title" => "aa",
-                      "description" => "b",
-                      "fieldDefs" => [query_field_definition]
-                    }
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 Query.update_experience(),
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-
-      assert query_field_definition["name"] == field_definition.name
-    end
-
-    # @tag :skip
-    test "fails if title taken" do
-      user = RegFactory.insert()
-      title = "ab"
-      Factory.insert(user_id: user.id, title: title)
-
-      experience = Factory.insert(user_id: user.id)
-
-      global_id = Resolver.convert_to_global_id(experience.id, :experience)
-
-      variables = %{
-        "input" => %{
-          "id" => global_id,
-          "title" => title
-        }
-      }
-
-      assert {:ok,
-              %{
-                data: %{
-                  "updateExperience" => %{
-                    "experience" => nil,
-                    "experienceError" => %{
-                      "title" => "has already been taken"
-                    }
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 Query.update_experience(),
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-    end
-
-    # @tag :skip
-    test "fails if field definition update has error but not experience" do
-      user = RegFactory.insert()
-      field_definition = FieldDefFactory.params()
-
-      experience =
-        Factory.insert(
-          user_id: user.id,
-          field_defs: [field_definition]
-        )
-
-      [field_definition] = experience.field_defs
-
-      string_id = Integer.to_string(experience.id)
-      global_id = Resolver.convert_to_global_id(string_id, :experience)
-      field_definition_id = field_definition.id
-
-      variables = %{
-        "input" => %{
-          "id" => global_id,
-          "title" => "aa",
-          "fieldDefinitions" => [
-            %{
-              "id" => field_definition_id,
-              "name" => ""
-            }
-          ]
-        }
-      }
-
-      assert {:ok,
-              %{
-                data: %{
-                  "updateExperience" => %{
-                    "experience" => nil,
-                    "fieldDefinitionsErrors" => [
-                      %{
-                        "id" => ^field_definition_id,
-                        "name" => _
-                      }
-                    ]
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 Query.update_experience(),
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-    end
-
-    # @tag :skip
-    test "fails if experience has error but field definition does not" do
-      user = RegFactory.insert()
-      field_definition = FieldDefFactory.params()
-
-      experience =
-        Factory.insert(
-          user_id: user.id,
-          field_defs: [field_definition]
-        )
-
-      [field_definition] = experience.field_defs
-
-      string_id = Integer.to_string(experience.id)
-      global_id = Resolver.convert_to_global_id(string_id, :experience)
-      field_definition_id = field_definition.id
-
-      variables = %{
-        "input" => %{
-          "id" => global_id,
-          "title" => "",
-          "fieldDefinitions" => [
-            %{
-              "id" => field_definition_id,
-              "name" => "aa"
-            }
-          ]
-        }
-      }
-
-      assert {:ok,
-              %{
-                data: %{
-                  "updateExperience" => %{
-                    "experience" => nil,
-                    "fieldDefinitionsErrors" => nil,
-                    "experienceError" => %{
-                      "title" => _
-                    }
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 Query.update_experience(),
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-    end
-
-    test "fails if both experience and fields definitions have errors" do
-      user = RegFactory.insert()
-      field_definition = FieldDefFactory.params()
-
-      experience =
-        Factory.insert(
-          user_id: user.id,
-          field_defs: [field_definition]
-        )
-
-      [field_definition] = experience.field_defs
-
-      string_id = Integer.to_string(experience.id)
-      global_id = Resolver.convert_to_global_id(string_id, :experience)
-      field_definition_id = field_definition.id
-
-      variables = %{
-        "input" => %{
-          "id" => global_id,
-          "title" => "",
-          "fieldDefinitions" => [
-            %{
-              "id" => field_definition_id,
-              "name" => ""
-            }
-          ]
-        }
-      }
-
-      assert {:ok,
-              %{
-                data: %{
-                  "updateExperience" => %{
-                    "experience" => nil,
-                    "fieldDefinitionsErrors" => [
-                      %{
-                        "id" => ^field_definition_id,
-                        "name" => _
-                      }
-                    ],
-                    "experienceError" => %{
-                      "title" => _
-                    }
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 Query.update_experience(),
+                 Query.update(),
                  Schema,
                  variables: variables,
                  context: context(user)

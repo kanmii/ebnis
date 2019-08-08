@@ -1,120 +1,162 @@
-defmodule EbnisData.Query.Entry do
-  @fragment_name "EntryFragment"
+defmodule EbnisData.Query.Entry1 do
+  @fragment_name "Entry1Fragment"
 
-  @field_frag_name "EntryFieldFrag"
+  @entry_data_fragment_name "DataObjectFragment"
 
-  @create_entries_response_fragment_name "CreateEntryResponseFragment"
-
-  @fragment """
-    fragment #{@fragment_name} on Entry {
-      _id
+  @entry_data_fragment """
+    fragment #{@entry_data_fragment_name} on DataObject {
       id
-      expId
-      clientId
-      insertedAt
-      updatedAt
-    }
-  """
-
-  @field_frag """
-    fragment #{@field_frag_name} on Field {
-      defId
+      definitionId
       data
     }
   """
 
-  @create_entries_response_fragment """
-  fragment #{@create_entries_response_fragment_name} on CreateEntriesResponse {
+  @fragment """
+    fragment #{@fragment_name} on Entry1 {
+      id
       experienceId
+      clientId
+      insertedAt
+      updatedAt
 
-      entries {
-        ...#{@fragment_name}
-
-        fields {
-          ...#{@field_frag_name}
-        }
+      dataObjects {
+        ...#{@entry_data_fragment_name}
       }
+    }
 
-      errors {
-        experienceId
-        clientId
-        error
-      }
+    #{@entry_data_fragment}
+  """
+
+  @fragment_data_error_name "DE"
+
+  @fragment_data_error """
+    fragment #{@fragment_data_error_name} on DataObjectError {
+      definition
+      definitionId
+      data
     }
   """
 
+  @fragment_create_entry_errors_name "CreateEntryErrorsName"
+
+  @fragment_create_entry_errors """
+    fragment #{@fragment_create_entry_errors_name} on CreateEntryErrors {
+      experience
+      experienceId
+      clientId
+      entry
+      dataObjectsErrors {
+        index
+        errors {
+          ...#{@fragment_data_error_name}
+        }
+      }
+    }
+
+    #{@fragment_data_error}
+  """
+  def create_entry_errors() do
+    {@fragment_create_entry_errors, @fragment_create_entry_errors_name}
+  end
+
   def create do
     """
-    mutation CreateAnExperienceEntry($input: CreateEntryInput!) {
-      createEntry(input: $input) {
-        ...#{@fragment_name}
-
-        fields {
-          ...#{@field_frag_name}
+    mutation C($input: CreateEntryInput1!) {
+      createEntry1(input: $input) {
+        entry {
+          ...#{@fragment_name}
         }
+
+        errors {
+          ...#{@fragment_create_entry_errors_name}
+        }
+
+
       }
     }
 
     #{@fragment}
-    #{@field_frag}
+    #{@fragment_create_entry_errors}
     """
   end
 
   def create_entries do
     """
-    mutation CreateEntriesMutation($createEntries: [CreateEntryInput!]!) {
-      createEntries(createEntries: $createEntries) {
-        ...#{@create_entries_response_fragment_name}
-      }
-    }
+    mutation C($input: [CreateEntriesInput!]!) {
+      createEntries1(input: $input) {
+        experienceId
 
-    #{@fragment}
-    #{@field_frag}
-    #{@create_entries_response_fragment}
-    """
-  end
-
-  def update_entry do
-    """
-    mutation UpdateAnExperienceEntry($input: UpdateEntryInput!) {
-      updateEntry(input: $input) {
-        entry {
+        entries {
           ...#{@fragment_name}
-
-          fields {
-            ...#{@field_frag_name}
-          }
         }
 
-        fieldsErrors {
-          defId
-          error {
-            data
-            defId
+        errors {
+          clientId
+          experienceId
+          errors {
+            ...#{@fragment_create_entry_errors_name}
           }
         }
       }
     }
 
     #{@fragment}
-    #{@field_frag}
+    #{@fragment_create_entry_errors}
     """
   end
 
-  def delete_entry do
+  def delete do
     """
-      mutation DeleteEntry($id: ID!) {
-        deleteEntry(id: $id) {
+      mutation D($id: ID!) {
+        deleteEntry1(id: $id) {
           ...#{@fragment_name}
 
-          fields {
-            ...#{@field_frag_name}
-          }
         }
       }
 
       #{@fragment}
-      #{@field_frag}
+    """
+  end
+
+  def update_data_object() do
+    """
+      mutation U($input: UpdateDataObjectInput!) {
+        updateDataObject(input: $input) {
+          dataObject {
+            ...#{@entry_data_fragment_name}
+          }
+
+          errors {
+            ...#{@fragment_data_error_name}
+          }
+        }
+      }
+
+      #{@entry_data_fragment}
+      #{@fragment_data_error}
+    """
+  end
+
+  def update_data_objects() do
+    """
+      mutation U($input: [UpdateDataObjectInput!]!) {
+        updateDataObjects(input: $input) {
+          id
+          index
+          stringError
+
+          dataObject {
+            ...#{@entry_data_fragment_name}
+          }
+
+          fieldErrors {
+            ...#{@fragment_data_error_name}
+          }
+        }
+      }
+
+      #{@entry_data_fragment}
+      #{@fragment_data_error}
     """
   end
 end

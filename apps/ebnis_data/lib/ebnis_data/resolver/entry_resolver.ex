@@ -1,214 +1,217 @@
-defmodule EbnisData.EntryResolver do
-  import Absinthe.Resolution.Helpers, only: [on_load: 2]
-
+defmodule EbnisData.Resolver.Entry1 do
   alias EbnisData.Resolver
-  alias EbnisData.Entry
-  alias EbnisData.EntryApi
 
-  def create(_, %{input: attrs}, %{context: %{current_user: user}}) do
-    case attrs
-         |> Map.put(
-           :exp_id,
-           Resolver.convert_from_global_id(attrs.exp_id, :experience)
-         )
-         |> Map.put(:user_id, user.id)
-         |> EntryApi.create_entry() do
+  def create(%{input: attrs}, %{context: %{current_user: user}}) do
+    experience_id =
+      attrs.experience_id
+      |> Resolver.convert_from_global_id(:experience1)
+
+    attrs
+    |> Map.merge(%{
+      experience_id: experience_id,
+      user_id: user.id
+    })
+    |> EbnisData.create_entry1()
+    |> case do
       {:ok, entry} ->
-        {:ok,
-         %Entry{
-           entry
-           | exp_id: Resolver.convert_to_global_id(entry.exp_id, :experience)
-         }}
+        {
+          :ok,
+          %{
+            entry: entry
+          }
+        }
 
       {:error, changeset} ->
-        {:error, stringify_changeset_error(changeset)}
-
-      _ ->
-        {:error, "Server error"}
+        {:ok, %{errors: entry_changeset_errors_to_map(changeset)}}
     end
   end
 
-  def create(_, _, _) do
+  def create(_, _) do
     Resolver.unauthorized()
   end
 
-  def stringify_changeset_error(changeset) do
-    errors =
-      case {stringify_changeset_fields_error(changeset), changeset.errors} do
-        {[], []} ->
-          %{}
+  def entry_changeset_errors_to_map(changeset) do
+    case changeset.errors do
+      [] ->
+        %{}
 
-        {[], other_errors} ->
-          Resolver.changeset_errors_to_map(other_errors)
-
-        {field_errors, other_errors} ->
-          Resolver.changeset_errors_to_map(other_errors)
-          |> Map.put(:fields, field_errors)
-      end
-
-    Jason.encode!(errors)
+      errors ->
+        Resolver.changeset_errors_to_map(errors)
+    end
+    |> data_objects_changeset_errors_to_map(changeset.changes.data_objects)
   end
 
-  defp stringify_changeset_fields_error(%{changes: %{fields: fields}}) do
-    {field_errors, _} =
-      Enum.reduce(
-        fields,
-        {[], 0},
-        fn
-          %{valid?: false, errors: errors, changes: changes}, {acc, index} ->
-            errors =
-              EntryApi.mapify_entry_field_error(
-                changes.def_id,
-                errors,
-                index
-              )
+  defp data_objects_changeset_errors_to_map(errors, []) do
+    errors
+  end
 
-            {[errors | acc], index + 1}
+  defp data_objects_changeset_errors_to_map(acc_errors, changesets) do
+    changesets
+    |> Enum.reduce({[], 0}, fn
+      %{valid?: false, errors: errors}, {acc, index} ->
+        {
+          [
+            %{
+              index: index,
+              errors: Resolver.changeset_errors_to_map(errors)
+            }
+            | acc
+          ],
+          index + 1
+        }
 
-          _field, {acc, index} ->
-            {acc, index + 1}
+      _, {acc, index} ->
+        {acc, index + 1}
+    end)
+    |> case do
+      {[], _} ->
+        acc_errors
+
+      {errors, _} ->
+        Map.put(acc_errors, :data_objects_errors, errors)
+    end
+  end
+
+  def create_entries(%{input: inputs}, %{context: %{current_user: user}}) do
+    {entries, ids} = update_entries_with_valid_ids(inputs, user.id)
+
+    results_map = EbnisData.create_entries1(entries)
+
+    {
+      :ok,
+      Enum.map(
+        ids,
+        fn id ->
+          result = results_map[id]
+          experience_id = Resolver.convert_to_global_id(id, :experience1)
+
+          update_in(
+            result.errors,
+            &Enum.map(&1, fn changeset ->
+              %{
+                errors: entry_changeset_errors_to_map(changeset),
+                client_id: changeset.changes.client_id,
+                experience_id: experience_id
+              }
+            end)
+          )
+          |> Map.put(:experience_id, experience_id)
         end
       )
-
-    field_errors
-  end
-
-  defp stringify_changeset_fields_error(_) do
-    []
-  end
-
-  def exp(%{} = entry, _, %{context: %{loader: loader}}) do
-    loader
-    |> Dataloader.load(:data, :exp, entry)
-    |> on_load(&{:ok, Dataloader.get(&1, :data, :exp, entry)})
-  end
-
-  def create_entries(
-        %{create_entries: entries},
-        %{context: %{current_user: %{id: user_id}}}
-      ) do
-    result =
-      entries
-      |> Enum.map(
-        &Map.merge(
-          &1,
-          %{
-            user_id: user_id,
-            exp_id: Resolver.convert_from_global_id(&1.exp_id, :experience)
-          }
-        )
-      )
-      |> EntryApi.create_entries()
-      |> Enum.reduce([], &create_entries_reduce_result_fn/2)
-
-    {:ok, result}
+    }
   end
 
   def create_entries(_, _) do
     Resolver.unauthorized()
   end
 
-  defp create_entries_reduce_result_fn({k, v}, acc) do
-    value =
-      create_entries_convert_to_global_experience_id(
-        k,
-        v
+  defp update_entries_with_valid_ids(entries, user_id) do
+    {entries, ids, _} =
+      Enum.reduce(
+        entries,
+        {[], [], %{}},
+        fn entry, {entries, experiences_ids, seen} ->
+          experience_id =
+            Resolver.convert_from_global_id(
+              entry.experience_id,
+              :experience1
+            )
+
+          experiences_ids =
+            case seen[experience_id] do
+              true ->
+                experiences_ids
+
+              _ ->
+                [experience_id | experiences_ids]
+            end
+
+          {
+            [
+              Map.merge(
+                entry,
+                %{
+                  user_id: user_id,
+                  experience_id: experience_id
+                }
+              )
+              | entries
+            ],
+            experiences_ids,
+            Map.put(seen, experience_id, true)
+          }
+        end
       )
 
-    case value[:errors] do
-      nil ->
-        [value | acc]
-
-      errors ->
-        errors =
-          Enum.map(
-            errors,
-            &Map.put(
-              &1,
-              :error,
-              stringify_changeset_error(&1.error)
-            )
-          )
-
-        value =
-          Map.put(
-            value,
-            :errors,
-            errors
-          )
-
-        [value | acc]
-    end
+    {Enum.reverse(entries), Enum.reverse(ids)}
   end
 
-  defp create_entries_convert_to_global_experience_id(
-         experience_db_id,
-         create_entries_value
-       ) do
-    experience_global_id =
-      experience_db_id
-      |> Resolver.convert_to_global_id(:experience)
-
-    create_entries_value
-    |> Enum.map(fn
-      {:experience_id, _} ->
-        {:experience_id, experience_global_id}
-
-      {:entries, entries} ->
-        {:entries,
-         Enum.map(
-           entries,
-           &Map.put(&1, :exp_id, experience_global_id)
-         )}
-
-      {:errors, errors} ->
-        {
-          :errors,
-          Enum.map(errors, &Map.put(&1, :experience_id, experience_global_id))
-        }
-    end)
-    |> Enum.into(%{})
+  def delete(%{id: id}, %{context: %{current_user: %{id: _}}}) do
+    id
+    |> Resolver.convert_from_global_id(:entry1)
+    |> EbnisData.delete_entry1()
   end
 
-  def update_entry(
-        %{input: %{id: id} = args},
-        %{context: %{current_user: _}}
-      ) do
-    args = Map.delete(args, :id)
-
-    case Resolver.convert_from_global_id(id, :entry) do
-      :error ->
-        {:error, "Invalid ID"}
-
-      id ->
-        case EntryApi.update_entry(id, args) do
-          {:ok, updated_entry} ->
-            {:ok, %{entry: updated_entry}}
-
-          {:error, %{fields_errors: _} = errors} ->
-            {:ok, errors}
-
-          error ->
-            error
-        end
-    end
-  end
-
-  def update_entry(_, _) do
+  def delete(_, _) do
     Resolver.unauthorized()
   end
 
-  def delete_entry(%{id: id}, %{context: %{current_user: _}}) do
-    case Resolver.convert_from_global_id(id, :entry) do
-      :error ->
-        {:error, "Invalid ID"}
+  def update_data_objects(%{input: inputs}, %{context: %{current_user: %{id: _}}}) do
+    results =
+      inputs
+      |> Enum.with_index()
+      |> Enum.map(fn {input, index} ->
+        case EbnisData.update_data_object(input) do
+          {:ok, object} ->
+            %{
+              data_object: object
+            }
 
-      id ->
-        EntryApi.delete_entry(id)
+          {:error, %{} = changeset} ->
+            %{
+              field_errors: Resolver.changeset_errors_to_map(changeset.errors)
+            }
+
+          {:error, string_error} ->
+            %{
+              string_error: string_error
+            }
+        end
+        |> Map.merge(%{
+          index: index,
+          id: input.id
+        })
+      end)
+
+    {:ok, results}
+  end
+
+  def update_data_objects(_, _) do
+    Resolver.unauthorized()
+  end
+
+  def update_data_object(%{input: input}, %{context: %{current_user: %{id: _}}}) do
+    case EbnisData.update_data_object(input) do
+      {:ok, data_object} ->
+        {:ok,
+         %{
+           data_object: data_object
+         }}
+
+      {:error, %{} = changeset} ->
+        {
+          :ok,
+          %{
+            errors: Resolver.changeset_errors_to_map(changeset.errors)
+          }
+        }
+
+      {:error, others} ->
+        {:error, others}
     end
   end
 
-  def delete_entry(_, _) do
+  def update_data_object(_, _) do
     Resolver.unauthorized()
   end
 end

@@ -3,8 +3,6 @@ defmodule EbnisData.Schema do
   use Absinthe.Relay.Schema, :modern
 
   alias EbnisData.Repo
-  alias EbnisData.Entry
-  alias EbnisData.EntryApi
   alias EbnisData.Experience1
 
   import_types(Absinthe.Type.Custom)
@@ -12,22 +10,15 @@ defmodule EbnisData.Schema do
   import_types(EbnisData.Schema.Credential)
   import_types(EbnisData.Schema.User)
   import_types(EbnisData.Schema.Experience)
-  import_types(EbnisData.Schema.Experience1)
-  import_types(EbnisData.Schema.FieldDef)
-  import_types(EbnisData.Schema.FieldDefinition)
-  import_types(EbnisData.EntrySchema)
-  import_types(EbnisData.Schema.Entry1)
+  import_types(EbnisData.Schema.Entry)
 
   query do
     import_fields(:user_query)
-    import_fields(:experience_query)
     import_fields(:experience_queries)
   end
 
   mutation do
     import_fields(:user_mutation)
-    import_fields(:experience_mutation)
-    import_fields(:entry_mutation)
     import_fields(:experience_mutations)
     import_fields(:entry_mutations)
   end
@@ -49,18 +40,6 @@ defmodule EbnisData.Schema do
 
   def my_data(queryable, _params) do
     queryable
-  end
-
-  def run_batch(
-        Entry,
-        query,
-        :paginated_entries,
-        list_experiences_pagination_args,
-        repo_opts
-      ) do
-    Enum.map(list_experiences_pagination_args, fn {experience, args} ->
-      EntryApi.get_paginated_entries(experience.id, args, query, repo_opts)
-    end)
   end
 
   def run_batch(

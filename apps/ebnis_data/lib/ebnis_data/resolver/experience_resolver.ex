@@ -1,117 +1,98 @@
-defmodule EbnisData.Resolver.Experience do
+defmodule EbnisData.Resolver.Experience1 do
   import Absinthe.Resolution.Helpers, only: [on_load: 2]
 
   alias EbnisData.Resolver
-  alias EbnisData.Entry
-  alias EbnisData.EntryResolver
-  alias Ecto.Changeset
+  alias EbnisData.Experience1
+  alias EbnisData.Resolver.Entry1, as: Entry1Resolver
 
-  def save_offline_experiences(
-        %{input: experiences},
-        %{context: %{current_user: %{id: user_id}}}
+  @experience_not_found "Experience not found"
+
+  def create_experience(
+        %{input: attrs},
+        %{context: %{current_user: %{id: id}}}
       ) do
-    {
-      :ok,
-      experiences
-      |> Enum.with_index()
-      |> Enum.map(&save_offline_experience(&1, user_id))
-    }
-  end
-
-  def save_offline_experiences(_, _) do
-    Resolver.unauthorized()
-  end
-
-  defp save_offline_experience({experience, index}, user_id) do
-    case EbnisData.save_offline_experience(
-           Map.put(
-             experience,
-             :user_id,
-             user_id
-           )
-         ) do
-      {:ok, experience, []} ->
-        %{experience: experience}
-
-      {:ok, experience, entries_errors} ->
-        errors =
-          Enum.map(
-            entries_errors,
-            &%{
-              error: EntryResolver.stringify_changeset_error(&1),
-              experience_id: experience.id,
-              client_id: &1.changes.client_id
-            }
-          )
-
-        %{experience: experience, entries_errors: errors}
+    attrs
+    |> Map.put(:user_id, id)
+    |> EbnisData.create_experience()
+    |> case do
+      {:ok, experience} ->
+        {
+          :ok,
+          %{
+            experience: experience
+          }
+        }
 
       {:error, changeset} ->
-        %{
-          experience_error: %{
-            error: stringify_changeset_error(changeset),
-            index: index,
-            client_id: experience[:client_id]
+        {
+          :ok,
+          %{
+            errors: create_experience_errors_from_changeset(changeset)
           }
         }
     end
   end
 
-  def create(%{input: attrs}, %{context: %{current_user: user}}) do
-    case attrs
-         |> Map.put(:user_id, user.id)
-         |> EbnisData.create_exp() do
-      {:ok, exp} ->
-        {:ok, exp}
-
-      {:error, changeset} ->
-        {:error, stringify_changeset_error(changeset)}
-    end
-  end
-
-  def create(_, _) do
+  def create_experience(_, _) do
     Resolver.unauthorized()
   end
 
-  defp stringify_changeset_error(changeset) do
-    field_def_errors =
-      Enum.reduce(
-        changeset.changes[:field_defs] || [],
-        [],
-        fn
-          %{valid?: false, errors: errors}, acc ->
-            [EbnisData.changeset_errors_to_map(errors) | acc]
+  defp create_experience_errors_from_changeset(changeset) do
+    case changeset.errors do
+      [] ->
+        %{}
 
-          _field, acc ->
-            acc
-        end
-      )
-
-    errors =
-      case {field_def_errors, changeset.errors} do
-        {[], []} ->
-          %{}
-
-        {[], other_errors} ->
-          EbnisData.changeset_errors_to_map(other_errors)
-
-        {field_def_errors, other_errors} ->
-          EbnisData.changeset_errors_to_map(other_errors)
-          |> Map.put(:field_defs, field_def_errors)
-      end
-
-    Jason.encode!(errors)
+      errors ->
+        changeset_errors_to_map(errors)
+    end
+    |> data_definition_changeset_to_error_map(changeset.changes.data_definitions)
   end
 
-  def get_experience(%{id: global_id}, %{context: %{current_user: user}}) do
-    id = Resolver.convert_from_global_id(global_id, :experience)
+  defp data_definition_changeset_to_error_map(errors, changesets) do
+    changesets
+    |> Enum.reduce(
+      {[], 0},
+      fn
+        %{valid?: false, errors: errors}, {acc, index} ->
+          errors = %{
+            index: index,
+            errors: changeset_errors_to_map(errors)
+          }
 
-    case EbnisData.get_experience(id, user.id) do
+          {[errors | acc], index + 1}
+
+        _, {acc, index} ->
+          {acc, index + 1}
+      end
+    )
+    |> case do
+      {[], _} ->
+        errors
+
+      {data_definitions_errors, _} ->
+        Map.put(errors, :data_definitions_errors, data_definitions_errors)
+    end
+  end
+
+  defp changeset_errors_to_map(errors) do
+    errors
+    |> Enum.map(fn {k, {v, _}} -> {k, v} end)
+    |> Enum.into(%{})
+  end
+
+  def get_experience(
+        %{id: id},
+        %{context: %{current_user: %{id: user_id}}}
+      ) do
+    id
+    |> Resolver.convert_from_global_id(:experience1)
+    |> EbnisData.get_experience1(user_id)
+    |> case do
       nil ->
         {:error, "Experience definition not found"}
 
-      exp ->
-        {:ok, exp}
+      experience ->
+        {:ok, experience}
     end
   end
 
@@ -131,53 +112,122 @@ defmodule EbnisData.Resolver.Experience do
         Map.put(
           args,
           :ids,
-          Enum.map(ids, &Resolver.convert_from_global_id(&1, :experience))
+          Enum.map(ids, &Resolver.convert_from_global_id(&1, :experience1))
         )
     end
     |> Map.put(:user_id, user.id)
-    |> EbnisData.get_experiences()
+    |> EbnisData.get_experiences1()
   end
 
   def get_experiences(_, _) do
     Resolver.unauthorized()
   end
 
-  def entries(
-        %{} = experience,
-        %{pagination: args},
-        %{context: %{loader: loader}}
-      ) do
-    loader
-    |> Dataloader.load(
+  def entries(experience, args, %{context: ctx}) do
+    experience_id = experience.id
+
+    Dataloader.load(
+      ctx.loader,
       :data,
-      {:one, Entry},
-      paginated_entries: {experience, args}
+      {:one, Experience1},
+      entries: {experience_id, args}
     )
     |> on_load(fn loader ->
-      {:ok,
-       Dataloader.get(
-         loader,
-         :data,
-         {:one, Entry},
-         paginated_entries: {experience, args}
-       )}
+      entries_connection =
+        Dataloader.get(
+          loader,
+          :data,
+          {:one, Experience1},
+          entries: {experience_id, args}
+        )
+
+      {:ok, entries_connection}
     end)
   end
 
-  def entries(%{} = experience, _args, context) do
-    # get first 100 entries by default
-    entries(experience, %{pagination: %{first: 100}}, context)
+  def save_offline_experiences(
+        %{input: experiences},
+        %{context: %{current_user: %{id: user_id}}}
+      ) do
+    {
+      :ok,
+      experiences
+      |> Enum.with_index()
+      |> Enum.map(&save_offline_experience(&1, user_id))
+    }
   end
 
-  @spec delete_experience(%{id: String.t()}, any) ::
-          {:error, binary | [{:message, <<_::96>>}, ...]} | {:ok, true}
-  def delete_experience(%{id: id}, %{context: %{current_user: _}}) do
-    case Resolver.convert_from_global_id(id, :experience) do
-      :error ->
-        {:error, "Invalid ID"}
+  def save_offline_experiences(_, _) do
+    Resolver.unauthorized()
+  end
 
-      id ->
-        EbnisData.delete_experience(id)
+  defp save_offline_experience({experience, index}, user_id) do
+    case experience
+         |> convert_entries_experience_ids_from_global()
+         |> Map.put(:user_id, user_id)
+         |> EbnisData.save_offline_experience1() do
+      {:ok, experience, []} ->
+        %{experience: experience}
+
+      {:ok, experience, entries_changesets} ->
+        experience_id =
+          Resolver.convert_to_global_id(
+            experience.id,
+            :experience1
+          )
+
+        errors =
+          Enum.map(
+            entries_changesets,
+            &%{
+              errors: Entry1Resolver.entry_changeset_errors_to_map(&1),
+              experience_id: experience_id,
+              client_id: &1.changes.client_id
+            }
+          )
+
+        %{experience: experience, entries_errors: errors}
+
+      {:error, changeset} ->
+        %{
+          experience_errors: %{
+            index: index,
+            client_id: experience[:client_id] || index,
+            errors: create_experience_errors_from_changeset(changeset)
+          }
+        }
+    end
+  end
+
+  defp convert_entries_experience_ids_from_global(experience) do
+    case experience[:entries] do
+      nil ->
+        experience
+
+      entries ->
+        %{
+          experience
+          | entries:
+              Enum.map(
+                entries,
+                &update_in(&1.experience_id, fn id ->
+                  Resolver.convert_from_global_id(id, :experience1)
+                end)
+              )
+        }
+    end
+  end
+
+  def delete_experience(%{id: id}, %{context: %{current_user: user}}) do
+    id
+    |> Resolver.convert_from_global_id(:experience1)
+    |> EbnisData.delete_experience1(user.id)
+    |> case do
+      :error ->
+        {:error, @experience_not_found}
+
+      {:ok, experience} ->
+        {:ok, experience}
     end
   end
 
@@ -187,75 +237,29 @@ defmodule EbnisData.Resolver.Experience do
 
   def update_experience(
         %{input: %{id: id} = args},
-        %{context: %{current_user: _}}
+        %{context: %{current_user: user}}
       ) do
-    args = Map.delete(args, :id)
+    id
+    |> Resolver.convert_from_global_id(:experience1)
+    |> EbnisData.update_experience1(user.id, Map.delete(args, :id))
+    |> case do
+      {:ok, experience} ->
+        {:ok, %{experience: experience}}
 
-    case Resolver.convert_from_global_id(id, :experience) do
-      :error ->
-        {:error, "Invalid ID"}
+      {:error, %{} = changeset} ->
+        {
+          :ok,
+          %{
+            errors: Resolver.changeset_errors_to_map(changeset.errors)
+          }
+        }
 
-      id ->
-        case EbnisData.update_experience(id, args) do
-          {:error, %Changeset{errors: errors, changes: changes}} ->
-            field_defs = changes[:field_defs]
-
-            errors =
-              errors
-              |> update_experience_changeset_errors_to_map()
-              |> update_experience_fields_changeset_errors_to_map(field_defs)
-
-            {:ok, errors}
-
-          {:ok, experience} ->
-            {:ok, %{experience: experience}}
-
-          {:error, error} ->
-            {:error, error}
-        end
+      {:error, error} ->
+        {:error, error}
     end
   end
 
   def update_experience(_, _) do
     Resolver.unauthorized()
-  end
-
-  defp update_experience_changeset_errors_to_map([]) do
-    %{}
-  end
-
-  defp update_experience_changeset_errors_to_map(errors) do
-    %{
-      experience_error: EbnisData.changeset_errors_to_map(errors)
-    }
-  end
-
-  defp update_experience_fields_changeset_errors_to_map(errors, nil) do
-    errors
-  end
-
-  defp update_experience_fields_changeset_errors_to_map(errors, changesets) do
-    Enum.reduce(
-      changesets,
-      [],
-      fn
-        %{valid?: true}, acc ->
-          acc
-
-        %{errors: errors, changes: %{id: id}}, acc ->
-          [Map.put(EbnisData.changeset_errors_to_map(errors), :id, id) | acc]
-      end
-    )
-    |> case do
-      [] ->
-        errors
-
-      field_errors ->
-        Map.put(
-          errors,
-          :field_definitions_errors,
-          field_errors
-        )
-    end
   end
 end

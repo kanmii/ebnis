@@ -1,160 +1,209 @@
-defmodule EbnisData.EntrySchema do
+defmodule EbnisData.Schema.Entry do
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
 
-  alias EbnisData.EntryResolver
+  import Absinthe.Resolution.Helpers, only: [dataloader: 1]
 
-  @desc "An entry field"
-  object :field do
-    field(:def_id, non_null(:id))
+  alias EbnisData.Resolver.Entry1, as: EntryResolver
+  alias EbnisData.Resolver
+
+  @desc """
+      An entry data object
+  """
+  object :data_object do
+    field(:id, non_null(:id))
     field(:data, non_null(:entry_field_json))
+    field(:definition_id, non_null(:id))
   end
 
-  @desc "An Experience entry that supports relay"
-  node object(:entry) do
-    @desc "Internal ID of the schema. Field `id` is the global opaque ID"
-    field(
-      :_id,
-      non_null(:id),
-      resolve: &EbnisData.Resolver.resolve_internal_id/3
-    )
-
+  @desc """
+    An Experience entry that supports relay
+  """
+  node object(:entry1) do
     @desc ~S"""
       The ID of experience to which this entry belongs.
     """
-    field(:exp_id, non_null(:id))
+    field :experience_id, non_null(:id) do
+      resolve(fn root, _, _ ->
+        {
+          :ok,
+          root.exp_id
+          |> Resolver.convert_to_global_id(:experience1)
+        }
+      end)
+    end
 
     @desc ~S"""
       The client ID which indicates that an entry has been created while server
-      is offline and is to be saved with the server, the client ID uniquely
+      is offline and is to be saved. The client ID uniquely
       identifies this entry and will be used prevent conflict while saving entry
-      created while server offline.
+      created offline and must thus be non null in this situation.
     """
     field(:client_id, :id)
 
-    @desc "The experience object to which this entry belongs"
-    field :exp, non_null(:experience) do
-      resolve(&EntryResolver.exp/3)
-    end
+    @desc """
+      The experience object to which this entry belongs
+    """
+    field(
+      :experience,
+      non_null(:experience1),
+      resolve: dataloader(:data)
+    )
 
-    @desc "The data fields belonging to this entry"
-    field(:fields, :field |> list_of() |> non_null())
+    @desc """
+      The list of data belonging to this entry
+    """
+    field(
+      :data_objects,
+      :data_object
+      |> list_of()
+      |> non_null(),
+      resolve: dataloader(:data)
+    )
 
     field(:inserted_at, non_null(:iso_datetime))
     field(:updated_at, non_null(:iso_datetime))
   end
 
-  object :create_entries_error do
+  @desc ~S"""
+    Entry data object error (errors field) while creating an entry
+  """
+  object :data_object_error do
+    field(:definition, :string)
+    field(:definition_id, :string)
+    field(:data, :string)
+  end
+
+  @desc ~S"""
+    Entry data object errors while creating an entry
+  """
+  object :data_objects_errors do
+    field(:index, non_null(:integer))
+    field(:errors, non_null(:data_object_error))
+  end
+
+  @desc ~S"""
+    Object returned when entry created
+  """
+  object :create_entry_response do
+    field(:entry, :entry1)
+    field(:errors, :create_entry_errors)
+  end
+
+  object :create_entry_errors do
+    @desc ~S"""
+      Did we fail because there are errors in the data object object?
+    """
+    field(:data_objects_errors, list_of(:data_objects_errors))
+
+    @desc ~S"""
+      Did we fail because, say, we did could not fetch the experience
+    """
+    field(:experience, :string)
+
+    @desc ~S"""
+      While saving an offline entry, its experience ID must be same as
+      experience.clientId if saving entry via offline experience
+    """
+    field(:experience_id, :string)
+
+    @desc ~S"""
+      May be because client ID is not unique for experience
+    """
+    field(:client_id, :string)
+
+    @desc ~S"""
+      A catch-all field for when we are unable to create an entry
+    """
+    field(:entry, :string)
+  end
+
+  @desc ~S"""
+    Error object returned if we are creating multiple entries simultaneously.
+    This will be returned by a single entry which fails to save.
+  """
+  object :create_entries_errors do
     @desc ~S"""
       The client ID of the entry which fails to save
     """
     field(:client_id, non_null(:string))
 
     @desc ~S"""
-      The failure error
-    """
-    field(:error, non_null(:string))
-
-    @desc ~S"""
       The experience ID of the entry which fails to save
     """
     field(:experience_id, non_null(:string))
+
+    field(:errors, non_null(:create_entry_errors))
   end
 
-  @desc ~S"""
-    Data structure returned when creating multiple entries simultaneously.
-
-    It looks like so:
-    `typescript
-    {
-      successes?: [
-        {
-          expId: string;
-          entries: Entry[]
-        }
-      ],
-
-      failures?: [
-        {
-          clientId: string;
-          error: string
-        }
-      ]
-    }
-    `
-
-    The inserts that succeed go into the `successes` field while those that fail
-    go into `failures` field. Each field is an array of maps with a key `index` which maps to the index of the object in user's input from which we attempted to create the entry. The `index` is so that user knows how to map
-    from the response we returned to the input the user supplied.
-
-    In addition, we only get `successes` field if at least one input succeeds
-    and we only get `failures` field if at least one input fails
-  """
-  object :create_entries_response do
+  object :create_entries_response1 do
+    @desc ~S"""
+      Experience ID of an entry we are trying to create
+    """
     field(:experience_id, non_null(:id))
 
     @desc ~S"""
-      The entries that were successfully inserted
+      The entries that were successfully inserted for a particular
+      experience ID
     """
-    field(:entries, :entry |> list_of() |> non_null())
+    field(:entries, :entry1 |> list_of() |> non_null())
 
     @desc ~S"""
-      List of error objects denoting entries that fail to insert
+      List of error objects denoting entries that fail to insert for
+      a particular experience ID
     """
-    field(:errors, :create_entries_error |> list_of())
+    field(:errors, :create_entries_errors |> list_of())
   end
 
-  object :experience_id_to_entry_connection do
-    field(:exp_id, non_null(:id))
-    field(:entry_connection, :entry_connection |> non_null())
+  object :update_data_object_response do
+    field(:data_object, :data_object)
+    field(:errors, :data_object_error)
   end
 
-  object :entry_field_error do
-    field(:def_id, :id)
-    field(:data, :string)
+  object :update_data_objects_response do
+    @desc ~S"""
+      The index of the data object in the list of data objects
+    """
+    field(:index, non_null(:integer))
+
+    @desc ~S"""
+      The ID of data object to be updated
+    """
+    field(:id, :id)
+
+    @desc ~S"""
+      If we are successful, then user gets back this object representing
+      successful update
+    """
+    field(:data_object, :data_object)
+
+    @desc ~S"""
+      Represents errors relating to the fields of the data object
+    """
+    field(:field_errors, :data_object_error)
+
+    @desc ~S"""
+      For errors unrelated to the fields of the data object (e.g. we
+      could not find the subject in the DB)
+    """
+    field(:string_error, :string)
   end
 
-  object :entry_field_error_meta do
-    field(:def_id, non_null(:id))
-    field(:error, :entry_field_error)
-  end
+  ############################# END OBJECTS ##################################
 
-  object :entry_update_returned do
-    field(:entry, :entry)
-    field(:fields_errors, list_of(:entry_field_error_meta))
-  end
-
-  ############################## INPUTS #######################################
+  ############################# INPUTS ##################################
 
   @desc ~S"""
     Variables for creating an entry field
-
-    It is of the form:
-    {
-      defId: string;
-      data: JSON_string;
-    }
-
-    The `defId` key comes from experience to which this entry is associated and
-    using this `defId`, we will retrieve the associated field definition for
-    each field so as to ensure that we are storing valid JSON string data for
-    the field. For instance, if user submits a field with JSON string data:
-        {date: "2016-05-10"}
-    and defId:
-        field_definition_id_10000
-    but when we query the experience for field definition id
-    `field_definition_id_10000`, it tells us it should be associated with an
-    integer data, then we will return error with explanation `invalid data type`
-    for this field.
   """
-  input_object :create_field do
+  input_object :create_data_object do
     @desc ~S"""
       The experience definition ID for which the experience data is to be
       generated. If the associated experience of this entry has been created
-      offline, then this field **MUST BE THE SAME** as `createField.clientId`
-      and will be rejected if not.
+      offline, then this field **MUST BE THE SAME** as
+      `createEntryData.clientId` and will be rejected if not.
     """
-    field(:def_id, non_null(:id))
+    field(:definition_id, non_null(:id))
 
     @desc ~S"""
       The data of this entry. It is a JSON string of the form:
@@ -167,96 +216,140 @@ defmodule EbnisData.EntrySchema do
     field(:data, non_null(:entry_field_json))
   end
 
-  @desc "Variables for creating an experience entry"
-  input_object :create_entry_input do
+  @desc """
+    Variables for creating an experience entry
+  """
+  input_object :create_entry_input1 do
     @desc ~S"""
       The global ID of the experience or if the associated
       experience has been created offline, then this must be the same as the
       `experience.clientId` and will be enforced as such.
     """
-    field(:exp_id, non_null(:id))
+    field(:experience_id, non_null(:id))
 
-    @desc "fields making up the experience entry"
-    field(:fields, :create_field |> list_of() |> non_null())
+    @desc """
+      The entry data object for the experience entry
+    """
+    field(
+      :data_objects,
+      :create_data_object
+      |> list_of()
+      |> non_null()
+    )
 
     @desc ~S"""
       Client id for entries created while server is offline and to be saved.
     """
     field(:client_id, :id)
 
-    @desc "If entry is created on the client, it might include timestamps"
+    @desc """
+      If entry is created on the client, it might include timestamps
+    """
     field(:inserted_at, :iso_datetime)
     field(:updated_at, :iso_datetime)
   end
 
-  @desc "Variables for updating an experience entry"
-  input_object :update_entry_input do
+  input_object :create_entries_input do
     @desc ~S"""
-        The ID of entry to be updated
+      The global ID of the experience or if the associated
+      experience has been created offline, then this must be the same as the
+      `experience.clientId` and will be enforced as such.
     """
+    field(:experience_id, non_null(:id))
 
+    @desc """
+      The entry data object for the experience entry
+    """
+    field(
+      :data_objects,
+      :create_data_object
+      |> list_of()
+      |> non_null()
+    )
+
+    @desc ~S"""
+      Unlike the `clientId` of `createEntryInput`, this field must not be
+      null as it serves as the identifier for the entry in the list of
+      entries to be created
+    """
+    field(:client_id, non_null(:id))
+
+    @desc """
+      If entry is created on the client, it might include timestamps
+    """
+    field(:inserted_at, :iso_datetime)
+    field(:updated_at, :iso_datetime)
+  end
+
+  input_object :update_data_object_input do
+    @desc ~S"""
+      The ID of the data object we wish to update
+    """
     field(:id, non_null(:id))
 
-    @desc "fields making up the experience entry"
-    field(:fields, :create_field |> list_of() |> non_null())
+    @desc ~S"""
+      The data object of the new value. It is of the form:
+
+      ```json
+        {"integer":1}
+      ```
+    """
+    field(:data, non_null(:entry_field_json))
   end
 
   ############################# END INPUTS ##################################
 
-  ################### mutations #########################################
+  ################### MUTATIONS #########################################
 
-  @desc "Mutations allowed on Experience entry object"
-  object :entry_mutation do
+  @desc """
+    Mutations allowed on Experience entry object
+  """
+  object :entry_mutations do
     @desc ~S"""
-      Create an experience
-
-      The error returned will be of the form:
-      {
-        expId?: "does not exist",
-        fields?: [
-          {
-            meta: {
-              defId: defId,
-              index: fieldIndex
-            },
-            errors: {
-              defId: "does not exist" | "has already been taken"
-            }
-          }
-        ]
-      }
+      Create an experience entry
     """
-    field :create_entry, :entry do
-      arg(:input, non_null(:create_entry_input))
+    field :create_entry1, :create_entry_response do
+      arg(:input, non_null(:create_entry_input1))
 
-      resolve(&EntryResolver.create/3)
+      resolve(&EntryResolver.create/2)
     end
 
     @desc ~S"""
-      Create several entries, for several experiences
+      Create several entries, for one or more experiences
     """
-    field :create_entries, list_of(:create_entries_response) do
-      arg(:create_entries, :create_entry_input |> list_of() |> non_null())
+    field :create_entries1, list_of(:create_entries_response1) do
+      arg(:input, :create_entries_input |> list_of() |> non_null())
 
       resolve(&EntryResolver.create_entries/2)
     end
 
-    field :update_entry, :entry_update_returned do
-      arg(:input, non_null(:update_entry_input))
-
-      resolve(&EntryResolver.update_entry/2)
-    end
-
-    field :delete_entry, :entry do
+    @desc ~S"""
+      Delete an entry
+    """
+    field :delete_entry1, :entry1 do
       arg(:id, non_null(:id))
 
-      resolve(&EntryResolver.delete_entry/2)
+      resolve(&EntryResolver.delete/2)
+    end
+
+    @desc ~S"""
+      Update an entry data object
+    """
+
+    field :update_data_object, :update_data_object_response do
+      arg(:input, non_null(:update_data_object_input))
+
+      resolve(&EntryResolver.update_data_object/2)
+    end
+
+    field :update_data_objects, list_of(:update_data_objects_response) do
+      arg(:input, :update_data_object_input |> list_of |> non_null)
+
+      resolve(&EntryResolver.update_data_objects/2)
     end
   end
 
   ################### END MUTATIONS #########################################
 
-  ################### QUERIES #########################################
-
-  connection(node_type: :entry)
+  connection(node_type: :entry1)
 end
