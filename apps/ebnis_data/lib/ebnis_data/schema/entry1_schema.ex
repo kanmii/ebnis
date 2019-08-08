@@ -160,6 +160,35 @@ defmodule EbnisData.Schema.Entry1 do
     field(:errors, :data_object_error)
   end
 
+  object :update_data_objects_response do
+    @desc ~S"""
+      The index of the data object in the list of data objects
+    """
+    field(:index, non_null(:integer))
+
+    @desc ~S"""
+      The ID of data object to be updated
+    """
+    field(:id, :id)
+
+    @desc ~S"""
+      If we are successful, then user gets back this object representing
+      successful update
+    """
+    field(:data_object, :data_object)
+
+    @desc ~S"""
+      Represents errors relating to the fields of the data object
+    """
+    field(:field_errors, :data_object_error)
+
+    @desc ~S"""
+      For errors unrelated to the fields of the data object (e.g. we
+      could not find the subject in the DB)
+    """
+    field(:string_error, :string)
+  end
+
   ############################# END OBJECTS ##################################
 
   ############################# INPUTS ##################################
@@ -311,6 +340,12 @@ defmodule EbnisData.Schema.Entry1 do
       arg(:input, non_null(:update_data_object_input))
 
       resolve(&EntryResolver.update_data_object/2)
+    end
+
+    field :update_data_objects, list_of(:update_data_objects_response) do
+      arg(:input, :update_data_object_input |> list_of |> non_null)
+
+      resolve(&EntryResolver.update_data_objects/2)
     end
   end
 

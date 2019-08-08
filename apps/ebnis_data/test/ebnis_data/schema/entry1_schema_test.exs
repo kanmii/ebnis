@@ -1082,5 +1082,168 @@ defmodule EbnisData.Schema.Entry1Test do
     end
   end
 
+  describe "update data objects" do
+    test "fails: unauthorized" do
+      variables = %{
+        "input" => [
+          %{
+            "id" => "a",
+            "data" => ~s({"integer":1})
+          }
+        ]
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_data_objects(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    # @tag :skip
+    test "one data object succeeds, one not found" do
+      user = RegFactory.insert()
+
+      experience =
+        ExperienceFactory.insert(
+          %{
+            user_id: user.id
+          },
+          ["integer"]
+        )
+
+      [data_object] = Factory.insert(%{}, experience).data_objects
+
+      id0 = Ecto.UUID.generate()
+      id1 = data_object.id
+
+      data0 = ~s({"integer":1})
+      data1 = ~s({"integer":2})
+
+      variables = %{
+        "input" => [
+          %{
+            "id" => id0,
+            "data" => data0
+          },
+          %{
+            "id" => id1,
+            "data" => data1
+          }
+        ]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateDataObjects" => [
+                    %{
+                      "index" => 0,
+                      "id" => ^id0,
+                      "stringError" => string_error,
+                      "dataObject" => nil,
+                      "fieldErrors" => nil
+                    },
+                    %{
+                      "index" => 1,
+                      "id" => ^id1,
+                      "stringError" => nil,
+                      "fieldErrors" => nil,
+                      "dataObject" => %{
+                        "id" => ^id1,
+                        "data" => ^data1
+                      }
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_data_objects(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(string_error)
+    end
+
+    # @tag :skip
+    test "one succeeds, can not cast data type of other" do
+      user = RegFactory.insert()
+
+      experience =
+        ExperienceFactory.insert(
+          %{
+            user_id: user.id
+          },
+          ["integer", "decimal"]
+        )
+
+      [object0, object1] = Factory.insert(%{}, experience).data_objects
+
+      id0 = object0.id
+      id1 = object1.id
+
+      data0 = ~s({"integer":0.1})
+      data1 = ~s({"decimal":2.0})
+
+      variables = %{
+        "input" => [
+          %{
+            "id" => id0,
+            "data" => data0
+          },
+          %{
+            "id" => id1,
+            "data" => data1
+          }
+        ]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateDataObjects" => [
+                    %{
+                      "index" => 0,
+                      "id" => ^id0,
+                      "stringError" => nil,
+                      "dataObject" => nil,
+                      "fieldErrors" => %{
+                        "data" => data_error
+                      }
+                    },
+                    %{
+                      "index" => 1,
+                      "id" => ^id1,
+                      "stringError" => nil,
+                      "fieldErrors" => nil,
+                      "dataObject" => %{
+                        "id" => ^id1,
+                        "data" => ^data1
+                      }
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_data_objects(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(data_error)
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

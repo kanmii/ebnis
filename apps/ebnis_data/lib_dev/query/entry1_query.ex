@@ -136,4 +136,27 @@ defmodule EbnisData.Query.Entry1 do
       #{@fragment_data_error}
     """
   end
+
+  def update_data_objects() do
+    """
+      mutation U($input: [UpdateDataObjectInput!]!) {
+        updateDataObjects(input: $input) {
+          id
+          index
+          stringError
+
+          dataObject {
+            ...#{@entry_data_fragment_name}
+          }
+
+          fieldErrors {
+            ...#{@fragment_data_error_name}
+          }
+        }
+      }
+
+      #{@entry_data_fragment}
+      #{@fragment_data_error}
+    """
+  end
 end

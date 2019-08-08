@@ -156,6 +156,40 @@ defmodule EbnisData.Resolver.Entry1 do
     Resolver.unauthorized()
   end
 
+  def update_data_objects(%{input: inputs}, %{context: %{current_user: %{id: _}}}) do
+    results =
+      inputs
+      |> Enum.with_index()
+      |> Enum.map(fn {input, index} ->
+        case EbnisData.update_data_object(input) do
+          {:ok, object} ->
+            %{
+              data_object: object
+            }
+
+          {:error, %{} = changeset} ->
+            %{
+              field_errors: Resolver.changeset_errors_to_map(changeset.errors)
+            }
+
+          {:error, string_error} ->
+            %{
+              string_error: string_error
+            }
+        end
+        |> Map.merge(%{
+          index: index,
+          id: input.id
+        })
+      end)
+
+    {:ok, results}
+  end
+
+  def update_data_objects(_, _) do
+    Resolver.unauthorized()
+  end
+
   def update_data_object(%{input: input}, %{context: %{current_user: %{id: _}}}) do
     case EbnisData.update_data_object(input) do
       {:ok, data_object} ->
