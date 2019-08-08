@@ -3,7 +3,7 @@ defmodule EbnisData.FieldType do
 
   @iso_extended_format "{ISO:Extended:Z}"
 
-  @all_types_string [
+  @all_types [
     "single_line_text",
     "multi_line_text",
     "integer",
@@ -11,42 +11,6 @@ defmodule EbnisData.FieldType do
     "date",
     "datetime"
   ]
-
-  @string_types [
-    "single_line_text",
-    "multi_line_text",
-    :multi_line_text,
-    :single_line_text
-  ]
-
-  @integer_types ["integer", :integer]
-
-  @decimal_types ["decimal", :decimal]
-
-  @date_type ["date", :date]
-
-  @datetime_type ["datetime", :datetime]
-
-  @all_types_atom Enum.map(@all_types_string, &String.to_existing_atom/1)
-
-  @all_types Enum.concat(@all_types_string, @all_types_atom)
-
-  @non_primitives ["datetime", "date", :datetime, :date]
-
-  @primitives Enum.reject(@all_types, &Enum.member?(@non_primitives, &1))
-
-  @simple_binary_serializable [
-    :integer,
-    "integer",
-    :decimal,
-    "decimal",
-    :date,
-    "date",
-    :datetime,
-    "datetime"
-  ]
-
-  @float_string_pattern ~r|^\d+\.?$|
 
   @doc ~S"""
   Turn both key and value to map only so we get:
@@ -61,35 +25,31 @@ defmodule EbnisData.FieldType do
 
   def serialize_k_v(_), do: :error
 
-  defp serialize_k_v(k, v) when k in @simple_binary_serializable and is_binary(v) do
-    parse_serialize(k, v)
+  defp serialize_k_v("single_line_text", v) do
+    to_map("single_line_text", to_string(v))
   end
 
-  defp serialize_k_v(k, v) when k in @string_types and is_binary(v) do
-    to_map(k, v)
+  defp serialize_k_v("multi_line_text", v) do
+    to_map("multi_line_text", to_string(v))
   end
 
-  defp serialize_k_v(k, v) when k in @integer_types and is_integer(v) do
-    to_map(k, v)
+  defp serialize_k_v("integer", v) when is_integer(v) do
+    to_map("integer", v)
   end
 
-  defp serialize_k_v(k, v) when k in @decimal_types and (is_float(v) or is_integer(v)) do
-    to_map(k, v / 1)
+  defp serialize_k_v("decimal", v) when is_float(v) or is_integer(v) do
+    to_map("decimal", v / 1)
   end
 
-  defp serialize_k_v(key, %Date{} = date) when key in @date_type do
-    to_map(key, Date.to_iso8601(date))
+  defp serialize_k_v("date", %Date{} = date) do
+    to_map("date", Date.to_iso8601(date))
   end
 
-  defp serialize_k_v(key, %DateTime{} = val) when key in @datetime_type do
-    to_map(key, DateTime.to_iso8601(val))
+  defp serialize_k_v("datetime", %DateTime{} = val) do
+    to_map("datetime", DateTime.to_iso8601(val))
   end
 
   defp serialize_k_v(_, _), do: :error
-
-  defp parse_serialize(k, v) do
-    with {:ok, _} <- parse(k, v), do: to_map(k, v)
-  end
 
   def parse(%{} = val) do
     [{k, v}] = Map.to_list(val)
@@ -97,64 +57,62 @@ defmodule EbnisData.FieldType do
     parse(k, v)
   end
 
-  defp parse(key, val) when key in @string_types and is_binary(val) do
-    to_map(key, val)
+  defp parse("single_line_text", v) do
+    to_map("single_line_text", to_string(v))
   end
 
-  defp parse(k, val) when k in @integer_types and is_integer(val) do
-    to_map(k, val)
+  defp parse("multi_line_text", v) do
+    to_map("multi_line_text", to_string(v))
   end
 
-  defp parse(k, val) when k in @integer_types and is_binary(val) do
+  defp parse("integer", val) when is_integer(val) do
+    to_map("integer", val)
+  end
+
+  defp parse("integer", val) when is_binary(val) do
     try do
-      to_map(k, String.to_integer(val))
+      to_map("integer", String.to_integer(val))
     rescue
       _ ->
         :error
     end
   end
 
-  defp parse(k, v) when k in @decimal_types and (is_float(v) or is_integer(v)) do
-    to_map(k, v / 1)
+  defp parse("decimal", v) when is_float(v) or is_integer(v) do
+    to_map("decimal", v / 1)
   end
 
-  defp parse(k, v) when k in @decimal_types and is_binary(v) do
-    v =
-      case Regex.match?(@float_string_pattern, v) do
-        true ->
-          String.replace(v, ".", "") <> ".0"
-
-        _ ->
-          v
-      end
-
+  defp parse("decimal", v) when is_binary(v) do
     try do
-      to_map(k, String.to_float(v))
+      to_map("decimal", String.to_float(v))
     rescue
       _ ->
         :error
     end
   end
 
-  defp parse(k, %Date{} = v) when k in @date_type, do: to_map(k, v)
+  defp parse("date", %Date{} = v) do
+    to_map("date", v)
+  end
 
-  defp parse(k, v) when k in @date_type and is_binary(v) do
+  defp parse("date", v) when is_binary(v) do
     case Date.from_iso8601(v) do
       {:ok, v} ->
-        to_map(k, v)
+        to_map("date", v)
 
       _ ->
         :error
     end
   end
 
-  defp parse(k, %DateTime{} = v) when k in @datetime_type,
-    do: to_map(k, v)
+  defp parse("datetime", %DateTime{} = v) do
+    to_map("datetime", v)
+  end
 
-  defp parse(k, val) when k in @datetime_type and is_binary(val) do
+  defp parse("datetime", val) when is_binary(val) do
     case Timex.parse(val, @iso_extended_format) do
       {:ok, v} ->
-        to_map(k, v)
+        to_map("datetime", v)
 
       _ ->
         :error
@@ -163,17 +121,11 @@ defmodule EbnisData.FieldType do
 
   defp parse(_, _), do: :error
 
-  defp to_map(key, val) when is_atom(key),
-    do: to_map(Atom.to_string(key), val)
-
   defp to_map(key, val) when is_binary(key) do
-    {:ok, Map.put(%{}, key, val)}
+    {:ok, Map.new([{key, val}])}
   end
 
   def all_types, do: @all_types
-
-  def all_types_string, do: @all_types_string
-  def primitives, do: @primitives
 
   ##################### @behaviour Ecto.Type  ##############################
 
@@ -182,12 +134,6 @@ defmodule EbnisData.FieldType do
   def cast(data), do: parse(data)
 
   def load(val) when is_map(val), do: parse(val)
-
-  def load(val) when is_binary(val) do
-    val
-    |> Jason.decode!()
-    |> parse()
-  end
 
   def dump(val), do: parse(val)
 end

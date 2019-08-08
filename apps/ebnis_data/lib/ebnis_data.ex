@@ -2,8 +2,6 @@ defmodule EbnisData do
   require Logger
   import Ecto.Query, warn: false
 
-  alias Ecto.Changeset
-  alias EbnisData.Experience
   alias EbnisData.Repo
   alias EbnisData.Registration
   alias EbnisData.Credential
@@ -11,35 +9,6 @@ defmodule EbnisData do
   alias Ecto.Multi
   alias EbnisData.EntryApi
   alias EbnisData.ExperienceApi
-
-  @type save_offline_experience_attributes_t ::
-          %{
-            user_id: String.t(),
-            experience: Map.t()
-          }
-
-  @type save_offline_experience_success_t ::
-          {:ok, Experience.t(), [%Changeset{}]}
-
-  @type save_offline_experience_failure_t :: {:error, %Changeset{}}
-
-  @type get_experiences_args_t :: %{
-          pagination_args: Absinthe.Relay.Connection.Options.t(),
-          user_id: binary() | Integer.t(),
-          ids: [binary() | Integer.t()],
-          client_ids: [binary() | Integer.t()]
-        }
-
-  @type update_experience_args_t :: %{
-          title: String.t(),
-          description: binary(),
-          field_definitions: [
-            %{
-              id: String.t(),
-              name: String.t()
-            }
-          ]
-        }
 
   def register(%{} = params) do
     Multi.new()
@@ -118,7 +87,6 @@ defmodule EbnisData do
 
   ################################## EXPERIENCES #############################
 
-  defdelegate list_experiences(), to: ExperienceApi
   defdelegate get_experience(id, user_id), to: ExperienceApi
   defdelegate get_experiences(args), to: ExperienceApi
   defdelegate save_offline_experience(args), to: ExperienceApi
@@ -131,7 +99,6 @@ defmodule EbnisData do
   ################################ START ENTRY #############################
 
   defdelegate create_entry(attrs), to: EntryApi
-  defdelegate list_entries(), to: EntryApi
   defdelegate create_entries(attrs), to: EntryApi
   defdelegate delete_entry(attrs), to: EntryApi
   defdelegate update_data_object(arg), to: EntryApi

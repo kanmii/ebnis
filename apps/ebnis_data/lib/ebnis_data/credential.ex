@@ -20,13 +20,13 @@ defmodule EbnisData.Credential do
   end
 
   @doc false
-  def changeset(%__MODULE__{} = credential, attrs \\ %{}) do
+  def changeset(%__MODULE__{} = credential, attrs) do
     credential
     |> cast(attrs, [:source, :token, :user_id, :password])
     |> validate()
   end
 
-  def create_new_changeset(%__MODULE__{} = credential, attrs \\ %{}) do
+  def create_new_changeset(%__MODULE__{} = credential, attrs) do
     changeset(credential, attrs)
     |> hash_password()
   end
@@ -42,6 +42,4 @@ defmodule EbnisData.Credential do
        ) do
     put_change(changes, :token, hash_pwd_salt(password))
   end
-
-  defp hash_password(changes), do: changes
 end

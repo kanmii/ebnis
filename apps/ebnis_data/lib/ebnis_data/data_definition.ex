@@ -16,7 +16,7 @@ defmodule EbnisData.DataDefinition do
   end
 
   @doc "changeset"
-  def changeset(%__MODULE__{} = schema, attrs \\ %{}) do
+  def changeset(%__MODULE__{} = schema, attrs) do
     schema
     |> cast(attrs, [
       :name,

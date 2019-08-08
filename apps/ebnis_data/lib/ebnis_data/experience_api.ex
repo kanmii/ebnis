@@ -7,11 +7,6 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.Experience
   alias Ecto.Changeset
 
-  def list_experiences do
-    query_with_data_definitions()
-    |> Repo.all()
-  end
-
   @spec get_experience(id :: integer() | binary(), user_id :: integer() | binary()) ::
           Experience.t() | nil
   def get_experience(id, user_id) do
@@ -79,19 +74,13 @@ defmodule EbnisData.ExperienceApi do
     end
   end
 
-  defp query_with_data_definitions(args \\ nil) do
+  defp query_with_data_definitions(args) do
     query =
       Experience
       |> join(:inner, [e], fd in assoc(e, :data_definitions))
       |> preload([_, fd], data_definitions: fd)
 
-    case args do
-      nil ->
-        query
-
-      _ ->
-        Enum.reduce(args, query, &query(&2, &1))
-    end
+    Enum.reduce(args, query, &query(&2, &1))
   end
 
   defp query(args) do

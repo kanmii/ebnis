@@ -4,8 +4,6 @@ defmodule EbnisData.Factory do
   @now Timex.now()
   @all_seconds_in_year 0..(360 * 24 * 60 * 60)
 
-  def map(built), do: Map.from_struct(built)
-
   def random_date, do: Faker.Date.between(@start_date, @end_date)
 
   def random_datetime,
@@ -24,8 +22,6 @@ defmodule EbnisData.Factory do
     |> Atom.to_string()
     |> to_camel_key()
   end
-
-  def random_string_int, do: Integer.to_string(Faker.random_between(2, 100))
 
   def reject_attrs(%{} = attrs) do
     Enum.reject(attrs, fn

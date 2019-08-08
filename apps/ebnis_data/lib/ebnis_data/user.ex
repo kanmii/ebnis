@@ -17,7 +17,7 @@ defmodule EbnisData.User do
   end
 
   @doc "changeset"
-  def changeset(%__MODULE__{} = user, attrs \\ %{}) do
+  def changeset(%__MODULE__{} = user, attrs) do
     user
     |> cast(attrs, [:name, :email])
     |> validate()

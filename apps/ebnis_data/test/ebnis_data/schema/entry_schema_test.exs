@@ -9,7 +9,6 @@ defmodule EbnisData.Schema.EntryTest do
   alias EbnisData.Factory.Experience, as: ExperienceFactory
   alias EbnisData.Query.Entry, as: Query
   alias EbnisData.Resolver
-  alias EbnisData.Resolver.Entry, as: EntryResolver
   alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
 
   @iso_extended_format "{ISO:Extended:Z}"
@@ -483,38 +482,6 @@ defmodule EbnisData.Schema.EntryTest do
     end
 
     # @tag :skip
-    test "catches exception and logs stacktrace" do
-      log =
-        capture_log(fn ->
-          assert {
-                   :ok,
-                   %{
-                     errors: %{
-                       experience: experience
-                     }
-                   }
-                 } =
-                   %{
-                     input: %{
-                       data_objects: [
-                         %{
-                           definition_id: "a",
-                           data: %{"integer" => 1}
-                         }
-                       ],
-                       # This will cause an exception. DB ID can not be nil
-                       experience_id: nil
-                     }
-                   }
-                   |> EntryResolver.create(%{context: context(%{id: 1})})
-
-          assert is_binary(experience)
-        end)
-
-      assert log =~ "STACK"
-    end
-
-    # @tag :skip
     test "fails: data objects must contain all definitions" do
       user = RegFactory.insert()
 
@@ -568,6 +535,7 @@ defmodule EbnisData.Schema.EntryTest do
       variables = %{
         "input" => [
           %{
+            client_id: 1,
             experience_id: 0,
             data_objects: [%{definition_id: "a", data: %{"integer" => 1}}]
           }
@@ -1185,7 +1153,7 @@ defmodule EbnisData.Schema.EntryTest do
           %{
             user_id: user.id
           },
-          ["integer", "decimal"]
+          ["integer", "integer"]
         )
 
       [object0, object1] = Factory.insert(%{}, experience).data_objects
@@ -1193,8 +1161,11 @@ defmodule EbnisData.Schema.EntryTest do
       id0 = object0.id
       id1 = object1.id
 
+      # here we decimal data given to integer type: will fail
       data0 = ~s({"integer":0.1})
-      data1 = ~s({"decimal":2.0})
+
+      # we can parse a string as integer, so this is okay
+      data1 = ~s({"integer":"2"})
 
       variables = %{
         "input" => [
@@ -1229,7 +1200,7 @@ defmodule EbnisData.Schema.EntryTest do
                       "fieldErrors" => nil,
                       "dataObject" => %{
                         "id" => ^id1,
-                        "data" => ^data1
+                        "data" => ~s({"integer":2})
                       }
                     }
                   ]

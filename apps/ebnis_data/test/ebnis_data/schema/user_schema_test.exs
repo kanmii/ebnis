@@ -5,7 +5,6 @@ defmodule EbnisData.Schema.UserTest do
   alias EbnisData.Query.Registration, as: RegQuery
   alias EbnisData.Factory.Registration, as: RegFactory
   alias EbnisData.Query.User, as: Query
-  alias EbnisData.Factory.User, as: Factory
   alias EbnisData.Guardian, as: GuardianApp
 
   @moduletag :db
@@ -98,7 +97,7 @@ defmodule EbnisData.Schema.UserTest do
       {:ok, jwt, _claim} = GuardianApp.encode_and_sign(user)
 
       attrs =
-        Factory.params(jwt: jwt)
+        RegFactory.user_params(%{jwt: jwt})
         |> RegFactory.stringify()
 
       queryMap = Query.update()

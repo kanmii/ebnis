@@ -27,7 +27,7 @@ defmodule EbnisData.Registration do
   @doc ~S"""
      changeset
   """
-  def changeset(%__MODULE__{} = reg, params \\ %{}) do
+  def changeset(%__MODULE__{} = reg, params = %{}) do
     reg
     |> cast(params, @required_fields)
     |> validate_length(:password, min: 4, max: 200)
@@ -66,26 +66,8 @@ defmodule EbnisData.Registration do
     |> Multi.run(:credential, __MODULE__, :insert_credential, [params])
   end
 
-  @doc """
-  Creates a credential.
-
-  ## Examples
-
-      iex> create_credential(%{field: value})
-      {:ok, %Credential{}}
-
-      iex> create_credential(%{field: bad_value})
-      {:error, Changeset{}}
-
-  """
   def create_credential(%Changeset{} = changes) do
     Repo.insert(changes)
-  end
-
-  def create_credential(attrs) do
-    %Credential{}
-    |> Credential.changeset(attrs)
-    |> create_credential()
   end
 
   @doc """
@@ -100,7 +82,7 @@ defmodule EbnisData.Registration do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_user(attrs \\ %{}) do
+  def create_user(attrs) do
     %User{}
     |> User.changeset(attrs)
     |> Repo.insert()

@@ -242,6 +242,27 @@ defmodule EbnisData.Schema.ExperienceTest do
 
   describe "get one experience" do
     # @tag :skip
+    test "fails: unauthenticated" do
+      variables = %{
+        "id" => "0"
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.get(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    # @tag :skip
     test "succeeds for existing experience" do
       user = RegFactory.insert()
       experience = Factory.insert(user_id: user.id)
@@ -334,7 +355,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "fails for wrong user" do
+    test "fails: wrong user" do
       user = RegFactory.insert()
       %{id: id} = Factory.insert(user_id: user.id)
       id = Integer.to_string(id)

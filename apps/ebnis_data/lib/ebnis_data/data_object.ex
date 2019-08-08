@@ -15,13 +15,6 @@ defmodule EbnisData.DataObject do
   end
 
   @doc "changeset"
-  def changeset, do: changeset(%__MODULE__{}, %{})
-
-  def changeset(%__MODULE__{} = schema), do: changeset(schema, %{})
-
-  def changeset(%__MODULE__{} = schema, attrs) when is_list(attrs),
-    do: changeset(schema, Map.new(attrs))
-
   def changeset(%__MODULE__{} = schema, %{} = attrs) do
     schema
     |> cast(attrs, [

@@ -11,10 +11,6 @@ defmodule EbnisData.EntryApi do
 
   @entry_multi_key "e"
 
-  @create_entry_catch_all_error "an error occurred: unable to create entry"
-
-  @create_entry_exception_header "\nCreate entry exception:\n  params:\n\t"
-
   @delete_entry_exception_header "\nDelete entry exception ID: "
 
   @stacktrace "\n\n----------STACKTRACE---------------\n\n"
@@ -196,19 +192,6 @@ defmodule EbnisData.EntryApi do
             }
         end
     end
-  rescue
-    error ->
-      Logger.error(fn ->
-        [
-          @create_entry_exception_header,
-          :error
-          |> Exception.format(error, __STACKTRACE__)
-          |> Ebnis.prettify_with_new_line()
-        ]
-      end)
-
-      fake_changeset = %{errors: [entry: {@create_entry_catch_all_error, []}]}
-      {:error, fake_changeset}
   end
 
   defp process_create_entry_result(result) do
@@ -233,11 +216,6 @@ defmodule EbnisData.EntryApi do
     Changeset.put_change(changeset, :data_objects, [])
   end
 
-  def list_entries do
-    query_with_data_list()
-    |> Repo.all()
-  end
-
   defp query_with_data_list do
     Entry
     |> join(:inner, [e], dl in assoc(e, :data_objects))
@@ -254,7 +232,7 @@ defmodule EbnisData.EntryApi do
     } = Connection.offset_and_limit_for_query(pagination, opts)
 
     query =
-      Entry
+      query_with_data_list()
       |> where([e], e.exp_id == ^experience_id)
       |> limit(^(limit + 1))
       |> offset(^offset)

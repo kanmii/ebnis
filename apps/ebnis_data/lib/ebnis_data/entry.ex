@@ -24,7 +24,7 @@ defmodule EbnisData.Entry do
       :inserted_at,
       :updated_at
     ])
-    |> validate_required([:exp_id | attrs[:other_required] || []])
+    |> validate_required([:exp_id])
     |> unique_constraint(
       :client_id,
       name: :entries_client_id_exp_id_index

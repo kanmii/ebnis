@@ -54,8 +54,4 @@ defmodule EbnisData.Schema do
       repo_opts
     )
   end
-
-  def run_batch(queryable, query, col, inputs, repo_opts) do
-    Dataloader.Ecto.run_batch(Repo, queryable, query, col, inputs, repo_opts)
-  end
 end

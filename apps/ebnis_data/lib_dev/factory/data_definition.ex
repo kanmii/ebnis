@@ -4,7 +4,7 @@ defmodule EbnisData.Factory.DataDefinition do
   alias EbnisData.FieldType
   alias EbnisData.Factory
 
-  @field_types FieldType.all_types_string()
+  @field_types FieldType.all_types()
 
   @simple_attributes [:name, :client_id, :id]
 

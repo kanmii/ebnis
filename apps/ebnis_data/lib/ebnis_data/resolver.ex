@@ -14,14 +14,6 @@ defmodule EbnisData.Resolver do
     {:error, message: @unauthorized}
   end
 
-  @doc """
-  Take an error returned by applying Ecto.Repo.transaction to a Multi
-  operation and return a string representation.
-  """
-  @spec transaction_errors_to_string(%Ecto.Changeset{}, Multi.name()) :: String.t()
-  def transaction_errors_to_string({:error, changeset}, failed_operation),
-    do: transaction_errors_to_string(changeset, failed_operation)
-
   def transaction_errors_to_string(%{} = changeset, failed_operation) do
     %{
       name: failed_operation,
@@ -47,8 +39,8 @@ defmodule EbnisData.Resolver do
       :error ->
         v
 
-      {:ok, count} ->
-        String.replace(v, "%{count}", to_string(count))
+        # {:ok, count} ->
+        #   String.replace(v, "%{count}", to_string(count))
     end
   end
 

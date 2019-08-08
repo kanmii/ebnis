@@ -1,35 +1,22 @@
 defmodule EbnisData.Factory.Entry do
   alias EbnisData.Factory
-  alias EbnisData.FieldType
   alias EbnisData.Resolver
 
-  @integers 100..1_000
-
-  @all_types FieldType.all_types_string()
+  @integers 100..110
 
   @simple_attributes [:client_id]
   @iso_extended_format "{ISO:Extended:Z}"
 
-  def insert(attrs, experience \\ nil)
+  def insert(attrs, experience)
 
   def insert(%{} = attrs, experience) do
-    attrs =
-      case experience do
-        nil ->
-          attrs
-
-        _ ->
-          params(experience, attrs)
-          |> Map.put(:user_id, experience.user_id)
-      end
-
-    {:ok, entry} = EbnisData.create_entry(attrs)
+    {:ok, entry} =
+      experience
+      |> params(attrs)
+      |> Map.put(:user_id, experience.user_id)
+      |> EbnisData.create_entry()
 
     entry
-  end
-
-  def insert(attrs, %{} = experience) when is_list(attrs) do
-    insert(Map.new(attrs), experience)
   end
 
   def params(%{} = experience) do
@@ -86,15 +73,6 @@ defmodule EbnisData.Factory.Entry do
   def params_list(how_many, experience, attrs \\ %{}) do
     1..how_many
     |> Enum.map(fn _ -> params(experience, attrs) end)
-  end
-
-  def field(attrs \\ %{})
-
-  def field(attrs) when is_list(attrs), do: field(Map.new(attrs))
-
-  def field(attrs) do
-    type = Enum.random(@all_types)
-    Map.put(attrs, :data, data(type))
   end
 
   def data("integer"), do: %{"integer" => Enum.random(@integers)}

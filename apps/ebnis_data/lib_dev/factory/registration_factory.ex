@@ -1,7 +1,6 @@
 defmodule EbnisData.Factory.Registration do
   use EbnisData.Factory
 
-  alias EbnisData.Factory.User, as: UserFactory
   alias EbnisData.Factory
 
   @simple_attrs [
@@ -49,6 +48,14 @@ defmodule EbnisData.Factory.Registration do
       password: password,
       password_confirmation: password
     }
-    |> Map.merge(UserFactory.params())
+    |> Map.merge(user_params())
+  end
+
+  def user_params(attrs \\ %{}) do
+    %{
+      name: "na" <> Sequence.next(""),
+      email: "m#{Sequence.next("")}@b.c"
+    }
+    |> Map.merge(attrs)
   end
 end
