@@ -497,16 +497,21 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "by IDs succeeds" do
+    test "succeeds: one has entry, the other no entry" do
       user = RegFactory.insert()
       experience = Factory.insert(user_id: user.id)
       Factory.insert(user_id: user.id)
 
       id = Resolver.convert_to_global_id(experience.id, :experience)
 
+      experience2 = Factory.insert(user_id: user.id)
+      id2 = Resolver.convert_to_global_id(experience2.id, :experience)
+      entry = EntryFactory.insert(%{}, experience2)
+      entry_id = Resolver.convert_to_global_id(entry.id, :entry)
+
       variables = %{
         "input" => %{
-          "ids" => [id]
+          "ids" => [id, id2]
         }
       }
 
@@ -524,6 +529,19 @@ defmodule EbnisData.Schema.ExperienceTest do
                               "hasNextPage" => false,
                               "hasPreviousPage" => false
                             }
+                          }
+                        }
+                      },
+                      %{
+                        "node" => %{
+                          "entries" => %{
+                            "edges" => [
+                              %{
+                                "node" => %{
+                                  "id" => ^entry_id
+                                }
+                              }
+                            ]
                           }
                         }
                       }

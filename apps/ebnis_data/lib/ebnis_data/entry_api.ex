@@ -20,6 +20,16 @@ defmodule EbnisData.EntryApi do
 
   @update_data_object_exception_header "\nUpdate data object exception:\n  params:\n\t"
 
+  @empty_relay_connection %{
+    edges: [],
+    page_info: %{
+      start_cursor: "",
+      end_cursor: "",
+      has_previous_page: false,
+      has_next_page: false
+    }
+  }
+
   defp validate_data_objects_with_definitions(data_definitions, data_list) do
     {definitions_ids_map, all_definitions_ids} =
       data_definitions
@@ -267,17 +277,7 @@ defmodule EbnisData.EntryApi do
     |> Repo.all(repo_opts)
     |> case do
       [] ->
-        [
-          %{
-            edges: [],
-            page_info: %{
-              start_cursor: "",
-              end_cursor: "",
-              has_previous_page: false,
-              has_next_page: false
-            }
-          }
-        ]
+        [@empty_relay_connection]
 
       records_union ->
         records_union = Enum.group_by(records_union, & &1.exp_id)
@@ -285,17 +285,22 @@ defmodule EbnisData.EntryApi do
         Enum.map(
           experiences_ids_pagination_args,
           fn {experience_id, _} ->
-            records = records_union[experience_id]
-            {limit, offset} = trackers[experience_id]
+            case records_union[experience_id] do
+              nil ->
+                @empty_relay_connection
 
-            {:ok, connection} =
-              Connection.from_slice(
-                Enum.take(records, limit),
-                offset,
-                []
-              )
+              records ->
+                {limit, offset} = trackers[experience_id]
 
-            connection
+                {:ok, connection} =
+                  Connection.from_slice(
+                    Enum.take(records, limit),
+                    offset,
+                    []
+                  )
+
+                connection
+            end
           end
         )
     end
