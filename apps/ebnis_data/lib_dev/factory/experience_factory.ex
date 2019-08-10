@@ -71,7 +71,13 @@ defmodule EbnisData.Factory.Experience do
         {Factory.to_camel_key(k), Timex.format!(v, @iso_extended_format)}
 
       {:entries, v} ->
-        {"entries", Enum.map(v, &EntryFactory.stringify/1)}
+        {"entries",
+         Enum.map(
+           v,
+           &EntryFactory.stringify(&1, %{
+             keep_experience_id: true
+           })
+         )}
     end)
     |> Enum.into(%{})
   end

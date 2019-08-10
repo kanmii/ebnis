@@ -7,6 +7,9 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.Experience
   alias Ecto.Changeset
 
+  @get_experience_exception_header "\n\nError while getting experience with:"
+  @stacktrace "\n\n---------------STACKTRACE---------\n\n"
+
   @spec get_experience(id :: integer() | binary(), user_id :: integer() | binary()) ::
           Experience.t() | nil
   def get_experience(id, user_id) do
@@ -24,10 +27,10 @@ defmodule EbnisData.ExperienceApi do
     error ->
       Logger.error(fn ->
         [
-          "\n\nError while getting experience with:",
+          @get_experience_exception_header,
           "\n\tid: #{id}",
           "\n\tUser ID: #{user_id}",
-          "\n\n---------------STACKTRACE---------\n\n",
+          @stacktrace,
           :error
           |> Exception.format(error, __STACKTRACE__)
           |> Ebnis.prettify_with_new_line()

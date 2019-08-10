@@ -75,7 +75,7 @@ defmodule EbnisData.Schema.Experience do
     @desc ~S"""
       String that uniquely identifies this data definition has been
       created offline. If an associated entry is also created
-      offline, then `createField.definitionId` **MUST BE** the same as this
+      offline, then `dataDefinition.definitionId` **MUST BE** the same as this
       field and will be validated as such.
     """
     field(:client_id, :id)
@@ -181,7 +181,7 @@ defmodule EbnisData.Schema.Experience do
     @desc ~S"""
       String that uniquely identifies this field definition has been
       created offline. If an associated entry is also created
-      offline, then `createField.definitionId` **MUST BE** the same as this
+      offline, then `dataDefinition.definitionId` **MUST BE** the same as this
       field and will be validated as such.
     """
     field(:client_id, :id)
@@ -213,7 +213,9 @@ defmodule EbnisData.Schema.Experience do
 
     @desc ~S"""
       One may define an experience and create associated entries simultaneously
-      if for instance on the client while backend is offline.
+      if for instance on the client while backend is offline. Special care
+      must be taken to ensure the entry.experienceId == experience.clientId
+      otherwise the entry will fail to save.
     """
     field(:entries, :create_entry_input |> list_of())
   end

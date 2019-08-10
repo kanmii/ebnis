@@ -163,7 +163,6 @@ defmodule EbnisData.Resolver.Experience do
 
   defp save_offline_experience({experience, index}, user_id) do
     case experience
-         |> convert_entries_experience_ids_from_global()
          |> Map.put(:user_id, user_id)
          |> EbnisData.save_offline_experience() do
       {:ok, experience, []} ->
@@ -195,25 +194,6 @@ defmodule EbnisData.Resolver.Experience do
             client_id: experience[:client_id] || index,
             errors: create_experience_errors_from_changeset(changeset)
           }
-        }
-    end
-  end
-
-  defp convert_entries_experience_ids_from_global(experience) do
-    case experience[:entries] do
-      nil ->
-        experience
-
-      entries ->
-        %{
-          experience
-          | entries:
-              Enum.map(
-                entries,
-                &update_in(&1.experience_id, fn id ->
-                  Resolver.convert_from_global_id(id, :experience)
-                end)
-              )
         }
     end
   end

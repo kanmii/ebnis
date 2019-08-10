@@ -88,7 +88,9 @@ defmodule EbnisData.Factory.Entry do
   def data("decimal"),
     do: %{"decimal" => "0.#{Enum.random(@integers)}"}
 
-  def stringify(%{} = attrs) do
+  def stringify(%{} = attrs, settings \\ %{}) do
+    keep_experience_id = settings[:keep_experience_id]
+
     Enum.reduce(attrs, %{}, fn
       {:data_objects, data_objects}, acc ->
         Map.put(
@@ -101,7 +103,11 @@ defmodule EbnisData.Factory.Entry do
         Map.put(
           acc,
           "experienceId",
-          Resolver.convert_to_global_id(v, :experience)
+          if keep_experience_id != nil do
+            v
+          else
+            Resolver.convert_to_global_id(v, :experience)
+          end
         )
 
       {k, v}, acc when k in @simple_attributes ->
