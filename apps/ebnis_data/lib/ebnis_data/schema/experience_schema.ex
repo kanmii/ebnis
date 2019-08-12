@@ -243,6 +243,17 @@ defmodule EbnisData.Schema.Experience do
     field(:ids, list_of(:id))
   end
 
+  input_object :edit_definition_input do
+    @desc ~S"""
+     The ID of the data definition to be modifie
+    """
+    field(:id, non_null(:id))
+    field(:name, non_null(:string))
+  end
+
+  input_object :edit_definition_input do
+  end
+
   ######################### END INPUT OBJECTS ################################
 
   ######################### MUTATION ################################
