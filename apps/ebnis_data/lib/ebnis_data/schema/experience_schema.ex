@@ -169,6 +169,30 @@ defmodule EbnisData.Schema.Experience do
     field(:errors, :update_experience_errors)
   end
 
+  @desc """
+    Error returned while updating a definition
+  """
+  object :update_definition_error do
+    field(:id, non_null(:id))
+    field(:errors, non_null(:data_definition_error))
+  end
+
+  @desc """
+    An object representing an updated defintion
+  """
+  object :update_definition_result do
+    field(:definition, :data_definition)
+    field(:errors, :update_definition_error)
+  end
+
+  @desc """
+    An object representing the result of the update definitions operation
+  """
+  object :update_definitions_result do
+    field(:experience, non_null(:experience))
+    field(:definitions, non_null(:update_definition_result))
+  end
+
   ######################### END REGULAR OBJECTS ###########################
 
   ############################ INPUT OBJECTS ##############################
@@ -243,15 +267,16 @@ defmodule EbnisData.Schema.Experience do
     field(:ids, list_of(:id))
   end
 
-  input_object :edit_definition_input do
+  input_object :update_definition_input do
     @desc ~S"""
-     The ID of the data definition to be modifie
+     The ID of the data definition to be modified
     """
     field(:id, non_null(:id))
-    field(:name, non_null(:string))
-  end
 
-  input_object :edit_definition_input do
+    @desc """
+      We can only modify the name for now
+    """
+    field(:name, non_null(:string))
   end
 
   ######################### END INPUT OBJECTS ################################
@@ -288,6 +313,15 @@ defmodule EbnisData.Schema.Experience do
       arg(:input, non_null(:update_experience_input))
 
       resolve(&Resolver.update_experience/2)
+    end
+
+    @desc """
+        Update several definitions
+    """
+    field :update_definitions, :update_definitions_result do
+      arg(:input, :update_definition_input |> list_of |> non_null)
+
+      resolve(&Resolver.update_definitions/2)
     end
   end
 

@@ -242,4 +242,12 @@ defmodule EbnisData.Resolver.Experience do
   def update_experience(_, _) do
     Resolver.unauthorized()
   end
+
+  def update_definitions(%{input: inputs}, %{context: %{current_user: %{id: user_id}}}) do
+    EbnisData.update_definitions(inputs, user_id)
+  end
+
+  def update_definitions(_, _) do
+    Resolver.unauthorized()
+  end
 end

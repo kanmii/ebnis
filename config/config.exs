@@ -9,7 +9,7 @@
 # move said applications out of the umbrella.
 import Config
 
-config :bcrypt_elixir, :log_rounds, 4
+config :bcrypt_elixir, :log_rounds, 1
 
 # Configure Mix tasks and generators
 config :ebnis_data,

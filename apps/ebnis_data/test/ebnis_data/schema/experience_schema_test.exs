@@ -1148,5 +1148,89 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
   end
 
+  describe "update data definitions" do
+    test "unauthorized" do
+      variables = %{
+        "input" => [
+          %{
+            "id" => "a",
+            "name" => "a"
+          }
+        ]
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Unauthorized"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_definitions(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    test "fails: exception logged" do
+      variables = %{
+        "input" => [
+          %{
+            "id" => "a",
+            "name" => "x"
+          }
+        ]
+      }
+
+      log =
+        capture_log(fn ->
+          assert {:ok,
+                  %{
+                    errors: [
+                      %{
+                        message: "bad request"
+                      }
+                    ]
+                  }} =
+                   Absinthe.run(
+                     Query.update_definitions(),
+                     Schema,
+                     variables: variables,
+                     context: context(%{id: 0})
+                   )
+        end)
+
+      assert log =~ "STACK"
+    end
+
+    test "fails: experience does not exist" do
+      variables = %{
+        "input" => [
+          %{
+            "id" => Ecto.UUID.generate(),
+            "name" => "x"
+          }
+        ]
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "experience does not exist"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.update_definitions(),
+                 Schema,
+                 variables: variables,
+                 context: context(%{id: 0})
+               )
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

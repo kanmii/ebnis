@@ -7,8 +7,12 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.Experience
   alias Ecto.Changeset
 
-  @get_experience_exception_header "\n\nError while getting experience with:"
+  @get_experience_exception_header "\n\nException while getting experience with:"
   @stacktrace "\n\n---------------STACKTRACE---------\n\n"
+
+  @bad_request "bad request"
+
+  @update_definitions_exception_header "\n\nException while updating definitions with:"
 
   @spec get_experience(id :: integer() | binary(), user_id :: integer() | binary()) ::
           Experience.t() | nil
@@ -327,5 +331,27 @@ defmodule EbnisData.ExperienceApi do
         |> Experience.changeset(attrs)
         |> Repo.update()
     end
+  end
+
+  def update_definitions([input | _] = inputs, user_id) do
+    case query_with_data_definitions(user_id: user_id)
+         |> where([_, d], d.id == ^input.id)
+         |> Repo.all() do
+      [] ->
+        {:error, "experience does not exist"}
+    end
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @update_definitions_exception_header,
+          inspect({inputs, user_id}),
+          @stacktrace,
+          :error
+          |> Exception.format(error, __STACKTRACE__)
+        ]
+      end)
+
+      {:error, @bad_request}
   end
 end

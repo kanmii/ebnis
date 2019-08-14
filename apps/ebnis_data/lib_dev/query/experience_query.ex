@@ -179,4 +179,34 @@ defmodule EbnisData.Query.Experience do
       #{@fragment}
     """
   end
+
+  def update_definitions do
+    """
+      mutation UpdateDefinitions($input: [UpdateDefinitionInput]!) {
+        updateDefinitions(input: $input) {
+          experience {
+            id
+            updatedAt
+          }
+
+          definitions {
+            definition {
+                ...#{@data_definition_fragment_name}
+            }
+
+
+            errors {
+              id
+              errors {
+                name
+              }
+            }
+          }
+
+        }
+      }
+
+      #{@data_definition_fragment}
+    """
+  end
 end
