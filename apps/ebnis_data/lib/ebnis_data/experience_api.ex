@@ -336,14 +336,12 @@ defmodule EbnisData.ExperienceApi do
     end
   end
 
-  def update_definitions([input | _] = inputs, user_id) do
-    case query_with_data_definitions(user_id: user_id)
-         |> where([_, d], d.id == ^input.id)
-         |> Repo.all() do
-      [] ->
+  def update_definitions(inputs, user_id) do
+    case get_experience_from_definitions(inputs, user_id) do
+      nil ->
         {:error, @experience_does_not_exist}
 
-      [experience] ->
+      experience ->
         definitions = Enum.map(inputs, &get_create_definition/1)
 
         %{
@@ -368,6 +366,40 @@ defmodule EbnisData.ExperienceApi do
       end)
 
       {:error, @bad_request}
+  end
+
+  defp get_experience_from_definitions(definitions, user_id) do
+    query = query_with_data_definitions(user_id: user_id)
+
+    try do
+      Enum.map(definitions, fn definition ->
+        case get_experience_from_definition_id(query, definition.id) do
+          %{} = experience ->
+            throw(experience)
+
+          nil ->
+            nil
+        end
+      end)
+
+      nil
+    catch
+      e ->
+        e
+    end
+  end
+
+  defp get_experience_from_definition_id(query, id) do
+    query
+    |> where([_, d], d.id == ^id)
+    |> Repo.all()
+    |> case do
+      [] ->
+        nil
+
+      [experience] ->
+        experience
+    end
   end
 
   defp get_create_definition(input) do

@@ -1255,13 +1255,13 @@ defmodule EbnisData.Schema.ExperienceTest do
       variables = %{
         "input" => [
           %{
+            "id" => bogus_definition_id,
+            "name" => "b"
+          },
+          %{
             "id" => id1,
             "name" => "aa",
             "updatedAt" => updated_at
-          },
-          %{
-            "id" => bogus_definition_id,
-            "name" => "b"
           }
         ]
       }
@@ -1286,14 +1286,6 @@ defmodule EbnisData.Schema.ExperienceTest do
                     },
                     "definitions" => [
                       %{
-                        "definition" => %{
-                          "id" => ^id1,
-                          "name" => "aa",
-                          "updatedAt" => ^updated_at
-                        },
-                        "errors" => nil
-                      },
-                      %{
                         "definition" => nil,
                         "errors" => %{
                           "id" => ^bogus_definition_id,
@@ -1301,6 +1293,14 @@ defmodule EbnisData.Schema.ExperienceTest do
                             "definition" => error
                           }
                         }
+                      },
+                      %{
+                        "definition" => %{
+                          "id" => ^id1,
+                          "name" => updated_name,
+                          "updatedAt" => ^updated_at
+                        },
+                        "errors" => nil
                       }
                     ]
                   }
@@ -1313,7 +1313,7 @@ defmodule EbnisData.Schema.ExperienceTest do
                  context: context(user)
                )
 
-      refute def1.name == "aa"
+      refute def1.name == updated_name
       assert is_binary(error)
       refute EbnisData.to_iso_datetime_string(def1.updated_at) == updated_at
     end
