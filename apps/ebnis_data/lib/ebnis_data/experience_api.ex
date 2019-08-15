@@ -85,12 +85,7 @@ defmodule EbnisData.ExperienceApi do
   end
 
   defp query_with_data_definitions(args) do
-    query =
-      Experience
-      |> join(:inner, [e], fd in assoc(e, :data_definitions))
-      |> preload([_, fd], data_definitions: fd)
-
-    Enum.reduce(args, query, &query(&2, &1))
+    Enum.reduce(args, preload(Experience, [:data_definitions]), &query(&2, &1))
   end
 
   defp query(args) do
@@ -369,7 +364,9 @@ defmodule EbnisData.ExperienceApi do
   end
 
   defp get_experience_from_definitions(definitions, user_id) do
-    query = query_with_data_definitions(user_id: user_id)
+    query =
+      query_with_data_definitions(user_id: user_id)
+      |> join(:inner, [e], d in assoc(e, :data_definitions))
 
     try do
       Enum.map(definitions, fn definition ->

@@ -1175,31 +1175,19 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     test "fails: exception logged" do
-      variables = %{
-        "input" => [
-          %{
-            "id" => "a",
-            "name" => "x"
-          }
-        ]
-      }
-
       log =
         capture_log(fn ->
-          assert {:ok,
-                  %{
-                    errors: [
-                      %{
-                        message: "bad request"
-                      }
-                    ]
-                  }} =
-                   Absinthe.run(
-                     Query.update_definitions(),
-                     Schema,
-                     variables: variables,
-                     context: context(%{id: 0})
+          assert {:error, error} =
+                   EbnisData.update_definitions(
+                     [
+                       %{
+                         id: "a"
+                       }
+                     ],
+                     0
                    )
+
+          assert is_binary(error)
         end)
 
       assert log =~ "STACK"
@@ -1316,6 +1304,46 @@ defmodule EbnisData.Schema.ExperienceTest do
       refute def1.name == updated_name
       assert is_binary(error)
       refute EbnisData.to_iso_datetime_string(def1.updated_at) == updated_at
+    end
+
+    test "fails: definition can not be updated" do
+      user = RegFactory.insert()
+
+      [def1, def2] =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer",
+            "decimal"
+          ]
+        ).data_definitions
+
+      %{id: id1} = def1
+      %{name: name2} = def2
+
+      assert %{
+               experience: %{
+                 id: _,
+                 data_definitions: [
+                   %{},
+                   %{}
+                 ]
+               },
+               definitions: [
+                 %{
+                   errors: %{
+                     id: ^id1,
+                     errors: [{:name, {name_error, _}}]
+                   }
+                 }
+               ]
+             } =
+               EbnisData.update_definitions(
+                 [%{id: id1, name: name2}],
+                 user.id
+               )
+
+      assert is_binary(name_error)
     end
   end
 
