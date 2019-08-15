@@ -82,6 +82,9 @@ defmodule EbnisData.Schema.Experience do
 
     @desc "The data type of the field"
     field(:type, non_null(:field_type))
+
+    field(:inserted_at, non_null(:iso_datetime))
+    field(:updated_at, non_null(:iso_datetime))
   end
 
   @desc """
@@ -90,6 +93,11 @@ defmodule EbnisData.Schema.Experience do
   object :data_definition_error do
     field(:name, :string)
     field(:type, :string)
+
+    @desc """
+      May be we can't find the definition during an update
+    """
+    field(:definition, :string)
   end
 
   @desc """
@@ -189,8 +197,22 @@ defmodule EbnisData.Schema.Experience do
     An object representing the result of the update definitions operation
   """
   object :update_definitions_result do
+    @desc """
+      The experience to which the definitions updated belong. The experience
+      is always updated whenever a definition is updated with the most recent
+      updatedAt field of the definitions to be updated.
+    """
     field(:experience, non_null(:experience))
-    field(:definitions, non_null(:update_definition_result))
+
+    @desc """
+      The definitions to be updated, successes/failures
+    """
+    field(
+      :definitions,
+      :update_definition_result
+      |> list_of()
+      |> non_null()
+    )
   end
 
   ######################### END REGULAR OBJECTS ###########################
@@ -267,6 +289,9 @@ defmodule EbnisData.Schema.Experience do
     field(:ids, list_of(:id))
   end
 
+  @desc """
+    fields required to update an experience data definition
+  """
   input_object :update_definition_input do
     @desc ~S"""
      The ID of the data definition to be modified
@@ -274,9 +299,16 @@ defmodule EbnisData.Schema.Experience do
     field(:id, non_null(:id))
 
     @desc """
-      We can only modify the name for now
+      Well the essence of updating the definition is to rename it. So if you
+      are not renaming the definition, please do not update!
     """
     field(:name, non_null(:string))
+
+    @desc """
+      If the update was done offline, then it's proper to allow the update
+      date assigned offline.
+    """
+    field(:updated_at, :iso_datetime)
   end
 
   ######################### END INPUT OBJECTS ################################

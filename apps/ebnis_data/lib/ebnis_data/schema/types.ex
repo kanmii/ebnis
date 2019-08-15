@@ -23,8 +23,6 @@ defmodule EbnisData.Schema.Types do
     end)
   end
 
-  @iso_extended_format "{ISO:Extended:Z}"
-
   scalar :entry_field_json, name: "EntryField" do
     parse(&parse_entry_field/1)
 
@@ -54,17 +52,14 @@ defmodule EbnisData.Schema.Types do
 
   scalar :iso_datetime, name: "ISODatime" do
     parse(&parse_iso_datetime/1)
-    serialize(&Timex.format!(&1, @iso_extended_format))
+    serialize(&EbnisData.to_iso_datetime_string/1)
   end
 
   @spec parse_iso_datetime(Absinthe.Blueprint.Input.String.t()) ::
           {:ok, DateTime.t() | NaiveDateTime.t()} | :error
   @spec parse_iso_datetime(Absinthe.Blueprint.Input.Null.t()) :: {:ok, nil}
   defp parse_iso_datetime(%Absinthe.Blueprint.Input.String{value: value}) do
-    case Timex.parse(value, @iso_extended_format) do
-      {:ok, val} -> {:ok, val}
-      {:error, _} -> :error
-    end
+    EbnisData.from_iso_datetime_string(value)
   end
 
   defp parse_iso_datetime(%Absinthe.Blueprint.Input.Null{}) do

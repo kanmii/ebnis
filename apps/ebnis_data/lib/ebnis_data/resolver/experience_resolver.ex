@@ -243,11 +243,43 @@ defmodule EbnisData.Resolver.Experience do
     Resolver.unauthorized()
   end
 
-  def update_definitions(%{input: inputs}, %{context: %{current_user: %{id: user_id}}}) do
-    EbnisData.update_definitions(inputs, user_id)
+  def update_definitions(
+        %{input: inputs},
+        %{context: %{current_user: %{id: user_id}}}
+      ) do
+    case EbnisData.update_definitions(inputs, user_id) do
+      %{experience: experience} = result ->
+        {
+          :ok,
+          %{
+            experience: experience,
+            definitions:
+              Enum.map(
+                result.definitions,
+                &map_update_definition_result/1
+              )
+          }
+        }
+
+      {:error, error} ->
+        {:error, error}
+    end
   end
 
   def update_definitions(_, _) do
     Resolver.unauthorized()
+  end
+
+  defp map_update_definition_result(%{definition: definition}) do
+    %{definition: definition}
+  end
+
+  defp map_update_definition_result(%{errors: errors}) do
+    %{
+      errors: %{
+        id: errors.id,
+        errors: Resolver.changeset_errors_to_map(errors.errors)
+      }
+    }
   end
 end

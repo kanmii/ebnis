@@ -1230,6 +1230,93 @@ defmodule EbnisData.Schema.ExperienceTest do
                  context: context(%{id: 0})
                )
     end
+
+    test "one succeeds, one defintion not found" do
+      user = RegFactory.insert()
+
+      experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer",
+            "decimal"
+          ]
+        )
+
+      [def1, def2] = experience.data_definitions
+      id1 = def1.id
+      updated_at = "2019-08-15T10:20:24Z"
+
+      id2 = def2.id
+      date2 = EbnisData.to_iso_datetime_string(def2.updated_at)
+
+      bogus_definition_id = Ecto.UUID.generate()
+
+      variables = %{
+        "input" => [
+          %{
+            "id" => id1,
+            "name" => "aa",
+            "updatedAt" => updated_at
+          },
+          %{
+            "id" => bogus_definition_id,
+            "name" => "b"
+          }
+        ]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateDefinitions" => %{
+                    "experience" => %{
+                      "id" => _,
+                      "updatedAt" => ^updated_at,
+                      "dataDefinitions" => [
+                        %{
+                          "id" => ^id1,
+                          "updatedAt" => ^updated_at
+                        },
+                        %{
+                          "id" => ^id2,
+                          "updatedAt" => ^date2
+                        }
+                      ]
+                    },
+                    "definitions" => [
+                      %{
+                        "definition" => %{
+                          "id" => ^id1,
+                          "name" => "aa",
+                          "updatedAt" => ^updated_at
+                        },
+                        "errors" => nil
+                      },
+                      %{
+                        "definition" => nil,
+                        "errors" => %{
+                          "id" => ^bogus_definition_id,
+                          "errors" => %{
+                            "definition" => error
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_definitions(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      refute def1.name == "aa"
+      assert is_binary(error)
+      refute EbnisData.to_iso_datetime_string(def1.updated_at) == updated_at
+    end
   end
 
   defp context(user), do: %{current_user: user}

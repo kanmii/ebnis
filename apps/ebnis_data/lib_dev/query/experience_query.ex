@@ -10,6 +10,7 @@ defmodule EbnisData.Query.Experience do
       id
       name
       type
+      updatedAt
     }
   """
 
@@ -185,8 +186,7 @@ defmodule EbnisData.Query.Experience do
       mutation UpdateDefinitions($input: [UpdateDefinitionInput]!) {
         updateDefinitions(input: $input) {
           experience {
-            id
-            updatedAt
+            ...#{@fragment_name}
           }
 
           definitions {
@@ -199,6 +199,7 @@ defmodule EbnisData.Query.Experience do
               id
               errors {
                 name
+                definition
               }
             }
           }
@@ -206,6 +207,7 @@ defmodule EbnisData.Query.Experience do
         }
       }
 
+      #{@fragment}
       #{@data_definition_fragment}
     """
   end

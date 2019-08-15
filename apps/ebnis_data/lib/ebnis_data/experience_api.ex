@@ -6,6 +6,7 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.Repo
   alias EbnisData.Experience
   alias Ecto.Changeset
+  alias EbnisData.DataDefinition
 
   @get_experience_exception_header "\n\nException while getting experience with:"
   @stacktrace "\n\n---------------STACKTRACE---------\n\n"
@@ -13,6 +14,8 @@ defmodule EbnisData.ExperienceApi do
   @bad_request "bad request"
 
   @update_definitions_exception_header "\n\nException while updating definitions with:"
+
+  @experience_does_not_exist "experience does not exist"
 
   @spec get_experience(id :: integer() | binary(), user_id :: integer() | binary()) ::
           Experience.t() | nil
@@ -324,7 +327,7 @@ defmodule EbnisData.ExperienceApi do
   def update_experience(id, user_id, attrs) do
     case get_experience(id, user_id) do
       nil ->
-        {:error, "can not find experience"}
+        {:error, @experience_does_not_exist}
 
       experience ->
         experience
@@ -338,7 +341,19 @@ defmodule EbnisData.ExperienceApi do
          |> where([_, d], d.id == ^input.id)
          |> Repo.all() do
       [] ->
-        {:error, "experience does not exist"}
+        {:error, @experience_does_not_exist}
+
+      [experience] ->
+        definitions = Enum.map(inputs, &get_create_definition/1)
+
+        %{
+          experience:
+            update_experience_when_definitions_updated(
+              experience,
+              definitions
+            ),
+          definitions: definitions
+        }
     end
   rescue
     error ->
@@ -353,5 +368,95 @@ defmodule EbnisData.ExperienceApi do
       end)
 
       {:error, @bad_request}
+  end
+
+  defp get_create_definition(input) do
+    id = input.id
+
+    with %{} = definition <- get_definition(id),
+         changeset <- DataDefinition.changeset(definition, input),
+         {:ok, definition} <- Repo.update(changeset) do
+      %{definition: definition}
+    else
+      nil ->
+        changeset = %{
+          errors: [
+            definition: {"does not exist", []}
+          ]
+        }
+
+        %{
+          errors: %{
+            id: id,
+            errors: changeset.errors
+          }
+        }
+
+      {:error, changeset} ->
+        %{
+          errors: %{
+            id: id,
+            errors: changeset.errors
+          }
+        }
+    end
+  end
+
+  defp get_definition(id) do
+    DataDefinition
+    |> where([d], d.id == ^id)
+    |> Repo.all()
+    |> case do
+      [] ->
+        nil
+
+      [definition] ->
+        definition
+    end
+  end
+
+  defp update_experience_when_definitions_updated(
+         experience,
+         definitions
+       ) do
+    case map_update_definitions_results_to_ids(definitions) do
+      {_, []} ->
+        experience
+
+      {updated_definitions_map, [updated_at | _]} ->
+        {:ok, updated_experience} =
+          experience
+          |> Experience.changeset(%{updated_at: updated_at})
+          |> Repo.update()
+
+        %Experience{
+          updated_experience
+          | data_definitions:
+              Enum.map(
+                updated_experience.data_definitions,
+                &Map.get(updated_definitions_map, &1.id, &1)
+              )
+        }
+    end
+  end
+
+  defp map_update_definitions_results_to_ids(definitions) do
+    {map, dates} =
+      definitions
+      |> Enum.reduce(
+        {%{}, []},
+        fn
+          %{definition: definition}, {acc, dates} ->
+            {
+              Map.put(acc, definition.id, definition),
+              [definition.updated_at | dates]
+            }
+
+          _, acc ->
+            acc
+        end
+      )
+
+    {map, Enum.sort(dates, &</2)}
   end
 end
