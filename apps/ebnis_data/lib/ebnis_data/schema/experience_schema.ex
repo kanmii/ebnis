@@ -4,7 +4,7 @@ defmodule EbnisData.Schema.Experience do
 
   import Absinthe.Resolution.Helpers, only: [dataloader: 1]
 
-  alias EbnisData.Resolver.Experience, as: Resolver
+  alias EbnisData.Resolver.ExperienceResolver
 
   ################################ START ENUMS ##########################
 
@@ -57,7 +57,7 @@ defmodule EbnisData.Schema.Experience do
     field :entries, :entry_connection |> non_null() do
       arg(:pagination, non_null(:pagination_input))
 
-      resolve(&Resolver.entries/3)
+      resolve(&ExperienceResolver.entries/3)
     end
 
     field(:inserted_at, non_null(:iso_datetime))
@@ -323,28 +323,28 @@ defmodule EbnisData.Schema.Experience do
     field :create_experience, :create_experience_return_value do
       arg(:input, non_null(:create_experience_input))
 
-      resolve(&Resolver.create_experience/2)
+      resolve(&ExperienceResolver.create_experience/2)
     end
 
     @desc "Save many experiences created offline"
     field :save_offline_experiences, list_of(:offline_experience) do
       arg(:input, :create_experience_input |> list_of() |> non_null())
 
-      resolve(&Resolver.save_offline_experiences/2)
+      resolve(&ExperienceResolver.save_offline_experiences/2)
     end
 
     @desc "Delete an experience"
     field :delete_experience, :experience do
       arg(:id, non_null(:id))
 
-      resolve(&Resolver.delete_experience/2)
+      resolve(&ExperienceResolver.delete_experience/2)
     end
 
     @desc "Update an experience"
     field :update_experience, :update_experience_return_value do
       arg(:input, non_null(:update_experience_input))
 
-      resolve(&Resolver.update_experience/2)
+      resolve(&ExperienceResolver.update_experience/2)
     end
 
     @desc """
@@ -353,7 +353,7 @@ defmodule EbnisData.Schema.Experience do
     field :update_definitions, :update_definitions_result do
       arg(:input, :update_definition_input |> list_of |> non_null)
 
-      resolve(&Resolver.update_definitions/2)
+      resolve(&ExperienceResolver.update_definitions/2)
     end
   end
 
@@ -372,7 +372,7 @@ defmodule EbnisData.Schema.Experience do
     field :get_experience, :experience do
       arg(:id, non_null(:id))
 
-      resolve(&Resolver.get_experience/2)
+      resolve(&ExperienceResolver.get_experience/2)
     end
 
     @desc ~S"""
@@ -382,7 +382,7 @@ defmodule EbnisData.Schema.Experience do
     """
     connection field(:get_experiences, node_type: :experience) do
       arg(:input, :get_experiences_input)
-      resolve(&Resolver.get_experiences/2)
+      resolve(&ExperienceResolver.get_experiences/2)
     end
   end
 

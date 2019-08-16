@@ -1,4 +1,4 @@
-defmodule EbnisData.Resolver.Experience do
+defmodule EbnisData.Resolver.ExperienceResolver do
   import Absinthe.Resolution.Helpers, only: [on_load: 2]
 
   alias EbnisData.Resolver
