@@ -3,7 +3,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
 
   alias EbnisData.Resolver
   alias EbnisData.Experience
-  alias EbnisData.Resolver.Entry, as: EntryResolver
+  alias EbnisData.Resolver.EntryResolver
 
   @experience_not_found "Experience not found"
 

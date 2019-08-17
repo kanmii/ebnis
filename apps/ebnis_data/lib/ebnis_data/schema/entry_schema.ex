@@ -4,7 +4,7 @@ defmodule EbnisData.Schema.Entry do
 
   import Absinthe.Resolution.Helpers, only: [dataloader: 1]
 
-  alias EbnisData.Resolver.Entry, as: EntryResolver
+  alias EbnisData.Resolver.EntryResolver
   alias EbnisData.Resolver
 
   @desc """

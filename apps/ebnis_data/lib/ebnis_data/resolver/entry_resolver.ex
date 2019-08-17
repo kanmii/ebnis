@@ -1,4 +1,4 @@
-defmodule EbnisData.Resolver.Entry do
+defmodule EbnisData.Resolver.EntryResolver do
   alias EbnisData.Resolver
 
   def create(%{input: attrs}, %{context: %{current_user: user}}) do
