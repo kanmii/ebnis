@@ -25,7 +25,11 @@ defmodule EbnisData.ExperienceApi do
     |> Repo.all()
     |> case do
       [experience] ->
-        experience
+        # I found that ecto reverses preloaded field list, so I need to reverse
+        %{
+          experience
+          | data_definitions: Enum.reverse(experience.data_definitions)
+        }
 
       _ ->
         nil
@@ -76,7 +80,7 @@ defmodule EbnisData.ExperienceApi do
 
       pagination_args ->
         args
-        |> query()
+        |> query_with_data_definitions()
         |> Absinthe.Relay.Connection.from_query(
           &Repo.all(&1),
           pagination_args
@@ -86,10 +90,6 @@ defmodule EbnisData.ExperienceApi do
 
   defp query_with_data_definitions(args) do
     Enum.reduce(args, preload(Experience, [:data_definitions]), &query(&2, &1))
-  end
-
-  defp query(args) do
-    Enum.reduce(args, Experience, &query(&2, &1))
   end
 
   defp query(queryable, {:user_id, id}) do

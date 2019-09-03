@@ -57,8 +57,7 @@ defmodule EbnisData.Schema.Entry do
       :data_objects,
       :data_object
       |> list_of()
-      |> non_null(),
-      resolve: dataloader(:data)
+      |> non_null()
     )
 
     field(:inserted_at, non_null(:iso_datetime))

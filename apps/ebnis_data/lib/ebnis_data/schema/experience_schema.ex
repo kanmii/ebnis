@@ -47,8 +47,7 @@ defmodule EbnisData.Schema.Experience do
       :data_definitions,
       :data_definition
       |> list_of()
-      |> non_null(),
-      resolve: &ExperienceResolver.get_data_definitions/3
+      |> non_null()
     )
 
     @desc "The entries of the experience - can be paginated"

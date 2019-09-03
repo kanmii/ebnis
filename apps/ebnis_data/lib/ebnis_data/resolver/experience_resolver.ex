@@ -282,28 +282,4 @@ defmodule EbnisData.Resolver.ExperienceResolver do
       }
     }
   end
-
-  def get_data_definitions(%{data_definitions: definitions}, _, _) when is_list(definitions) do
-    {:ok, definitions}
-  end
-
-  def get_data_definitions(experience, _, info) do
-    Dataloader.load(
-      info.context.loader,
-      :data,
-      :data_definitions,
-      experience
-    )
-    |> on_load(fn loader ->
-      definitions =
-        Dataloader.get(
-          loader,
-          :data,
-          :data_definitions,
-          experience
-        )
-
-      {:ok, definitions}
-    end)
-  end
 end
