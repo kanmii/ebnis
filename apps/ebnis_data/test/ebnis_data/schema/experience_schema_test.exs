@@ -39,11 +39,23 @@ defmodule EbnisData.Schema.ExperienceTest do
 
     # @tag :skip
     test "succeeds for happy path" do
-      %{title: title} = params = Factory.params()
       user = RegFactory.insert()
 
       variables = %{
-        "input" => Factory.stringify(params)
+        "input" =>
+          Factory.stringify(%{
+            title: "aa",
+            data_definitions: [
+              %{
+                name: "bb",
+                type: "date"
+              },
+              %{
+                name: "cc",
+                type: "integer"
+              }
+            ]
+          })
       }
 
       query = Query.create()
@@ -54,8 +66,15 @@ defmodule EbnisData.Schema.ExperienceTest do
                   "createExperience" => %{
                     "experience" => %{
                       "id" => _,
-                      "title" => ^title,
-                      "dataDefinitions" => _,
+                      "title" => "aa",
+                      "dataDefinitions" => [
+                        %{
+                          "name" => "bb"
+                        },
+                        %{
+                          "name" => "cc"
+                        }
+                      ],
                       "clientId" => nil,
                       "hasUnsaved" => nil
                     }
@@ -1263,12 +1282,12 @@ defmodule EbnisData.Schema.ExperienceTest do
                       "updatedAt" => ^updated_at,
                       "dataDefinitions" => [
                         %{
-                          "id" => ^id1,
-                          "updatedAt" => ^updated_at
-                        },
-                        %{
                           "id" => ^id2,
                           "updatedAt" => ^date2
+                        },
+                        %{
+                          "id" => ^id1,
+                          "updatedAt" => ^updated_at
                         }
                       ]
                     },
@@ -1339,7 +1358,13 @@ defmodule EbnisData.Schema.ExperienceTest do
                ]
              } =
                EbnisData.update_definitions(
-                 [%{id: id1, name: name2}],
+                 [
+                   %{
+                     id: id1,
+                     # we attempt to update with name of another definition
+                     name: name2
+                   }
+                 ],
                  user.id
                )
 

@@ -49,19 +49,38 @@ defmodule EbnisData.Schema.EntryTest do
     # @tag :skip
     test "succeeds without client ID" do
       user = RegFactory.insert()
-      experience = ExperienceFactory.insert(user_id: user.id)
+
+      {:ok, experience} =
+        EbnisData.create_experience(%{
+          user_id: user.id,
+          title: "aa",
+          data_definitions: [
+            %{
+              name: "bb",
+              type: "multi_line_text"
+            }
+          ]
+        })
+
+      [%{id: definition_id}] = experience.data_definitions
 
       global_experience_id =
         experience.id
         |> Resolver.convert_to_global_id(:experience)
 
-      params =
-        experience
-        |> Factory.params()
-        |> Map.delete(:exp_id)
-
       variables = %{
-        "input" => Factory.stringify(params)
+        "input" =>
+          Factory.stringify(%{
+            experience_id: experience.id,
+            data_objects: [
+              %{
+                definition_id: definition_id,
+                data: %{
+                  multi_line_text: "aa"
+                }
+              }
+            ]
+          })
       }
 
       assert {:ok,
@@ -71,7 +90,11 @@ defmodule EbnisData.Schema.EntryTest do
                     "entry" => %{
                       "id" => _,
                       "experienceId" => ^global_experience_id,
-                      "dataObjects" => data_objects,
+                      "dataObjects" => [
+                        %{
+                          "definitionId" => definition_id_gql
+                        }
+                      ],
                       "clientId" => _
                     }
                   }
@@ -84,14 +107,7 @@ defmodule EbnisData.Schema.EntryTest do
                  context: context(user)
                )
 
-      data_objects_ids =
-        data_objects
-        |> Enum.map(& &1["definitionId"])
-        |> Enum.sort()
-
-      assert experience.data_definitions
-             |> Enum.map(& &1.id)
-             |> Enum.sort() == data_objects_ids
+      assert definition_id == definition_id_gql
     end
 
     # @tag :skip
@@ -1161,7 +1177,7 @@ defmodule EbnisData.Schema.EntryTest do
       id0 = object0.id
       id1 = object1.id
 
-      # here we decimal data given to integer type: will fail
+      # here decimal data given to integer type: will fail
       data0 = ~s({"integer":0.1})
 
       # we can parse a string as integer, so this is okay

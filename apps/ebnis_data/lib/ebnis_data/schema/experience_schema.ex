@@ -2,8 +2,6 @@ defmodule EbnisData.Schema.Experience do
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
 
-  import Absinthe.Resolution.Helpers, only: [dataloader: 1]
-
   alias EbnisData.Resolver.ExperienceResolver
 
   ################################ START ENUMS ##########################
@@ -50,7 +48,7 @@ defmodule EbnisData.Schema.Experience do
       :data_definition
       |> list_of()
       |> non_null(),
-      resolve: dataloader(:data)
+      resolve: &ExperienceResolver.get_data_definitions/3
     )
 
     @desc "The entries of the experience - can be paginated"
@@ -188,15 +186,15 @@ defmodule EbnisData.Schema.Experience do
   @desc """
     An object representing an updated defintion
   """
-  object :update_definition_result do
+  object :update_definition_response do
     field(:definition, :data_definition)
     field(:errors, :update_definition_error)
   end
 
   @desc """
-    An object representing the result of the update definitions operation
+    An object representing the response of the update definitions operation
   """
-  object :update_definitions_result do
+  object :update_definitions_response do
     @desc """
       The experience to which the definitions updated belong. The experience
       is always updated whenever a definition is updated with the most recent
@@ -209,7 +207,8 @@ defmodule EbnisData.Schema.Experience do
     """
     field(
       :definitions,
-      :update_definition_result
+      :update_definition_response
+      |> non_null()
       |> list_of()
       |> non_null()
     )
@@ -350,7 +349,7 @@ defmodule EbnisData.Schema.Experience do
     @desc """
         Update several definitions
     """
-    field :update_definitions, :update_definitions_result do
+    field :update_definitions, :update_definitions_response do
       arg(:input, :update_definition_input |> list_of |> non_null)
 
       resolve(&ExperienceResolver.update_definitions/2)

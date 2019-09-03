@@ -337,7 +337,7 @@ defmodule EbnisData.ExperienceApi do
         {:error, @experience_does_not_exist}
 
       experience ->
-        definitions = Enum.map(inputs, &get_create_definition/1)
+        definitions = Enum.map(inputs, &get_update_definition/1)
 
         %{
           experience:
@@ -355,8 +355,7 @@ defmodule EbnisData.ExperienceApi do
           @update_definitions_exception_header,
           inspect({inputs, user_id}),
           @stacktrace,
-          :error
-          |> Exception.format(error, __STACKTRACE__)
+          Exception.format(:error, error, __STACKTRACE__)
         ]
       end)
 
@@ -399,7 +398,7 @@ defmodule EbnisData.ExperienceApi do
     end
   end
 
-  defp get_create_definition(input) do
+  defp get_update_definition(input) do
     id = input.id
 
     with %{} = definition <- get_definition(id),
@@ -486,6 +485,6 @@ defmodule EbnisData.ExperienceApi do
         end
       )
 
-    {map, Enum.sort(dates, &</2)}
+    {map, Enum.sort(dates, &<=/2)}
   end
 end

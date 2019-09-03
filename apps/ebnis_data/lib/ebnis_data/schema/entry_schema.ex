@@ -169,7 +169,7 @@ defmodule EbnisData.Schema.Entry do
     @desc ~S"""
       The ID of data object to be updated
     """
-    field(:id, :id)
+    field(:id, non_null(:id))
 
     @desc ~S"""
       If we are successful, then user gets back this object representing
@@ -343,7 +343,13 @@ defmodule EbnisData.Schema.Entry do
     end
 
     field :update_data_objects, list_of(:update_data_objects_response) do
-      arg(:input, :update_data_object_input |> list_of |> non_null)
+      arg(
+        :input,
+        :update_data_object_input
+        |> non_null()
+        |> list_of()
+        |> non_null()
+      )
 
       resolve(&EntryResolver.update_data_objects/2)
     end
