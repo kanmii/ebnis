@@ -76,7 +76,7 @@ port =
   |> String.to_integer()
 
 config :ebnis_web, EbnisWeb.Endpoint,
-  http: [port: port],
+  http: [:inet6, port: port],
   url: [
     scheme: "https",
     host: "ebnis",
