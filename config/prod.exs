@@ -72,8 +72,9 @@ port = System.get_env("PORT") |> String.to_integer()
 
 config :ebnis_web, EbnisWeb.Endpoint,
   http: [port: port],
+  https: [port: port],
   url: [
-    scheme: "http",
+    scheme: "https",
     host: "ebnis.herokuapp.com",
     port: port
   ],
