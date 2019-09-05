@@ -19,7 +19,7 @@ database_url =
 config :ebnis_data, EbnisData.Repo,
   # ssl: true,
   url: database_url,
-  pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+  pool_size: String.to_integer(System.get_env("POOL_SIZE") || "18")
 
 secret_key_base =
   System.get_env("SECRET_KEY_BASE") ||
@@ -35,7 +35,7 @@ port =
 
 config :ebnis_web, EbnisWeb.Endpoint,
   http: [:inet6, port: port],
-  url: [scheme: "https", host: "ebnis1.herokuapp.com", port: port],
+  url: [scheme: "https", host: "ebnis.herokuapp.com", port: port],
   secret_key_base: secret_key_base,
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
   check_origin: [
