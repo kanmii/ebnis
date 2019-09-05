@@ -68,7 +68,7 @@ config :ebnis_data, EbnisData.Repo,
     |> String.to_integer()
 
 secret_key = System.get_env("SECRET_KEY_BASE")
-port = System.get_env("PORT")
+port = System.get_env("PORT") |> String.to_integer()
 
 config :ebnis_web, EbnisWeb.Endpoint,
   http: [port: port],
