@@ -64,18 +64,22 @@ config :ebnis_data, EbnisData.Repo,
   ssl: true,
   url: System.get_env("DATABASE_URL"),
   pool_size:
-    (System.get_env("EBNIS_POOL_SIZE") || "18")
+    "EBNIS_POOL_SIZE"
+    |> System.get_env()
+    |> Kernel.||("18")
     |> String.to_integer()
 
 secret_key = System.get_env("SECRET_KEY_BASE")
-port = System.get_env("PORT") |> String.to_integer()
+
+port =
+  System.get_env("PORT")
+  |> String.to_integer()
 
 config :ebnis_web, EbnisWeb.Endpoint,
   http: [port: port],
-  https: [port: port],
   url: [
     scheme: "https",
-    host: "ebnis.herokuapp.com",
+    host: "ebnis",
     port: port
   ],
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
