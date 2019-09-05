@@ -2,13 +2,19 @@ defmodule EbnisWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :ebnis_web
   use Absinthe.Phoenix.Endpoint
 
-  if Application.get_env(:ebnis_web, :sql_sandbox) do
-    plug(Phoenix.Ecto.SQL.Sandbox)
-  end
-
   socket "/socket", EbnisWeb.UserSocket,
-    websocket: true,
+    websocket: [timeout: 45_000],
     longpoll: false
+
+  # Serve at "/" the static files from "priv/static" directory.
+  #
+  # You should set gzip to true if you are running phx.digest
+  # when deploying your static files in production.
+  plug Plug.Static,
+    at: "/",
+    from: :ebnis_web,
+    gzip: false,
+    only: ~w(css fonts images js favicon.ico robots.txt)
 
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
@@ -32,7 +38,7 @@ defmodule EbnisWeb.Endpoint do
   plug Plug.Session,
     store: :cookie,
     key: "_ebnis_web_key",
-    signing_salt: "y6xBzP2Z"
+    signing_salt: "1Zk8d2wF"
 
   plug(
     Corsica,

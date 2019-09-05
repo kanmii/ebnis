@@ -1,4 +1,4 @@
-defmodule EbnisUmbrella.MixProject do
+defmodule Ebnis.Umbrella.MixProject do
   use Mix.Project
 
   def project do

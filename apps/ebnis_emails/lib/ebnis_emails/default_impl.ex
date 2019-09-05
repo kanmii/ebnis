@@ -11,7 +11,10 @@ defmodule EbEmails.DefaultImplementation do
   @impl true
   @spec send_welcome(email_address) :: :ok
   def send_welcome(email_address) do
-    email_address |> Composition.welcome() |> Mailer.deliver()
+    email_address
+    |> Composition.welcome()
+    |> Mailer.deliver()
+
     :ok
   end
 end

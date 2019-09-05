@@ -9,11 +9,7 @@ defmodule EbnisWeb.Application do
     # List all child processes to be supervised
     children = [
       # Start the endpoint when the application starts
-      EbnisWeb.Endpoint,
-      {
-        Absinthe.Subscription,
-        [EbnisWeb.Endpoint]
-      }
+      EbnisWeb.Endpoint
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -25,7 +25,7 @@ defmodule EbnisData.MixProject do
   def application do
     [
       mod: {EbnisData.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger]
     ]
   end
 

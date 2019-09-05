@@ -7,7 +7,6 @@
 # all use the same configuration file. If you want different
 # configurations or dependencies per app, it is best to
 # move said applications out of the umbrella.
-
 use Mix.Config
 
 config :bcrypt_elixir, :log_rounds, 1
@@ -23,7 +22,7 @@ config :ebnis_web,
 # Configures the endpoint
 config :ebnis_web, EbnisWeb.Endpoint,
   url: [host: "localhost"],
-  secret_key_base: "q8CDJk8pUp5QuRX+U1YNGlvRmyu2p7swTl61Cp/w+D4ISWxn0KwbgDz7Wi9XRIHv",
+  secret_key_base: "Shg9laalhF5NAba4r0RCABiKmqY9RHv+Jo1al7Nv1R2zPIDytJfzhGYSEc2g80d6",
   render_errors: [view: EbnisWeb.ErrorView, accepts: ~w(html json)],
   pubsub: [name: EbnisWeb.PubSub, adapter: Phoenix.PubSub.PG2]
 
@@ -35,14 +34,6 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-config :ebnis_data, EbnisData.Guardian,
-  issuer: "ebnis",
-  secret_key: "DfAHXB4gq6YbApF5c5NgBP0kKpaaobjhFodpDzmceiaXfcPMZKDN1sBCTDHQ2RBy"
-
-config :ebnis_web, EbnisWeb.Plug.Pipeline,
-  module: EbnisData.Guardian,
-  error_handler: EbnisWeb.Plug.Pipeline
-
 config :ebnis_emails,
        EbEmails.DefaultImplementation.Mailer,
        adapter: Swoosh.Adapters.SMTP,
@@ -52,8 +43,17 @@ config :ebnis_emails,
        tls: :always,
        auth: :always,
        port:
-         (System.get_env("EBNIS_SMTP_PORT") || "587")
+         System.get_env("EBNIS_SMTP_PORT")
+         |> Kernel.||("587")
          |> String.to_integer()
+
+config :ebnis_data, EbnisData.Guardian,
+  issuer: "ebnis",
+  secret_key: "DfAHXB4gq6YbApF5c5NgBP0kKpaaobjhFodpDzmceiaXfcPMZKDN1sBCTDHQ2RBy"
+
+config :ebnis_web, EbnisWeb.Plug.Pipeline,
+  module: EbnisData.Guardian,
+  error_handler: EbnisWeb.Plug.Pipeline
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
