@@ -73,14 +73,18 @@ secret_key = System.get_env("SECRET_KEY_BASE")
 
 port =
   System.get_env("PORT")
+  |> Kernel.||(raise "environment variable PORT is missing")
   |> String.to_integer()
 
 config :ebnis_web, EbnisWeb.Endpoint,
   http: [:inet6, port: port],
   url: [
     scheme: "https",
-    host: "ebnis",
+    host: "ebnis.herokuapp.com",
     port: port
   ],
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
-  secret_key_base: secret_key
+  secret_key_base: secret_key,
+  check_origin: [
+    "//ebnis.netlify.com"
+  ]
