@@ -62,7 +62,7 @@ config :bcrypt_elixir, :log_rounds, 12
 
 config :ebnis_data, EbnisData.Repo,
   ssl: true,
-  url: System.fetch_env!("DATABASE_URL"),
+  url: System.get_env("DATABASE_URL"),
   pool_size:
     (System.get_env("EBNIS_POOL_SIZE") || "18")
     |> String.to_integer()
