@@ -83,8 +83,4 @@ config :ebnis_web, EbnisWeb.Endpoint,
     port: port
   ],
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
-  secret_key_base: secret_key,
-  check_origin: [
-    "https://ebnis.herokuapp.com",
-    "https://ebnis.netlify.com"
-  ]
+  secret_key_base: secret_key
