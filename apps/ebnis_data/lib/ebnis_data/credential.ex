@@ -15,6 +15,7 @@ defmodule EbnisData.Credential do
     # in case user chooses to use password as source
     field(:password, :string, virtual: true)
 
+    field(:temp_id, Ecto.ULID)
     belongs_to(:user, User)
     timestamps()
   end

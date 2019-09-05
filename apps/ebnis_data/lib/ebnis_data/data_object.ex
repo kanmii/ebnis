@@ -10,6 +10,7 @@ defmodule EbnisData.DataObject do
     field(:data, FieldType)
     field(:definition_id, Ecto.UUID)
     field(:entry_id, :id)
+    field(:temp_id, Ecto.ULID)
 
     timestamps(type: :utc_datetime)
   end

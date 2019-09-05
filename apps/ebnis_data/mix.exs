@@ -44,7 +44,8 @@ defmodule EbnisData.MixProject do
       {:dataloader, "~> 1.0"},
       {:guardian, "~> 1.2"},
       {:ebnis_emails, in_umbrella: true},
-      {:timex, "~> 3.6"}
+      {:timex, "~> 3.6"},
+      {:ecto_ulid, "~> 0.2.0"}
     ]
   end
 

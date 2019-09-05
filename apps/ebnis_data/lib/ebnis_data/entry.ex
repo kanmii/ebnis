@@ -11,6 +11,7 @@ defmodule EbnisData.Entry do
     field(:client_id, :string)
     belongs_to(:experience, Experience, foreign_key: :exp_id)
     has_many(:data_objects, DataObject, foreign_key: :entry_id)
+    field(:temp_id, Ecto.ULID)
 
     timestamps(type: :utc_datetime)
   end

@@ -11,6 +11,7 @@ defmodule EbnisData.DataDefinition do
     field(:type, :string)
     field(:client_id, :string)
     belongs_to(:experience, Experience)
+    field(:temp_id, Ecto.ULID)
 
     timestamps(type: :utc_datetime)
   end

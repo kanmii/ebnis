@@ -12,6 +12,7 @@ defmodule EbnisData.User do
     field(:jwt, :string, virtual: true)
 
     has_one(:credential, Credential)
+    field(:temp_id, Ecto.ULID)
 
     timestamps(type: :utc_datetime)
   end
