@@ -51,7 +51,7 @@ defmodule EbnisData.Schema.Entry do
     )
 
     @desc """
-      The list of data belonging to this entry
+      The list of data belonging to this entry.
     """
     field(
       :data_objects,
