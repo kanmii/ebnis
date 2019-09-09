@@ -18,7 +18,7 @@ defmodule EbnisData.Experience do
     belongs_to(:user, User)
     has_many(:entries, Entry, foreign_key: :exp_id)
     has_many(:data_definitions, DataDefinition, foreign_key: :experience_id)
-    field(:temp_id, Ecto.ULID)
+    #    field(:temp_id, Ecto.ULID)
     timestamps()
   end
 
