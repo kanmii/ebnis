@@ -180,41 +180,30 @@ defmodule EbnisData.Schema.ExperienceTest do
             name: "ff",
             type: "integer1"
           }
-        ]
+        ],
+        user_id: user.id,
+        title: "aa"
       }
 
-      variables = %{
-        "input" => Factory.params(attrs) |> Factory.stringify()
-      }
+      assert {
+               :error,
+               %{
+                 changes: %{
+                   data_definitions: [
+                     %{
+                       errors: [
+                         type: {
+                           type_error,
+                           _
+                         }
+                       ]
+                     }
+                   ]
+                 }
+               }
+             } = EbnisData.create_experience(attrs)
 
-      query = Query.create()
-
-      assert {:ok,
-              %{
-                data: %{
-                  "createExperience" => %{
-                    "errors" => %{
-                      "dataDefinitionsErrors" => [
-                        %{
-                          "index" => 0,
-                          "errors" => %{
-                            "type" => type,
-                            "name" => nil
-                          }
-                        }
-                      ]
-                    }
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 query,
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-
-      assert is_binary(type)
+      assert is_binary(type_error)
     end
 
     # @tag :skip

@@ -15,11 +15,6 @@ defmodule EbnisData.Schema.Experience do
     value(:decimal, as: "decimal")
     value(:date, as: "date")
     value(:datetime, as: "datetime")
-
-    if Application.get_env(:ebnis, :is_test) do
-      # for testing only
-      value(:integer1, as: "integer1")
-    end
   end
 
   ###################### END ENUM ########################################
