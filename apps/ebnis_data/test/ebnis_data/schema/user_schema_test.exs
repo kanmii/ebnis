@@ -200,7 +200,7 @@ defmodule EbnisData.Schema.UserTest do
   describe "query" do
     test "refreshes user succeeds with ok jwt" do
       user = RegFactory.insert()
-      user_id = Integer.to_string(user.id)
+      user_id = user.id
       {:ok, jwt, _claims} = GuardianApp.encode_and_sign(user)
 
       queryMap = Query.refresh()
@@ -216,7 +216,10 @@ defmodule EbnisData.Schema.UserTest do
       assert {:ok,
               %{
                 data: %{
-                  "refresh" => %{"id" => ^user_id, "jwt" => new_jwt}
+                  "refresh" => %{
+                    "id" => ^user_id,
+                    "jwt" => new_jwt
+                  }
                 }
               }} =
                Absinthe.run(query, Schema,

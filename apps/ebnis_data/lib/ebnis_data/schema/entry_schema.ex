@@ -5,7 +5,6 @@ defmodule EbnisData.Schema.Entry do
   import Absinthe.Resolution.Helpers, only: [dataloader: 1]
 
   alias EbnisData.Resolver.EntryResolver
-  alias EbnisData.Resolver
 
   @desc """
       An entry data object
@@ -19,19 +18,14 @@ defmodule EbnisData.Schema.Entry do
   @desc """
     An Experience entry that supports relay
   """
-  node object(:entry) do
+  object :entry do
+    @desc "Entry ID"
+    field(:id, non_null(:id))
+
     @desc ~S"""
       The ID of experience to which this entry belongs.
     """
-    field :experience_id, non_null(:id) do
-      resolve(fn root, _, _ ->
-        {
-          :ok,
-          root.exp_id
-          |> Resolver.convert_to_global_id(:experience)
-        }
-      end)
-    end
+    field(:experience_id, non_null(:id))
 
     @desc ~S"""
       The client ID which indicates that an entry has been created while server
@@ -220,7 +214,7 @@ defmodule EbnisData.Schema.Entry do
   """
   input_object :create_entry_input do
     @desc ~S"""
-      The global ID of the experience or if the associated
+      The ID of the experience or if the associated
       experience has been created offline, then this must be the same as the
       `experience.clientId` and will be enforced as such.
     """
@@ -250,7 +244,7 @@ defmodule EbnisData.Schema.Entry do
 
   input_object :create_entries_input do
     @desc ~S"""
-      The global ID of the experience or if the associated
+      The ID of the experience or if the associated
       experience has been created offline, then this must be the same as the
       `experience.clientId` and will be enforced as such.
     """

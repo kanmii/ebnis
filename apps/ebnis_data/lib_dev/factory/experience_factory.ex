@@ -74,9 +74,7 @@ defmodule EbnisData.Factory.Experience do
         {"entries",
          Enum.map(
            v,
-           &EntryFactory.stringify(&1, %{
-             keep_experience_id: true
-           })
+           &EntryFactory.stringify(&1)
          )}
     end)
     |> Enum.into(%{})

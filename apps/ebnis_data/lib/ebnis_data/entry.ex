@@ -7,12 +7,12 @@ defmodule EbnisData.Entry do
   alias EbnisData
   alias EbnisData.DataObject
 
+  @primary_key {:id, Ecto.ULID, autogenerate: true}
+  @foreign_key_type Ecto.ULID
   schema "entries" do
     field(:client_id, :string)
-    belongs_to(:experience, Experience, foreign_key: :exp_id)
-    has_many(:data_objects, DataObject, foreign_key: :entry_id)
-    #    field(:temp_id, Ecto.ULID)
-
+    belongs_to(:experience, Experience)
+    has_many(:data_objects, DataObject)
     timestamps(type: :utc_datetime)
   end
 
@@ -20,15 +20,15 @@ defmodule EbnisData.Entry do
   def changeset(%__MODULE__{} = schema, %{} = attrs) do
     schema
     |> cast(attrs, [
-      :exp_id,
+      :experience_id,
       :client_id,
       :inserted_at,
       :updated_at
     ])
-    |> validate_required([:exp_id])
+    |> validate_required([:experience_id])
     |> unique_constraint(
       :client_id,
-      name: :entries_client_id_exp_id_index
+      name: :entries_client_id_experience_id_index
     )
   end
 end

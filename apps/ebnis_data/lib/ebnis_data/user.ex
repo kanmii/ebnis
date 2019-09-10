@@ -6,14 +6,12 @@ defmodule EbnisData.User do
   alias Ecto.Changeset
   alias EbnisData.Credential
 
+  @primary_key {:id, Ecto.ULID, autogenerate: true}
   schema "users" do
     field(:email, :string)
     field(:name, :string)
     field(:jwt, :string, virtual: true)
-
     has_one(:credential, Credential)
-    #    field(:temp_id, Ecto.ULID)
-
     timestamps(type: :utc_datetime)
   end
 

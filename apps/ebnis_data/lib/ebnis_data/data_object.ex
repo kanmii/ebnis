@@ -4,14 +4,14 @@ defmodule EbnisData.DataObject do
   import Ecto.Changeset
 
   alias EbnisData.FieldType
+  alias EbnisData.Entry
 
-  @primary_key {:id, :binary_id, autogenerate: true}
+  @primary_key {:id, Ecto.ULID, autogenerate: true}
+  @foreign_key_type Ecto.ULID
   schema "data_objects" do
     field(:data, FieldType)
-    field(:definition_id, Ecto.UUID)
-    field(:entry_id, :id)
-    #    field(:temp_id, Ecto.ULID)
-
+    field(:definition_id, Ecto.ULID)
+    belongs_to(:entry, Entry)
     timestamps(type: :utc_datetime)
   end
 

@@ -9,16 +9,16 @@ defmodule EbnisData.Experience do
 
   @always_required_fields [:title, :user_id]
 
-  @primary_key {:id, :id, autogenerate: true}
+  @primary_key {:id, Ecto.ULID, autogenerate: true}
+  @foreign_key_type Ecto.ULID
   @timestamps_opts [type: :utc_datetime]
   schema "experiences" do
     field(:title, :string)
     field(:description, :string)
     field(:client_id, :string)
     belongs_to(:user, User)
-    has_many(:entries, Entry, foreign_key: :exp_id)
-    has_many(:data_definitions, DataDefinition, foreign_key: :experience_id)
-    #    field(:temp_id, Ecto.ULID)
+    has_many(:entries, Entry)
+    has_many(:data_definitions, DataDefinition)
     timestamps()
   end
 

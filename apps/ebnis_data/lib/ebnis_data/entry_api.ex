@@ -158,8 +158,6 @@ defmodule EbnisData.EntryApi do
           {:error, Changeset.t()}
           | {:ok, Entry.t()}
   def create_entry(%{user_id: user_id, experience_id: experience_id} = attrs) do
-    attrs = Map.put(attrs, :exp_id, experience_id)
-
     case EbnisData.get_experience(experience_id, user_id) do
       nil ->
         fake_changeset = %{
@@ -243,7 +241,7 @@ defmodule EbnisData.EntryApi do
 
     query =
       query_with_data_list()
-      |> where([e], e.exp_id == ^experience_id)
+      |> where([e], e.experience_id == ^experience_id)
       |> limit(^(limit + 1))
       |> offset(^offset)
 
@@ -280,7 +278,7 @@ defmodule EbnisData.EntryApi do
         [@empty_relay_connection]
 
       records_union ->
-        records_union = Enum.group_by(records_union, & &1.exp_id)
+        records_union = Enum.group_by(records_union, & &1.experience_id)
 
         Enum.map(
           experiences_ids_pagination_args,
@@ -317,7 +315,11 @@ defmodule EbnisData.EntryApi do
             Map.update(
               acc,
               experience_id,
-              %{entries: [entry], errors: []},
+              %{
+                entries: [entry],
+                errors: [],
+                experience_id: experience_id
+              },
               fn map ->
                 %{
                   map
@@ -327,14 +329,24 @@ defmodule EbnisData.EntryApi do
             )
 
           {:error, changeset} ->
+            errors = %{
+              errors: changeset,
+              experience_id: experience_id,
+              client_id: changeset.changes.client_id
+            }
+
             Map.update(
               acc,
               experience_id,
-              %{entries: [], errors: [changeset]},
+              %{
+                entries: [],
+                errors: [errors],
+                experience_id: experience_id
+              },
               fn map ->
                 %{
                   map
-                  | errors: [changeset | map.errors]
+                  | errors: [errors | map.errors]
                 }
               end
             )

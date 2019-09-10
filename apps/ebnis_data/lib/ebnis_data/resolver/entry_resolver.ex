@@ -2,15 +2,8 @@ defmodule EbnisData.Resolver.EntryResolver do
   alias EbnisData.Resolver
 
   def create(%{input: attrs}, %{context: %{current_user: user}}) do
-    experience_id =
-      attrs.experience_id
-      |> Resolver.convert_from_global_id(:experience)
-
     attrs
-    |> Map.merge(%{
-      experience_id: experience_id,
-      user_id: user.id
-    })
+    |> Map.put(:user_id, user.id)
     |> EbnisData.create_entry()
     |> case do
       {:ok, entry} ->
@@ -81,21 +74,18 @@ defmodule EbnisData.Resolver.EntryResolver do
       :ok,
       Enum.map(
         ids,
-        fn id ->
-          result = results_map[id]
-          experience_id = Resolver.convert_to_global_id(id, :experience)
+        fn experience_id ->
+          result = results_map[experience_id]
 
           update_in(
             result.errors,
-            &Enum.map(&1, fn changeset ->
+            &Enum.map(&1, fn errors = %{errors: changeset} ->
               %{
-                errors: entry_changeset_errors_to_map(changeset),
-                client_id: changeset.changes.client_id,
-                experience_id: experience_id
+                errors
+                | errors: entry_changeset_errors_to_map(changeset)
               }
             end)
           )
-          |> Map.put(:experience_id, experience_id)
         end
       )
     }
@@ -111,11 +101,7 @@ defmodule EbnisData.Resolver.EntryResolver do
         entries,
         {[], [], %{}},
         fn entry, {entries, experiences_ids, seen} ->
-          experience_id =
-            Resolver.convert_from_global_id(
-              entry.experience_id,
-              :experience
-            )
+          experience_id = entry.experience_id
 
           experiences_ids =
             case seen[experience_id] do
@@ -147,9 +133,7 @@ defmodule EbnisData.Resolver.EntryResolver do
   end
 
   def delete(%{id: id}, %{context: %{current_user: %{id: _}}}) do
-    id
-    |> Resolver.convert_from_global_id(:entry)
-    |> EbnisData.delete_entry()
+    EbnisData.delete_entry(id)
   end
 
   def delete(_, _) do

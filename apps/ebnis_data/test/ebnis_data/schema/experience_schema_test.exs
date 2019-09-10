@@ -8,10 +8,10 @@ defmodule EbnisData.Schema.ExperienceTest do
   alias EbnisData.Factory.Experience, as: Factory
   alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
   alias EbnisData.Query.Experience, as: Query
-  alias EbnisData.Resolver
   alias EbnisData.Factory.Entry, as: EntryFactory
 
   @moduletag capture_log: true
+  @bogus_id Ecto.ULID.generate()
 
   describe "create an experience" do
     # @tag :skip
@@ -285,13 +285,12 @@ defmodule EbnisData.Schema.ExperienceTest do
     test "succeeds for existing experience" do
       user = RegFactory.insert()
       experience = Factory.insert(user_id: user.id)
-      id = Integer.to_string(experience.id)
 
       entry = EntryFactory.insert(%{}, experience)
-      entry_id = Resolver.convert_to_global_id(entry.id, :entry)
+      entry_id = entry.id
 
       variables = %{
-        "id" => Resolver.convert_to_global_id(id, :experience)
+        "id" => experience.id
       }
 
       assert {:ok,
@@ -325,7 +324,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       variables = %{
-        "id" => Resolver.convert_to_global_id("0", :experience)
+        "id" => @bogus_id
       }
 
       assert {:ok,
@@ -345,45 +344,15 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "fails: global experience id invalid" do
-      user = RegFactory.insert()
-
-      variables = %{
-        "id" => Resolver.convert_to_global_id("x", :experience)
-      }
-
-      message =
-        capture_log(fn ->
-          assert {:ok,
-                  %{
-                    errors: [
-                      %{
-                        message: "Experience definition not found"
-                      }
-                    ]
-                  }} =
-                   Absinthe.run(
-                     Query.get(),
-                     Schema,
-                     variables: variables,
-                     context: context(user)
-                   )
-        end)
-
-      assert message =~ "STACKTRACE"
-    end
-
-    # @tag :skip
     test "fails: wrong user" do
       user = RegFactory.insert()
       %{id: id} = Factory.insert(user_id: user.id)
-      id = Integer.to_string(id)
 
       variables = %{
-        "id" => Resolver.convert_to_global_id(id, :experience)
+        "id" => id
       }
 
-      bogus_user = %{id: 0}
+      bogus_user = %{id: @bogus_id}
 
       assert {:ok,
               %{
@@ -471,14 +440,14 @@ defmodule EbnisData.Schema.ExperienceTest do
              end)
              |> Enum.sort() ==
                Enum.sort([
-                 Resolver.convert_to_global_id(experience1.id, :experience),
-                 Resolver.convert_to_global_id(entry1.id, :entry),
+                 experience1.id,
+                 entry1.id,
                  (experience1.data_definitions |> hd()).id,
-                 Resolver.convert_to_global_id(experience2.id, :experience),
-                 Resolver.convert_to_global_id(entry2.id, :entry),
+                 experience2.id,
+                 entry2.id,
                  (experience2.data_definitions |> hd()).id,
-                 Resolver.convert_to_global_id(experience3.id, :experience),
-                 Resolver.convert_to_global_id(entry3.id, :entry),
+                 experience3.id,
+                 entry3.id,
                  (experience3.data_definitions |> hd()).id
                ])
     end
@@ -521,12 +490,12 @@ defmodule EbnisData.Schema.ExperienceTest do
       experience = Factory.insert(user_id: user.id)
       Factory.insert(user_id: user.id)
 
-      id = Resolver.convert_to_global_id(experience.id, :experience)
+      id = experience.id
 
       experience2 = Factory.insert(user_id: user.id)
-      id2 = Resolver.convert_to_global_id(experience2.id, :experience)
+      id2 = experience2.id
       entry = EntryFactory.insert(%{}, experience2)
-      entry_id = Resolver.convert_to_global_id(entry.id, :entry)
+      entry_id = entry.id
 
       variables = %{
         "input" => %{
@@ -604,7 +573,7 @@ defmodule EbnisData.Schema.ExperienceTest do
 
     # @tag :skip
     test "fails: user does not exist" do
-      bogus_user = %{id: 0}
+      bogus_user = %{id: @bogus_id}
 
       variables = %{
         "input" => [
@@ -932,30 +901,9 @@ defmodule EbnisData.Schema.ExperienceTest do
                )
     end
 
-    test "fails: id is not global" do
-      variables = %{
-        "id" => "0"
-      }
-
-      assert {:ok,
-              %{
-                errors: [
-                  %{
-                    message: _
-                  }
-                ]
-              }} =
-               Absinthe.run(
-                 Query.delete(),
-                 Schema,
-                 variables: variables,
-                 context: context(%{id: "0"})
-               )
-    end
-
     test "fails: experience does not exist" do
       variables = %{
-        "id" => Resolver.convert_to_global_id("0", :experience)
+        "id" => @bogus_id
       }
 
       assert {:ok,
@@ -977,14 +925,14 @@ defmodule EbnisData.Schema.ExperienceTest do
     test "succeeds" do
       user = RegFactory.insert()
       experience = Factory.insert(user_id: user.id)
-      global_id = Resolver.convert_to_global_id(experience.id, :experience)
-      variables = %{"id" => global_id}
+      id = experience.id
+      variables = %{"id" => id}
 
       assert {:ok,
               %{
                 data: %{
                   "deleteExperience" => %{
-                    "id" => ^global_id
+                    "id" => ^id
                   }
                 }
               }} =
@@ -1046,35 +994,10 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "fails: ID is not global" do
-      variables = %{
-        "input" => %{
-          "id" => 0,
-          "title" => "a"
-        }
-      }
-
-      assert {:ok,
-              %{
-                errors: [
-                  %{
-                    message: _
-                  }
-                ]
-              }} =
-               Absinthe.run(
-                 Query.update(),
-                 Schema,
-                 variables: variables,
-                 context: context(%{id: 0})
-               )
-    end
-
-    # @tag :skip
     test "fails: experience does not exist" do
       variables = %{
         "input" => %{
-          "id" => Resolver.convert_to_global_id(0, :experience),
+          "id" => @bogus_id,
           "title" => "a"
         }
       }
@@ -1102,11 +1025,10 @@ defmodule EbnisData.Schema.ExperienceTest do
       Factory.insert(user_id: user.id, title: title)
 
       experience = Factory.insert(user_id: user.id)
-      id = Resolver.convert_to_global_id(experience.id, :experience)
 
       variables = %{
         "input" => %{
-          "id" => id,
+          "id" => experience.id,
           "title" => title
         }
       }
@@ -1136,7 +1058,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     test "succeeds" do
       user = RegFactory.insert()
       experience = Factory.insert(user_id: user.id)
-      id = Resolver.convert_to_global_id(experience.id, :experience)
+      id = experience.id
 
       variables = %{
         "input" => %{
@@ -1216,7 +1138,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       variables = %{
         "input" => [
           %{
-            "id" => Ecto.UUID.generate(),
+            "id" => Ecto.ULID.generate(),
             "name" => "x"
           }
         ]
@@ -1234,7 +1156,7 @@ defmodule EbnisData.Schema.ExperienceTest do
                  Query.update_definitions(),
                  Schema,
                  variables: variables,
-                 context: context(%{id: 0})
+                 context: context(%{id: Ecto.ULID.generate()})
                )
     end
 
@@ -1257,7 +1179,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       id2 = def2.id
       date2 = EbnisData.to_iso_datetime_string(def2.updated_at)
 
-      bogus_definition_id = Ecto.UUID.generate()
+      bogus_definition_id = @bogus_id
 
       variables = %{
         "input" => [

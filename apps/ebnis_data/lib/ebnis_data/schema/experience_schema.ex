@@ -27,8 +27,9 @@ defmodule EbnisData.Schema.Experience do
   @desc """
     Experience schema. Uses relay.
   """
-  node object(:experience) do
+  object :experience do
     @desc "The title of the experience"
+    field(:id, non_null(:id))
     field(:title, non_null(:string))
 
     @desc "The description of the experience"
@@ -267,7 +268,7 @@ defmodule EbnisData.Schema.Experience do
   @desc "Variables for updating an existing Experience"
   input_object :update_experience_input do
     @desc ~S"""
-      The global ID of experience to be updated
+      The ID of experience to be updated
     """
     field(:id, non_null(:id))
 

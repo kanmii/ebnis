@@ -1,10 +1,9 @@
 defmodule EbnisData.Factory.Entry do
   alias EbnisData.Factory
-  alias EbnisData.Resolver
 
   @integers 100..110
 
-  @simple_attributes [:client_id]
+  @simple_attributes [:client_id, :experience_id]
   @iso_extended_format "{ISO:Extended:Z}"
 
   def insert(attrs, experience)
@@ -64,7 +63,6 @@ defmodule EbnisData.Factory.Entry do
 
     %{
       data_objects: data_objects,
-      exp_id: experience_id,
       experience_id: experience_id
     }
     |> Map.merge(attrs)
@@ -88,26 +86,13 @@ defmodule EbnisData.Factory.Entry do
   def data("decimal"),
     do: %{"decimal" => "0.#{Enum.random(@integers)}"}
 
-  def stringify(%{} = attrs, settings \\ %{}) do
-    keep_experience_id = settings[:keep_experience_id]
-
+  def stringify(%{} = attrs) do
     Enum.reduce(attrs, %{}, fn
       {:data_objects, data_objects}, acc ->
         Map.put(
           acc,
           "dataObjects",
           Enum.map(data_objects, &stringify_entry_data/1)
-        )
-
-      {:experience_id, v}, acc ->
-        Map.put(
-          acc,
-          "experienceId",
-          if keep_experience_id != nil do
-            v
-          else
-            Resolver.convert_to_global_id(v, :experience)
-          end
         )
 
       {k, v}, acc when k in @simple_attributes ->

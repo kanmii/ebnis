@@ -84,10 +84,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         %{id: id},
         %{context: %{current_user: %{id: user_id}}}
       ) do
-    id
-    |> Resolver.convert_from_global_id(:experience)
-    |> EbnisData.get_experience(user_id)
-    |> case do
+    case EbnisData.get_experience(id, user_id) do
       nil ->
         {:error, "Experience definition not found"}
 
@@ -104,17 +101,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         %{input: args},
         %{context: %{current_user: user}}
       ) do
-    case args[:ids] do
-      nil ->
-        args
-
-      ids ->
-        Map.put(
-          args,
-          :ids,
-          Enum.map(ids, &Resolver.convert_from_global_id(&1, :experience))
-        )
-    end
+    args
     |> Map.put(:user_id, user.id)
     |> EbnisData.get_experiences()
   end
@@ -169,18 +156,12 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         %{experience: experience}
 
       {:ok, experience, entries_changesets} ->
-        experience_id =
-          Resolver.convert_to_global_id(
-            experience.id,
-            :experience
-          )
-
         errors =
           Enum.map(
             entries_changesets,
             &%{
               errors: EntryResolver.entry_changeset_errors_to_map(&1),
-              experience_id: experience_id,
+              experience_id: experience.id,
               client_id: &1.changes.client_id
             }
           )
@@ -199,10 +180,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   def delete_experience(%{id: id}, %{context: %{current_user: user}}) do
-    id
-    |> Resolver.convert_from_global_id(:experience)
-    |> EbnisData.delete_experience(user.id)
-    |> case do
+    case EbnisData.delete_experience(id, user.id) do
       :error ->
         {:error, @experience_not_found}
 
@@ -216,13 +194,10 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   def update_experience(
-        %{input: %{id: id} = args},
+        %{input: %{} = args},
         %{context: %{current_user: user}}
       ) do
-    id
-    |> Resolver.convert_from_global_id(:experience)
-    |> EbnisData.update_experience(user.id, Map.delete(args, :id))
-    |> case do
+    case EbnisData.update_experience(args, user.id) do
       {:ok, experience} ->
         {:ok, %{experience: experience}}
 

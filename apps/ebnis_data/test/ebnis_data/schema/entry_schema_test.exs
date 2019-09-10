@@ -8,17 +8,17 @@ defmodule EbnisData.Schema.EntryTest do
   alias EbnisData.Factory.Entry, as: Factory
   alias EbnisData.Factory.Experience, as: ExperienceFactory
   alias EbnisData.Query.Entry, as: Query
-  alias EbnisData.Resolver
   alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
 
   @iso_extended_format "{ISO:Extended:Z}"
   @moduletag capture_log: true
+  @bogus_id Ecto.ULID.generate()
 
   describe "create entry" do
     # @tag :skip
     test "fails: no user context" do
       params = %{
-        experience_id: "0",
+        experience_id: @bogus_id,
         data_objects: [
           %{
             definition_id: "a",
@@ -62,11 +62,8 @@ defmodule EbnisData.Schema.EntryTest do
           ]
         })
 
+      experience_id = experience.id
       [%{id: definition_id}] = experience.data_definitions
-
-      global_experience_id =
-        experience.id
-        |> Resolver.convert_to_global_id(:experience)
 
       variables = %{
         "input" =>
@@ -89,7 +86,7 @@ defmodule EbnisData.Schema.EntryTest do
                   "createEntry" => %{
                     "entry" => %{
                       "id" => _,
-                      "experienceId" => ^global_experience_id,
+                      "experienceId" => ^experience_id,
                       "dataObjects" => [
                         %{
                           "definitionId" => definition_id_gql
@@ -118,7 +115,7 @@ defmodule EbnisData.Schema.EntryTest do
         experience_id: "0",
         data_objects: [
           %{
-            definition_id: Ecto.UUID.generate(),
+            definition_id: @bogus_id,
             data: %{"integer" => 1}
           }
         ]
@@ -161,7 +158,7 @@ defmodule EbnisData.Schema.EntryTest do
           |> Factory.stringify()
       }
 
-      bogus_user = %{id: 0}
+      bogus_user = %{id: @bogus_id}
 
       assert {:ok,
               %{
@@ -192,7 +189,7 @@ defmodule EbnisData.Schema.EntryTest do
 
       bogus_field = %{
         data: %{"integer" => 1},
-        definition_id: Ecto.UUID.generate()
+        definition_id: @bogus_id
       }
 
       params = update_in(params.data_objects, &[bogus_field | &1])
@@ -578,10 +575,10 @@ defmodule EbnisData.Schema.EntryTest do
     test "happy path" do
       user = RegFactory.insert()
       experience1 = ExperienceFactory.insert(user_id: user.id)
-      id1 = Resolver.convert_to_global_id(experience1.id, :experience)
+      id1 = experience1.id
 
       experience2 = ExperienceFactory.insert(user_id: user.id)
-      id2 = Resolver.convert_to_global_id(experience2.id, :experience)
+      id2 = experience2.id
 
       {entries_params, _} =
         Factory.params_list(2, experience1)
@@ -654,7 +651,7 @@ defmodule EbnisData.Schema.EntryTest do
           ["integer"]
         )
 
-      id1 = Resolver.convert_to_global_id(experience1.id, :experience)
+      id1 = experience1.id
 
       params1 = Factory.params(experience1, client_id: "a")
 
@@ -673,7 +670,7 @@ defmodule EbnisData.Schema.EntryTest do
           ["integer"]
         )
 
-      id2 = Resolver.convert_to_global_id(experience2.id, :experience)
+      id2 = experience2.id
 
       # notice that we gave a decimal data to an integer field. it will fail
       params3 =
@@ -767,7 +764,7 @@ defmodule EbnisData.Schema.EntryTest do
           ["integer"]
         )
 
-      id1 = Resolver.convert_to_global_id(experience1.id, :experience)
+      id1 = experience1.id
 
       variables = %{
         "input" =>
@@ -834,32 +831,8 @@ defmodule EbnisData.Schema.EntryTest do
                )
     end
 
-    test "fails: ID is not global" do
-      variables = %{"id" => 0}
-
-      log_message =
-        capture_log(fn ->
-          assert {:ok,
-                  %{
-                    errors: [
-                      %{
-                        message: _
-                      }
-                    ]
-                  }} =
-                   Absinthe.run(
-                     Query.delete(),
-                     Schema,
-                     variables: variables,
-                     context: context(%{id: 0})
-                   )
-        end)
-
-      assert log_message =~ "STACK"
-    end
-
     test "fails: entry not found" do
-      variables = %{"id" => Resolver.convert_to_global_id(0, :entry)}
+      variables = %{"id" => @bogus_id}
 
       assert {:ok,
               %{
@@ -881,7 +854,7 @@ defmodule EbnisData.Schema.EntryTest do
       user = RegFactory.insert()
       experience = ExperienceFactory.insert(%{user_id: user.id})
       entry = Factory.insert(%{}, experience)
-      id = Resolver.convert_to_global_id(entry.id, :entry)
+      id = entry.id
 
       variables = %{"id" => id}
 
@@ -932,7 +905,7 @@ defmodule EbnisData.Schema.EntryTest do
     test "fails: data object not found" do
       variables = %{
         "input" => %{
-          "id" => Ecto.UUID.generate(),
+          "id" => @bogus_id,
           "data" => ~s({"integer":1})
         }
       }
@@ -1107,7 +1080,7 @@ defmodule EbnisData.Schema.EntryTest do
 
       [data_object] = Factory.insert(%{}, experience).data_objects
 
-      id0 = Ecto.UUID.generate()
+      id0 = @bogus_id
       id1 = data_object.id
 
       data0 = ~s({"integer":1})

@@ -308,19 +308,18 @@ defmodule EbnisData.ExperienceApi do
   end
 
   @spec update_experience(
-          id :: integer() | binary(),
-          user_id :: integer() | binary(),
           update_args :: %{
             optional(:title) => binary(),
             optional(:description) => binary()
-          }
+          },
+          user_id :: integer() | binary()
         ) :: {:error, binary()}
-  def update_experience(_, _, attrs) when attrs == %{} do
+  def update_experience(_, attrs) when attrs == %{} do
     {:error, "nothing to update"}
   end
 
-  def update_experience(id, user_id, attrs) do
-    case get_experience(id, user_id) do
+  def update_experience(attrs, user_id) do
+    case get_experience(attrs.id, user_id) do
       nil ->
         {:error, @experience_does_not_exist}
 

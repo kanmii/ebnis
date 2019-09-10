@@ -7,6 +7,8 @@ defmodule EbnisData.Credential do
   alias Ecto.Changeset
   alias EbnisData.User
 
+  @primary_key {:id, Ecto.ULID, autogenerate: true}
+  @foreign_key_type Ecto.ULID
   schema "credentials" do
     field(:source, :string)
     # the encrypted password or token from auth source e.g. google
@@ -14,8 +16,6 @@ defmodule EbnisData.Credential do
 
     # in case user chooses to use password as source
     field(:password, :string, virtual: true)
-
-    #    field(:temp_id, Ecto.ULID)
     belongs_to(:user, User)
     timestamps()
   end

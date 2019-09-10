@@ -5,14 +5,13 @@ defmodule EbnisData.DataDefinition do
 
   alias EbnisData.Experience
 
-  @primary_key {:id, :binary_id, autogenerate: true}
+  @primary_key {:id, Ecto.ULID, autogenerate: true}
+  @foreign_key_type Ecto.ULID
   schema "data_definitions" do
     field(:name, :string)
     field(:type, :string)
     field(:client_id, :string)
     belongs_to(:experience, Experience)
-    #    field(:temp_id, Ecto.ULID)
-
     timestamps(type: :utc_datetime)
   end
 
