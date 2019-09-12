@@ -184,11 +184,11 @@ defmodule EbnisData.EntryApi do
               {:error, @entry_multi_key, changeset, _rest} ->
                 {:error, put_empty_data_objects_changes(changeset)}
 
-              {:error, index, changeset, _rest} ->
+              {:error, data_object_index, changeset, _rest} ->
                 {
                   :error,
                   data_objects_changesets
-                  |> List.replace_at(index, changeset)
+                  |> List.replace_at(data_object_index, changeset)
                   |> fake_changeset_with_data_objects(attrs)
                 }
             end
@@ -305,64 +305,73 @@ defmodule EbnisData.EntryApi do
   end
 
   def create_entries(attrs) do
-    result =
-      attrs
-      |> Enum.reduce(%{}, fn param, acc ->
-        experience_id = param.experience_id
+    attrs
+    |> Enum.reduce(%{}, fn param, acc ->
+      experience_id = param.experience_id
 
-        case create_entry(param) do
-          {:ok, entry} ->
-            Map.update(
-              acc,
-              experience_id,
-              %{
-                entries: [entry],
-                errors: [],
-                experience_id: experience_id
-              },
-              fn map ->
-                %{
-                  map
-                  | entries: [entry | map.entries]
-                }
-              end
-            )
+      case create_entry(param) do
+        {:ok, entry} ->
+          Map.update(
+            acc,
+            experience_id,
+            %{
+              entries: [entry],
+              errors: [],
+              experience_id: experience_id
+            },
+            fn map ->
+              update_in(map.entries, &[entry | &1])
+            end
+          )
 
-          {:error, changeset} ->
-            errors = %{
-              errors: changeset,
-              experience_id: experience_id,
-              client_id: changeset.changes.client_id
-            }
+        {:error, changeset} ->
+          errors = %{
+            errors: changeset,
+            experience_id: experience_id,
+            client_id: changeset.changes.client_id
+          }
 
-            Map.update(
-              acc,
-              experience_id,
-              %{
-                entries: [],
-                errors: [errors],
-                experience_id: experience_id
-              },
-              fn map ->
-                %{
-                  map
-                  | errors: [errors | map.errors]
-                }
-              end
-            )
-        end
-      end)
-
-    Enum.reduce(
-      result,
-      %{},
-      fn {k, v}, acc ->
-        Map.put(
-          acc,
-          k,
-          %{v | entries: Enum.reverse(v.entries), errors: Enum.reverse(v.errors)}
-        )
+          Map.update(
+            acc,
+            experience_id,
+            %{
+              entries: [],
+              errors: [errors],
+              experience_id: experience_id
+            },
+            fn map ->
+              update_in(map.errors, &[errors | &1])
+            end
+          )
       end
+    end)
+    |> Enum.reduce(
+      %{},
+      &clean_up_create_entries_result_reducer/2
+    )
+  end
+
+  defp clean_up_create_entries_result_reducer({k, v}, acc) do
+    errors =
+      case v.errors do
+        [] ->
+          nil
+
+        [error] ->
+          [error]
+
+        errors ->
+          Enum.reverse(errors)
+      end
+
+    Map.put(
+      acc,
+      k,
+      %{
+        v
+        | entries: Enum.reverse(v.entries),
+          errors: errors
+      }
     )
   end
 

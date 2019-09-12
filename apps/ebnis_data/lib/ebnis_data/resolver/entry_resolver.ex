@@ -79,12 +79,7 @@ defmodule EbnisData.Resolver.EntryResolver do
 
           update_in(
             result.errors,
-            &Enum.map(&1, fn errors = %{errors: changeset} ->
-              %{
-                errors
-                | errors: entry_changeset_errors_to_map(changeset)
-              }
-            end)
+            &handle_create_entries_errors/1
           )
         end
       )
@@ -130,6 +125,19 @@ defmodule EbnisData.Resolver.EntryResolver do
       )
 
     {Enum.reverse(entries), Enum.reverse(ids)}
+  end
+
+  defp handle_create_entries_errors(nil) do
+    nil
+  end
+
+  defp handle_create_entries_errors(errors) do
+    Enum.map(errors, fn error = %{errors: changeset} ->
+      %{
+        error
+        | errors: entry_changeset_errors_to_map(changeset)
+      }
+    end)
   end
 
   def delete(%{id: id}, %{context: %{current_user: %{id: _}}}) do

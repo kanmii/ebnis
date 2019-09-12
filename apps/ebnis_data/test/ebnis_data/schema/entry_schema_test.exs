@@ -640,7 +640,7 @@ defmodule EbnisData.Schema.EntryTest do
                           "dataObjects" => _
                         }
                       ],
-                      "errors" => []
+                      "errors" => nil
                     },
                     %{
                       "experienceId" => ^id1,
@@ -658,7 +658,7 @@ defmodule EbnisData.Schema.EntryTest do
                           "dataObjects" => _
                         }
                       ],
-                      "errors" => []
+                      "errors" => nil
                     }
                   ]
                 }
