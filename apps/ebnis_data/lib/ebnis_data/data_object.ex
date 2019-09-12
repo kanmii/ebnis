@@ -11,6 +11,7 @@ defmodule EbnisData.DataObject do
   schema "data_objects" do
     field(:data, FieldType)
     field(:definition_id, Ecto.ULID)
+    field(:client_id, :string)
     belongs_to(:entry, Entry)
     timestamps(type: :utc_datetime)
   end
@@ -24,7 +25,8 @@ defmodule EbnisData.DataObject do
       :entry_id,
       :id,
       :inserted_at,
-      :updated_at
+      :updated_at,
+      :client_id
     ])
     |> validate_required([
       :definition_id,

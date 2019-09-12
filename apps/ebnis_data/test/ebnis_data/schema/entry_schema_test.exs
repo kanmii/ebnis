@@ -10,7 +10,6 @@ defmodule EbnisData.Schema.EntryTest do
   alias EbnisData.Query.Entry, as: Query
   alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
 
-  @iso_extended_format "{ISO:Extended:Z}"
   @moduletag capture_log: true
   @bogus_id Ecto.ULID.generate()
 
@@ -332,11 +331,20 @@ defmodule EbnisData.Schema.EntryTest do
       experience = ExperienceFactory.insert(user_id: user.id)
       client_id = "me"
 
+      entry_params = Factory.params(experience, client_id: client_id)
+
+      entry_params =
+        update_in(
+          entry_params.data_objects,
+          fn [obj | rest] ->
+            [
+              Map.put(obj, :client_id, "a") | rest
+            ]
+          end
+        )
+
       variables = %{
-        "input" =>
-          experience
-          |> Factory.params(client_id: client_id)
-          |> Factory.stringify()
+        "input" => Factory.stringify(entry_params)
       }
 
       assert {:ok,
@@ -345,7 +353,13 @@ defmodule EbnisData.Schema.EntryTest do
                   "createEntry" => %{
                     "entry" => %{
                       "id" => _,
-                      "clientId" => ^client_id
+                      "clientId" => ^client_id,
+                      "dataObjects" => [
+                        %{
+                          "clientId" => "a"
+                        }
+                        | _
+                      ]
                     }
                   }
                 }
@@ -394,24 +408,33 @@ defmodule EbnisData.Schema.EntryTest do
 
     # @tag :skip
     test "succeeds with timestamps" do
-      inserted_at =
-        DateTime.utc_now()
-        |> Timex.shift(hours: -15)
-        |> Timex.to_datetime()
-        |> DateTime.truncate(:second)
+      inserted_at = ~U[2012-01-01 03:04:05Z]
+      inserted_at_string = "2012-01-01T03:04:05Z"
 
-      inserted_at_string =
-        inserted_at
-        |> Timex.format!(@iso_extended_format)
+      timestamps = %{
+        inserted_at: inserted_at,
+        updated_at: inserted_at
+      }
 
       user = RegFactory.insert()
       experience = ExperienceFactory.insert(user_id: user.id)
 
       params =
-        Factory.params(
-          experience,
-          inserted_at: inserted_at,
-          updated_at: inserted_at
+        Factory.params(experience)
+        |> Map.merge(timestamps)
+
+      params =
+        update_in(
+          params.data_objects,
+          fn [obj | rest] ->
+            [
+              Map.merge(
+                obj,
+                timestamps
+              )
+              | rest
+            ]
+          end
         )
 
       variables = %{
@@ -425,7 +448,14 @@ defmodule EbnisData.Schema.EntryTest do
                     "entry" => %{
                       "id" => _,
                       "insertedAt" => ^inserted_at_string,
-                      "updatedAt" => ^inserted_at_string
+                      "updatedAt" => ^inserted_at_string,
+                      "dataObjects" => [
+                        %{
+                          "insertedAt" => ^inserted_at_string,
+                          "updatedAt" => ^inserted_at_string
+                        }
+                        | _
+                      ]
                     }
                   }
                 }

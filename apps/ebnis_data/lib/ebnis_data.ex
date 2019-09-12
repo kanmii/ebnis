@@ -109,21 +109,4 @@ defmodule EbnisData do
     to: EntryApi
 
   ################################ END ENTRY #############################
-
-  ############################### UTILS ##################################
-
-  @iso_extended_format "{ISO:Extended:Z}"
-
-  def to_iso_datetime_string(date) do
-    Timex.format!(date, @iso_extended_format)
-  end
-
-  def from_iso_datetime_string(date_string) do
-    case Timex.parse(date_string, @iso_extended_format) do
-      {:ok, val} -> {:ok, val}
-      {:error, _} -> :error
-    end
-  end
-
-  ############################## END UTILS ###############################
 end

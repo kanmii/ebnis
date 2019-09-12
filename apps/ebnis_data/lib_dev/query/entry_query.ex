@@ -8,6 +8,9 @@ defmodule EbnisData.Query.Entry do
       id
       definitionId
       data
+      clientId
+      insertedAt
+      updatedAt
     }
   """
 

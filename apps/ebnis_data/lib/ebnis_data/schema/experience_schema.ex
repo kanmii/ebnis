@@ -53,8 +53,8 @@ defmodule EbnisData.Schema.Experience do
       resolve(&ExperienceResolver.entries/3)
     end
 
-    field(:inserted_at, non_null(:iso_datetime))
-    field(:updated_at, non_null(:iso_datetime))
+    field(:inserted_at, non_null(:datetime))
+    field(:updated_at, non_null(:datetime))
     field(:has_unsaved, :boolean)
   end
 
@@ -76,8 +76,8 @@ defmodule EbnisData.Schema.Experience do
     @desc "The data type of the field"
     field(:type, non_null(:field_type))
 
-    field(:inserted_at, non_null(:iso_datetime))
-    field(:updated_at, non_null(:iso_datetime))
+    field(:inserted_at, non_null(:datetime))
+    field(:updated_at, non_null(:datetime))
   end
 
   @desc """
@@ -248,8 +248,8 @@ defmodule EbnisData.Schema.Experience do
     field(:client_id, :id)
 
     @desc "If experience is created on the client, it might include timestamps"
-    field(:inserted_at, :iso_datetime)
-    field(:updated_at, :iso_datetime)
+    field(:inserted_at, :datetime)
+    field(:updated_at, :datetime)
 
     @desc ~S"""
       One may define an experience and create associated entries simultaneously
@@ -302,7 +302,7 @@ defmodule EbnisData.Schema.Experience do
       If the update was done offline, then it's proper to allow the update
       date assigned offline.
     """
-    field(:updated_at, :iso_datetime)
+    field(:updated_at, :datetime)
   end
 
   ######################### END INPUT OBJECTS ################################

@@ -5,7 +5,6 @@ defmodule EbnisData.Factory.Experience do
 
   @count 1..5
   @simple_attrs [:user_id, :title, :description, :client_id, :id]
-  @iso_extended_format "{ISO:Extended:Z}"
 
   def insert(attrs, data_types_list \\ nil) do
     attrs = params(attrs, data_types_list)
@@ -68,7 +67,7 @@ defmodule EbnisData.Factory.Experience do
         {Factory.to_camel_key(k), v}
 
       {k, %DateTime{} = v} ->
-        {Factory.to_camel_key(k), Timex.format!(v, @iso_extended_format)}
+        {Factory.to_camel_key(k), DateTime.to_iso8601(v)}
 
       {:entries, v} ->
         {"entries",

@@ -13,6 +13,14 @@ defmodule EbnisData.Schema.Entry do
     field(:id, non_null(:id))
     field(:data, non_null(:entry_field_json))
     field(:definition_id, non_null(:id))
+
+    @desc ~S"""
+      Client ID indicates that data object was created offline
+    """
+    field(:client_id, :id)
+
+    field(:inserted_at, non_null(:datetime))
+    field(:updated_at, non_null(:datetime))
   end
 
   @desc """
@@ -30,7 +38,7 @@ defmodule EbnisData.Schema.Entry do
     @desc ~S"""
       The client ID which indicates that an entry has been created while server
       is offline and is to be saved. The client ID uniquely
-      identifies this entry and will be used prevent conflict while saving entry
+      identifies this entry and will be used to prevent conflict while saving entry
       created offline and must thus be non null in this situation.
     """
     field(:client_id, :id)
@@ -54,8 +62,8 @@ defmodule EbnisData.Schema.Entry do
       |> non_null()
     )
 
-    field(:inserted_at, non_null(:iso_datetime))
-    field(:updated_at, non_null(:iso_datetime))
+    field(:inserted_at, non_null(:datetime))
+    field(:updated_at, non_null(:datetime))
   end
 
   @desc ~S"""
@@ -207,6 +215,17 @@ defmodule EbnisData.Schema.Entry do
       ```
     """
     field(:data, non_null(:entry_field_json))
+
+    @desc ~S"""
+      Indicates that data object was created offline
+    """
+    field(:client_id, :id)
+
+    @desc """
+      If data objects is created on the client, it might include timestamps
+    """
+    field(:inserted_at, :datetime)
+    field(:updated_at, :datetime)
   end
 
   @desc """
@@ -238,8 +257,8 @@ defmodule EbnisData.Schema.Entry do
     @desc """
       If entry is created on the client, it might include timestamps
     """
-    field(:inserted_at, :iso_datetime)
-    field(:updated_at, :iso_datetime)
+    field(:inserted_at, :datetime)
+    field(:updated_at, :datetime)
   end
 
   input_object :create_entries_input do
@@ -270,8 +289,8 @@ defmodule EbnisData.Schema.Entry do
     @desc """
       If entry is created on the client, it might include timestamps
     """
-    field(:inserted_at, :iso_datetime)
-    field(:updated_at, :iso_datetime)
+    field(:inserted_at, :datetime)
+    field(:updated_at, :datetime)
   end
 
   input_object :update_data_object_input do

@@ -1,8 +1,6 @@
 defmodule EbnisData.FieldType do
   @behaviour Ecto.Type
 
-  @iso_extended_format "{ISO:Extended:Z}"
-
   @all_types [
     "single_line_text",
     "multi_line_text",
@@ -110,8 +108,8 @@ defmodule EbnisData.FieldType do
   end
 
   defp parse("datetime", val) when is_binary(val) do
-    case Timex.parse(val, @iso_extended_format) do
-      {:ok, v} ->
+    case DateTime.from_iso8601(val) do
+      {:ok, v, _} ->
         to_map("datetime", v)
 
       _ ->

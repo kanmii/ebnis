@@ -4,7 +4,6 @@ defmodule EbnisData.Factory.Entry do
   @integers 100..110
 
   @simple_attributes [:client_id, :experience_id]
-  @iso_extended_format "{ISO:Extended:Z}"
 
   def insert(attrs, experience)
 
@@ -102,7 +101,7 @@ defmodule EbnisData.Factory.Entry do
         Map.put(
           acc,
           Factory.to_camel_key(k),
-          Timex.format!(v, @iso_extended_format)
+          DateTime.to_iso8601(v)
         )
 
       _, acc ->
@@ -114,6 +113,9 @@ defmodule EbnisData.Factory.Entry do
     Enum.map(entry_data, fn
       {:data, data} ->
         {"data", Jason.encode!(data)}
+
+      {k, %DateTime{} = v} ->
+        {Factory.to_camel_key(k), DateTime.to_iso8601(v)}
 
       {k, v} ->
         {Factory.to_camel_key(k), v}

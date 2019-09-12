@@ -4,7 +4,6 @@ defmodule EbnisData.Schema.Types do
   """
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
-  use Timex
 
   alias EbnisData.FieldType
   alias EbnisData.Experience
@@ -47,26 +46,6 @@ defmodule EbnisData.Schema.Types do
   end
 
   defp parse_entry_field(_) do
-    :error
-  end
-
-  scalar :iso_datetime, name: "ISODatime" do
-    parse(&parse_iso_datetime/1)
-    serialize(&EbnisData.to_iso_datetime_string/1)
-  end
-
-  @spec parse_iso_datetime(Absinthe.Blueprint.Input.String.t()) ::
-          {:ok, DateTime.t() | NaiveDateTime.t()} | :error
-  @spec parse_iso_datetime(Absinthe.Blueprint.Input.Null.t()) :: {:ok, nil}
-  defp parse_iso_datetime(%Absinthe.Blueprint.Input.String{value: value}) do
-    EbnisData.from_iso_datetime_string(value)
-  end
-
-  defp parse_iso_datetime(%Absinthe.Blueprint.Input.Null{}) do
-    {:ok, nil}
-  end
-
-  defp parse_iso_datetime(_) do
     :error
   end
 

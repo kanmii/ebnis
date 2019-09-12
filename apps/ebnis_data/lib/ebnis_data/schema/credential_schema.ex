@@ -7,7 +7,7 @@ defmodule EbnisData.Schema.Credential do
     field(:source, :string)
     field(:token, :string)
     field(:user, :user)
-    field(:inserted_at, non_null(:iso_datetime))
-    field(:updated_at, non_null(:iso_datetime))
+    field(:inserted_at, non_null(:datetime))
+    field(:updated_at, non_null(:datetime))
   end
 end

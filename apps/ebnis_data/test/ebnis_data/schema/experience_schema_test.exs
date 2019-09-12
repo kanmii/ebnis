@@ -1166,7 +1166,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       updated_at = "2019-08-15T10:20:24Z"
 
       id2 = def2.id
-      date2 = EbnisData.to_iso_datetime_string(def2.updated_at)
+      date2 = DateTime.to_iso8601(def2.updated_at)
 
       bogus_definition_id = @bogus_id
 
@@ -1233,7 +1233,7 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       refute def1.name == updated_name
       assert is_binary(error)
-      refute EbnisData.to_iso_datetime_string(def1.updated_at) == updated_at
+      refute DateTime.to_iso8601(def1.updated_at) == updated_at
     end
 
     test "fails: definition can not be updated" do
