@@ -89,7 +89,24 @@ defmodule EbnisData.ExperienceApi do
   end
 
   defp query_with_data_definitions(args) do
-    Enum.reduce(args, preload(Experience, [:data_definitions]), &query(&2, &1))
+    definitions_query =
+      from(
+        d in DataDefinition,
+        order_by: [asc: d.id]
+      )
+
+    query =
+      from(
+        e in Experience,
+        order_by: [desc: e.updated_at],
+        preload: [data_definitions: ^definitions_query]
+      )
+
+    Enum.reduce(
+      args,
+      query,
+      &query(&2, &1)
+    )
   end
 
   defp query(queryable, {:user_id, id}) do
@@ -331,7 +348,7 @@ defmodule EbnisData.ExperienceApi do
   end
 
   def update_definitions(inputs, user_id) do
-    case get_experience_from_definitions(inputs, user_id) do
+    case get_experience_for_definitions_update(user_id, Enum.map(inputs, & &1.id)) do
       nil ->
         {:error, @experience_does_not_exist}
 
@@ -361,40 +378,20 @@ defmodule EbnisData.ExperienceApi do
       {:error, @bad_request}
   end
 
-  defp get_experience_from_definitions(definitions, user_id) do
-    query =
-      query_with_data_definitions(user_id: user_id)
-      |> join(:inner, [e], d in assoc(e, :data_definitions))
+  defp get_experience_for_definitions_update(user_id, definition_ids) do
+    definitions_query =
+      from(d in DataDefinition,
+        order_by: [asc: d.id]
+      )
 
-    try do
-      Enum.map(definitions, fn definition ->
-        case get_experience_from_definition_id(query, definition.id) do
-          %{} = experience ->
-            throw(experience)
-
-          nil ->
-            nil
-        end
-      end)
-
-      nil
-    catch
-      e ->
-        e
-    end
-  end
-
-  defp get_experience_from_definition_id(query, id) do
-    query
-    |> where([_, d], d.id == ^id)
-    |> Repo.all()
-    |> case do
-      [] ->
-        nil
-
-      [experience] ->
-        experience
-    end
+    from(
+      e in Experience,
+      where: e.user_id == ^user_id,
+      join: d in DataDefinition,
+      where: d.id in ^definition_ids,
+      preload: [data_definitions: ^definitions_query]
+    )
+    |> Repo.one()
   end
 
   defp get_update_definition(input) do

@@ -225,9 +225,16 @@ defmodule EbnisData.EntryApi do
   end
 
   defp query_with_data_list do
-    Entry
-    |> join(:inner, [e], dl in assoc(e, :data_objects))
-    |> preload([_, dl], data_objects: dl)
+    data_query =
+      from(
+        d in DataObject,
+        order_by: [asc: d]
+      )
+
+    from(
+      e in Entry,
+      preload: [data_objects: ^data_query]
+    )
   end
 
   defp get_paginated_query({experience_id, pagination_args}, opts) do

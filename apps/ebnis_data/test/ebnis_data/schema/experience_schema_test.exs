@@ -1193,12 +1193,12 @@ defmodule EbnisData.Schema.ExperienceTest do
                       "updatedAt" => ^updated_at,
                       "dataDefinitions" => [
                         %{
-                          "id" => ^id2,
-                          "updatedAt" => ^date2
-                        },
-                        %{
                           "id" => ^id1,
                           "updatedAt" => ^updated_at
+                        },
+                        %{
+                          "id" => ^id2,
+                          "updatedAt" => ^date2
                         }
                       ]
                     },
