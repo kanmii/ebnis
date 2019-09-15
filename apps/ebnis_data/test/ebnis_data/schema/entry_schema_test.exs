@@ -959,6 +959,7 @@ defmodule EbnisData.Schema.EntryTest do
     test "recovers from exception" do
       variables = %{
         "input" => %{
+          # this will cause exception because ID ought to be ULID
           "id" => "1",
           "data" => ~s({"integer":1})
         }

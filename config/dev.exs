@@ -16,7 +16,7 @@ config :ebnis_data, EbnisData.Repo,
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
 config :ebnis_web, EbnisWeb.Endpoint,
-  http: [port: System.get_env("EBNIS_PORT", "4022") |> String.to_integer()],
+  http: [port: System.get_env("EBNIS_PORT", "4023") |> String.to_integer()],
   debug_errors: true,
   check_origin: false
 

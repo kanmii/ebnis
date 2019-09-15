@@ -11,7 +11,7 @@ defmodule EbnisData.Schema.Entry do
   """
   object :data_object do
     field(:id, non_null(:id))
-    field(:data, non_null(:entry_field_json))
+    field(:data, non_null(:data_json))
     field(:definition_id, non_null(:id))
 
     @desc ~S"""
@@ -214,7 +214,7 @@ defmodule EbnisData.Schema.Entry do
         {integer: 4}
       ```
     """
-    field(:data, non_null(:entry_field_json))
+    field(:data, non_null(:data_json))
 
     @desc ~S"""
       Indicates that data object was created offline
@@ -306,7 +306,7 @@ defmodule EbnisData.Schema.Entry do
         {"integer":1}
       ```
     """
-    field(:data, non_null(:entry_field_json))
+    field(:data, non_null(:data_json))
   end
 
   ############################# END INPUTS ##################################

@@ -1,4 +1,4 @@
-defmodule EbnisData.FieldType do
+defmodule EbnisData.DataType do
   @behaviour Ecto.Type
 
   @all_types [
@@ -82,7 +82,7 @@ defmodule EbnisData.FieldType do
 
   defp parse("decimal", v) when is_binary(v) do
     try do
-      to_map("decimal", String.to_float(v))
+      to_map("decimal", string_to_decimal(v))
     rescue
       _ ->
         :error
@@ -121,6 +121,15 @@ defmodule EbnisData.FieldType do
 
   defp to_map(key, val) when is_binary(key) do
     {:ok, Map.new([{key, val}])}
+  end
+
+  defp string_to_decimal(v) do
+    try do
+      String.to_float(v)
+    rescue
+      _ ->
+        String.to_integer(v) / 1
+    end
   end
 
   def all_types, do: @all_types

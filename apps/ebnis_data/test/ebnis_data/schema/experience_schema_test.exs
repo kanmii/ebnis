@@ -421,24 +421,44 @@ defmodule EbnisData.Schema.ExperienceTest do
              |> Enum.flat_map(fn edge ->
                node = edge["node"]
 
-               [
-                 node["id"],
-                 (node["dataDefinitions"] |> hd())["id"],
-                 (node["entries"]["edges"] |> hd())["node"]["id"]
-               ]
+               data_definitions_ids =
+                 node["dataDefinitions"]
+                 |> Enum.map(& &1["id"])
+
+               entry = (node["entries"]["edges"] |> hd())["node"]
+
+               data_objects_ids =
+                 entry["dataObjects"]
+                 |> Enum.map(& &1["id"])
+
+               Enum.concat([
+                 [
+                   node["id"],
+                   entry["id"]
+                 ],
+                 data_definitions_ids,
+                 data_objects_ids
+               ])
              end)
              |> Enum.sort() ==
-               Enum.sort([
-                 experience1.id,
-                 entry1.id,
-                 (experience1.data_definitions |> hd()).id,
-                 experience2.id,
-                 entry2.id,
-                 (experience2.data_definitions |> hd()).id,
-                 experience3.id,
-                 entry3.id,
-                 (experience3.data_definitions |> hd()).id
-               ])
+               [
+                 [
+                   experience1.id,
+                   experience2.id,
+                   experience3.id,
+                   entry1.id,
+                   entry2.id,
+                   entry3.id
+                 ],
+                 Enum.map(experience1.data_definitions, & &1.id),
+                 Enum.map(experience2.data_definitions, & &1.id),
+                 Enum.map(experience3.data_definitions, & &1.id),
+                 Enum.map(entry1.data_objects, & &1.id),
+                 Enum.map(entry2.data_objects, & &1.id),
+                 Enum.map(entry3.data_objects, & &1.id)
+               ]
+               |> Enum.concat()
+               |> Enum.sort()
     end
 
     # @tag :skip
@@ -476,8 +496,18 @@ defmodule EbnisData.Schema.ExperienceTest do
     # @tag :skip
     test "succeeds: one has entry, the other no entry" do
       user = RegFactory.insert()
-      experience = Factory.insert(user_id: user.id)
-      Factory.insert(user_id: user.id)
+      # experiences are sorted by updated_at desc. We fix the dates to make_ref
+      # to make test deterministic
+      experience =
+        Factory.insert(
+          user_id: user.id,
+          updated_at: ~U[2012-01-01 11:11:11Z]
+        )
+
+      Factory.insert(
+        user_id: user.id,
+        updated_at: ~U[2012-01-02 11:11:11Z]
+      )
 
       id = experience.id
 
@@ -499,18 +529,6 @@ defmodule EbnisData.Schema.ExperienceTest do
                     "edges" => [
                       %{
                         "node" => %{
-                          "id" => ^id,
-                          "entries" => %{
-                            "edges" => [],
-                            "pageInfo" => %{
-                              "hasNextPage" => false,
-                              "hasPreviousPage" => false
-                            }
-                          }
-                        }
-                      },
-                      %{
-                        "node" => %{
                           "entries" => %{
                             "edges" => [
                               %{
@@ -519,6 +537,18 @@ defmodule EbnisData.Schema.ExperienceTest do
                                 }
                               }
                             ]
+                          }
+                        }
+                      },
+                      %{
+                        "node" => %{
+                          "id" => ^id,
+                          "entries" => %{
+                            "edges" => [],
+                            "pageInfo" => %{
+                              "hasNextPage" => false,
+                              "hasPreviousPage" => false
+                            }
                           }
                         }
                       }
@@ -1081,12 +1111,15 @@ defmodule EbnisData.Schema.ExperienceTest do
   describe "update data definitions" do
     test "unauthorized" do
       variables = %{
-        "input" => [
-          %{
-            "id" => "a",
-            "name" => "a"
-          }
-        ]
+        "input" => %{
+          "experience_id" => "a",
+          "definitions" => [
+            %{
+              "id" => "a",
+              "name" => "a"
+            }
+          ]
+        }
       }
 
       assert {:ok,
@@ -1109,11 +1142,14 @@ defmodule EbnisData.Schema.ExperienceTest do
         capture_log(fn ->
           assert {:error, error} =
                    EbnisData.update_definitions(
-                     [
-                       %{
-                         id: "a"
-                       }
-                     ],
+                     %{
+                       experience_id: "a",
+                       definitions: [
+                         %{
+                           id: "a"
+                         }
+                       ]
+                     },
                      0
                    )
 
@@ -1125,12 +1161,15 @@ defmodule EbnisData.Schema.ExperienceTest do
 
     test "fails: experience does not exist" do
       variables = %{
-        "input" => [
-          %{
-            "id" => Ecto.ULID.generate(),
-            "name" => "x"
-          }
-        ]
+        "input" => %{
+          "experience_id" => @bogus_id,
+          "definitions" => [
+            %{
+              "id" => @bogus_id,
+              "name" => "x"
+            }
+          ]
+        }
       }
 
       assert {:ok,
@@ -1171,17 +1210,20 @@ defmodule EbnisData.Schema.ExperienceTest do
       bogus_definition_id = @bogus_id
 
       variables = %{
-        "input" => [
-          %{
-            "id" => bogus_definition_id,
-            "name" => "b"
-          },
-          %{
-            "id" => id1,
-            "name" => "aa",
-            "updatedAt" => updated_at
-          }
-        ]
+        "input" => %{
+          "experience_id" => experience.id,
+          "definitions" => [
+            %{
+              "id" => bogus_definition_id,
+              "name" => "b"
+            },
+            %{
+              "id" => id1,
+              "name" => "aa",
+              "updatedAt" => updated_at
+            }
+          ]
+        }
       }
 
       assert {:ok,
@@ -1239,14 +1281,16 @@ defmodule EbnisData.Schema.ExperienceTest do
     test "fails: definition can not be updated" do
       user = RegFactory.insert()
 
-      [def1, def2] =
+      experience =
         Factory.insert(
           %{user_id: user.id},
           [
             "integer",
             "decimal"
           ]
-        ).data_definitions
+        )
+
+      [def1, def2] = experience.data_definitions
 
       %{id: id1} = def1
       %{name: name2} = def2
@@ -1269,17 +1313,24 @@ defmodule EbnisData.Schema.ExperienceTest do
                ]
              } =
                EbnisData.update_definitions(
-                 [
-                   %{
-                     id: id1,
-                     # we attempt to update with name of another definition
-                     name: name2
-                   }
-                 ],
+                 %{
+                   experience_id: experience.id,
+                   definitions: [
+                     %{
+                       id: id1,
+                       # we attempt to update with name of another definition
+                       name: name2
+                     }
+                   ]
+                 },
                  user.id
                )
 
       assert is_binary(name_error)
+    end
+
+    test "wrong arguments" do
+      assert {:error, _} = EbnisData.update_definitions(%{}, "a")
     end
   end
 

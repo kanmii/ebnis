@@ -1,14 +1,14 @@
 defmodule EbnisData.Factory.DataDefinition do
   use EbnisData.Factory
 
-  alias EbnisData.FieldType
+  alias EbnisData.DataType
   alias EbnisData.Factory
 
-  @field_types FieldType.all_types()
+  @data_types DataType.all_types()
 
   @simple_attributes [:name, :client_id, :id]
 
-  def field_types, do: @field_types
+  def data_types, do: @data_types
 
   def insert(_attrs), do: nil
 
@@ -20,7 +20,7 @@ defmodule EbnisData.Factory.DataDefinition do
   def all() do
     %{
       name: name(),
-      type: Enum.random(@field_types),
+      type: Enum.random(@data_types),
       client_id: Sequence.next("")
     }
   end

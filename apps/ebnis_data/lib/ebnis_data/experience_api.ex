@@ -25,11 +25,7 @@ defmodule EbnisData.ExperienceApi do
     |> Repo.all()
     |> case do
       [experience] ->
-        # I found that ecto reverses preloaded field list, so I need to reverse
-        %{
-          experience
-          | data_definitions: Enum.reverse(experience.data_definitions)
-        }
+        experience
 
       _ ->
         nil
@@ -347,8 +343,14 @@ defmodule EbnisData.ExperienceApi do
     end
   end
 
-  def update_definitions(inputs, user_id) do
-    case get_experience_for_definitions_update(user_id, Enum.map(inputs, & &1.id)) do
+  def update_definitions(
+        %{
+          experience_id: experience_id,
+          definitions: inputs
+        },
+        user_id
+      ) do
+    case get_experience(experience_id, user_id) do
       nil ->
         {:error, @experience_does_not_exist}
 
@@ -378,20 +380,8 @@ defmodule EbnisData.ExperienceApi do
       {:error, @bad_request}
   end
 
-  defp get_experience_for_definitions_update(user_id, definition_ids) do
-    definitions_query =
-      from(d in DataDefinition,
-        order_by: [asc: d.id]
-      )
-
-    from(
-      e in Experience,
-      where: e.user_id == ^user_id,
-      join: d in DataDefinition,
-      where: d.id in ^definition_ids,
-      preload: [data_definitions: ^definitions_query]
-    )
-    |> Repo.one()
+  def update_definitions(_, _) do
+    {:error, @bad_request}
   end
 
   defp get_update_definition(input) do

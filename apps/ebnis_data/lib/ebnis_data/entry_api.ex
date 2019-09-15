@@ -224,19 +224,6 @@ defmodule EbnisData.EntryApi do
     Changeset.put_change(changeset, :data_objects, [])
   end
 
-  defp query_with_data_list do
-    data_query =
-      from(
-        d in DataObject,
-        order_by: [asc: d]
-      )
-
-    from(
-      e in Entry,
-      preload: [data_objects: ^data_query]
-    )
-  end
-
   defp get_paginated_query({experience_id, pagination_args}, opts) do
     pagination = pagination_args[:pagination] || %{first: 100}
 
@@ -247,7 +234,7 @@ defmodule EbnisData.EntryApi do
     } = Connection.offset_and_limit_for_query(pagination, opts)
 
     query =
-      query_with_data_list()
+      Entry
       |> where([e], e.experience_id == ^experience_id)
       |> limit(^(limit + 1))
       |> offset(^offset)
@@ -284,13 +271,16 @@ defmodule EbnisData.EntryApi do
       [] ->
         [@empty_relay_connection]
 
-      records_union ->
-        records_union = Enum.group_by(records_union, & &1.experience_id)
+      entries ->
+        entries_map =
+          entries
+          |> put_data_objects_in_entries()
+          |> Enum.group_by(& &1.experience_id)
 
         Enum.map(
           experiences_ids_pagination_args,
           fn {experience_id, _} ->
-            case records_union[experience_id] do
+            case entries_map[experience_id] do
               nil ->
                 @empty_relay_connection
 
@@ -299,7 +289,12 @@ defmodule EbnisData.EntryApi do
 
                 {:ok, connection} =
                   Connection.from_slice(
-                    Enum.take(records, limit),
+                    records
+                    |> Enum.take(limit)
+                    |> Enum.sort_by(
+                      & &1.updated_at,
+                      &(DateTime.compare(&1, &2) == :gt)
+                    ),
                     offset,
                     []
                   )
@@ -309,6 +304,30 @@ defmodule EbnisData.EntryApi do
           end
         )
     end
+  end
+
+  defp put_data_objects_in_entries(entries) do
+    entries_ids = Enum.map(entries, & &1.id)
+
+    data_objects_map =
+      from(
+        d in DataObject,
+        where: d.entry_id in ^entries_ids,
+        order_by: [asc: d.id]
+      )
+      |> Repo.all()
+      |> Enum.group_by(& &1.entry_id)
+
+    entries_map = Enum.reduce(entries, %{}, &Map.put(&2, &1.id, &1))
+
+    Enum.map(entries_ids, fn entry_id ->
+      entry = entries_map[entry_id]
+
+      %Entry{
+        entry
+        | data_objects: data_objects_map[entry_id]
+      }
+    end)
   end
 
   def create_entries(attrs) do

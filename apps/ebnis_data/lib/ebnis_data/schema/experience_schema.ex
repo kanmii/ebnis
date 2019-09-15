@@ -6,8 +6,8 @@ defmodule EbnisData.Schema.Experience do
 
   ################################ START ENUMS ##########################
 
-  @desc "The possible field type that can be defined for an experience"
-  enum :field_type do
+  @desc "The possible data type that can be defined for an experience"
+  enum :data_types do
     value(:single_line_text, as: "single_line_text")
     value(:multi_line_text, as: "multi_line_text")
     value(:integer, as: "integer")
@@ -73,8 +73,8 @@ defmodule EbnisData.Schema.Experience do
     """
     field(:client_id, :id)
 
-    @desc "The data type of the field"
-    field(:type, non_null(:field_type))
+    @desc "The data type"
+    field(:type, non_null(:data_types))
 
     field(:inserted_at, non_null(:datetime))
     field(:updated_at, non_null(:datetime))
@@ -216,7 +216,7 @@ defmodule EbnisData.Schema.Experience do
   @desc "Variables for defining field while defining a new experience"
   input_object :create_data_definition do
     field(:name, non_null(:string))
-    field(:type, non_null(:field_type))
+    field(:type, non_null(:data_types))
 
     @desc ~S"""
       String that uniquely identifies this field definition has been
@@ -305,6 +305,22 @@ defmodule EbnisData.Schema.Experience do
     field(:updated_at, :datetime)
   end
 
+  @desc ~S"""
+  fields required to update a collection of data definitions belonging to an
+  experience
+  """
+  input_object :update_definitions_input do
+    field(:experience_id, non_null(:id))
+
+    field(
+      :definitions,
+      :update_definition_input
+      |> non_null()
+      |> list_of()
+      |> non_null()
+    )
+  end
+
   ######################### END INPUT OBJECTS ################################
 
   ######################### MUTATION ################################
@@ -345,7 +361,7 @@ defmodule EbnisData.Schema.Experience do
         Update several definitions
     """
     field :update_definitions, :update_definitions_response do
-      arg(:input, :update_definition_input |> list_of |> non_null)
+      arg(:input, :update_definitions_input)
 
       resolve(&ExperienceResolver.update_definitions/2)
     end

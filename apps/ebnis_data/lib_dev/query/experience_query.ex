@@ -28,6 +28,9 @@ defmodule EbnisData.Query.Experience do
           node {
             id
             clientId
+            dataObjects {
+              id
+            }
           }
         }
 
@@ -183,7 +186,7 @@ defmodule EbnisData.Query.Experience do
 
   def update_definitions do
     """
-      mutation UpdateDefinitions($input: [UpdateDefinitionInput!]!) {
+      mutation UpdateDefinitions($input: UpdateDefinitionsInput!) {
         updateDefinitions(input: $input) {
           experience {
             ...#{@fragment_name}

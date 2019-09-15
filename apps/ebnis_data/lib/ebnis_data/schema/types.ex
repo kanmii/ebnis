@@ -5,7 +5,7 @@ defmodule EbnisData.Schema.Types do
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
 
-  alias EbnisData.FieldType
+  alias EbnisData.DataType
   alias EbnisData.Experience
   alias EbnisData.Entry
 
@@ -22,11 +22,11 @@ defmodule EbnisData.Schema.Types do
     end)
   end
 
-  scalar :entry_field_json, name: "EntryField" do
+  scalar :data_json, name: "DataType" do
     parse(&parse_entry_field/1)
 
     serialize(fn val ->
-      {:ok, data} = FieldType.serialize_k_v(val)
+      {:ok, data} = DataType.serialize_k_v(val)
       Jason.encode!(data)
     end)
   end

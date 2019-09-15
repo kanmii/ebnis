@@ -3,13 +3,13 @@ defmodule EbnisData.DataObject do
 
   import Ecto.Changeset
 
-  alias EbnisData.FieldType
+  alias EbnisData.DataType
   alias EbnisData.Entry
 
   @primary_key {:id, Ecto.ULID, autogenerate: true}
   @foreign_key_type Ecto.ULID
   schema "data_objects" do
-    field(:data, FieldType)
+    field(:data, DataType)
     field(:definition_id, Ecto.ULID)
     field(:client_id, :string)
     belongs_to(:entry, Entry)
