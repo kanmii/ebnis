@@ -39,7 +39,8 @@ config :ebnis_web, EbnisWeb.Endpoint,
   secret_key_base: secret_key_base,
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
   check_origin: [
-    "//ebnis.netlify.com"
+    "//ebnis.netlify.com",
+    "//ebnis-staging.netlify.com",
   ]
 
 # ## SSL Support
