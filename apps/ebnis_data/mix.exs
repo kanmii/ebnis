@@ -35,7 +35,7 @@ defmodule EbnisData.MixProject do
       {:ecto_sql, "~> 3.1"},
       {:postgrex, ">= 0.0.0"},
       {:jason, "~> 1.0"},
-      {:bcrypt_elixir, "~> 2.0"},
+      {:pbkdf2_elixir, "~> 1.0"},
       {:mox, "~> 0.5.1", only: :test},
       {:faker, "~> 0.12.0", only: [:dev, :test]},
       {:sequence, github: "samba6/sequence", only: [:dev, :test]},

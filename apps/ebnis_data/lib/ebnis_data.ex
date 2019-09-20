@@ -41,7 +41,7 @@ defmodule EbnisData do
         {:error, "Invalid email/password"}
 
       %Credential{} = cred ->
-        if Bcrypt.verify_pass(password, cred.token) do
+        if Pbkdf2.verify_pass(password, cred.token) do
           {:ok, cred}
         else
           {:error, "Invalid email/password"}

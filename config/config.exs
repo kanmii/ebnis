@@ -9,7 +9,7 @@
 # move said applications out of the umbrella.
 use Mix.Config
 
-config :bcrypt_elixir, :log_rounds, 1
+config :pbkdf2_elixir, :rounds, 1
 
 # Configure Mix tasks and generators
 config :ebnis_data,

@@ -2,7 +2,6 @@ defmodule EbnisData.Credential do
   use Ecto.Schema
 
   import Ecto.Changeset
-  import Bcrypt, only: [hash_pwd_salt: 1]
 
   alias Ecto.Changeset
   alias EbnisData.User
@@ -41,6 +40,6 @@ defmodule EbnisData.Credential do
   defp hash_password(
          %Changeset{valid?: true, changes: %{source: "password", password: password}} = changes
        ) do
-    put_change(changes, :token, hash_pwd_salt(password))
+    put_change(changes, :token, Pbkdf2.hash_pwd_salt(password))
   end
 end
