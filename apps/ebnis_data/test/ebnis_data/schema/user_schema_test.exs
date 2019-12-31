@@ -1,13 +1,17 @@
 defmodule EbnisData.Schema.UserTest do
   use EbnisData.DataCase
 
+  import ExUnit.CaptureLog
+
   alias EbnisData.Schema
   alias EbnisData.Query.Registration, as: RegQuery
   alias EbnisData.Factory.Registration, as: RegFactory
   alias EbnisData.Query.User, as: Query
   alias EbnisData.Guardian, as: GuardianApp
+  alias EbnisData.Repo
 
   @moduletag :db
+  @moduletag capture_log: true
 
   describe "mutation" do
     # @tag :skip
@@ -166,7 +170,7 @@ defmodule EbnisData.Schema.UserTest do
     end
 
     # @tag :skip
-    test "login fails" do
+    test "login fails - passwords do not match" do
       %{email: email, password: password} = params = RegFactory.params()
       RegFactory.insert(params)
 
@@ -194,6 +198,34 @@ defmodule EbnisData.Schema.UserTest do
                    }
                  }
                )
+    end
+
+    # @tag :skip
+    test "login fails - exception" do
+      password = "password"
+
+      user =
+        RegFactory.insert(
+          password: password,
+          password_confirmation: password
+        )
+
+      credential = user.credential
+      bogus_token = ""
+
+      Ecto.Changeset.change(credential, token: bogus_token)
+      |> Repo.update!()
+
+      log_message =
+        capture_log(fn ->
+          assert {:error, "Invalid email/password"} =
+                   EbnisData.authenticate(%{
+                     email: user.email,
+                     password: password
+                   })
+        end)
+
+      assert log_message =~ "STACK"
     end
   end
 

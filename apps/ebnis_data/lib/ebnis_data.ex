@@ -1,6 +1,7 @@
 defmodule EbnisData do
   require Logger
   import Ecto.Query, warn: false
+  import Ebnis
 
   alias EbnisData.Repo
   alias EbnisData.Registration
@@ -9,6 +10,8 @@ defmodule EbnisData do
   alias Ecto.Multi
   alias EbnisData.EntryApi
   alias EbnisData.ExperienceApi
+
+  @authenticate_user_exception_header "\n\nException while authenticating user with username:"
 
   def register(%{} = params) do
     Multi.new()
@@ -41,10 +44,26 @@ defmodule EbnisData do
         {:error, "Invalid email/password"}
 
       %Credential{} = cred ->
-        if Pbkdf2.verify_pass(password, cred.token) do
-          {:ok, cred}
-        else
-          {:error, "Invalid email/password"}
+        try do
+          if Pbkdf2.verify_pass(password, cred.token) do
+            {:ok, cred}
+          else
+            {:error, "Invalid email/password"}
+          end
+        rescue
+          error ->
+            Logger.error(fn ->
+              [
+                @authenticate_user_exception_header,
+                cred.user.email,
+                stacktrace_prefix(),
+                :error
+                |> Exception.format(error, __STACKTRACE__)
+                |> prettify_with_new_line()
+              ]
+            end)
+
+            {:error, "Invalid email/password"}
         end
     end
   end

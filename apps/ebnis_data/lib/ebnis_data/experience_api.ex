@@ -2,6 +2,7 @@ defmodule EbnisData.ExperienceApi do
   require Logger
 
   import Ecto.Query, warn: true
+  import Ebnis
 
   alias EbnisData.Repo
   alias EbnisData.Experience
@@ -9,7 +10,6 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.DataDefinition
 
   @get_experience_exception_header "\n\nException while getting experience with:"
-  @stacktrace "\n\n---------------STACKTRACE---------\n\n"
 
   @bad_request "bad request"
 
@@ -37,10 +37,10 @@ defmodule EbnisData.ExperienceApi do
           @get_experience_exception_header,
           "\n\tid: #{id}",
           "\n\tUser ID: #{user_id}",
-          @stacktrace,
+          stacktrace_prefix(),
           :error
           |> Exception.format(error, __STACKTRACE__)
-          |> Ebnis.prettify_with_new_line()
+          |> prettify_with_new_line()
         ]
       end)
 
@@ -372,8 +372,9 @@ defmodule EbnisData.ExperienceApi do
         [
           @update_definitions_exception_header,
           inspect({inputs, user_id}),
-          @stacktrace,
+          stacktrace_prefix(),
           Exception.format(:error, error, __STACKTRACE__)
+          |> prettify_with_new_line()
         ]
       end)
 
