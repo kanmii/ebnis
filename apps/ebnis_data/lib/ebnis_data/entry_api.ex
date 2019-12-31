@@ -16,7 +16,10 @@ defmodule EbnisData.EntryApi do
   @stacktrace "\n\n----------STACKTRACE---------------\n\n"
 
   @error_not_found {:error, "entry not found"}
-  @data_object_not_found {:error, "data object not found"}
+  @data_object_not_found {
+    :error,
+    "Data object not found.\nMay be it was created offline."
+  }
 
   @update_data_object_exception_header "\nUpdate data object exception:\n  params:\n\t"
 
