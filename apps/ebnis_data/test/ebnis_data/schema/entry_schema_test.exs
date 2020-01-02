@@ -481,6 +481,7 @@ defmodule EbnisData.Schema.EntryTest do
         |> ExperienceFactory.insert()
 
       [definition | _] = experience.data_definitions
+      definitionClientId = "a"
 
       params = %{
         experience_id: experience.id,
@@ -488,7 +489,8 @@ defmodule EbnisData.Schema.EntryTest do
           %{
             definition_id: definition.id,
             # notice how we specified a decimal value for an integer data
-            data: %{integer: 0.1}
+            data: %{integer: 0.1},
+            client_id: definitionClientId
           }
         ]
       }
@@ -504,6 +506,7 @@ defmodule EbnisData.Schema.EntryTest do
                     "errors" => %{
                       "dataObjectsErrors" => [
                         %{
+                          "clientId" => ^definitionClientId,
                           "index" => 0,
                           "errors" => %{
                             "data" => data_errors

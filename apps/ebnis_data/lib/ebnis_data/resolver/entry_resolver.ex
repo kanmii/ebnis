@@ -41,11 +41,12 @@ defmodule EbnisData.Resolver.EntryResolver do
   defp data_objects_changeset_errors_to_map(acc_errors, changesets) do
     changesets
     |> Enum.reduce({[], 0}, fn
-      %{valid?: false, errors: errors}, {acc, index} ->
+      %{valid?: false, errors: errors, changes: changes}, {acc, index} ->
         {
           [
             %{
               index: index,
+              client_id: changes[:client_id],
               errors: Resolver.changeset_errors_to_map(errors)
             }
             | acc

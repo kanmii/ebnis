@@ -50,6 +50,7 @@ defmodule EbnisData.Query.Entry do
       entry
       dataObjectsErrors {
         index
+        clientId
         errors {
           ...#{@fragment_data_error_name}
         }

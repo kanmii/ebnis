@@ -79,6 +79,7 @@ defmodule EbnisData.Schema.Entry do
     Entry data object errors while creating an entry
   """
   object :data_objects_errors do
+    field(:client_id, :string)
     field(:index, non_null(:integer))
     field(:errors, non_null(:data_object_error))
   end
@@ -192,7 +193,7 @@ defmodule EbnisData.Schema.Entry do
 
   ############################# END OBJECTS ##################################
 
-  ############################# INPUTS ##################################
+  ############################# INPUTS SECTION ##############################
 
   @desc ~S"""
     Variables for creating an entry field
