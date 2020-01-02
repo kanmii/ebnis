@@ -104,13 +104,14 @@ defmodule EbnisData.Schema.Entry do
     field(:experience, :string)
 
     @desc ~S"""
-      While saving an offline entry, its experience ID must be same as
-      experience.clientId if saving entry via offline experience
+      An offline entry of offline experience must have its experience ID same as
+      experience.clientId.
     """
     field(:experience_id, :string)
 
     @desc ~S"""
-      May be because client ID is not unique for experience
+      May be we failed because entry.clientId is already taken by another
+      entry belonging to the experience.
     """
     field(:client_id, :string)
 
