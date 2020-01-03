@@ -64,6 +64,12 @@ defmodule EbnisData.Schema.Entry do
 
     field(:inserted_at, non_null(:datetime))
     field(:updated_at, non_null(:datetime))
+
+    @desc ~S"""
+      Indicates whether entry has been modified offline, in which case this
+      property will be true, otherwise it will be falsy
+    """
+    field(:mod_offline, :boolean)
   end
 
   @desc ~S"""

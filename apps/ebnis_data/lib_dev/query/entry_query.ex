@@ -21,7 +21,7 @@ defmodule EbnisData.Query.Entry do
       clientId
       insertedAt
       updatedAt
-
+      modOffline
       dataObjects {
         ...#{@entry_data_fragment_name}
       }

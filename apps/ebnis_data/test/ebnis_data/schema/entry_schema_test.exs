@@ -86,6 +86,7 @@ defmodule EbnisData.Schema.EntryTest do
                     "entry" => %{
                       "id" => _,
                       "experienceId" => ^experience_id,
+                      "modOffline" => nil,
                       "dataObjects" => [
                         %{
                           "definitionId" => definition_id_gql
