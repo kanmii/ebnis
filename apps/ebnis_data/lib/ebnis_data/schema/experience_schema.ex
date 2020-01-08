@@ -211,7 +211,7 @@ defmodule EbnisData.Schema.Experience do
 
   ######################### END REGULAR OBJECTS ###########################
 
-  ############################ INPUT OBJECTS ##############################
+  ############################ INPUT OBJECTS SECTION ####################
 
   @desc "Variables for defining field while defining a new experience"
   input_object :create_data_definition do
@@ -369,7 +369,7 @@ defmodule EbnisData.Schema.Experience do
 
   ######################### END MUTATIONS ################################
 
-  ######################### START QUERIES ################################
+  ######################### QUERIES SECTION #############################
 
   @desc """
     Queries allowed on Experience object
@@ -396,7 +396,7 @@ defmodule EbnisData.Schema.Experience do
     end
   end
 
-  ######################### END QUERIES ################################
+  ######################### END QUERIES SECTION ##########################
 
   connection(node_type: :experience)
 end

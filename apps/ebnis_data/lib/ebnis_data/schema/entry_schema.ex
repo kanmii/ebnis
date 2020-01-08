@@ -316,8 +316,7 @@ defmodule EbnisData.Schema.Entry do
     """
     field(:data, non_null(:data_json))
   end
-
-  ############################# END INPUTS ##################################
+  ############################# END INPUTS SECTION #######################
 
   ################### MUTATIONS #########################################
 

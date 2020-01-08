@@ -563,6 +563,65 @@ defmodule EbnisData.Schema.ExperienceTest do
                  context: context(user)
                )
     end
+
+    # @tag :skip
+    test "succeeds: all experiences - no entries" do
+      user = RegFactory.insert()
+      # experiences are sorted by updated_at desc. We fix the dates to make_ref
+      # to make test deterministic
+      experience =
+        Factory.insert(
+          user_id: user.id,
+          updated_at: ~U[2012-01-01 11:11:11Z]
+        )
+
+      Factory.insert(
+        user_id: user.id,
+        updated_at: ~U[2012-01-02 11:11:11Z]
+      )
+
+      id = experience.id
+
+      experience2 = Factory.insert(user_id: user.id)
+      id2 = experience2.id
+
+      variables = %{
+        "input" => %{
+          "ids" => [id, id2]
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "getExperiences" => %{
+                    "edges" => [
+                      %{
+                        "node" => %{
+                          "entries" => %{
+                            "edges" => []
+                          }
+                        }
+                      },
+                      %{
+                        "node" => %{
+                          "id" => ^id,
+                          "entries" => %{
+                            "edges" => []
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.gets(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
   end
 
   describe "save offline experience" do

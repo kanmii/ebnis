@@ -272,7 +272,7 @@ defmodule EbnisData.EntryApi do
     |> Repo.all(repo_opts)
     |> case do
       [] ->
-        [@empty_relay_connection]
+        Enum.map(experiences_ids_pagination_args, fn _ -> @empty_relay_connection end)
 
       entries ->
         entries_map =
