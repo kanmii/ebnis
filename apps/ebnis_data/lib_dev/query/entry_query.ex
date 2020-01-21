@@ -163,4 +163,53 @@ defmodule EbnisData.Query.Entry do
       #{@fragment_data_error}
     """
   end
+
+  def update_entries do
+    """
+      mutation UpdateEntries($input: [UpdateEntryInput!]!){
+        updateEntries(input: $input) {
+          __typename
+          ... on UpdateEntriesAllFail {
+            error
+          }
+          ... on UpdateEntriesSomeSuccess {
+            entries {
+              __typename
+              ... on UpdateEntryErrors {
+                errors {
+                  entryId
+                  error
+                }
+              }
+              ... on UpdateEntrySomeSuccess {
+                entry {
+                  entryId
+                  updatedAt
+                  dataObjects {
+                    __typename
+                    ... on DataObjectFullErrors {
+                      errors {
+                        id
+                        definition
+                        definitionId
+                        clientId
+                        error
+                        data
+                      }
+                    }
+                    ... on DataObjectSuccess {
+                      dataObject {
+                        ...#{@entry_data_fragment_name}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      #{@entry_data_fragment}
+    """
+  end
 end

@@ -116,16 +116,17 @@ defmodule EbnisData do
 
   #########################  END  EXPERIENCES ###############################
 
-  ################################ START ENTRY #############################
+  ################################ START ENTRY SECTION #########
 
   defdelegate create_entry(attrs), to: EntryApi
   defdelegate create_entries(attrs), to: EntryApi
   defdelegate delete_entry(attrs), to: EntryApi
   defdelegate update_data_object(arg), to: EntryApi
   defdelegate get_entry(id), to: EntryApi
+  defdelegate update_entry(params, user_id), to: EntryApi
 
   defdelegate get_paginated_entries(experiences_ids_pagination_args_tuples, repo_opts),
     to: EntryApi
 
-  ################################ END ENTRY #############################
+  ################################ END ENTRY SECTION #################
 end

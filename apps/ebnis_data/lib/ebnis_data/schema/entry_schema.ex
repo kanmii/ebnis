@@ -198,9 +198,132 @@ defmodule EbnisData.Schema.Entry do
     field(:string_error, :string)
   end
 
-  ############################# END OBJECTS ##################################
+  @desc ~S"""
+    All errors related to entry.dataObject creation/update in one field as
+    compared to dataObjectError (which will soon be deprecated in favour of this
+    field
+  """
+  object :data_object_full_error do
+    field(:id, non_null(:id))
+    field(:definition, :string)
+    field(:definition_id, :string)
+    field(:client_id, :string)
 
-  ############################# INPUTS SECTION ##############################
+    @desc ~S"""
+      Error related to the data e.g. a string was supplied for a decimal field.
+    """
+    field(:data, :string)
+
+    @desc ~S"""
+      For generic errors unrelated to the fields of the data object e.g.
+      not found error
+    """
+    field(:error, :string)
+  end
+
+  @desc ~S"""
+    Errors response on data object update - used in graphql union
+  """
+  object :data_object_full_errors do
+    field(:errors, non_null(:data_object_full_error))
+  end
+
+  @desc ~S"""
+    Response on successful entry or data object update
+  """
+  object :data_object_success do
+    field(:data_object, non_null(:data_object))
+  end
+
+  @desc ~S"""
+    On data object update, we will return either DataObjectSuccess or
+    or DataObjectFullErrors
+  """
+  union :update_data_object_union do
+    types([:data_object_success, :data_object_full_errors])
+    resolve_type(&EntryResolver.update_data_object_union/2)
+  end
+
+  @desc ~S"""
+    Returned when updating several entries
+  """
+  union :update_entries_union do
+    types([:update_entries_some_success, :update_entries_all_fail])
+    resolve_type(&EntryResolver.update_entries_union/2)
+  end
+
+  @desc ~S"""
+    When none of the entries to be updated succeeds e.g. because of
+    authorization error
+  """
+  object :update_entries_all_fail do
+    field(:error, non_null(:string))
+  end
+
+  @desc ~S"""
+    When updating entries, there is at least one success
+  """
+  object :update_entries_some_success do
+    field(
+      :entries,
+      :update_entry_union
+      |> non_null()
+      |> list_of()
+      |> non_null()
+    )
+  end
+
+  union :update_entry_union do
+    types([:update_entry_errors, :update_entry_some_success])
+    resolve_type(&EntryResolver.update_entry_union/2)
+  end
+
+  object :update_entry_errors do
+    field(:errors, :update_entry_error)
+  end
+
+  @desc ~S"""
+    If when updating an entry, the entry is not found in the DB, there is no
+    point taking a look at its data objects. We return this error to indicate
+    such failure
+  """
+  object :update_entry_error do
+    field(:entry_id, non_null(:id))
+    field(:error, non_null(:string))
+  end
+
+  @desc ~S"""
+    If at least one data object member of an entry can be updated, then this
+    is the response sent
+  """
+  object :update_entry_some_success do
+    field(:entry, non_null(:update_entry))
+  end
+
+  @desc ~S"""
+    Response sent after entry is updated.
+  """
+  object :update_entry do
+    field(:entry_id, non_null(:id))
+
+    field(
+      :data_objects,
+      :update_data_object_union
+      |> non_null()
+      |> list_of()
+      |> non_null()
+    )
+
+    @desc ~S"""
+      If any entry data objects is updated, then the entry itself will
+      be updated to the latest dataObject.updatedAt
+    """
+    field(:updated_at, :datetime)
+  end
+
+  ############################# END OBJECTS SECTION #############
+
+  ############################# INPUTS SECTION #######################
 
   @desc ~S"""
     Variables for creating an entry field
@@ -315,7 +438,28 @@ defmodule EbnisData.Schema.Entry do
       ```
     """
     field(:data, non_null(:data_json))
+
+    @desc """
+      If updated offline, it might include timestamps
+    """
+    field(:updated_at, :datetime)
   end
+
+  @desc ~S"""
+    An input object for updating an entry when updating several entries at once
+  """
+  input_object :update_entry_input do
+    field(:entry_id, non_null(:id))
+
+    field(
+      :data_objects,
+      :update_data_object_input
+      |> non_null()
+      |> list_of()
+      |> non_null()
+    )
+  end
+
   ############################# END INPUTS SECTION #######################
 
   ################### MUTATIONS #########################################
@@ -361,6 +505,10 @@ defmodule EbnisData.Schema.Entry do
       resolve(&EntryResolver.update_data_object/2)
     end
 
+    @desc ~S"""
+      Update several data objects at once - prefer using this for data objects
+      belonging to same entry as it will be easier to deal with
+    """
     field :update_data_objects, list_of(:update_data_objects_response) do
       arg(
         :input,
@@ -371,6 +519,21 @@ defmodule EbnisData.Schema.Entry do
       )
 
       resolve(&EntryResolver.update_data_objects/2)
+    end
+
+    @desc ~S"""
+      Update several entries at once
+    """
+    field :update_entries, :update_entries_union do
+      arg(
+        :input,
+        :update_entry_input
+        |> non_null()
+        |> list_of()
+        |> non_null()
+      )
+
+      resolve(&EntryResolver.update_entries/2)
     end
   end
 

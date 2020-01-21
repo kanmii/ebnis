@@ -1241,5 +1241,253 @@ defmodule EbnisData.Schema.EntryTest do
     end
   end
 
+  describe "update entries" do
+    test "unauthorized" do
+      variables = %{
+        "input" => [
+          %{
+            "entryId" => "1",
+            "dataObjects" => [
+              %{
+                "id" => "1",
+                "data" => ~s({"integer":1})
+              }
+            ]
+          }
+        ]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "updateEntries" => %{
+                    "__typename" => "UpdateEntriesAllFail",
+                    "error" => error
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.update_entries(),
+                 Schema,
+                 variables: variables
+               )
+
+      assert is_binary(error)
+    end
+
+    test "successes and failures" do
+      user = RegFactory.insert()
+
+      experience1 =
+        ExperienceFactory.insert(
+          %{user_id: user.id},
+          ["integer"]
+        )
+
+      all_success_entry = Factory.insert(%{}, experience1)
+      [all_success_data_object] = all_success_entry.data_objects
+      all_success_entry_id = all_success_entry.id
+      all_success_data_object_id = all_success_data_object.id
+      updated_at = "1980-01-21T05:27:17Z"
+
+      refute all_success_data_object.data["integer"] == 1
+      refute updated_at == DateTime.to_iso8601(all_success_entry.updated_at)
+
+      all_success_entry_variables = %{
+        "entryId" => all_success_entry_id,
+        "dataObjects" => [
+          %{
+            "id" => all_success_data_object_id,
+            "data" => ~s({"integer":1}),
+            "updatedAt" => updated_at
+          }
+        ]
+      }
+
+      experience2 =
+        ExperienceFactory.insert(
+          %{user_id: user.id},
+          ["integer", "integer", "integer"]
+        )
+
+      some_failure_entry = Factory.insert(%{}, experience2)
+
+      [
+        some_success_data_object,
+        data_object_with_wrong_data,
+        data_object_latest_updated_at
+      ] = some_failure_entry.data_objects
+
+      updated_at1 = "1981-01-21T05:27:17Z"
+      updated_at2 = "1982-01-21T05:27:17Z"
+
+      refute updated_at2 == DateTime.to_iso8601(some_failure_entry.updated_at)
+      refute some_success_data_object.data["integer"] == 2
+
+      bogus_id = @bogus_id
+      some_failure_entry_id = some_failure_entry.id
+      some_success_data_object_id = some_success_data_object.id
+      data_object_with_wrong_data_id = data_object_with_wrong_data.id
+      data_object_latest_updated_at_id = data_object_latest_updated_at.id
+
+      some_failure_entry_variables = %{
+        "entryId" => some_failure_entry_id,
+        "dataObjects" => [
+          %{
+            "id" => some_success_data_object_id,
+            "data" => ~s({"integer":2}),
+            "updatedAt" => updated_at1
+          },
+          %{
+            "id" => data_object_with_wrong_data_id,
+            "data" => ~s({"integer":2.1})
+          },
+          %{
+            "id" => data_object_latest_updated_at_id,
+            "data" => ~s({"integer":5}),
+            "updatedAt" => updated_at2
+          }
+        ]
+      }
+
+      entry_data_object_not_found_variables = %{
+        "entryId" => some_failure_entry_id,
+        "dataObjects" => [
+          %{
+            "id" => bogus_id,
+            "data" => ~s({"integer":2})
+          }
+        ]
+      }
+
+      entry_not_found_variables = %{
+        "entryId" => bogus_id,
+        "dataObjects" => [
+          %{
+            "id" => "1",
+            "data" => ~s({"integer":1})
+          }
+        ]
+      }
+
+      entry_raises_id = "1"
+
+      entry_raises_variables = %{
+        # this will cause exception because ID ought to be ULID
+        "entryId" => entry_raises_id,
+        "dataObjects" => [
+          %{
+            "id" => "1",
+            "data" => ~s({"integer":1})
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          entry_not_found_variables,
+          all_success_entry_variables,
+          some_failure_entry_variables,
+          entry_raises_variables,
+          entry_data_object_not_found_variables
+        ]
+      }
+
+      log =
+        capture_log(fn ->
+          assert {:ok,
+                  %{
+                    data: %{
+                      "updateEntries" => %{
+                        "__typename" => "UpdateEntriesSomeSuccess",
+                        "entries" => [
+                          %{
+                            "__typename" => "UpdateEntryErrors",
+                            "errors" => %{
+                              "entryId" => ^bogus_id,
+                              "error" => entry_not_found_error
+                            }
+                          },
+                          %{
+                            "__typename" => "UpdateEntrySomeSuccess",
+                            "entry" => %{
+                              "entryId" => ^all_success_entry_id,
+                              "updatedAt" => ^updated_at,
+                              "dataObjects" => [
+                                %{
+                                  "__typename" => "DataObjectSuccess",
+                                  "dataObject" => %{
+                                    "id" => ^all_success_data_object_id,
+                                    "data" => ~s({"integer":1}),
+                                    "updatedAt" => ^updated_at
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          %{
+                            "entry" => %{
+                              "entryId" => ^some_failure_entry_id,
+                              "updatedAt" => ^updated_at2,
+                              "dataObjects" => [
+                                %{},
+                                %{
+                                  "errors" => %{
+                                    "id" => ^data_object_with_wrong_data_id,
+                                    "data" => data_object_with_wrong_data_error
+                                  }
+                                },
+                                %{
+                                  "dataObject" => %{
+                                    "id" => data_object_latest_updated_at_id,
+                                    # "data" => ~s({"integer":1}),
+                                    "updatedAt" => ^updated_at2
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          %{
+                            "errors" => %{
+                              "entryId" => ^entry_raises_id,
+                              "error" => entry_raises_error
+                            }
+                          },
+                          %{
+                            "entry" => %{
+                              "entryId" => ^some_failure_entry_id,
+                              "updatedAt" => _,
+                              "dataObjects" => [
+                                %{
+                                  "__typename" => "DataObjectFullErrors",
+                                  "errors" => %{
+                                    "id" => ^bogus_id,
+                                    "error" => data_object_bogus_id_errors
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }} =
+                   Absinthe.run(
+                     Query.update_entries(),
+                     Schema,
+                     variables: variables,
+                     context: context(user)
+                   )
+
+          assert is_binary(data_object_bogus_id_errors)
+          assert is_binary(data_object_with_wrong_data_error)
+          assert is_binary(entry_not_found_error)
+          assert is_binary(entry_raises_error)
+        end)
+
+      assert log =~ "STACK"
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

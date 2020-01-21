@@ -14,7 +14,8 @@ defmodule EbnisWeb.MixProject do
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -45,10 +46,9 @@ defmodule EbnisWeb.MixProject do
       {:ebnis_data, in_umbrella: true},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:absinthe, "~> 1.4"},
       {:absinthe_plug, "~> 1.4"},
       {:absinthe_phoenix, "~> 1.4.0"},
-      {:corsica, "~> 1.1"},
+      {:corsica, "~> 1.1"}
     ]
   end
 

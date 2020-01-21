@@ -23,6 +23,10 @@ defmodule EbnisData.EntryApi do
 
   @update_data_object_exception_header "\nUpdate data object exception:\n  params:\n\t"
 
+  @update_entry_exception_header "\nUpdate entry exception:\n  params:\n\t"
+
+  @entry_not_found "entry not found"
+
   @empty_relay_connection %{
     edges: [],
     page_info: %{
@@ -467,5 +471,95 @@ defmodule EbnisData.EntryApi do
       end)
 
       @data_object_not_found
+  end
+
+  def update_entry(%{entry_id: entry_id} = params, user_id) do
+    from(
+      e in Entry,
+      where: e.id == ^entry_id,
+      join: ex in assoc(e, :experience),
+      where: ex.user_id == ^user_id
+    )
+    |> Repo.all()
+    |> case do
+      [] ->
+        %{
+          entry_id: entry_id,
+          error: @entry_not_found
+        }
+
+      [entry] ->
+        {
+          may_be_updated_data_objects,
+          updated_ats
+        } = update_data_objects(params.data_objects)
+
+        may_be_updated_entry = updated_entry_updated_at(entry, updated_ats)
+
+        %{
+          entry_id: entry_id,
+          updated_at: may_be_updated_entry.updated_at,
+          data_objects: may_be_updated_data_objects
+        }
+    end
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @update_entry_exception_header,
+          inspect(params),
+          @stacktrace,
+          Exception.format(:error, error, __STACKTRACE__)
+          |> Ebnis.prettify_with_new_line()
+        ]
+      end)
+
+      %{
+        entry_id: entry_id,
+        error: @entry_not_found
+      }
+  end
+
+  defp updated_entry_updated_at(entry, updated_ats) do
+    case updated_ats do
+      [] ->
+        entry
+
+      updated_at ->
+        [latest_updated_at | _] =
+          Enum.sort(
+            updated_at,
+            &(DateTime.compare(&1, &2) == :gt)
+          )
+
+        {:ok, updated_entry} =
+          Repo.update(Entry.changeset(entry, %{updated_at: latest_updated_at}))
+
+        updated_entry
+    end
+  end
+
+  defp update_data_objects(data_objects) do
+    {may_be_updated_data_objects, updated_ats} =
+      Enum.reduce(data_objects, {[], []}, fn
+        data_object_params, {may_be_updated_data_objects, updated_ats} ->
+          case update_data_object(data_object_params) do
+            {:ok, updated} ->
+              {
+                [updated | may_be_updated_data_objects],
+                [updated.updated_at | updated_ats]
+              }
+
+            {_, errors} ->
+              id_errors = {data_object_params.id, errors}
+
+              {
+                [id_errors | may_be_updated_data_objects],
+                updated_ats
+              }
+          end
+      end)
+
+    {Enum.reverse(may_be_updated_data_objects), updated_ats}
   end
 end

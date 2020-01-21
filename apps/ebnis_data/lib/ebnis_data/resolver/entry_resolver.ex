@@ -67,16 +67,15 @@ defmodule EbnisData.Resolver.EntryResolver do
   end
 
   def create_entries(%{input: inputs}, %{context: %{current_user: user}}) do
-    {entries, ids} = update_entries_with_valid_ids(inputs, user.id)
-
-    results_map = EbnisData.create_entries(entries)
+    {entries, experiences_ids} = update_entries_with_valid_ids(inputs, user.id)
+    experience_id_to_updated_entries_map = EbnisData.create_entries(entries)
 
     {
       :ok,
       Enum.map(
-        ids,
+        experiences_ids,
         fn experience_id ->
-          result = results_map[experience_id]
+          result = experience_id_to_updated_entries_map[experience_id]
 
           update_in(
             result.errors,
@@ -92,20 +91,20 @@ defmodule EbnisData.Resolver.EntryResolver do
   end
 
   defp update_entries_with_valid_ids(entries, user_id) do
-    {entries, ids, _} =
+    {entries, unique_experiences_ids, _} =
       Enum.reduce(
         entries,
         {[], [], %{}},
-        fn entry, {entries, experiences_ids, seen} ->
+        fn entry, {entries, unique_experiences_ids, seen} ->
           experience_id = entry.experience_id
 
-          experiences_ids =
+          unique_experiences_ids =
             case seen[experience_id] do
               true ->
-                experiences_ids
+                unique_experiences_ids
 
               _ ->
-                [experience_id | experiences_ids]
+                [experience_id | unique_experiences_ids]
             end
 
           {
@@ -119,13 +118,13 @@ defmodule EbnisData.Resolver.EntryResolver do
               )
               | entries
             ],
-            experiences_ids,
+            unique_experiences_ids,
             Map.put(seen, experience_id, true)
           }
         end
       )
 
-    {Enum.reverse(entries), Enum.reverse(ids)}
+    {Enum.reverse(entries), Enum.reverse(unique_experiences_ids)}
   end
 
   defp handle_create_entries_errors(nil) do
@@ -206,5 +205,88 @@ defmodule EbnisData.Resolver.EntryResolver do
 
   def update_data_object(_, _) do
     Resolver.unauthorized()
+  end
+
+  def update_data_object_union(%{data_object: _}, _) do
+    :data_object_success
+  end
+
+  def update_data_object_union(%{errors: _}, _) do
+    :data_object_full_errors
+  end
+
+  def update_entries_union(%{entries: _}, _) do
+    :update_entries_some_success
+  end
+
+  def update_entries_union(%{error: _}, _) do
+    :update_entries_all_fail
+  end
+
+  def update_entry_union(%{errors: _}, _) do
+    :update_entry_errors
+  end
+
+  def update_entry_union(%{entry: _}, _) do
+    :update_entry_some_success
+  end
+
+  def update_entries(%{input: inputs}, %{context: %{current_user: %{id: user_id}}}) do
+    entries =
+      inputs
+      |> Enum.reduce([], fn params, acc ->
+        case EbnisData.update_entry(params, user_id) do
+          %{error: _} = errors ->
+            [%{errors: errors} | acc]
+
+          may_be_updated_entry ->
+            [
+              %{
+                entry: %{
+                  may_be_updated_entry
+                  | data_objects:
+                      Enum.map(
+                        may_be_updated_entry.data_objects,
+                        &updated_data_object_to_gql_output/1
+                      )
+                }
+              }
+              | acc
+            ]
+        end
+      end)
+      |> Enum.reverse()
+      # |> IO.inspect(label: "
+    # -----------entries------------
+    # ")
+
+    {:ok, %{entries: entries}}
+  end
+
+  def update_entries(%{input: _inputs}, _) do
+    {:ok, %{error: "Unauthorized"}}
+  end
+
+  defp updated_data_object_to_gql_output({id, %{} = changeset}) do
+    errors = Resolver.changeset_errors_to_map(changeset.errors)
+
+    %{
+      errors: Map.put(errors, :id, id)
+    }
+  end
+
+  defp updated_data_object_to_gql_output({id, string_error}) do
+    %{
+      errors: %{
+        id: id,
+        error: string_error
+      }
+    }
+  end
+
+  defp updated_data_object_to_gql_output(data_object) do
+    %{
+      data_object: data_object
+    }
   end
 end
