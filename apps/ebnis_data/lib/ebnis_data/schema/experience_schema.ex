@@ -266,7 +266,6 @@ defmodule EbnisData.Schema.Experience do
       The ID of experience to be updated
     """
     field(:id, non_null(:id))
-
     field(:title, :string)
     field(:description, :string)
   end
