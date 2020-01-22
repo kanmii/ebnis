@@ -257,4 +257,32 @@ defmodule EbnisData.Resolver.ExperienceResolver do
       }
     }
   end
+
+  def update_definition_union(%{definition: _}, _) do
+    :definition_success
+  end
+
+  def update_definition_union(_, _) do
+    :errors
+  end
+
+  def update_experience_union(%{experience: _}, _) do
+    :update_experience_some_success
+  end
+
+  def update_experience_union(_, _) do
+    :errors
+  end
+
+  def update_experiences_union(%{experiences: _}, _) do
+    :update_experiences_some_success
+  end
+
+  def update_experiences_union(_, _) do
+    :error
+  end
+
+  def update_experiences(_, _) do
+    :ok
+  end
 end

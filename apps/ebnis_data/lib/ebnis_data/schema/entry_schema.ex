@@ -460,6 +460,29 @@ defmodule EbnisData.Schema.Entry do
     )
   end
 
+  input_object :create_an_entry_input do
+    @desc """
+      The entry data object for the experience entry
+    """
+    field(
+      :data_objects,
+      :create_data_object
+      |> list_of()
+      |> non_null()
+    )
+
+    @desc ~S"""
+      Client id for entries created while server is offline and to be saved.
+    """
+    field(:client_id, :id)
+
+    @desc """
+      If entry is created on the client, it might include timestamps
+    """
+    field(:inserted_at, :datetime)
+    field(:updated_at, :datetime)
+  end
+
   ############################# END INPUTS SECTION #######################
 
   ################### MUTATIONS #########################################

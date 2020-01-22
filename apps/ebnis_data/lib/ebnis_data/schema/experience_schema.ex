@@ -42,6 +42,7 @@ defmodule EbnisData.Schema.Experience do
     field(
       :data_definitions,
       :data_definition
+      |> non_null()
       |> list_of()
       |> non_null()
     )
@@ -209,6 +210,105 @@ defmodule EbnisData.Schema.Experience do
     )
   end
 
+  object :definition_success do
+    field(:definition, non_null(:data_definition))
+  end
+
+  object :definition_error do
+    @desc ~S"""
+      ID of the definition that failed
+    """
+    field(:id, non_null(:id))
+
+    @desc ~S"""
+      The name of the definition is not unique or less than minimum char
+      length
+    """
+    field(:name, :string)
+
+    @desc ~S"""
+      The type is not in the list of allowed data types
+    """
+    field(:type, :string)
+
+    @desc """
+      May be we can't find the definition during an update
+    """
+    field(:error, :string)
+  end
+
+  object :definition_errors do
+    field(:errors, non_null(:definition_error))
+  end
+
+  union :update_definition do
+    types([:definition_success, :definition_errors])
+    resolve_type(&ExperienceResolver.update_definition_union/2)
+  end
+
+  object :update_experience do
+    field(:experience_id, non_null(:id))
+    field(:updated_at, :datetime)
+
+    field(
+      :updated_definitions,
+      :update_definition
+      |> non_null()
+      |> list_of()
+    )
+
+    field(
+      :updated_entries,
+      :update_entry_union
+      |> non_null()
+      |> list_of()
+    )
+  end
+
+  object :update_experience_some_success do
+    field(:experience, non_null(:update_experience))
+  end
+
+  object :update_experience_error do
+    field(:experience_id, non_null(:id))
+
+    @desc ~S"""
+    This will mostly be experience not found error
+    """
+    field(:error, non_null(:string))
+  end
+
+  object :update_experience_full_errors do
+    field(:errors, non_null(:update_experience_error))
+  end
+
+  union :update_experience_union do
+    types([:update_experience_some_success, :update_experience_full_errors])
+    resolve_type(&ExperienceResolver.update_experience_union/2)
+  end
+
+  object :update_experiences_some_success do
+    field(
+      :experiences,
+      :update_experience_union
+      |> non_null()
+      |> list_of()
+      |> non_null()
+    )
+  end
+
+  object :update_experiences_all_fail do
+    @desc ~S"""
+      This will mostly be authorization error
+    """
+    field(:error, non_null(:string))
+  end
+
+  union :update_experiences do
+    types([:update_experiences_some_success, :update_experiences_all_fail])
+    resolve_type(&ExperienceResolver.update_experiences_union/2)
+  end
+
   ######################### END REGULAR OBJECTS ###########################
 
   ############################ INPUT OBJECTS SECTION ####################
@@ -293,7 +393,7 @@ defmodule EbnisData.Schema.Experience do
 
     @desc """
       Well the essence of updating the definition is to rename it. So if you
-      are not renaming the definition, please do not update!
+      are not renaming the definition, please do not update the definition!
     """
     field(:name, non_null(:string))
 
@@ -305,8 +405,8 @@ defmodule EbnisData.Schema.Experience do
   end
 
   @desc ~S"""
-  fields required to update a collection of data definitions belonging to an
-  experience
+    fields required to update a collection of data definitions belonging to an
+    experience
   """
   input_object :update_definitions_input do
     field(:experience_id, non_null(:id))
@@ -317,6 +417,45 @@ defmodule EbnisData.Schema.Experience do
       |> non_null()
       |> list_of()
       |> non_null()
+    )
+  end
+
+  @desc ~S"
+    Input variables for updating own fields of an experience as opposed to
+    objects owned by the experience e.g. dataDefinition, entry
+  "
+  input_object :update_experience_own_fields_input do
+    field(:title, :string)
+    field(:description, :string)
+  end
+
+  @desc ~S"""
+    Input variables for updating an experience
+  """
+  input_object :update_an_experience_input do
+    field(:experience_id, non_null(:id))
+
+    field(:own_fields, :update_experience_own_fields_input)
+
+    field(
+      :update_definitions,
+      :update_definition_input
+      |> non_null()
+      |> list_of()
+    )
+
+    field(
+      :update_entries,
+      :update_entry_input
+      |> non_null()
+      |> list_of()
+    )
+
+    field(
+      :create_entries,
+      :create_an_entry_input
+      |> non_null()
+      |> list_of()
     )
   end
 
@@ -363,6 +502,21 @@ defmodule EbnisData.Schema.Experience do
       arg(:input, :update_definitions_input)
 
       resolve(&ExperienceResolver.update_definitions/2)
+    end
+
+    @desc ~S"""
+      Update several experiences at once
+    """
+    field :update_experiences, :update_experiences do
+      arg(
+        :input,
+        :update_an_experience_input
+        |> non_null()
+        |> list_of()
+        |> non_null()
+      )
+
+      resolve(&ExperienceResolver.update_experiences/2)
     end
   end
 
