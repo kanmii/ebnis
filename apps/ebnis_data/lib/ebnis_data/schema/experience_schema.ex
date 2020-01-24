@@ -246,9 +246,15 @@ defmodule EbnisData.Schema.Experience do
     resolve_type(&ExperienceResolver.update_definition_union/2)
   end
 
+  object :experience_own_fields do
+    field(:title, non_null(:string))
+    field(:description, :string)
+  end
+
   object :update_experience do
     field(:experience_id, non_null(:id))
-    field(:updated_at, :datetime)
+    field(:updated_at, non_null(:datetime))
+    field(:own_fields, :experience_own_fields)
 
     field(
       :updated_definitions,

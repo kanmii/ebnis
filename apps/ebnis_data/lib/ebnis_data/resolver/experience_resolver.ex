@@ -23,13 +23,16 @@ defmodule EbnisData.Resolver.ExperienceResolver do
           }
         }
 
-      {:error, changeset} ->
+      {:error, %{} = changeset} ->
         {
           :ok,
           %{
             errors: create_experience_errors_from_changeset(changeset)
           }
         }
+
+      error ->
+        error
     end
   end
 

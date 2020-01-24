@@ -17,6 +17,8 @@ defmodule EbnisData.ExperienceApi do
 
   @experience_does_not_exist "experience does not exist"
 
+  @experience_can_not_be_created_exception_header "\n\nsomething is wrong - experience can not be created"
+
   @spec get_experience(id :: integer() | binary(), user_id :: integer() | binary()) ::
           Experience.t() | nil
   def get_experience(id, user_id) do
@@ -133,6 +135,19 @@ defmodule EbnisData.ExperienceApi do
     %Experience{}
     |> Experience.changeset(attrs)
     |> Repo.insert()
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @experience_can_not_be_created_exception_header,
+          inspect(attrs),
+          stacktrace_prefix(),
+          Exception.format(:error, error, __STACKTRACE__)
+          |> prettify_with_new_line()
+        ]
+      end)
+
+      {:error, @bad_request}
   end
 
   @spec save_offline_experience(

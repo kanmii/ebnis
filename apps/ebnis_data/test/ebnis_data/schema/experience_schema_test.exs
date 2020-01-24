@@ -246,6 +246,48 @@ defmodule EbnisData.Schema.ExperienceTest do
                  context: context(user)
                )
     end
+
+    # @tag :skip
+    test "recovers from exception" do
+      user = RegFactory.insert()
+
+      variables = %{
+        "input" =>
+          Factory.stringify(%{
+            title: "aa",
+            description:
+              "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+            data_definitions: [
+              %{
+                name: "cc",
+                type: "integer"
+              }
+            ]
+          })
+      }
+
+      log =
+        capture_log(fn ->
+          assert {:ok,
+                  %{
+                    errors: [
+                      %{
+                        message: error
+                      }
+                    ]
+                  }} =
+                   Absinthe.run(
+                     Query.create(),
+                     Schema,
+                     variables: variables,
+                     context: context(user)
+                   )
+
+          assert is_binary(error)
+        end)
+
+      assert log =~ "STACK"
+    end
   end
 
   describe "get one experience" do
