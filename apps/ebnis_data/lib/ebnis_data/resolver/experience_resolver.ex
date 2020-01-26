@@ -274,7 +274,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   def update_experience_union(_, _) do
-    :errors
+    :update_experience_full_errors
   end
 
   def update_experiences_union(%{experiences: _}, _) do
@@ -282,10 +282,47 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   def update_experiences_union(_, _) do
-    :error
+    :update_experiences_all_fail
+  end
+
+  def update_experience_own_fields_union(%{data: _}, _) do
+    :experience_own_fields_success
+  end
+
+  def update_experience_own_fields_union(_, _) do
+    :update_experience_own_fields_errors
+  end
+
+  def update_experiences(%{input: inputs}, %{context: %{current_user: user}}) do
+    results =
+      Enum.map(inputs, fn params ->
+        experience_id = params.experience_id
+
+        case EbnisData.update_experience1(params, user.id) do
+          {:error, error} ->
+            %{
+              errors: %{
+                experience_id: experience_id,
+                error: error
+              }
+            }
+        end
+      end)
+
+    {
+      :ok,
+      %{
+        experiences: results
+      }
+    }
   end
 
   def update_experiences(_, _) do
-    :ok
+    {
+      :ok,
+      %{
+        error: "unauthorized"
+      }
+    }
   end
 end

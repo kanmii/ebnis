@@ -251,10 +251,27 @@ defmodule EbnisData.Schema.Experience do
     field(:description, :string)
   end
 
+  object :experience_own_fields_success do
+    field(:data, non_null(:experience_own_fields))
+  end
+
+  object :update_experience_own_fields_error do
+    field(:title, non_null(:string))
+  end
+
+  object :update_experience_own_fields_errors do
+    field(:errors, non_null(:update_experience_own_fields_error))
+  end
+
+  union :update_experience_own_fields_union do
+    types([:experience_own_fields_success, :update_experience_own_fields_errors])
+    resolve_type(&ExperienceResolver.update_experience_own_fields_union/2)
+  end
+
   object :update_experience do
     field(:experience_id, non_null(:id))
     field(:updated_at, non_null(:datetime))
-    field(:own_fields, :experience_own_fields)
+    field(:own_fields, :update_experience_own_fields_union)
 
     field(
       :updated_definitions,
@@ -465,7 +482,7 @@ defmodule EbnisData.Schema.Experience do
     )
   end
 
-  ######################### END INPUT OBJECTS ################################
+  ######################### END INPUT OBJECTS SECTION ##################
 
   ######################### MUTATION ################################
 

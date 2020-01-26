@@ -214,4 +214,104 @@ defmodule EbnisData.Query.Experience do
       #{@data_definition_fragment}
     """
   end
+
+  def update_experiences do
+    """
+      mutation UpdateExperiencesOnline($input: [UpdateAnExperienceInput!]!) {
+        updateExperiences(input: $input) {
+          __typename
+          ... on UpdateExperiencesAllFail {
+            error
+          }
+          ... on UpdateExperiencesSomeSuccess {
+            experiences {
+              __typename
+              ... on UpdateExperienceFullErrors {
+                errors {
+                  experienceId
+                  error
+                }
+              }
+              ... on UpdateExperienceSomeSuccess {
+                experience {
+                  experienceId
+                  updatedAt
+                  ownFields {
+                    __typename
+                    ... on UpdateExperienceOwnFieldsErrors {
+                      errors {
+                        title
+                      }
+                    }
+                    ... on ExperienceOwnFieldsSuccess {
+                      data {
+                        title
+                        description
+                      }
+                    }
+                  }
+                  updatedDefinitions {
+                    __typename
+                    ... on DefinitionErrors {
+                      errors {
+                        id
+                        name
+                        type
+                        error
+                      }
+                    }
+
+                    ... on DefinitionSuccess {
+                      definition {
+                        ...#{@data_definition_fragment_name}
+                      }
+                    }
+                  }
+                  updatedEntries {
+                    __typename
+                    ... on UpdateEntryErrors {
+                      errors {
+                        entryId
+                        error
+                      }
+                    }
+                    ... on UpdateEntrySomeSuccess {
+                      entry {
+                        entryId
+                        updatedAt
+                        dataObjects {
+                          __typename
+                          ... on DataObjectFullErrors {
+                            errors {
+                              id
+                              definition
+                              definitionId
+                              clientId
+                              error
+                              data
+                            }
+                          }
+                          ... on DataObjectSuccess {
+                            dataObject {
+                              id
+                              data
+                              definitionId
+                              clientId
+                              insertedAt
+                              updatedAt
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      #{@data_definition_fragment}
+    """
+  end
 end

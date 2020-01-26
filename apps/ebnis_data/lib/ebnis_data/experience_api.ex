@@ -18,6 +18,7 @@ defmodule EbnisData.ExperienceApi do
   @experience_does_not_exist "experience does not exist"
 
   @experience_can_not_be_created_exception_header "\n\nsomething is wrong - experience can not be created"
+  @update_experience_exception_header "\n\nException while updating experience with:"
 
   @spec get_experience(id :: integer() | binary(), user_id :: integer() | binary()) ::
           Experience.t() | nil
@@ -488,5 +489,35 @@ defmodule EbnisData.ExperienceApi do
       )
 
     {map, Enum.sort(dates, &<=/2)}
+  end
+
+  def update_experience1(params, user_id) do
+    experience_id = params.experience_id
+
+    %{id: experience_id, user_id: user_id}
+    |> query_with_data_definitions()
+    |> Repo.all()
+    |> case do
+      [experience] ->
+        experience
+
+      _ ->
+        {:error, "experience not found"}
+    end
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @update_experience_exception_header,
+          "\n\tUser ID: #{user_id}",
+          "\n\tparams: #{inspect(params)}",
+          stacktrace_prefix(),
+          :error
+          |> Exception.format(error, __STACKTRACE__)
+          |> prettify_with_new_line()
+        ]
+      end)
+
+      {:error, "experience not found"}
   end
 end

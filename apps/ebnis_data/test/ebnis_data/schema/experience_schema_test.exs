@@ -1435,5 +1435,92 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
   end
 
+  describe "update experiences" do
+    test "unauthorized" do
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "error" => error
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: %{
+                   "input" => []
+                 }
+               )
+
+      assert is_binary(error)
+    end
+
+    test "successes/failures/exceptions" do
+      bogus_id = @bogus_id
+      user = RegFactory.insert()
+
+      experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      experience_not_found_variable = %{
+        "experienceId" => bogus_id
+      }
+
+      raises_id = "1"
+
+      raies_variables = %{
+        "experienceId" => raises_id
+      }
+
+      variables = %{
+        "input" => [
+          experience_not_found_variable,
+          raies_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "errors" => %{
+                           "experienceId" => ^bogus_id,
+                           "error" => experience_not_found_error
+                         }
+                       },
+                       %{
+                         "errors" => %{
+                           "experienceId" => ^raises_id,
+                           "error" => raises_error
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(experience_not_found_error)
+      assert is_binary(raises_error)
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end
