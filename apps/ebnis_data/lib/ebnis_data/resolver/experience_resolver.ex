@@ -299,6 +299,14 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         experience_id = params.experience_id
 
         case EbnisData.update_experience1(params, user.id) do
+          %{} = updated_experience ->
+            %{
+              experience:
+                updated_experience
+                |> Enum.map(&process_updated_experience/1)
+                |> Map.new()
+            }
+
           {:error, error} ->
             %{
               errors: %{
@@ -324,5 +332,13 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         error: "unauthorized"
       }
     }
+  end
+
+  defp process_updated_experience({:own_fields, %{} = data}) do
+    {:own_fields, %{data: data}}
+  end
+
+  defp process_updated_experience(k_v) do
+    k_v
   end
 end

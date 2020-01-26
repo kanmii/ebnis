@@ -492,14 +492,19 @@ defmodule EbnisData.ExperienceApi do
   end
 
   def update_experience1(params, user_id) do
-    experience_id = params.experience_id
+    {experience_id, update_params} = Map.pop(params, :experience_id)
 
     %{id: experience_id, user_id: user_id}
     |> query_with_data_definitions()
     |> Repo.all()
     |> case do
       [experience] ->
-        experience
+        Enum.reduce(
+          update_params,
+          %{},
+          &update_experience_p(&2, &1, experience)
+        )
+        |> Map.put(:experience_id, experience_id)
 
       _ ->
         {:error, "experience not found"}
@@ -519,5 +524,25 @@ defmodule EbnisData.ExperienceApi do
       end)
 
       {:error, "experience not found"}
+  end
+
+  defp update_experience_p(acc, {:own_fields, attrs}, experience) do
+    experience
+    |> Experience.changeset(attrs)
+    |> Repo.update()
+    |> case do
+      {:ok, updated_experience} ->
+        Map.merge(
+          acc,
+          %{
+            updated_at: updated_experience.updated_at,
+            own_fields:
+              Map.take(
+                updated_experience,
+                [:title, :description]
+              )
+          }
+        )
+    end
   end
 end

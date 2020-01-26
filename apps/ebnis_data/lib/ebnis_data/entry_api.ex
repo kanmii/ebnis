@@ -135,7 +135,7 @@ defmodule EbnisData.EntryApi do
     |> Repo.insert()
   end
 
-  defp create_data_objects(%{@entry_multi_key => entry}, data_objects_changesets) do
+  defp create_data_objects_multi(%{@entry_multi_key => entry}, data_objects_changesets) do
     entry_id = entry.id
 
     {multi, _} =
@@ -182,7 +182,7 @@ defmodule EbnisData.EntryApi do
           {:ok, data_objects_changesets} ->
             Multi.new()
             |> Multi.run(@entry_multi_key, &create_entry_multi(&1, &2, attrs))
-            |> Multi.merge(&create_data_objects(&1, data_objects_changesets))
+            |> Multi.merge(&create_data_objects_multi(&1, data_objects_changesets))
             |> Repo.transaction()
             |> case do
               {:ok, result} ->

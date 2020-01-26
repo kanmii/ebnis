@@ -1462,7 +1462,11 @@ defmodule EbnisData.Schema.ExperienceTest do
       bogus_id = @bogus_id
       user = RegFactory.insert()
 
-      experience =
+      %{
+        id: update_own_fields_success_experience_id,
+        description: update_own_fields_success_description
+      } =
+        experience =
         Factory.insert(
           %{user_id: user.id},
           [
@@ -1470,20 +1474,33 @@ defmodule EbnisData.Schema.ExperienceTest do
           ]
         )
 
+      updated_at = "1980-01-21T05:27:17Z"
+      updated_title = "aa"
+      refute updated_at == DateTime.to_iso8601(experience.updated_at)
+      refute experience.title == updated_title
+
+      update_own_fields_success_variable = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "ownFields" => %{
+          "title" => updated_title
+        }
+      }
+
       experience_not_found_variable = %{
         "experienceId" => bogus_id
       }
 
       raises_id = "1"
 
-      raies_variables = %{
+      raises_variable = %{
         "experienceId" => raises_id
       }
 
       variables = %{
         "input" => [
           experience_not_found_variable,
-          raies_variables
+          raises_variable,
+          update_own_fields_success_variable
         ]
       }
 
@@ -1504,6 +1521,18 @@ defmodule EbnisData.Schema.ExperienceTest do
                            "experienceId" => ^raises_id,
                            "error" => raises_error
                          }
+                       },
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^update_own_fields_success_experience_id,
+                           # "updatedAt" => "update_own_fields_experience_updated_at",
+                           "ownFields" => %{
+                             "data" => %{
+                               "description" => ^update_own_fields_success_description,
+                               "title" => ^updated_title
+                             }
+                           }
+                         }
                        }
                      ]
                    }
@@ -1519,6 +1548,7 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       assert is_binary(experience_not_found_error)
       assert is_binary(raises_error)
+      # refute update_own_fields_experience_updated_at == DateTime.to_iso8601(experience.updated_at)
     end
   end
 
