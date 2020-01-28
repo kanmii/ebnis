@@ -256,9 +256,6 @@ defmodule EbnisData.Resolver.EntryResolver do
         end
       end)
       |> Enum.reverse()
-      # |> IO.inspect(label: "
-    # -----------entries------------
-    # ")
 
     {:ok, %{entries: entries}}
   end

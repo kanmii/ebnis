@@ -266,7 +266,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   def update_definition_union(_, _) do
-    :errors
+    :definition_errors
   end
 
   def update_experience_union(%{experience: _}, _) do
@@ -302,9 +302,13 @@ defmodule EbnisData.Resolver.ExperienceResolver do
           %{} = updated_experience ->
             %{
               experience:
-                updated_experience
-                |> Enum.map(&process_updated_experience/1)
-                |> Map.new()
+                Enum.reduce(
+                  updated_experience,
+                  %{
+                    experience_id: experience_id
+                  },
+                  &process_updated_experience/2
+                )
             }
 
           {:error, error} ->
@@ -334,11 +338,116 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     }
   end
 
-  defp process_updated_experience({:own_fields, %{} = data}) do
-    {:own_fields, %{data: data}}
+  defp process_updated_experience(
+         {:updated_entries, may_be_updated_entries},
+         acc
+       ) do
+    Map.put(
+      acc,
+      :updated_entries,
+      process_updated_entries(may_be_updated_entries)
+    )
   end
 
-  defp process_updated_experience(k_v) do
-    k_v
+  defp process_updated_experience(
+         {:updated_definitions, may_be_updated_definitions},
+         acc
+       ) do
+    Map.put(
+      acc,
+      :updated_definitions,
+      process_updated_definitions(may_be_updated_definitions)
+    )
+  end
+
+  defp process_updated_experience({:own_fields, %{} = data}, acc) do
+    Map.put(acc, :own_fields, %{data: data})
+  end
+
+  defp process_updated_experience({:own_fields, {:error, changeset}}, acc) do
+    Map.put(
+      acc,
+      :own_fields,
+      %{
+        errors: Resolver.changeset_errors_to_map(changeset.errors)
+      }
+    )
+  end
+
+  defp process_updated_experience({k, v}, acc) do
+    Map.put(acc, k, v)
+  end
+
+  defp process_updated_definitions(may_be_updated_definitions) do
+    Enum.map(
+      may_be_updated_definitions,
+      fn
+        %{} = updated_definition ->
+          %{definition: updated_definition}
+
+        {:error, changeset, id} ->
+          %{
+            errors:
+              Map.merge(
+                Resolver.changeset_errors_to_map(changeset.errors),
+                %{
+                  id: id
+                }
+              )
+          }
+
+        {:error, errors} ->
+          %{
+            errors: errors
+          }
+      end
+    )
+  end
+
+  defp process_updated_entries(may_be_updated_entries) do
+    Enum.map(
+      may_be_updated_entries,
+      fn
+        %{} = updated_entry ->
+          %{
+            entry: %{
+              updated_entry
+              | data_objects:
+                  Enum.map(
+                    updated_entry.data_objects,
+                    &updated_data_object_to_gql_output/1
+                  )
+            }
+          }
+
+        {:error, errors} ->
+          %{
+            errors: errors
+          }
+      end
+    )
+  end
+
+  defp updated_data_object_to_gql_output({id, %{} = changeset}) do
+    errors = Resolver.changeset_errors_to_map(changeset.errors)
+
+    %{
+      errors: Map.put(errors, :id, id)
+    }
+  end
+
+  defp updated_data_object_to_gql_output({id, string_error}) do
+    %{
+      errors: %{
+        id: id,
+        error: string_error
+      }
+    }
+  end
+
+  defp updated_data_object_to_gql_output(data_object) do
+    %{
+      data_object: data_object
+    }
   end
 end

@@ -475,7 +475,7 @@ defmodule EbnisData.Schema.Experience do
     )
 
     field(
-      :create_entries,
+      :add_entries,
       :create_an_entry_input
       |> non_null()
       |> list_of()

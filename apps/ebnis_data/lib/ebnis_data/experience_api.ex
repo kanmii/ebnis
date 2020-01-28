@@ -8,6 +8,7 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.Experience
   alias Ecto.Changeset
   alias EbnisData.DataDefinition
+  alias EbnisData.EntryApi
 
   @get_experience_exception_header "\n\nException while getting experience with:"
 
@@ -504,7 +505,6 @@ defmodule EbnisData.ExperienceApi do
           %{},
           &update_experience_p(&2, &1, experience)
         )
-        |> Map.put(:experience_id, experience_id)
 
       _ ->
         {:error, "experience not found"}
@@ -526,6 +526,34 @@ defmodule EbnisData.ExperienceApi do
       {:error, "experience not found"}
   end
 
+  defp update_experience_p(acc, {:update_entries, inputs}, experience) do
+    Map.merge(
+      acc,
+      %{
+        updated_at: experience.updated_at,
+        updated_entries:
+          Enum.map(
+            inputs,
+            &EntryApi.update_entry1(&1, experience)
+          )
+      }
+    )
+  end
+
+  defp update_experience_p(acc, {:update_definitions, inputs}, experience) do
+    Map.merge(
+      acc,
+      %{
+        updated_at: experience.updated_at,
+        updated_definitions:
+          Enum.map(
+            inputs,
+            &update_experiences_update_definition/1
+          )
+      }
+    )
+  end
+
   defp update_experience_p(acc, {:own_fields, attrs}, experience) do
     experience
     |> Experience.changeset(attrs)
@@ -543,6 +571,56 @@ defmodule EbnisData.ExperienceApi do
               )
           }
         )
+
+      {:error, changeset} ->
+        Map.merge(
+          acc,
+          %{
+            updated_at: experience.updated_at,
+            own_fields: {:error, changeset}
+          }
+        )
     end
+  end
+
+  defp update_experiences_update_definition(input) do
+    id = input.id
+
+    with %{} = definition <- get_definition(id),
+         changeset <- DataDefinition.changeset(definition, input),
+         {:ok, definition} <- Repo.update(changeset) do
+      definition
+    else
+      nil ->
+        {
+          :error,
+          %{
+            id: id,
+            error: "does not exist"
+          }
+        }
+
+      {:error, changeset} ->
+        {:error, changeset, id}
+    end
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @update_definitions_exception_header,
+          inspect({input}),
+          stacktrace_prefix(),
+          Exception.format(:error, error, __STACKTRACE__)
+          |> prettify_with_new_line()
+        ]
+      end)
+
+      {
+        :error,
+        %{
+          id: input.id,
+          error: @bad_request
+        }
+      }
   end
 end

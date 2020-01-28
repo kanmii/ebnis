@@ -1464,22 +1464,32 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       %{
         id: update_own_fields_success_experience_id,
-        description: update_own_fields_success_description
+        description: update_own_fields_success_description,
+        title: own_fields_success_title,
+        data_definitions: definitions
       } =
         experience =
         Factory.insert(
           %{user_id: user.id},
           [
+            "integer",
             "integer"
           ]
         )
 
-      updated_at = "1980-01-21T05:27:17Z"
-      updated_title = "aa"
-      refute updated_at == DateTime.to_iso8601(experience.updated_at)
-      refute experience.title == updated_title
+      [definition0, definition1] = definitions
+      definition_id0 = definition0.id
+      definition_name1 = definition1.name
+      definition_name0 = definition0.name
+      refute definition_name0 == definition_name1
+      definition_name0_updated = definition_name0 <> "1"
 
-      update_own_fields_success_variable = %{
+      # updated_at = "1980-01-21T05:27:17Z"
+      updated_title = "aa"
+      # refute updated_at == DateTime.to_iso8601(experience.updated_at)
+      refute own_fields_success_title == updated_title
+
+      own_fields_success_variable = %{
         "experienceId" => update_own_fields_success_experience_id,
         "ownFields" => %{
           "title" => updated_title
@@ -1496,11 +1506,117 @@ defmodule EbnisData.Schema.ExperienceTest do
         "experienceId" => raises_id
       }
 
+      own_fields_error_variable = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "ownFields" => %{
+          # title must be at least 2 chars long
+          "title" => "a"
+        }
+      }
+
+      definitions_variables = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => bogus_id,
+            "name" => "aa"
+          },
+          %{
+            "id" => raises_id,
+            "name" => "aa"
+          },
+          %{
+            "id" => definition_id0,
+            # name must be at least 2 chars long
+            "name" => "a"
+          },
+          %{
+            "id" => definition_id0,
+            # name already taken
+            "name" => definition_name1
+          },
+          %{
+            "id" => definition_id0,
+            # success
+            "name" => definition_name0_updated
+          }
+        ]
+      }
+
+      entry = EntryFactory.insert(%{}, experience)
+      entry_id = entry.id
+
+      entry_not_found_variable = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "updateEntries" => [
+          %{
+            "entryId" => bogus_id,
+            "dataObjects" => [
+              %{
+                "id" => "1",
+                "data" => ~s({"integer":1})
+              }
+            ]
+          }
+        ]
+      }
+
+      entry_raises_variable = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "updateEntries" => [
+          %{
+            "entryId" => raises_id,
+            "dataObjects" => [
+              %{
+                "id" => "1",
+                "data" => ~s({"integer":1})
+              }
+            ]
+          }
+        ]
+      }
+
+      entry_data_object_raises_variable = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "updateEntries" => [
+          %{
+            "entryId" => entry_id,
+            "dataObjects" => [
+              %{
+                "id" => raises_id,
+                "data" => ~s({"integer":1})
+              }
+            ]
+          }
+        ]
+      }
+
+      entry_data_object_not_found_variable = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "updateEntries" => [
+          %{
+            "entryId" => entry_id,
+            "dataObjects" => [
+              %{
+                "id" => bogus_id,
+                "data" => ~s({"integer":1})
+              }
+            ]
+          }
+        ]
+      }
+
       variables = %{
         "input" => [
           experience_not_found_variable,
           raises_variable,
-          update_own_fields_success_variable
+          own_fields_success_variable,
+          own_fields_error_variable,
+          definitions_variables,
+          entry_not_found_variable,
+          entry_raises_variable,
+          entry_data_object_raises_variable,
+          entry_data_object_not_found_variable
         ]
       }
 
@@ -1533,6 +1649,121 @@ defmodule EbnisData.Schema.ExperienceTest do
                              }
                            }
                          }
+                       },
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^update_own_fields_success_experience_id,
+                           "ownFields" => %{
+                             "errors" => %{
+                               "title" => own_fields_error_title
+                             }
+                           }
+                         }
+                       },
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^update_own_fields_success_experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "errors" => %{
+                                 "id" => ^bogus_id,
+                                 "error" => definition_not_found_error
+                               }
+                             },
+                             %{
+                               "errors" => %{
+                                 "id" => ^raises_id,
+                                 "error" => _
+                               }
+                             },
+                             %{
+                               "errors" => %{
+                                 "id" => ^definition_id0,
+                                 "name" => definition_name_too_short_error
+                               }
+                             },
+                             %{
+                               "errors" => %{
+                                 "id" => ^definition_id0,
+                                 "name" => definition_name_taken_error
+                               }
+                             },
+                             %{
+                               "definition" => %{
+                                 "id" => ^definition_id0,
+                                 "name" => ^definition_name0_updated
+                               }
+                             }
+                           ]
+                         }
+                       },
+                       %{
+                         "experience" => %{
+                           "experienceId" => _,
+                           "updatedEntries" => [
+                             %{
+                               "errors" => %{
+                                 "entryId" => ^bogus_id,
+                                 "error" => entry_not_found_error
+                               }
+                             }
+                           ]
+                         }
+                       },
+                       %{
+                         "experience" => %{
+                           "experienceId" => _,
+                           "updatedEntries" => [
+                             %{
+                               "errors" => %{
+                                 "entryId" => ^raises_id,
+                                 "error" => _entry_not_found_error
+                               }
+                             }
+                           ]
+                         }
+                       },
+                       %{
+                         "experience" => %{
+                           "experienceId" => _,
+                           "updatedEntries" => [
+                             %{
+                               "entry" => %{
+                                 "entryId" => ^entry_id,
+                                 "updatedAt" => _,
+                                 "dataObjects" => [
+                                   %{
+                                     "errors" => %{
+                                       "id" => ^raises_id,
+                                       "error" => data_object_not_found_error
+                                     }
+                                   }
+                                 ]
+                               }
+                             }
+                           ]
+                         }
+                       },
+                       %{
+                         "experience" => %{
+                           "experienceId" => _,
+                           "updatedEntries" => [
+                             %{
+                               "entry" => %{
+                                 "entryId" => ^entry_id,
+                                 "updatedAt" => _,
+                                 "dataObjects" => [
+                                   %{
+                                     "errors" => %{
+                                       "id" => ^bogus_id,
+                                       "error" => _
+                                     }
+                                   }
+                                 ]
+                               }
+                             }
+                           ]
+                         }
                        }
                      ]
                    }
@@ -1548,6 +1779,13 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       assert is_binary(experience_not_found_error)
       assert is_binary(raises_error)
+      assert is_binary(own_fields_error_title)
+      assert is_binary(definition_not_found_error)
+      assert is_binary(definition_name_too_short_error)
+      assert is_binary(definition_name_taken_error)
+      assert is_binary(entry_not_found_error)
+      assert is_binary(data_object_not_found_error)
+
       # refute update_own_fields_experience_updated_at == DateTime.to_iso8601(experience.updated_at)
     end
   end

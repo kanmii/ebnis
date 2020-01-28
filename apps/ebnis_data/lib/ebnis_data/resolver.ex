@@ -35,8 +35,8 @@ defmodule EbnisData.Resolver do
       :error ->
         v
 
-        # {:ok, count} ->
-        #   String.replace(v, "%{count}", to_string(count))
+      {:ok, count} ->
+        String.replace(v, "%{count}", to_string(count))
     end
   end
 end

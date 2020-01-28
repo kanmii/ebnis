@@ -562,4 +562,56 @@ defmodule EbnisData.EntryApi do
 
     {Enum.reverse(may_be_updated_data_objects), updated_ats}
   end
+
+  def update_entry1(%{entry_id: entry_id} = params, experience) do
+    from(
+      e in Entry,
+      where: e.id == ^entry_id,
+      where: e.experience_id == ^experience.id
+    )
+    |> Repo.all()
+    |> case do
+      [] ->
+        {
+          :error,
+          %{
+            entry_id: entry_id,
+            error: @entry_not_found
+          }
+        }
+
+      [entry] ->
+        {
+          may_be_updated_data_objects,
+          updated_ats
+        } = update_data_objects(params.data_objects)
+
+        may_be_updated_entry = updated_entry_updated_at(entry, updated_ats)
+
+        %{
+          entry_id: entry_id,
+          updated_at: may_be_updated_entry.updated_at,
+          data_objects: may_be_updated_data_objects
+        }
+    end
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @update_entry_exception_header,
+          inspect(params),
+          @stacktrace,
+          Exception.format(:error, error, __STACKTRACE__)
+          |> Ebnis.prettify_with_new_line()
+        ]
+      end)
+
+      {
+        :error,
+        %{
+          entry_id: entry_id,
+          error: @entry_not_found
+        }
+      }
+  end
 end
