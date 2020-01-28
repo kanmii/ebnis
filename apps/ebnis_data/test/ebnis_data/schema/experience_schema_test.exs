@@ -1484,7 +1484,8 @@ defmodule EbnisData.Schema.ExperienceTest do
       refute definition_name0 == definition_name1
       definition_name0_updated = definition_name0 <> "1"
 
-      # updated_at = "1980-01-21T05:27:17Z"
+      updated_at0 = "1980-01-21T05:27:17Z"
+      updated_at1 = "1982-01-21T05:27:17Z"
       updated_title = "aa"
       # refute updated_at == DateTime.to_iso8601(experience.updated_at)
       refute own_fields_success_title == updated_title
@@ -1543,8 +1544,22 @@ defmodule EbnisData.Schema.ExperienceTest do
         ]
       }
 
-      entry = EntryFactory.insert(%{}, experience)
-      entry_id = entry.id
+      %{
+        id: entry_id,
+        data_objects: data_objects
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      [
+        %{
+          id: data0_id,
+          data: data0_data,
+          updated_at: data0_updated_at
+        },
+        _
+      ] = data_objects
+
+      refute data0_data["integer"] == 1
+      refute updated_at0 == DateTime.to_iso8601(data0_updated_at)
 
       entry_not_found_variable = %{
         "experienceId" => update_own_fields_success_experience_id,
@@ -1606,6 +1621,46 @@ defmodule EbnisData.Schema.ExperienceTest do
         ]
       }
 
+      # data_invalid_variable = %{
+      #   "experienceId" => update_own_fields_success_experience_id,
+      #   "updateEntries" => [
+      #     %{
+      #       "entryId" => entry_id,
+      #       "dataObjects" => [
+      #         %{
+      #           "id" => data0_id,
+      #           "data" => ~s({"integer":0.1})
+      #         }
+      #       ]
+      #     }
+      #   ]
+      # }
+
+      data_updated_success_variable = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "updateEntries" => [
+          %{
+            "entryId" => entry_id,
+            "dataObjects" => [
+              %{
+                "id" => data0_id,
+                "data" => ~s({"integer":1}),
+                "updatedAt" => updated_at0
+              },
+              %{
+                "id" => data0_id,
+                "data" => ~s({"integer":0.1})
+              },
+              %{
+                "id" => data0_id,
+                "data" => ~s({"integer":5}),
+                "updatedAt" => updated_at1
+              }
+            ]
+          }
+        ]
+      }
+
       variables = %{
         "input" => [
           experience_not_found_variable,
@@ -1616,177 +1671,218 @@ defmodule EbnisData.Schema.ExperienceTest do
           entry_not_found_variable,
           entry_raises_variable,
           entry_data_object_raises_variable,
-          entry_data_object_not_found_variable
+          entry_data_object_not_found_variable,
+          # data_invalid_variable,
+          data_updated_success_variable
         ]
       }
 
-      assert {
-               :ok,
-               %{
-                 data: %{
-                   "updateExperiences" => %{
-                     "experiences" => [
-                       %{
-                         "errors" => %{
-                           "experienceId" => ^bogus_id,
-                           "error" => experience_not_found_error
-                         }
-                       },
-                       %{
-                         "errors" => %{
-                           "experienceId" => ^raises_id,
-                           "error" => raises_error
-                         }
-                       },
-                       %{
-                         "experience" => %{
-                           "experienceId" => ^update_own_fields_success_experience_id,
-                           # "updatedAt" => "update_own_fields_experience_updated_at",
-                           "ownFields" => %{
-                             "data" => %{
-                               "description" => ^update_own_fields_success_description,
-                               "title" => ^updated_title
-                             }
-                           }
-                         }
-                       },
-                       %{
-                         "experience" => %{
-                           "experienceId" => ^update_own_fields_success_experience_id,
-                           "ownFields" => %{
+      log =
+        capture_log(fn ->
+          assert {
+                   :ok,
+                   %{
+                     data: %{
+                       "updateExperiences" => %{
+                         "experiences" => [
+                           %{
                              "errors" => %{
-                               "title" => own_fields_error_title
+                               "experienceId" => ^bogus_id,
+                               "error" => experience_not_found_error
+                             }
+                           },
+                           %{
+                             "errors" => %{
+                               "experienceId" => ^raises_id,
+                               "error" => raises_error
+                             }
+                           },
+                           %{
+                             "experience" => %{
+                               "experienceId" => ^update_own_fields_success_experience_id,
+                               # "updatedAt" => "update_own_fields_experience_updated_at",
+                               "ownFields" => %{
+                                 "data" => %{
+                                   "description" => ^update_own_fields_success_description,
+                                   "title" => ^updated_title
+                                 }
+                               }
+                             }
+                           },
+                           %{
+                             "experience" => %{
+                               "experienceId" => ^update_own_fields_success_experience_id,
+                               "ownFields" => %{
+                                 "errors" => %{
+                                   "title" => own_fields_error_title
+                                 }
+                               }
+                             }
+                           },
+                           %{
+                             "experience" => %{
+                               "experienceId" => ^update_own_fields_success_experience_id,
+                               "updatedDefinitions" => [
+                                 %{
+                                   "errors" => %{
+                                     "id" => ^bogus_id,
+                                     "error" => definition_not_found_error
+                                   }
+                                 },
+                                 %{
+                                   "errors" => %{
+                                     "id" => ^raises_id,
+                                     "error" => _
+                                   }
+                                 },
+                                 %{
+                                   "errors" => %{
+                                     "id" => ^definition_id0,
+                                     "name" => definition_name_too_short_error
+                                   }
+                                 },
+                                 %{
+                                   "errors" => %{
+                                     "id" => ^definition_id0,
+                                     "name" => definition_name_taken_error
+                                   }
+                                 },
+                                 %{
+                                   "definition" => %{
+                                     "id" => ^definition_id0,
+                                     "name" => ^definition_name0_updated
+                                   }
+                                 }
+                               ]
+                             }
+                           },
+                           %{
+                             "experience" => %{
+                               "experienceId" => _,
+                               "updatedEntries" => [
+                                 %{
+                                   "errors" => %{
+                                     "entryId" => ^bogus_id,
+                                     "error" => entry_not_found_error
+                                   }
+                                 }
+                               ]
+                             }
+                           },
+                           %{
+                             "experience" => %{
+                               "experienceId" => _,
+                               "updatedEntries" => [
+                                 %{
+                                   "errors" => %{
+                                     "entryId" => ^raises_id,
+                                     "error" => _entry_not_found_error
+                                   }
+                                 }
+                               ]
+                             }
+                           },
+                           %{
+                             "experience" => %{
+                               "experienceId" => _,
+                               "updatedEntries" => [
+                                 %{
+                                   "entry" => %{
+                                     "entryId" => ^entry_id,
+                                     "updatedAt" => _,
+                                     "dataObjects" => [
+                                       %{
+                                         "errors" => %{
+                                           "id" => ^raises_id,
+                                           "error" => data_object_not_found_error
+                                         }
+                                       }
+                                     ]
+                                   }
+                                 }
+                               ]
+                             }
+                           },
+                           %{
+                             "experience" => %{
+                               "experienceId" => _,
+                               "updatedEntries" => [
+                                 %{
+                                   "entry" => %{
+                                     "entryId" => ^entry_id,
+                                     "updatedAt" => _,
+                                     "dataObjects" => [
+                                       %{
+                                         "errors" => %{
+                                           "id" => ^bogus_id,
+                                           "error" => _
+                                         }
+                                       }
+                                     ]
+                                   }
+                                 }
+                               ]
+                             }
+                           },
+                           %{
+                             "experience" => %{
+                               "experienceId" => _,
+                               "updatedEntries" => [
+                                 %{
+                                   "entry" => %{
+                                     "entryId" => ^entry_id,
+                                     "updatedAt" => ^updated_at1,
+                                     "dataObjects" => [
+                                       %{
+                                         "dataObject" => %{
+                                           "id" => ^data0_id,
+                                           "updatedAt" => ^updated_at0,
+                                           "data" => ~s({"integer":1})
+                                         }
+                                       },
+                                       %{
+                                         "errors" => %{
+                                           "id" => ^data0_id,
+                                           "data" => data_wrong_error
+                                         }
+                                       },
+                                       %{
+                                         "dataObject" => %{
+                                           "id" => ^data0_id,
+                                           "updatedAt" => ^updated_at1,
+                                           "data" => ~s({"integer":5})
+                                         }
+                                       }
+                                     ]
+                                   }
+                                 }
+                               ]
                              }
                            }
-                         }
-                       },
-                       %{
-                         "experience" => %{
-                           "experienceId" => ^update_own_fields_success_experience_id,
-                           "updatedDefinitions" => [
-                             %{
-                               "errors" => %{
-                                 "id" => ^bogus_id,
-                                 "error" => definition_not_found_error
-                               }
-                             },
-                             %{
-                               "errors" => %{
-                                 "id" => ^raises_id,
-                                 "error" => _
-                               }
-                             },
-                             %{
-                               "errors" => %{
-                                 "id" => ^definition_id0,
-                                 "name" => definition_name_too_short_error
-                               }
-                             },
-                             %{
-                               "errors" => %{
-                                 "id" => ^definition_id0,
-                                 "name" => definition_name_taken_error
-                               }
-                             },
-                             %{
-                               "definition" => %{
-                                 "id" => ^definition_id0,
-                                 "name" => ^definition_name0_updated
-                               }
-                             }
-                           ]
-                         }
-                       },
-                       %{
-                         "experience" => %{
-                           "experienceId" => _,
-                           "updatedEntries" => [
-                             %{
-                               "errors" => %{
-                                 "entryId" => ^bogus_id,
-                                 "error" => entry_not_found_error
-                               }
-                             }
-                           ]
-                         }
-                       },
-                       %{
-                         "experience" => %{
-                           "experienceId" => _,
-                           "updatedEntries" => [
-                             %{
-                               "errors" => %{
-                                 "entryId" => ^raises_id,
-                                 "error" => _entry_not_found_error
-                               }
-                             }
-                           ]
-                         }
-                       },
-                       %{
-                         "experience" => %{
-                           "experienceId" => _,
-                           "updatedEntries" => [
-                             %{
-                               "entry" => %{
-                                 "entryId" => ^entry_id,
-                                 "updatedAt" => _,
-                                 "dataObjects" => [
-                                   %{
-                                     "errors" => %{
-                                       "id" => ^raises_id,
-                                       "error" => data_object_not_found_error
-                                     }
-                                   }
-                                 ]
-                               }
-                             }
-                           ]
-                         }
-                       },
-                       %{
-                         "experience" => %{
-                           "experienceId" => _,
-                           "updatedEntries" => [
-                             %{
-                               "entry" => %{
-                                 "entryId" => ^entry_id,
-                                 "updatedAt" => _,
-                                 "dataObjects" => [
-                                   %{
-                                     "errors" => %{
-                                       "id" => ^bogus_id,
-                                       "error" => _
-                                     }
-                                   }
-                                 ]
-                               }
-                             }
-                           ]
-                         }
+                         ]
                        }
-                     ]
+                     }
                    }
-                 }
-               }
-             } =
-               Absinthe.run(
-                 Query.update_experiences(),
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
+                 } =
+                   Absinthe.run(
+                     Query.update_experiences(),
+                     Schema,
+                     variables: variables,
+                     context: context(user)
+                   )
 
-      assert is_binary(experience_not_found_error)
-      assert is_binary(raises_error)
-      assert is_binary(own_fields_error_title)
-      assert is_binary(definition_not_found_error)
-      assert is_binary(definition_name_too_short_error)
-      assert is_binary(definition_name_taken_error)
-      assert is_binary(entry_not_found_error)
-      assert is_binary(data_object_not_found_error)
+          assert is_binary(experience_not_found_error)
+          assert is_binary(raises_error)
+          assert is_binary(own_fields_error_title)
+          assert is_binary(definition_not_found_error)
+          assert is_binary(definition_name_too_short_error)
+          assert is_binary(definition_name_taken_error)
+          assert is_binary(entry_not_found_error)
+          assert is_binary(data_object_not_found_error)
+          assert is_binary(data_wrong_error)
+        end)
 
-      # refute update_own_fields_experience_updated_at == DateTime.to_iso8601(experience.updated_at)
+      assert log =~ "STACK"
     end
   end
 
