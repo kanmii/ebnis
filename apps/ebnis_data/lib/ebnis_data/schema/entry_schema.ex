@@ -11,13 +11,14 @@ defmodule EbnisData.Schema.Entry do
   """
   object :data_object do
     field(:id, non_null(:id))
-    field(:data, non_null(:data_json))
-    field(:definition_id, non_null(:id))
 
     @desc ~S"""
       Client ID indicates that data object was created offline
     """
     field(:client_id, :id)
+
+    field(:data, non_null(:data_json))
+    field(:definition_id, non_null(:id))
 
     field(:inserted_at, non_null(:datetime))
     field(:updated_at, non_null(:datetime))
@@ -82,6 +83,10 @@ defmodule EbnisData.Schema.Entry do
   end
 
   @desc ~S"""
+    Entry data object error (errors field) while creating an entry
+  """
+
+  @desc ~S"""
     Entry data object errors while creating an entry
   """
   object :data_objects_errors do
@@ -96,6 +101,10 @@ defmodule EbnisData.Schema.Entry do
   object :create_entry_response do
     field(:entry, :entry)
     field(:errors, :create_entry_errors)
+  end
+
+  object :create_entry_success do
+    field(:entry, non_null(:entry))
   end
 
   object :create_entry_errors do
@@ -143,6 +152,54 @@ defmodule EbnisData.Schema.Entry do
     field(:experience_id, non_null(:string))
 
     field(:errors, non_null(:create_entry_errors))
+  end
+
+  object :data_object_errorx do
+    field(:index, non_null(:integer))
+    field(:definition, :string)
+    field(:definition_id, :string)
+    field(:data, :string)
+    field(:client_id, :string)
+  end
+
+  object :create_entry_error_meta do
+    field(:index, non_null(:integer))
+    field(:client_id, :id)
+  end
+
+  object :create_entry_errorx do
+    field(:meta, non_null(:create_entry_error_meta))
+
+    @desc ~S"""
+      Did we fail because there are errors in the data object object?
+    """
+    field(:data_objects, list_of(:data_object_errorx))
+
+    @desc ~S"""
+      An offline entry of offline experience must have its experience ID same as
+      experience.clientId.
+    """
+    field(:experience_id, :string)
+
+    @desc ~S"""
+      May be we failed because entry.clientId is already taken by another
+      entry belonging to the experience.
+    """
+    field(:client_id, :string)
+
+    @desc ~S"""
+      A catch-all field for when we are unable to create an entry
+    """
+    field(:error, :string)
+  end
+
+  object :create_entry_errorss do
+    field(:errors, non_null(:create_entry_errorx))
+  end
+
+  union :create_entry_union do
+    types([:create_entry_success, :create_entry_errorss])
+    resolve_type(&EntryResolver.create_entry_union/2)
   end
 
   object :create_entries_response do
@@ -467,6 +524,7 @@ defmodule EbnisData.Schema.Entry do
     field(
       :data_objects,
       :create_data_object
+      |> non_null()
       |> list_of()
       |> non_null()
     )

@@ -526,6 +526,20 @@ defmodule EbnisData.ExperienceApi do
       {:error, "experience not found"}
   end
 
+  defp update_experience_p(acc, {:add_entries, inputs}, experience) do
+    Map.merge(
+      acc,
+      %{
+        updated_at: experience.updated_at,
+        new_entries:
+          Enum.map(
+            inputs,
+            &EntryApi.create_entry1(&1, experience)
+          )
+      }
+    )
+  end
+
   defp update_experience_p(acc, {:update_entries, inputs}, experience) do
     Map.merge(
       acc,

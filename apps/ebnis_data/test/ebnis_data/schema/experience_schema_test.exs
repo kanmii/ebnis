@@ -1478,11 +1478,12 @@ defmodule EbnisData.Schema.ExperienceTest do
         )
 
       [definition0, definition1] = definitions
-      definition_id0 = definition0.id
-      definition_name1 = definition1.name
-      definition_name0 = definition0.name
-      refute definition_name0 == definition_name1
-      definition_name0_updated = definition_name0 <> "1"
+      definition0_id = definition0.id
+      definition1_id = definition1.id
+      definition1_name = definition1.name
+      definition0_name = definition0.name
+      refute definition0_name == definition1_name
+      definition0_name_updated = definition0_name <> "1"
 
       updated_at0 = "1980-01-21T05:27:17Z"
       updated_at1 = "1982-01-21T05:27:17Z"
@@ -1527,19 +1528,19 @@ defmodule EbnisData.Schema.ExperienceTest do
             "name" => "aa"
           },
           %{
-            "id" => definition_id0,
+            "id" => definition0_id,
             # name must be at least 2 chars long
             "name" => "a"
           },
           %{
-            "id" => definition_id0,
+            "id" => definition0_id,
             # name already taken
-            "name" => definition_name1
+            "name" => definition1_name
           },
           %{
-            "id" => definition_id0,
+            "id" => definition0_id,
             # success
-            "name" => definition_name0_updated
+            "name" => definition0_name_updated
           }
         ]
       }
@@ -1621,21 +1622,6 @@ defmodule EbnisData.Schema.ExperienceTest do
         ]
       }
 
-      # data_invalid_variable = %{
-      #   "experienceId" => update_own_fields_success_experience_id,
-      #   "updateEntries" => [
-      #     %{
-      #       "entryId" => entry_id,
-      #       "dataObjects" => [
-      #         %{
-      #           "id" => data0_id,
-      #           "data" => ~s({"integer":0.1})
-      #         }
-      #       ]
-      #     }
-      #   ]
-      # }
-
       data_updated_success_variable = %{
         "experienceId" => update_own_fields_success_experience_id,
         "updateEntries" => [
@@ -1661,6 +1647,58 @@ defmodule EbnisData.Schema.ExperienceTest do
         ]
       }
 
+      create_entry_invalid_data = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "addEntries" => [
+          %{
+            "dataObjects" => [
+              %{
+                "definitionId" => definition0_id,
+                "data" => ~s({"integer":0.1})
+              },
+              %{
+                "definitionId" => definition1_id,
+                "data" => ~s({"integer":1})
+              }
+            ]
+          }
+        ]
+      }
+
+      create_entry_client_id_not_unique = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "addEntries" => [
+          %{
+            "clientId" => "a",
+            "dataObjects" => [
+              %{
+                "definitionId" => definition0_id,
+                "data" => ~s({"integer":1}),
+                "clientId" => "x"
+              },
+              %{
+                "definitionId" => definition1_id,
+                "data" => ~s({"integer":2}),
+                "clientId" => "y"
+              }
+            ]
+          },
+          %{
+            "clientId" => "a",
+            "dataObjects" => [
+              %{
+                "definitionId" => definition0_id,
+                "data" => ~s({"integer":3})
+              },
+              %{
+                "definitionId" => definition1_id,
+                "data" => ~s({"integer":4})
+              }
+            ]
+          }
+        ]
+      }
+
       variables = %{
         "input" => [
           experience_not_found_variable,
@@ -1672,8 +1710,9 @@ defmodule EbnisData.Schema.ExperienceTest do
           entry_raises_variable,
           entry_data_object_raises_variable,
           entry_data_object_not_found_variable,
-          # data_invalid_variable,
-          data_updated_success_variable
+          data_updated_success_variable,
+          create_entry_invalid_data,
+          create_entry_client_id_not_unique
         ]
       }
 
@@ -1737,20 +1776,20 @@ defmodule EbnisData.Schema.ExperienceTest do
                                  },
                                  %{
                                    "errors" => %{
-                                     "id" => ^definition_id0,
+                                     "id" => ^definition0_id,
                                      "name" => definition_name_too_short_error
                                    }
                                  },
                                  %{
                                    "errors" => %{
-                                     "id" => ^definition_id0,
+                                     "id" => ^definition0_id,
                                      "name" => definition_name_taken_error
                                    }
                                  },
                                  %{
                                    "definition" => %{
-                                     "id" => ^definition_id0,
-                                     "name" => ^definition_name0_updated
+                                     "id" => ^definition0_id,
+                                     "name" => ^definition0_name_updated
                                    }
                                  }
                                ]
@@ -1826,7 +1865,7 @@ defmodule EbnisData.Schema.ExperienceTest do
                            },
                            %{
                              "experience" => %{
-                               "experienceId" => _,
+                               "experienceId" => ^update_own_fields_success_experience_id,
                                "updatedEntries" => [
                                  %{
                                    "entry" => %{
@@ -1858,6 +1897,62 @@ defmodule EbnisData.Schema.ExperienceTest do
                                  }
                                ]
                              }
+                           },
+                           %{
+                             "experience" => %{
+                               "experienceId" => _,
+                               "newEntries" => [
+                                 %{
+                                   "errors" => %{
+                                     "dataObjects" => [
+                                       %{
+                                         "data" => "is invalid",
+                                         "index" => 0
+                                       }
+                                     ],
+                                     "meta" => %{
+                                       "index" => 0
+                                     }
+                                   }
+                                 }
+                               ],
+                               "updatedAt" => _
+                             }
+                           },
+                           %{
+                             "experience" => %{
+                               "experienceId" => ^update_own_fields_success_experience_id,
+                               "newEntries" => [
+                                 %{
+                                   "entry" => %{
+                                     "id" => _,
+                                     "experienceId" => ^update_own_fields_success_experience_id,
+                                     "clientId" => "a",
+                                     "dataObjects" => [
+                                       %{
+                                         "definitionId" => definition0_id,
+                                         "data" => ~s({"integer":1}),
+                                         "clientId" => "x"
+                                       },
+                                       %{
+                                         "definitionId" => definition1_id,
+                                         "data" => ~s({"integer":2}),
+                                         "clientId" => "y"
+                                       }
+                                     ]
+                                   }
+                                 },
+                                 %{
+                                   "errors" => %{
+                                     "meta" => %{
+                                       "index" => 1,
+                                       "clientId" => "a"
+                                     },
+                                     "clientId" => client_id_not_unique_error
+                                   }
+                                 }
+                               ]
+                             }
                            }
                          ]
                        }
@@ -1880,6 +1975,7 @@ defmodule EbnisData.Schema.ExperienceTest do
           assert is_binary(entry_not_found_error)
           assert is_binary(data_object_not_found_error)
           assert is_binary(data_wrong_error)
+          assert is_binary(client_id_not_unique_error)
         end)
 
       assert log =~ "STACK"

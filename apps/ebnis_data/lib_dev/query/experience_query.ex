@@ -305,6 +305,44 @@ defmodule EbnisData.Query.Experience do
                       }
                     }
                   }
+                  newEntries {
+                    __typename
+                    ... on CreateEntryErrorss {
+                      errors {
+                        meta {
+                          index
+                          clientId
+                        }
+                        error
+                        clientId
+                        experienceId
+                        dataObjects {
+                          index
+                          definition
+                          definitionId
+                          data
+                          clientId
+                        }
+                      }
+                    }
+                    ... on CreateEntrySuccess {
+                      entry {
+                        id
+                        clientId
+                        experienceId
+                        updatedAt
+                        insertedAt
+                        dataObjects {
+                          id
+                          clientId
+                          data
+                          definitionId
+                          insertedAt
+                          updatedAt
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }

@@ -614,4 +614,45 @@ defmodule EbnisData.EntryApi do
         }
       }
   end
+
+  def create_entry1(attrs, experience) do
+    case validate_data_objects_with_definitions(
+           experience.data_definitions,
+           attrs.data_objects
+         ) do
+      {:ok, data_objects_changesets} ->
+        Multi.new()
+        |> Multi.run(
+          @entry_multi_key,
+          &create_entry_multi(
+            &1,
+            &2,
+            Map.put(attrs, :experience_id, experience.id)
+          )
+        )
+        |> Multi.merge(&create_data_objects_multi(&1, data_objects_changesets))
+        |> Repo.transaction()
+        |> case do
+          {:ok, result} ->
+            process_create_entry_result(result)
+
+          {:error, @entry_multi_key, changeset, _rest} ->
+            {:error, put_empty_data_objects_changes(changeset)}
+
+          {:error, data_object_index, changeset, _rest} ->
+            {
+              :error,
+              data_objects_changesets
+              |> List.replace_at(data_object_index, changeset)
+              |> fake_changeset_with_data_objects(attrs)
+            }
+        end
+
+      {:error, data_objects_changesets} ->
+        {
+          :error,
+          fake_changeset_with_data_objects(data_objects_changesets, attrs)
+        }
+    end
+  end
 end

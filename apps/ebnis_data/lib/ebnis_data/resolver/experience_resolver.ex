@@ -310,6 +310,9 @@ defmodule EbnisData.Resolver.ExperienceResolver do
                   &process_updated_experience/2
                 )
             }
+            |> IO.inspect(label: "
+            -----------label------------
+            ")
 
           {:error, error} ->
             %{
@@ -336,6 +339,17 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         error: "unauthorized"
       }
     }
+  end
+
+  defp process_updated_experience(
+         {:new_entries, may_be_new_entries},
+         acc
+       ) do
+    Map.put(
+      acc,
+      :new_entries,
+      process_new_entries(may_be_new_entries)
+    )
   end
 
   defp process_updated_experience(
@@ -449,5 +463,75 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     %{
       data_object: data_object
     }
+  end
+
+  defp process_new_entries(may_be_new_entries) do
+    may_be_new_entries
+    |> Enum.with_index()
+    |> Enum.map(fn
+      {%{} = entry, _} ->
+        %{
+          entry: entry
+        }
+
+      {{:error, changeset}, index} ->
+        %{
+          errors:
+            Map.merge(
+              entry_changeset_errors_to_map(changeset),
+              %{
+                meta: %{
+                  index: index,
+                  client_id: changeset.changes[:client_id]
+                }
+              }
+            )
+        }
+    end)
+  end
+
+  defp entry_changeset_errors_to_map(changeset) do
+    case changeset.errors do
+      [] ->
+        %{}
+
+      errors ->
+        Resolver.changeset_errors_to_map(errors)
+    end
+    |> data_objects_changeset_errors_to_map(changeset.changes.data_objects)
+  end
+
+  defp data_objects_changeset_errors_to_map(errors, []) do
+    errors
+  end
+
+  defp data_objects_changeset_errors_to_map(acc_errors, changesets) do
+    changesets
+    |> Enum.reduce({[], 0}, fn
+      %{valid?: false, errors: errors, changes: changes}, {acc, index} ->
+        mapped_errors =
+          %{
+            index: index,
+            client_id: changes[:client_id]
+          }
+          |> Map.merge(Resolver.changeset_errors_to_map(errors))
+
+        {
+          [
+            mapped_errors | acc
+          ],
+          index + 1
+        }
+
+      _, {acc, index} ->
+        {acc, index + 1}
+    end)
+    |> case do
+      {[], _} ->
+        acc_errors
+
+      {errors, _} ->
+        Map.put(acc_errors, :data_objects, errors)
+    end
   end
 end

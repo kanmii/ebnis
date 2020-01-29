@@ -286,4 +286,12 @@ defmodule EbnisData.Resolver.EntryResolver do
       data_object: data_object
     }
   end
+
+  def create_entry_union(%{entry: _}, _) do
+    :create_entry_success
+  end
+
+  def create_entry_union(_, _) do
+    :create_entry_errorss
+  end
 end

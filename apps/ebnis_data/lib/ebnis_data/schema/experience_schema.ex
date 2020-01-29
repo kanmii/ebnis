@@ -286,6 +286,13 @@ defmodule EbnisData.Schema.Experience do
       |> non_null()
       |> list_of()
     )
+
+    field(
+      :new_entries,
+      :create_entry_union
+      |> non_null()
+      |> list_of()
+    )
   end
 
   object :update_experience_some_success do
