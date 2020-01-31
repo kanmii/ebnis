@@ -310,9 +310,6 @@ defmodule EbnisData.Resolver.ExperienceResolver do
                   &process_updated_experience/2
                 )
             }
-            |> IO.inspect(label: "
-            -----------label------------
-            ")
 
           {:error, error} ->
             %{
@@ -506,8 +503,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   defp data_objects_changeset_errors_to_map(acc_errors, changesets) do
-    changesets
-    |> Enum.reduce({[], 0}, fn
+    Enum.reduce(changesets, {[], 0}, fn
       %{valid?: false, errors: errors, changes: changes}, {acc, index} ->
         mapped_errors =
           %{
@@ -527,8 +523,8 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         {acc, index + 1}
     end)
     |> case do
-      {[], _} ->
-        acc_errors
+      # {[], _} ->
+      #   acc_errors
 
       {errors, _} ->
         Map.put(acc_errors, :data_objects, errors)
