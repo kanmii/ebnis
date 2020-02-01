@@ -345,7 +345,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     Map.put(
       acc,
       :new_entries,
-      process_new_entries(may_be_new_entries)
+      process_new_entries(may_be_new_entries, acc.experience_id)
     )
   end
 
@@ -462,7 +462,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     }
   end
 
-  defp process_new_entries(may_be_new_entries) do
+  defp process_new_entries(may_be_new_entries, experience_id) do
     may_be_new_entries
     |> Enum.with_index()
     |> Enum.map(fn
@@ -479,7 +479,8 @@ defmodule EbnisData.Resolver.ExperienceResolver do
               %{
                 meta: %{
                   index: index,
-                  client_id: changeset.changes[:client_id]
+                  client_id: changeset.changes[:client_id],
+                  experience_id: experience_id
                 }
               }
             )
@@ -528,6 +529,119 @@ defmodule EbnisData.Resolver.ExperienceResolver do
 
       {errors, _} ->
         Map.put(acc_errors, :data_objects, errors)
+    end
+  end
+
+  def create_experience_union(%{experience: _}, _) do
+    :experience_success
+  end
+
+  def create_experience_union(_, _) do
+    :create_experience_errors_union
+  end
+
+  def create_experiences(
+        %{input: experiences},
+        %{context: %{current_user: %{id: user_id}}}
+      ) do
+    {
+      :ok,
+      experiences
+      |> Enum.with_index()
+      |> Enum.map(&create_experience_p(&1, user_id))
+    }
+  end
+
+  def create_experiences(_, _) do
+    Resolver.unauthorized()
+  end
+
+  defp create_experience_p({attrs, index}, user_id) do
+    case attrs
+         |> Map.put(:user_id, user_id)
+         |> EbnisData.create_experience1() do
+      {%{} = experience, []} ->
+        %{experience: experience}
+
+      {%{id: experience_id} = experience, entries_changesets} ->
+        errors =
+          entries_changesets
+          |> Enum.reduce(
+            [],
+            &map_create_entry_errors(&1, &2, experience_id)
+          )
+          |> Enum.reverse()
+
+        %{experience: experience, entries_errors: errors}
+
+      {:error, changeset} ->
+        %{
+          errors:
+            Map.put(
+              create_experience_errors_from_changeset1(changeset.errors),
+              :meta,
+              %{
+                index: index,
+                client_id: attrs[:client_id]
+              }
+            )
+        }
+    end
+  end
+
+  defp create_experience_errors_from_changeset1(changeset) do
+    case changeset.errors do
+      [] ->
+        %{}
+
+      errors ->
+        changeset_errors_to_map(errors)
+    end
+    |> data_definition_changeset_to_error_map1(changeset.changes.data_definitions)
+  end
+
+  defp map_create_entry_errors({nil, _}, acc, _) do
+    acc
+  end
+
+  defp map_create_entry_errors({changeset, index}, acc, experience_id) do
+    errors =
+      Map.put(
+        entry_changeset_errors_to_map(changeset),
+        :meta,
+        %{
+          experience_id: experience_id,
+          index: index,
+          client_id: changeset.changes[:client_id]
+        }
+      )
+
+    [errors | acc]
+  end
+
+  defp data_definition_changeset_to_error_map1(errors, changesets) do
+    changesets
+    |> Enum.reduce(
+      {[], 0},
+      fn
+        %{valid?: false, errors: errors}, {acc, index} ->
+          errors = %{
+            index: index,
+            errors: changeset_errors_to_map(errors)
+          }
+
+          {[errors | acc], index + 1}
+
+        _, {acc, index} ->
+          {acc, index + 1}
+      end
+    )
+    |> case do
+      {[], _} ->
+        errors
+
+      {data_definitions_errors, _} ->
+        Map.put(errors, :data_definitions, data_definitions_errors)
     end
   end
 end

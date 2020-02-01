@@ -114,7 +114,7 @@ defmodule EbnisData.Schema.Entry do
     field(:data_objects_errors, list_of(:data_objects_errors))
 
     @desc ~S"""
-      Did we fail because, say, we did could not fetch the experience
+      Did we fail because, say, we could not fetch the experience
     """
     field(:experience, :string)
 
@@ -163,6 +163,7 @@ defmodule EbnisData.Schema.Entry do
   end
 
   object :create_entry_error_meta do
+    field(:experience_id, non_null(:id))
     field(:index, non_null(:integer))
     field(:client_id, :id)
   end

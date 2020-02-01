@@ -110,6 +110,7 @@ defmodule EbnisData do
   defdelegate get_experiences(args), to: ExperienceApi
   defdelegate save_offline_experience(args), to: ExperienceApi
   defdelegate create_experience(args), to: ExperienceApi
+  defdelegate create_experience1(args), to: ExperienceApi
   defdelegate delete_experience(id, user_id), to: ExperienceApi
   defdelegate update_experience(update_args, user_id), to: ExperienceApi
   defdelegate update_experience1(update_args, user_id), to: ExperienceApi

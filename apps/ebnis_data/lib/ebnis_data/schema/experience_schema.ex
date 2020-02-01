@@ -117,6 +117,59 @@ defmodule EbnisData.Schema.Experience do
     field(:errors, :create_experience_errors)
   end
 
+  object :experience_success do
+    field(:experience, non_null(:experience))
+
+    field(
+      :entries_errors,
+      :create_entry_errorx
+      |> non_null()
+      |> list_of()
+    )
+  end
+
+  object :create_definition_errors do
+    field(:index, non_null(:integer))
+
+    @desc """
+      name taken by another definition for the experience or name too short?
+    """
+    field(:name, :string)
+
+    @desc """
+      Using unapproved data type or data can not be cast to type?
+    """
+    field(:type, :string)
+  end
+
+  object :create_experience_errorss do
+    field(:errors, non_null(:create_experience_errors1))
+  end
+
+  @desc """
+    Experience field errors during creation
+  """
+  object :create_experience_errors1 do
+    field(:meta, non_null(:create_experience_error_meta))
+    field(:title, :string)
+    field(:data_definitions, list_of(:create_definition_errors))
+    field(:user, :string)
+    field(:client_id, :string)
+  end
+
+  object :create_experience_error_meta do
+    @desc ~S"""
+      The index of the failing experience in the list of experiences input
+    """
+    field(:index, non_null(:integer))
+    field(:client_id, :string)
+  end
+
+  union :create_experience_union do
+    types([:experience_success, :create_experience_errorss])
+    resolve_type(&ExperienceResolver.create_experience_union/2)
+  end
+
   object :create_offline_experience_errors do
     @desc ~S"""
       The error object representing the insert failure reasons

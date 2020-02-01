@@ -187,14 +187,19 @@ defmodule EbnisData.ExperienceApi do
   end
 
   defp validate_create_offline_entries(entries, experience) do
-    definitions_map = definition_client_id_map(experience)
+    client_id_to_definition_id_map =
+      Enum.reduce(
+        experience.data_definitions,
+        %{},
+        &Map.put(&2, &1.client_id, &1.id)
+      )
 
     associations = %{
       experience_id: experience.id,
       user_id: experience.user_id
     }
 
-    experience_client_id = experience.client_id
+    experience_client_id = experience[:client_id]
 
     Enum.reduce(
       entries,
@@ -204,7 +209,12 @@ defmodule EbnisData.ExperienceApi do
 
         case entry_experience_client_id == experience_client_id do
           true ->
-            create_offline_entry(entry, definitions_map, associations, acc)
+            create_offline_entry(
+              entry,
+              client_id_to_definition_id_map,
+              associations,
+              acc
+            )
 
           _ ->
             offline_entry_add_error(entry, acc)
@@ -250,26 +260,18 @@ defmodule EbnisData.ExperienceApi do
     end
   end
 
-  defp definition_client_id_map(experience) do
+  defp update_data_objects_with_definition_ids(entry_attrs, definitions_map) do
     Enum.reduce(
-      experience.data_definitions,
-      %{},
-      &Map.put(&2, &1.client_id, &1.id)
-    )
-  end
-
-  defp update_data_objects_with_definition_ids(entry, definitions_map) do
-    Enum.reduce(
-      entry.data_objects,
+      entry_attrs.data_objects,
       {:ok, [], []},
-      fn object, acc ->
-        definition_client_id = object.definition_id
+      fn data_attrs, acc ->
+        definition_client_id = data_attrs[:definition_id]
 
         case definitions_map[definition_client_id] do
           nil ->
             map_fake_entry_data_object_changeset(
               acc,
-              object,
+              data_attrs,
               [
                 definition_id:
                   "data definition client ID '#{definition_client_id}' does not exist"
@@ -280,7 +282,7 @@ defmodule EbnisData.ExperienceApi do
           definition_id ->
             changes =
               Map.put(
-                object,
+                data_attrs,
                 :definition_id,
                 definition_id
               )
@@ -291,21 +293,28 @@ defmodule EbnisData.ExperienceApi do
     )
     |> case do
       {:ok, valids, _} ->
-        {:ok, %{entry | data_objects: Enum.reverse(valids)}}
+        {:ok, %{entry_attrs | data_objects: Enum.reverse(valids)}}
 
       {:error, _, changesets} ->
+        fake_changeset = %{
+          changes:
+            Map.put(
+              entry_attrs,
+              :data_objects,
+              Enum.reverse(changesets)
+            ),
+          errors: []
+        }
+
         {
           :error,
-          %{
-            changes: Map.put(entry, :data_objects, Enum.reverse(changesets)),
-            errors: []
-          }
+          fake_changeset
         }
     end
   end
 
   defp map_fake_entry_data_object_changeset(
-         {status, valids, changesets},
+         {status, valids, changesets} = _acc,
          changes,
          errors,
          valid?
@@ -636,5 +645,115 @@ defmodule EbnisData.ExperienceApi do
           error: @bad_request
         }
       }
+  end
+
+  def create_experience1(attrs) do
+    attrs =
+      Map.update(
+        attrs,
+        :custom_requireds,
+        [:data_definitions],
+        &[:data_definitions | &1]
+      )
+
+    case %Experience{}
+         |> Experience.changeset(attrs)
+         |> Repo.insert() do
+      {:ok, %Experience{} = experience} ->
+        entries = attrs[:entries] || []
+
+        {created_entries, entries_changesets} =
+          validate_create_entries(entries, experience, experience[:client_id])
+
+        experience_with_entries = %Experience{
+          experience
+          | entries: Enum.reverse(created_entries)
+        }
+
+        {experience_with_entries, Enum.reverse(entries_changesets)}
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
+  end
+
+  defp validate_create_entries([], _, _) do
+    {[], []}
+  end
+
+  defp validate_create_entries(entries_attrs, experience, nil) do
+    associations = %{
+      experience_id: experience.id,
+      user_id: experience.user_id
+    }
+
+    Enum.reduce(
+      entries_attrs,
+      {[], []},
+      fn attrs, {created_entries, changesets} ->
+        case Map.merge(attrs, associations) |> EbnisData.create_entry() do
+          {:ok, entry} ->
+            {[entry | created_entries], [nil | changesets]}
+
+          {:error, changeset} ->
+            {created_entries, [changeset | changesets]}
+        end
+      end
+    )
+  end
+
+  defp validate_create_entries(entries, experience, experience_client_id) do
+    client_id_to_definition_id_map =
+      Enum.reduce(
+        experience.data_definitions,
+        %{},
+        &Map.put(&2, &1.client_id, &1.id)
+      )
+
+    associations = %{
+      experience_id: experience.id,
+      user_id: experience.user_id
+    }
+
+    Enum.reduce(
+      entries,
+      {[], []},
+      fn attrs, acc ->
+        case attrs[:experience_id] == experience_client_id do
+          true ->
+            create_offline_entry1(
+              attrs,
+              client_id_to_definition_id_map,
+              associations,
+              acc
+            )
+
+          _ ->
+            offline_entry_add_error(attrs, acc)
+        end
+      end
+    )
+  end
+
+  defp create_offline_entry1(
+         attrs,
+         client_id_to_definition_id_map,
+         associations,
+         {created_entries, with_errors}
+       ) do
+    with {:ok, validated_attrs} <-
+           update_data_objects_with_definition_ids(
+             attrs,
+             client_id_to_definition_id_map
+           ),
+         {:ok, entry} <-
+           validated_attrs
+           |> Map.merge(associations)
+           |> EbnisData.create_entry() do
+      {[entry | created_entries], [nil | with_errors]}
+    else
+      {:error, changeset} ->
+        {created_entries, [changeset | with_errors]}
+    end
   end
 end
