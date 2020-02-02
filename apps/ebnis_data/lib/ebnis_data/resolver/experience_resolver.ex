@@ -528,7 +528,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
       #   acc_errors
 
       {errors, _} ->
-        Map.put(acc_errors, :data_objects, errors)
+        Map.put(acc_errors, :data_objects, Enum.reverse(errors))
     end
   end
 
@@ -537,16 +537,16 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   def create_experience_union(_, _) do
-    :create_experience_errors_union
+    :create_experience_errorss
   end
 
   def create_experiences(
-        %{input: experiences},
+        %{input: inputs},
         %{context: %{current_user: %{id: user_id}}}
       ) do
     {
       :ok,
-      experiences
+      inputs
       |> Enum.with_index()
       |> Enum.map(&create_experience_p(&1, user_id))
     }
@@ -566,6 +566,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
       {%{id: experience_id} = experience, entries_changesets} ->
         errors =
           entries_changesets
+          |> Enum.with_index()
           |> Enum.reduce(
             [],
             &map_create_entry_errors(&1, &2, experience_id)
@@ -574,17 +575,28 @@ defmodule EbnisData.Resolver.ExperienceResolver do
 
         %{experience: experience, entries_errors: errors}
 
-      {:error, changeset} ->
+      {:error, %{} = changeset} ->
         %{
           errors:
             Map.put(
-              create_experience_errors_from_changeset1(changeset.errors),
+              create_experience_errors_from_changeset1(changeset),
               :meta,
               %{
                 index: index,
                 client_id: attrs[:client_id]
               }
             )
+        }
+
+      {:error, error} ->
+        %{
+          errors: %{
+            error: error,
+            meta: %{
+              index: index,
+              client_id: attrs[:client_id]
+            }
+          }
         }
     end
   end
@@ -625,10 +637,12 @@ defmodule EbnisData.Resolver.ExperienceResolver do
       {[], 0},
       fn
         %{valid?: false, errors: errors}, {acc, index} ->
-          errors = %{
-            index: index,
-            errors: changeset_errors_to_map(errors)
-          }
+          errors =
+            Map.put(
+              changeset_errors_to_map(errors),
+              :index,
+              index
+            )
 
           {[errors | acc], index + 1}
 

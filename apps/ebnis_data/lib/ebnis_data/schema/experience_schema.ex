@@ -142,10 +142,6 @@ defmodule EbnisData.Schema.Experience do
     field(:type, :string)
   end
 
-  object :create_experience_errorss do
-    field(:errors, non_null(:create_experience_errors1))
-  end
-
   @desc """
     Experience field errors during creation
   """
@@ -155,6 +151,12 @@ defmodule EbnisData.Schema.Experience do
     field(:data_definitions, list_of(:create_definition_errors))
     field(:user, :string)
     field(:client_id, :string)
+
+    @desc ~S"""
+      A catch all for error unrelated to fields of experience e.g. an exception
+      was raised
+    """
+    field(:error, :string)
   end
 
   object :create_experience_error_meta do
@@ -163,6 +165,10 @@ defmodule EbnisData.Schema.Experience do
     """
     field(:index, non_null(:integer))
     field(:client_id, :string)
+  end
+
+  object :create_experience_errorss do
+    field(:errors, non_null(:create_experience_errors1))
   end
 
   union :create_experience_union do
@@ -544,7 +550,7 @@ defmodule EbnisData.Schema.Experience do
 
   ######################### END INPUT OBJECTS SECTION ##################
 
-  ######################### MUTATION ################################
+  ######################### MUTATION SECTION #######################
 
   @desc """
     Mutations allowed on Experience object
@@ -601,9 +607,16 @@ defmodule EbnisData.Schema.Experience do
 
       resolve(&ExperienceResolver.update_experiences/2)
     end
+
+    @desc "Create many experiences"
+    field :create_experiences, list_of(:create_experience_union) do
+      arg(:input, :create_experience_input |> list_of() |> non_null())
+
+      resolve(&ExperienceResolver.create_experiences/2)
+    end
   end
 
-  ######################### END MUTATIONS ################################
+  ######################### END MUTATIONS SECTION ############
 
   ######################### QUERIES SECTION #############################
 

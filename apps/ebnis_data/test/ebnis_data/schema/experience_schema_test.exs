@@ -1982,5 +1982,469 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
   end
 
+  describe "create experiences" do
+    # @tag :skip
+    test "unauthorized" do
+      variables = %{
+        "input" =>
+          Factory.params()
+          |> Factory.stringify()
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: error
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.create_experiences(),
+                 Schema,
+                 variables: variables
+               )
+
+      assert is_binary(error)
+    end
+
+    # @tag :skip
+    test "succeeds for happy path" do
+      user = RegFactory.insert()
+
+      inserted_at_string = "2016-05-05T09:41:22Z"
+      client_id_taken = ".,"
+
+      success_no_entry_input = %{
+        "title" => "a1",
+        "dataDefinitions" => [
+          %{
+            "name" => "a1",
+            "type" => "DATE"
+          }
+        ],
+        "insertedAt" => inserted_at_string,
+        "updatedAt" => inserted_at_string,
+        "clientId" => client_id_taken
+      }
+
+      title_case_insensitive_not_unique_input = %{
+        "title" => "A1",
+        "dataDefinitions" => [
+          %{
+            "name" => "a1",
+            "type" => "DATE"
+          }
+        ]
+      }
+
+      definition_name_taken_input =
+        %{
+          data_definitions: [
+            DataDefinitionFactory.params(name: "F0"),
+            DataDefinitionFactory.params(name: "f0")
+          ],
+          client_id: "a"
+        }
+        |> Factory.params()
+        |> Factory.stringify()
+
+      experience_raises_input = %{
+        "title" => "a2",
+        "description" =>
+          "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+        "dataDefinitions" => [
+          %{
+            "name" => "a1",
+            "type" => "DATE"
+          }
+        ]
+      }
+
+      client_id_taken_input = %{
+        "clientId" => client_id_taken,
+        "title" => "a3",
+        "dataDefinitions" => [
+          %{
+            "name" => "a1",
+            "type" => "DATE"
+          }
+        ]
+      }
+
+      entry_experience_id_not_experience_client_id_input = %{
+        "clientId" => "a4",
+        "title" => "a4",
+        "dataDefinitions" => [
+          %{
+            "name" => "a1",
+            "type" => "INTEGER"
+          }
+        ],
+        "entries" => [
+          %{
+            "clientId" => "a41",
+            # differs from experience.client_id
+            "experienceId" => "a4.",
+            "dataObjects" => [
+              %{
+                "data" => ~s({"integer":1}),
+                "definitionId" => "a1"
+              }
+            ]
+          }
+        ]
+      }
+
+      definition_id_not_definition_client_id_input = %{
+        "clientId" => "a5",
+        "title" => "a5",
+        "dataDefinitions" => [
+          %{
+            "name" => "a1",
+            "type" => "INTEGER",
+            "clientId" => "a1"
+          },
+          %{
+            "name" => "a2",
+            "type" => "INTEGER",
+            "clientId" => "a2"
+          },
+          %{
+            "name" => "a3",
+            "type" => "INTEGER",
+            "clientId" => "a3"
+          }
+        ],
+        "entries" => [
+          %{
+            "clientId" => "a51",
+            "experienceId" => "a5",
+            "dataObjects" => [
+              %{
+                "data" => ~s({"integer":1}),
+                # differs from definition.client_id
+                "definitionId" => "a1."
+              },
+              %{
+                "data" => ~s({"integer":1}),
+                "definitionId" => "a2"
+              },
+              %{
+                "data" => ~s({"integer":1}),
+                # differs from definition.client_id
+                "definitionId" => "a3."
+              }
+            ]
+          }
+        ]
+      }
+
+      success_and_errors_has_entry_input = %{
+        "title" => "a6",
+        "dataDefinitions" => [
+          %{
+            "name" => "a1",
+            "type" => "INTEGER",
+            "clientId" => "0"
+          }
+        ],
+        "entries" => [
+          %{
+            "experienceId" => "a5",
+            "dataObjects" => [
+              %{
+                "data" => ~s({"integer":0.1}),
+                "definitionId" => "0"
+              }
+            ]
+          },
+          %{
+            "experienceId" => "a5",
+            "dataObjects" => [
+              %{
+                "data" => ~s({"integer":1}),
+                "definitionId" => "0"
+              }
+            ]
+          },
+          %{
+            "experienceId" => "a5",
+            "dataObjects" => [
+              %{
+                "data" => ~s({"integer":1}),
+                "definitionId" => ","
+              }
+            ]
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          success_no_entry_input,
+          title_case_insensitive_not_unique_input,
+          definition_name_taken_input,
+          experience_raises_input,
+          client_id_taken_input,
+          entry_experience_id_not_experience_client_id_input,
+          definition_id_not_definition_client_id_input,
+          success_and_errors_has_entry_input
+        ]
+      }
+
+      log =
+        capture_log(fn ->
+          assert {:ok,
+                  %{
+                    data: %{
+                      "createExperiences" => [
+                        %{
+                          "experience" => %{
+                            "insertedAt" => ^inserted_at_string,
+                            "updatedAt" => ^inserted_at_string,
+                            "id" => _,
+                            "title" => "a1",
+                            "dataDefinitions" => [
+                              %{
+                                "name" => "a1"
+                              }
+                            ],
+                            "clientId" => ^client_id_taken,
+                            "hasUnsaved" => nil,
+                            "entries" => %{
+                              "edges" => [],
+                              "pageInfo" => %{
+                                "hasNextPage" => false,
+                                "hasPreviousPage" => false
+                              }
+                            }
+                          }
+                        },
+                        %{
+                          "errors" => %{
+                            "meta" => %{
+                              "index" => 1,
+                              "clientId" => nil
+                            },
+                            "title" => title_case_insensitive_not_unique_error
+                          }
+                        },
+                        %{
+                          "errors" => %{
+                            "meta" => %{
+                              "index" => 2,
+                              "clientId" => "a"
+                            },
+                            "title" => nil,
+                            "dataDefinitions" => [
+                              %{
+                                "index" => 1,
+                                "name" => definition_name_taken_error,
+                                "type" => nil
+                              }
+                            ]
+                          }
+                        },
+                        %{
+                          "errors" => %{
+                            "meta" => %{
+                              "index" => 3
+                            },
+                            "error" => experience_raises_error
+                          }
+                        },
+                        %{
+                          "errors" => %{
+                            "meta" => %{
+                              "index" => 4,
+                              "clientId" => ^client_id_taken
+                            },
+                            "clientId" => client_id_taken_error,
+                            "title" => nil
+                          }
+                        },
+                        %{
+                          "experience" => %{
+                            "id" => entry_experience_id_not_experience_client_id,
+                            "title" => "a4",
+                            "dataDefinitions" => [
+                              %{
+                                "name" => "a1"
+                              }
+                            ],
+                            "clientId" => "a4",
+                            "entries" => %{
+                              "edges" => []
+                            }
+                          },
+                          "entriesErrors" => [
+                            %{
+                              "meta" => %{
+                                "index" => 0,
+                                "experienceId" => entry_experience_id_not_experience_client_id,
+                                "clientId" => "a41"
+                              },
+                              "experienceId" =>
+                                entry_experience_id_not_experience_client_id_error,
+                              "clientId" => nil
+                            }
+                          ]
+                        },
+                        %{
+                          "experience" => %{
+                            "id" => definition_id_not_definition_client_id_input_id,
+                            "title" => "a5",
+                            "dataDefinitions" => [
+                              %{
+                                "name" => "a1"
+                              },
+                              %{
+                                "name" => "a2"
+                              },
+                              %{
+                                "name" => "a3"
+                              }
+                            ],
+                            "clientId" => "a5",
+                            "entries" => %{
+                              "edges" => []
+                            }
+                          },
+                          "entriesErrors" => [
+                            %{
+                              "meta" => %{
+                                "index" => 0,
+                                "experienceId" => definition_id_not_definition_client_id_input_id,
+                                "clientId" => "a51"
+                              },
+                              "experienceId" => nil,
+                              "clientId" => nil,
+                              "dataObjects" => [
+                                %{
+                                  "index" => 0,
+                                  "definitionId" => definition_id_not_definition_client_id_error0
+                                },
+                                %{
+                                  "index" => 2,
+                                  "definitionId" => definition_id_not_definition_client_id_error2
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        %{
+                          "experience" => %{
+                            "id" => success_and_errors_has_entry_input_id,
+                            "title" => "a6",
+                            "dataDefinitions" => [
+                              %{
+                                "name" => "a1",
+                                "id" => success_and_errors_has_entry_input_definition_id
+                              }
+                            ],
+                            "entries" => %{
+                              "edges" => [
+                                %{
+                                  "node" => %{
+                                    "id" => _,
+                                    "dataObjects" => [
+                                      %{
+                                        "id" => _,
+                                        "definitionId" =>
+                                          success_and_errors_has_entry_input_definition_id
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "entriesErrors" => [
+                            %{
+                              "meta" => %{
+                                "index" => 0,
+                                "experienceId" => success_and_errors_has_entry_input_id
+                              },
+                              "dataObjects" => [
+                                %{
+                                  "data" => success_and_errors_has_entry_input_error0
+                                }
+                              ]
+                            },
+                            %{
+                              "meta" => %{
+                                "index" => 2,
+                                "experienceId" => success_and_errors_has_entry_input_id
+                              },
+                              "dataObjects" => [
+                                %{
+                                  "definitionId" => success_and_errors_has_entry_input_error2
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }} =
+                   Absinthe.run(
+                     Query.create_experiences(),
+                     Schema,
+                     variables: variables,
+                     context: context(user)
+                   )
+
+          assert is_binary(title_case_insensitive_not_unique_error)
+          assert is_binary(definition_name_taken_error)
+          assert is_binary(experience_raises_error)
+          assert is_binary(client_id_taken_error)
+          assert is_binary(entry_experience_id_not_experience_client_id_error)
+          assert is_binary(definition_id_not_definition_client_id_error0)
+          assert is_binary(definition_id_not_definition_client_id_error2)
+          assert is_binary(success_and_errors_has_entry_input_error0)
+          assert is_binary(success_and_errors_has_entry_input_error2)
+        end)
+
+      assert log =~ "STACK"
+    end
+
+    # @tag :skip
+    test "fails: data definition type does not exist" do
+      user = RegFactory.insert()
+
+      attrs = %{
+        data_definitions: [
+          %{
+            name: "ff",
+            type: "integer1"
+          }
+        ],
+        user_id: user.id,
+        title: "aa"
+      }
+
+      assert {
+               :error,
+               %{
+                 changes: %{
+                   data_definitions: [
+                     %{
+                       errors: [
+                         type: {
+                           type_error,
+                           _
+                         }
+                       ]
+                     }
+                   ]
+                 }
+               }
+             } = EbnisData.create_experience1(attrs)
+
+      assert is_binary(type_error)
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 end

@@ -29,6 +29,7 @@ defmodule EbnisData.Query.Experience do
             id
             clientId
             dataObjects {
+              definitionId
               id
             }
           }
@@ -63,6 +64,28 @@ defmodule EbnisData.Query.Experience do
           }
         }
       }
+  """
+
+  @create_entry_error_fragment_name "CreateEntryErrorFragment"
+
+  @create_entry_error_fragment """
+    fragment #{@create_entry_error_fragment_name} on CreateEntryErrorx {
+      meta {
+        experienceId
+        index
+        clientId
+      }
+      error
+      clientId
+      experienceId
+      dataObjects {
+        index
+        definition
+        definitionId
+        data
+        clientId
+      }
+    }
   """
 
   def create do
@@ -309,20 +332,7 @@ defmodule EbnisData.Query.Experience do
                     __typename
                     ... on CreateEntryErrorss {
                       errors {
-                        meta {
-                          index
-                          clientId
-                        }
-                        error
-                        clientId
-                        experienceId
-                        dataObjects {
-                          index
-                          definition
-                          definitionId
-                          data
-                          clientId
-                        }
+                        ...#{@create_entry_error_fragment_name}
                       }
                     }
                     ... on CreateEntrySuccess {
@@ -350,6 +360,43 @@ defmodule EbnisData.Query.Experience do
         }
       }
       #{@data_definition_fragment}
+      #{@create_entry_error_fragment}
+    """
+  end
+
+  def create_experiences do
+    """
+      mutation CreateExperiences($input: [CreateExperienceInput!]!) {
+        createExperiences(input: $input) {
+          ... on ExperienceSuccess {
+            experience {
+              ...#{@fragment_name}
+            }
+            entriesErrors {
+              ...#{@create_entry_error_fragment_name}
+            }
+          }
+          ... on CreateExperienceErrorss {
+            errors {
+              meta {
+                index
+                clientId
+              }
+              error
+              title
+              user
+              clientId
+              dataDefinitions {
+                index
+                name
+                type
+              }
+            }
+          }
+        }
+      }
+      #{@fragment}
+      #{@create_entry_error_fragment}
     """
   end
 end

@@ -38,20 +38,27 @@ defmodule EbnisData.EntryApi do
   }
 
   defp validate_data_objects_with_definitions(data_definitions, data_list) do
-    {definitions_ids_map, all_definitions_ids} =
-      data_definitions
-      |> Enum.reduce({%{}, []}, fn definition, {map, ids} ->
-        {Map.put(map, definition.id, definition.type), [definition.id | ids]}
-      end)
+    definitions_id_to_type_map =
+      Enum.reduce(
+        data_definitions,
+        %{},
+        &Map.put(&2, &1.id, &1.type)
+      )
 
     {status, result, seen} =
       data_list
-      |> Enum.reduce({:ok, [], %{}}, fn data_object, {status, acc, seen} ->
+      |> Enum.reduce({:ok, [], %{}}, fn data_object, {status, acc, seen} = acc_ ->
         definition_id = data_object.definition_id
-        definition_type = definitions_ids_map[definition_id]
+        definition_type = definitions_id_to_type_map[definition_id]
         [data_type] = Map.keys(data_object.data)
 
         cond do
+          # This will mostly be due to the fact that we are creating several
+          # entries simultaneously and a data_object.definition_id does not
+          # match data_definition.client_id
+          definition_id == nil ->
+            acc_
+
           definition_type == nil ->
             changeset =
               add_error_make_fake_data_object_changeset(
@@ -93,8 +100,10 @@ defmodule EbnisData.EntryApi do
 
     result = Enum.reverse(result)
 
-    all_definitions_ids
-    |> Enum.reduce([], fn definition_id, acc ->
+    data_definitions
+    |> Enum.reduce([], fn definition, acc ->
+      definition_id = definition.id
+
       case seen[definition_id] do
         nil ->
           changeset =
@@ -103,7 +112,7 @@ defmodule EbnisData.EntryApi do
                 definition_id: definition_id
               },
               :definition_id,
-              "data definition ID #{definition_id} is missing"
+              "data definition ID/clientId #{definition_id}/#{definition.client_id} is missing"
             )
 
           [changeset | acc]

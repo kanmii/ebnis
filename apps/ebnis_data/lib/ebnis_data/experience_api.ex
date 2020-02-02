@@ -663,7 +663,7 @@ defmodule EbnisData.ExperienceApi do
         entries = attrs[:entries] || []
 
         {created_entries, entries_changesets} =
-          validate_create_entries(entries, experience, experience[:client_id])
+          validate_create_entries(entries, experience, attrs[:client_id])
 
         experience_with_entries = %Experience{
           experience
@@ -675,6 +675,19 @@ defmodule EbnisData.ExperienceApi do
       {:error, changeset} ->
         {:error, changeset}
     end
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @experience_can_not_be_created_exception_header,
+          inspect(attrs),
+          stacktrace_prefix(),
+          Exception.format(:error, error, __STACKTRACE__)
+          |> prettify_with_new_line()
+        ]
+      end)
+
+      {:error, @bad_request}
   end
 
   defp validate_create_entries([], _, _) do
@@ -687,11 +700,26 @@ defmodule EbnisData.ExperienceApi do
       user_id: experience.user_id
     }
 
+    client_id_to_definition_id_map = make_client_id_to_definition_id_map(experience)
+
     Enum.reduce(
       entries_attrs,
       {[], []},
       fn attrs, {created_entries, changesets} ->
-        case Map.merge(attrs, associations) |> EbnisData.create_entry() do
+        case %{
+               attrs
+               | data_objects:
+                   Enum.map(
+                     attrs.data_objects,
+                     &Map.put(
+                       &1,
+                       :definition_id,
+                       client_id_to_definition_id_map[&1.definition_id]
+                     )
+                   )
+             }
+             |> Map.merge(associations)
+             |> EbnisData.create_entry() do
           {:ok, entry} ->
             {[entry | created_entries], [nil | changesets]}
 
@@ -703,12 +731,7 @@ defmodule EbnisData.ExperienceApi do
   end
 
   defp validate_create_entries(entries, experience, experience_client_id) do
-    client_id_to_definition_id_map =
-      Enum.reduce(
-        experience.data_definitions,
-        %{},
-        &Map.put(&2, &1.client_id, &1.id)
-      )
+    client_id_to_definition_id_map = make_client_id_to_definition_id_map(experience)
 
     associations = %{
       experience_id: experience.id,
@@ -755,5 +778,13 @@ defmodule EbnisData.ExperienceApi do
       {:error, changeset} ->
         {created_entries, [changeset | with_errors]}
     end
+  end
+
+  defp make_client_id_to_definition_id_map(experience) do
+    Enum.reduce(
+      experience.data_definitions,
+      %{},
+      &Map.put(&2, &1.client_id, &1.id)
+    )
   end
 end
