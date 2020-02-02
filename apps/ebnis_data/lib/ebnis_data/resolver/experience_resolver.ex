@@ -564,16 +564,19 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         %{experience: experience}
 
       {%{id: experience_id} = experience, entries_changesets} ->
-        errors =
-          entries_changesets
-          |> Enum.with_index()
-          |> Enum.reduce(
-            [],
-            &map_create_entry_errors(&1, &2, experience_id)
-          )
-          |> Enum.reverse()
+        entries_changesets
+        |> Enum.with_index()
+        |> Enum.reduce(
+          [],
+          &map_create_entry_errors(&1, &2, experience_id)
+        )
+        |> case do
+          [] ->
+            %{experience: experience}
 
-        %{experience: experience, entries_errors: errors}
+          errors ->
+            %{experience: experience, entries_errors: Enum.reverse(errors)}
+        end
 
       {:error, %{} = changeset} ->
         %{
