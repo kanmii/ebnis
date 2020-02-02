@@ -27,6 +27,7 @@ defmodule EbnisData.Query.Experience do
         edges {
           node {
             id
+            experienceId
             clientId
             dataObjects {
               definitionId

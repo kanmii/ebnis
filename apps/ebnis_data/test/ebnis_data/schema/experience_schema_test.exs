@@ -2009,7 +2009,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "succeeds for happy path" do
+    test "successes and failures" do
       user = RegFactory.insert()
 
       inserted_at_string = "2016-05-05T09:41:22Z"
@@ -2180,6 +2180,29 @@ defmodule EbnisData.Schema.ExperienceTest do
         ]
       }
 
+      offline_experience_with_entry_input = %{
+        "title" => "a7",
+        "clientId" => "a7",
+        "dataDefinitions" => [
+          %{
+            "name" => "a1",
+            "clientId" => "a1",
+            "type" => "INTEGER"
+          }
+        ],
+        "entries" => [
+          %{
+            "experienceId" => "a7",
+            "dataObjects" => [
+              %{
+                "definitionId" => "a1",
+                "data" => ~s({"integer":1})
+              }
+            ]
+          }
+        ]
+      }
+
       variables = %{
         "input" => [
           success_no_entry_input,
@@ -2189,7 +2212,8 @@ defmodule EbnisData.Schema.ExperienceTest do
           client_id_taken_input,
           entry_experience_id_not_experience_client_id_input,
           definition_id_not_definition_client_id_input,
-          success_and_errors_has_entry_input
+          success_and_errors_has_entry_input,
+          offline_experience_with_entry_input
         ]
       }
 
@@ -2384,6 +2408,34 @@ defmodule EbnisData.Schema.ExperienceTest do
                               ]
                             }
                           ]
+                        },
+                        %{
+                          "experience" => %{
+                            "id" => offline_experience_with_entry_input_id,
+                            "title" => "a7",
+                            "clientId" => "a7",
+                            "dataDefinitions" => [
+                              %{
+                                "name" => "a1",
+                                "id" => offline_experience_with_entry_input_definition_id
+                              }
+                            ],
+                            "entries" => %{
+                              "edges" => [
+                                %{
+                                  "node" => %{
+                                    "experienceId" => offline_experience_with_entry_input_id,
+                                    "dataObjects" => [
+                                      %{
+                                        "definitionId" =>
+                                          offline_experience_with_entry_input_definition_id
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          }
                         }
                       ]
                     }

@@ -199,7 +199,7 @@ defmodule EbnisData.ExperienceApi do
       user_id: experience.user_id
     }
 
-    experience_client_id = experience[:client_id]
+    experience_client_id = experience.client_id
 
     Enum.reduce(
       entries,
