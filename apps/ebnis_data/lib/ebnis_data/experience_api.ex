@@ -11,15 +11,12 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.EntryApi
 
   @get_experience_exception_header "\n\nException while getting experience with:"
-
   @bad_request "bad request"
-
   @update_definitions_exception_header "\n\nException while updating definitions with:"
-
   @experience_does_not_exist "experience does not exist"
-
   @experience_can_not_be_created_exception_header "\n\nsomething is wrong - experience can not be created"
   @update_experience_exception_header "\n\nException while updating experience with:"
+  @delete_experience_exception_header "\n\nException while deleting experience with:"
 
   @spec get_experience(id :: integer() | binary(), user_id :: integer() | binary()) ::
           Experience.t() | nil
@@ -337,13 +334,33 @@ defmodule EbnisData.ExperienceApi do
   end
 
   def delete_experience(id, user_id) do
-    case get_experience(id, user_id) do
-      nil ->
-        :error
-
-      experience ->
+    from(
+      e in Experience,
+      where: e.id == ^id and e.user_id == ^user_id
+    )
+    |> Repo.all()
+    |> case do
+      [experience] ->
         Repo.delete(experience)
+
+      _ ->
+        {:error, @bad_request}
     end
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @delete_experience_exception_header,
+          "\n\tid: #{id}",
+          "\n\tUser ID: #{user_id}",
+          stacktrace_prefix(),
+          :error
+          |> Exception.format(error, __STACKTRACE__)
+          |> prettify_with_new_line()
+        ]
+      end)
+
+      {:error, @bad_request}
   end
 
   @spec update_experience(

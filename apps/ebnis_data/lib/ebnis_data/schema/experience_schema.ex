@@ -398,6 +398,50 @@ defmodule EbnisData.Schema.Experience do
     resolve_type(&ExperienceResolver.update_experiences_union/2)
   end
 
+  ################## delete experiences objects section ###########
+
+  object :delete_experience_success do
+    field(:experience, non_null(:experience))
+  end
+
+  object :delete_experience_error do
+    field(:id, non_null(:id))
+    field(:error, non_null(:string))
+  end
+
+  object :delete_experience_errors do
+    field(:errors, non_null(:delete_experience_error))
+  end
+
+  union :delete_experience_union do
+    types([:delete_experience_success, :delete_experience_errors])
+    resolve_type(&ExperienceResolver.delete_experience_union/2)
+  end
+
+  object :delete_experiences_some_success do
+    field(
+      :experiences,
+      :delete_experience_union
+      |> non_null()
+      |> list_of()
+      |> non_null()
+    )
+  end
+
+  object :delete_experiences_all_fail do
+    @desc ~S"""
+      This will mostly be authorization error
+    """
+    field(:error, non_null(:string))
+  end
+
+  union :delete_experiences do
+    types([:delete_experiences_some_success, :delete_experiences_all_fail])
+    resolve_type(&ExperienceResolver.delete_experiences_union/2)
+  end
+
+  ################# end delete experiences objects section #######
+
   ######################### END REGULAR OBJECTS ###########################
 
   ############################ INPUT OBJECTS SECTION ####################
@@ -570,11 +614,19 @@ defmodule EbnisData.Schema.Experience do
       resolve(&ExperienceResolver.save_offline_experiences/2)
     end
 
-    @desc "Delete an experience"
-    field :delete_experience, :experience do
-      arg(:id, non_null(:id))
+    @desc ~S"""
+      Delete several experiences
+    """
+    field :delete_experiences, :delete_experiences do
+      arg(
+        :input,
+        :id
+        |> non_null()
+        |> list_of()
+        |> non_null()
+      )
 
-      resolve(&ExperienceResolver.delete_experience/2)
+      resolve(&ExperienceResolver.delete_experiences/2)
     end
 
     @desc "Update an experience"

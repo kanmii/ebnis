@@ -400,4 +400,32 @@ defmodule EbnisData.Query.Experience do
       #{@create_entry_error_fragment}
     """
   end
+
+
+  def delete_experiences do
+    """
+      mutation DeleteExperiences($input: [ID!]!) {
+        deleteExperiences(input: $input) {
+          ... on DeleteExperiencesAllFail {
+            error
+          }
+          ... on DeleteExperiencesSomeSuccess {
+            experiences {
+              ... on DeleteExperienceErrors {
+                errors {
+                  id
+                  error
+                }
+              }
+              ... on DeleteExperienceSuccess {
+                experience {
+                  id
+                }
+              }
+            }
+          }
+        }
+      }
+    """
+  end
 end

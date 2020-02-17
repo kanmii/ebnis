@@ -1002,69 +1002,6 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
   end
 
-  describe "delete experience mutation" do
-    test "fails: no user context" do
-      variables = %{"id" => "a"}
-
-      assert {:ok,
-              %{
-                errors: [
-                  %{
-                    message: _
-                  }
-                ]
-              }} =
-               Absinthe.run(
-                 Query.delete(),
-                 Schema,
-                 variables: variables
-               )
-    end
-
-    test "fails: experience does not exist" do
-      variables = %{
-        "id" => @bogus_id
-      }
-
-      assert {:ok,
-              %{
-                errors: [
-                  %{
-                    message: _
-                  }
-                ]
-              }} =
-               Absinthe.run(
-                 Query.delete(),
-                 Schema,
-                 variables: variables,
-                 context: context(%{id: "0"})
-               )
-    end
-
-    test "succeeds" do
-      user = RegFactory.insert()
-      experience = Factory.insert(user_id: user.id)
-      id = experience.id
-      variables = %{"id" => id}
-
-      assert {:ok,
-              %{
-                data: %{
-                  "deleteExperience" => %{
-                    "id" => ^id
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 Query.delete(),
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-    end
-  end
-
   describe "update experience mutation" do
     # @tag :skip
     test "fails: no user context" do
@@ -2495,6 +2432,96 @@ defmodule EbnisData.Schema.ExperienceTest do
              } = EbnisData.create_experience1(attrs)
 
       assert is_binary(type_error)
+    end
+  end
+
+  describe "delete experiences" do
+    # @tag :skip
+    test "unauthorized" do
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "deleteExperiences" => %{
+                     "error" => error
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.delete_experiences(),
+                 Schema,
+                 variables: %{
+                   "input" => ["1"]
+                 }
+               )
+
+      assert is_binary(error)
+    end
+
+    test "successes and failures" do
+      bogus_id = @bogus_id
+      raises_id = "1"
+      user = RegFactory.insert()
+
+      %{id: experience_id} =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      variables = %{
+        "input" => [
+          raises_id,
+          bogus_id,
+          experience_id
+        ]
+      }
+
+      log =
+        capture_log(fn ->
+          assert {
+                   :ok,
+                   %{
+                     data: %{
+                       "deleteExperiences" => %{
+                         "experiences" => [
+                           %{
+                             "errors" => %{
+                               "id" => ^raises_id,
+                               "error" => raises_error
+                             }
+                           },
+                           %{
+                             "errors" => %{
+                               "id" => ^bogus_id,
+                               "error" => not_found_error
+                             }
+                           },
+                           %{
+                             "experience" => %{
+                               "id" => ^experience_id
+                             }
+                           }
+                         ]
+                       }
+                     }
+                   }
+                 } =
+                   Absinthe.run(
+                     Query.delete_experiences(),
+                     Schema,
+                     variables: variables,
+                     context: context(user)
+                   )
+
+          assert is_binary(raises_error)
+          assert is_binary(not_found_error)
+        end)
+
+      assert log =~ "STACK"
     end
   end
 

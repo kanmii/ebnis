@@ -5,8 +5,6 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   alias EbnisData.Experience
   alias EbnisData.Resolver.EntryResolver
 
-  @experience_not_found "Experience not found"
-
   def create_experience(
         %{input: attrs},
         %{context: %{current_user: %{id: id}}}
@@ -180,20 +178,6 @@ defmodule EbnisData.Resolver.ExperienceResolver do
           }
         }
     end
-  end
-
-  def delete_experience(%{id: id}, %{context: %{current_user: user}}) do
-    case EbnisData.delete_experience(id, user.id) do
-      :error ->
-        {:error, @experience_not_found}
-
-      {:ok, experience} ->
-        {:ok, experience}
-    end
-  end
-
-  def delete_experience(_, _) do
-    Resolver.unauthorized()
   end
 
   def update_experience(
@@ -660,5 +644,58 @@ defmodule EbnisData.Resolver.ExperienceResolver do
       {data_definitions_errors, _} ->
         Map.put(errors, :data_definitions, data_definitions_errors)
     end
+  end
+
+  def delete_experience_union(%{errors: _}, _) do
+    :delete_experience_errors
+  end
+
+  def delete_experience_union(_, _) do
+    :delete_experience_success
+  end
+
+  def delete_experiences_union(%{error: _}, _) do
+    :delete_experiences_all_fail
+  end
+
+  def delete_experiences_union(_, _) do
+    :delete_experiences_some_success
+  end
+
+  def delete_experiences(%{input: ids}, %{context: %{current_user: user}}) do
+    results =
+      ids
+      |> Enum.map(fn id ->
+        case EbnisData.delete_experience(id, user.id) do
+          {:ok, experience} ->
+            %{
+              experience: experience
+            }
+
+          {:error, error} ->
+            %{
+              errors: %{
+                id: id,
+                error: error
+              }
+            }
+        end
+      end)
+
+    {
+      :ok,
+      %{
+        experiences: results
+      }
+    }
+  end
+
+  def delete_experiences(_, _) do
+    {
+      :ok,
+      %{
+        error: "unauthorized"
+      }
+    }
   end
 end
