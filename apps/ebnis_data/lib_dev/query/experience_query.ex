@@ -119,7 +119,7 @@ defmodule EbnisData.Query.Experience do
 
   def update_experiences do
     """
-      mutation UpdateExperiencesOnline($input: [UpdateAnExperienceInput!]!) {
+      mutation UpdateExperiencesOnline($input: [UpdateExperienceInput!]!) {
         updateExperiences(input: $input) {
           __typename
           ... on UpdateExperiencesAllFail {

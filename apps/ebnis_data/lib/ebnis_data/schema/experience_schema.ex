@@ -737,7 +737,7 @@ defmodule EbnisData.Schema.Experience do
   @desc ~S"""
     Input variables for updating an experience
   """
-  input_object :update_an_experience_input do
+  input_object :update_experience_input do
     field(:experience_id, non_null(:id))
 
     field(:own_fields, :update_experience_own_fields_input)
@@ -793,7 +793,7 @@ defmodule EbnisData.Schema.Experience do
     field :update_experiences, :update_experiences do
       arg(
         :input,
-        :update_an_experience_input
+        :update_experience_input
         |> non_null()
         |> list_of()
         |> non_null()
