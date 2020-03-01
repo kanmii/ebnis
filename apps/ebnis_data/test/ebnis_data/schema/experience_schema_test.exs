@@ -653,6 +653,14 @@ defmodule EbnisData.Schema.ExperienceTest do
         ]
       }
 
+      delete_entries_variables = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "deleteEntries" => [
+          bogus_id,
+          entry_id
+        ]
+      }
+
       variables = %{
         "input" => [
           experience_not_found_variable,
@@ -666,7 +674,8 @@ defmodule EbnisData.Schema.ExperienceTest do
           entry_data_object_not_found_variable,
           data_updated_success_variable,
           create_entry_invalid_data,
-          create_entry_client_id_not_unique
+          create_entry_client_id_not_unique,
+          delete_entries_variables
         ]
       }
 
@@ -915,6 +924,24 @@ defmodule EbnisData.Schema.ExperienceTest do
                                  }
                                ]
                              }
+                           },
+                           %{
+                             "experience" => %{
+                               "experienceId" => ^update_own_fields_success_experience_id,
+                               "deletedEntries" => [
+                                 %{
+                                   "errors" => %{
+                                     "id" => ^bogus_id,
+                                     "error" => deleted_entry_not_found_error
+                                   }
+                                 },
+                                 %{
+                                   "entry" => %{
+                                     "id" => ^entry_id
+                                   }
+                                 }
+                               ]
+                             }
                            }
                          ]
                        }
@@ -938,6 +965,7 @@ defmodule EbnisData.Schema.ExperienceTest do
           assert is_binary(data_object_not_found_error)
           assert is_binary(data_wrong_error)
           assert is_binary(client_id_not_unique_error)
+          assert is_binary(deleted_entry_not_found_error)
         end)
 
       assert log =~ "STACK"
@@ -1553,72 +1581,6 @@ defmodule EbnisData.Schema.ExperienceTest do
         end)
 
       assert log =~ "STACK"
-    end
-  end
-
-  describe "delete entry" do
-    test "fails: unauthorized" do
-      variables = %{"id" => 0}
-
-      assert {:ok,
-              %{
-                errors: [
-                  %{
-                    message: _
-                  }
-                ]
-              }} =
-               Absinthe.run(
-                 Query.delete_entry(),
-                 Schema,
-                 variables: variables
-               )
-    end
-
-    test "fails: entry not found" do
-      variables = %{"id" => @bogus_id}
-
-      assert {:ok,
-              %{
-                errors: [
-                  %{
-                    message: _
-                  }
-                ]
-              }} =
-               Absinthe.run(
-                 Query.delete_entry(),
-                 Schema,
-                 variables: variables,
-                 context: context(%{id: 0})
-               )
-    end
-
-    test "succeeds" do
-      user = RegFactory.insert()
-      experience = Factory.insert(%{user_id: user.id})
-      entry = EntryFactory.insert(%{}, experience)
-      id = entry.id
-
-      variables = %{"id" => id}
-
-      assert {:ok,
-              %{
-                data: %{
-                  "deleteEntry" => %{
-                    "id" => ^id,
-                    "dataObjects" => _
-                  }
-                }
-              }} =
-               Absinthe.run(
-                 Query.delete_entry(),
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-
-      assert EbnisData.get_entry(entry.id) == nil
     end
   end
 

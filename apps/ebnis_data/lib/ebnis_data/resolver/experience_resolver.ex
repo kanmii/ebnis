@@ -186,6 +186,25 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     )
   end
 
+  defp process_updated_experience({:deleted_entries, may_be_deleted_entries}, acc) do
+    results =
+      may_be_deleted_entries
+      |> Enum.map(fn
+        {:ok, entry} ->
+          %{entry: entry}
+
+        {id, error} ->
+          %{
+            errors: %{
+              id: id,
+              error: error
+            }
+          }
+      end)
+
+    Map.put(acc, :deleted_entries, results)
+  end
+
   defp process_updated_experience({k, v}, acc) do
     Map.put(acc, k, v)
   end
@@ -545,11 +564,11 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     :create_entry_errors
   end
 
-  def delete_entry(%{id: id}, %{context: %{current_user: %{id: _}}}) do
-    EbnisData.delete_entry(id)
+  def delete_entry_union(%{entry: _}, _) do
+    :entry_success
   end
 
-  def delete_entry(_, _) do
-    Resolver.unauthorized()
+  def delete_entry_union(_, _) do
+    :delete_entry_errors
   end
 end

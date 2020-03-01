@@ -421,6 +421,28 @@ defmodule EbnisData.Schema.Experience do
     resolve_type(&ExperienceResolver.update_experience_own_fields_union/2)
   end
 
+  object :entry_success do
+    field(:entry, non_null(:entry))
+  end
+
+  object :delete_entry_error do
+    field(:id, non_null(:id))
+
+    @desc ~S"""
+      This will mostly be 'not found error'
+    """
+    field(:error, non_null(:string))
+  end
+
+  object :delete_entry_errors do
+    field(:errors, non_null(:delete_entry_error))
+  end
+
+  union :delete_entry_union do
+    types([:entry_success, :delete_entry_errors])
+    resolve_type(&ExperienceResolver.delete_entry_union/2)
+  end
+
   object :update_experience do
     field(:experience_id, non_null(:id))
     field(:updated_at, non_null(:datetime))
@@ -443,6 +465,13 @@ defmodule EbnisData.Schema.Experience do
     field(
       :new_entries,
       :create_entry_union
+      |> non_null()
+      |> list_of()
+    )
+
+    field(
+      :deleted_entries,
+      :delete_entry_union
       |> non_null()
       |> list_of()
     )
@@ -762,6 +791,13 @@ defmodule EbnisData.Schema.Experience do
       |> non_null()
       |> list_of()
     )
+
+    field(
+      :delete_entries,
+      :id
+      |> non_null()
+      |> list_of()
+    )
   end
 
   ######################### END INPUT OBJECTS SECTION ##################
@@ -807,15 +843,6 @@ defmodule EbnisData.Schema.Experience do
       arg(:input, :create_experience_input |> list_of() |> non_null())
 
       resolve(&ExperienceResolver.create_experiences/2)
-    end
-
-    @desc ~S"""
-      Delete an entry
-    """
-    field :delete_entry, :entry do
-      arg(:id, non_null(:id))
-
-      resolve(&ExperienceResolver.delete_entry/2)
     end
   end
 

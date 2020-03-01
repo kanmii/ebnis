@@ -15,7 +15,7 @@ defmodule EbnisData.EntryApi do
 
   @stacktrace "\n\n----------STACKTRACE---------------\n\n"
 
-  @error_not_found {:error, "entry not found"}
+  @error_not_found "entry not found"
   @data_object_not_found {
     :error,
     "Data object not found.\nMay be it was created offline."
@@ -309,7 +309,7 @@ defmodule EbnisData.EntryApi do
   def delete_entry(id) do
     case get_entry(id) do
       nil ->
-        @error_not_found
+        {id, @error_not_found}
 
       entry ->
         Repo.delete(entry)
@@ -327,7 +327,7 @@ defmodule EbnisData.EntryApi do
         ]
       end)
 
-      @error_not_found
+      {id, @error_not_found}
   end
 
   defp update_data_object(params) do

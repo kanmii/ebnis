@@ -234,6 +234,20 @@ defmodule EbnisData.Query.Experience do
                       }
                     }
                   }
+                  deletedEntries {
+                    __typename
+                    ... on EntrySuccess {
+                      entry {
+                        id
+                      }
+                    }
+                    ... on DeleteEntryErrors {
+                      errors {
+                        id
+                        error
+                      }
+                    }
+                  }
                 }
               }
             }

@@ -359,6 +359,20 @@ defmodule EbnisData.ExperienceApi do
     end
   end
 
+  defp update_experience_p(acc, {:delete_entries, ids}, experience) do
+    Map.merge(
+      acc,
+      %{
+        updated_at: experience.updated_at,
+        deleted_entries:
+          Enum.map(
+            ids,
+            &EntryApi.delete_entry(&1)
+          )
+      }
+    )
+  end
+
   defp update_experiences_update_definition(input) do
     id = input.id
 

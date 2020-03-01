@@ -116,7 +116,6 @@ defmodule EbnisData do
 
   ################################ START ENTRY SECTION #########
 
-  defdelegate delete_entry(attrs), to: EntryApi
   defdelegate get_entry(id), to: EntryApi
 
   defdelegate get_paginated_entries(experiences_ids_pagination_args_tuples, repo_opts),
