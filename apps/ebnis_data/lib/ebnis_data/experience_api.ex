@@ -6,14 +6,12 @@ defmodule EbnisData.ExperienceApi do
 
   alias EbnisData.Repo
   alias EbnisData.Experience
-  alias Ecto.Changeset
   alias EbnisData.DataDefinition
   alias EbnisData.EntryApi
 
   @get_experience_exception_header "\n\nException while getting experience with:"
   @bad_request "bad request"
   @update_definitions_exception_header "\n\nException while updating definitions with:"
-  @experience_does_not_exist "experience does not exist"
   @experience_can_not_be_created_exception_header "\n\nsomething is wrong - experience can not be created"
   @update_experience_exception_header "\n\nException while updating experience with:"
   @delete_experience_exception_header "\n\nException while deleting experience with:"
@@ -122,104 +120,6 @@ defmodule EbnisData.ExperienceApi do
     queryable
   end
 
-  def create_experience(attrs) do
-    attrs =
-      Map.update(
-        attrs,
-        :custom_requireds,
-        [:data_definitions],
-        &[:data_definitions | &1]
-      )
-
-    %Experience{}
-    |> Experience.changeset(attrs)
-    |> Repo.insert()
-  rescue
-    error ->
-      Logger.error(fn ->
-        [
-          @experience_can_not_be_created_exception_header,
-          inspect(attrs),
-          stacktrace_prefix(),
-          Exception.format(:error, error, __STACKTRACE__)
-          |> prettify_with_new_line()
-        ]
-      end)
-
-      {:error, @bad_request}
-  end
-
-  @spec save_offline_experience(
-          attrs ::
-            %{
-              user_id: String.t(),
-              experience: Map.t()
-            }
-        ) ::
-          {:ok, Experience.t(), [%Changeset{}]} | {:error, %Changeset{}}
-  def save_offline_experience(attrs) do
-    case attrs
-         |> Map.put(:custom_requireds, [:client_id])
-         |> create_experience() do
-      {:ok, %Experience{} = experience} ->
-        entries = attrs[:entries] || []
-
-        {created_entries, entries_changesets} =
-          validate_create_offline_entries(entries, experience)
-
-        experience_with_entries = %Experience{
-          experience
-          | entries: created_entries
-        }
-
-        {:ok, experience_with_entries, entries_changesets}
-
-      {:error, changeset} ->
-        {:error, changeset}
-    end
-  end
-
-  defp validate_create_offline_entries([], _) do
-    {[], []}
-  end
-
-  defp validate_create_offline_entries(entries, experience) do
-    client_id_to_definition_id_map =
-      Enum.reduce(
-        experience.data_definitions,
-        %{},
-        &Map.put(&2, &1.client_id, &1.id)
-      )
-
-    associations = %{
-      experience_id: experience.id,
-      user_id: experience.user_id
-    }
-
-    experience_client_id = experience.client_id
-
-    Enum.reduce(
-      entries,
-      {[], []},
-      fn entry, acc ->
-        entry_experience_client_id = entry.experience_id
-
-        case entry_experience_client_id == experience_client_id do
-          true ->
-            create_offline_entry(
-              entry,
-              client_id_to_definition_id_map,
-              associations,
-              acc
-            )
-
-          _ ->
-            offline_entry_add_error(entry, acc)
-        end
-      end
-    )
-  end
-
   defp offline_entry_add_error(
          entry,
          {created_entries, with_errors}
@@ -233,28 +133,6 @@ defmodule EbnisData.ExperienceApi do
     }
 
     {created_entries, [changeset | with_errors]}
-  end
-
-  defp create_offline_entry(
-         entry,
-         definitions_map,
-         associations,
-         {created_entries, with_errors}
-       ) do
-    with {:ok, entry} <-
-           update_data_objects_with_definition_ids(
-             entry,
-             definitions_map
-           ),
-         {:ok, created} <-
-           entry
-           |> Map.merge(associations)
-           |> EbnisData.create_entry() do
-      {[created | created_entries], with_errors}
-    else
-      {:error, changeset} ->
-        {created_entries, [changeset | with_errors]}
-    end
   end
 
   defp update_data_objects_with_definition_ids(entry_attrs, definitions_map) do
@@ -363,103 +241,6 @@ defmodule EbnisData.ExperienceApi do
       {:error, @bad_request}
   end
 
-  @spec update_experience(
-          update_args :: %{
-            optional(:title) => binary(),
-            optional(:description) => binary()
-          },
-          user_id :: integer() | binary()
-        ) :: {:error, binary()}
-  def update_experience(_, attrs) when attrs == %{} do
-    {:error, "nothing to update"}
-  end
-
-  def update_experience(attrs, user_id) do
-    case get_experience(attrs.id, user_id) do
-      nil ->
-        {:error, @experience_does_not_exist}
-
-      experience ->
-        experience
-        |> Experience.changeset(attrs)
-        |> Repo.update()
-    end
-  end
-
-  def update_definitions(
-        %{
-          experience_id: experience_id,
-          definitions: inputs
-        },
-        user_id
-      ) do
-    case get_experience(experience_id, user_id) do
-      nil ->
-        {:error, @experience_does_not_exist}
-
-      experience ->
-        definitions = Enum.map(inputs, &get_update_definition/1)
-
-        %{
-          experience:
-            update_experience_when_definitions_updated(
-              experience,
-              definitions
-            ),
-          definitions: definitions
-        }
-    end
-  rescue
-    error ->
-      Logger.error(fn ->
-        [
-          @update_definitions_exception_header,
-          inspect({inputs, user_id}),
-          stacktrace_prefix(),
-          Exception.format(:error, error, __STACKTRACE__)
-          |> prettify_with_new_line()
-        ]
-      end)
-
-      {:error, @bad_request}
-  end
-
-  def update_definitions(_, _) do
-    {:error, @bad_request}
-  end
-
-  defp get_update_definition(input) do
-    id = input.id
-
-    with %{} = definition <- get_definition(id),
-         changeset <- DataDefinition.changeset(definition, input),
-         {:ok, definition} <- Repo.update(changeset) do
-      %{definition: definition}
-    else
-      nil ->
-        changeset = %{
-          errors: [
-            definition: {"does not exist", []}
-          ]
-        }
-
-        %{
-          errors: %{
-            id: id,
-            errors: changeset.errors
-          }
-        }
-
-      {:error, changeset} ->
-        %{
-          errors: %{
-            id: id,
-            errors: changeset.errors
-          }
-        }
-    end
-  end
-
   defp get_definition(id) do
     DataDefinition
     |> where([d], d.id == ^id)
@@ -473,52 +254,7 @@ defmodule EbnisData.ExperienceApi do
     end
   end
 
-  defp update_experience_when_definitions_updated(
-         experience,
-         definitions
-       ) do
-    case map_update_definitions_results_to_ids(definitions) do
-      {_, []} ->
-        experience
-
-      {updated_definitions_map, [updated_at | _]} ->
-        {:ok, updated_experience} =
-          experience
-          |> Experience.changeset(%{updated_at: updated_at})
-          |> Repo.update()
-
-        %Experience{
-          updated_experience
-          | data_definitions:
-              Enum.map(
-                updated_experience.data_definitions,
-                &Map.get(updated_definitions_map, &1.id, &1)
-              )
-        }
-    end
-  end
-
-  defp map_update_definitions_results_to_ids(definitions) do
-    {map, dates} =
-      definitions
-      |> Enum.reduce(
-        {%{}, []},
-        fn
-          %{definition: definition}, {acc, dates} ->
-            {
-              Map.put(acc, definition.id, definition),
-              [definition.updated_at | dates]
-            }
-
-          _, acc ->
-            acc
-        end
-      )
-
-    {map, Enum.sort(dates, &<=/2)}
-  end
-
-  def update_experience1(params, user_id) do
+  def update_experience(params, user_id) do
     {experience_id, update_params} = Map.pop(params, :experience_id)
 
     %{id: experience_id, user_id: user_id}
@@ -560,7 +296,7 @@ defmodule EbnisData.ExperienceApi do
         new_entries:
           Enum.map(
             inputs,
-            &EntryApi.create_entry1(&1, experience)
+            &EntryApi.create_entry(&1, experience)
           )
       }
     )
@@ -574,7 +310,7 @@ defmodule EbnisData.ExperienceApi do
         updated_entries:
           Enum.map(
             inputs,
-            &EntryApi.update_entry1(&1, experience)
+            &EntryApi.update_entry(&1, experience)
           )
       }
     )
@@ -664,7 +400,7 @@ defmodule EbnisData.ExperienceApi do
       }
   end
 
-  def create_experience1(attrs) do
+  def create_experience(attrs) do
     attrs =
       Map.update(
         attrs,
@@ -736,12 +472,12 @@ defmodule EbnisData.ExperienceApi do
                    )
              }
              |> Map.merge(associations)
-             |> EbnisData.create_entry() do
-          {:ok, entry} ->
-            {[entry | created_entries], [nil | changesets]}
-
+             |> EntryApi.create_entry(experience) do
           {:error, changeset} ->
             {created_entries, [changeset | changesets]}
+
+          entry ->
+            {[entry | created_entries], [nil | changesets]}
         end
       end
     )
@@ -761,7 +497,8 @@ defmodule EbnisData.ExperienceApi do
       fn attrs, acc ->
         case attrs[:experience_id] == experience_client_id do
           true ->
-            create_offline_entry1(
+            create_offline_entry(
+              experience,
               attrs,
               client_id_to_definition_id_map,
               associations,
@@ -775,7 +512,8 @@ defmodule EbnisData.ExperienceApi do
     )
   end
 
-  defp create_offline_entry1(
+  defp create_offline_entry(
+         experience,
          attrs,
          client_id_to_definition_id_map,
          associations,
@@ -786,10 +524,10 @@ defmodule EbnisData.ExperienceApi do
              attrs,
              client_id_to_definition_id_map
            ),
-         {:ok, entry} <-
+         %{} = entry <-
            validated_attrs
            |> Map.merge(associations)
-           |> EbnisData.create_entry() do
+           |> EntryApi.create_entry(experience) do
       {[entry | created_entries], [nil | with_errors]}
     else
       {:error, changeset} ->

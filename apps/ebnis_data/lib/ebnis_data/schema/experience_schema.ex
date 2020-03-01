@@ -2,9 +2,11 @@ defmodule EbnisData.Schema.Experience do
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
 
+  import Absinthe.Resolution.Helpers, only: [dataloader: 1]
+
   alias EbnisData.Resolver.ExperienceResolver
 
-  ################################ START ENUMS ##########################
+  ################################ START ENUMS SECTION ##################
 
   @desc "The possible data type that can be defined for an experience"
   enum :data_types do
@@ -17,7 +19,169 @@ defmodule EbnisData.Schema.Experience do
     value(:datetime, as: "datetime")
   end
 
-  ###################### END ENUM ########################################
+  ###################### END ENUM SECTION ###########################
+
+  @desc ~S"""
+    All errors related to entry.dataObject creation/update in one field as
+    compared to dataObjectError (which will soon be deprecated in favour of this
+    field
+  """
+  object :data_object_error do
+    field(:meta, non_null(:data_object_error_meta))
+
+    field(:definition, :string)
+    field(:definition_id, :string)
+    field(:client_id, :string)
+
+    @desc ~S"""
+      Error related to the data e.g. a string was supplied for a decimal field.
+    """
+    field(:data, :string)
+
+    @desc ~S"""
+      For generic errors unrelated to the fields of the data object e.g.
+      not found error
+    """
+    field(:error, :string)
+  end
+
+  @desc ~S"""
+    Errors response on data object update - used in graphql union
+  """
+  object :data_object_errors do
+    field(:errors, non_null(:data_object_error))
+  end
+
+  @desc ~S"""
+    Response on successful entry or data object update
+  """
+  object :data_object_success do
+    field(:data_object, non_null(:data_object))
+  end
+
+  @desc ~S"""
+    On data object update, we will return either DataObjectSuccess or
+    or DataObjectErrors
+  """
+  union :update_data_object_union do
+    types([:data_object_success, :data_object_errors])
+    resolve_type(&ExperienceResolver.update_data_object_union/2)
+  end
+
+  union :update_entry_union do
+    types([:update_entry_errors, :update_entry_some_success])
+    resolve_type(&ExperienceResolver.update_entry_union/2)
+  end
+
+  object :update_entry_errors do
+    field(:errors, :update_entry_error)
+  end
+
+  @desc ~S"""
+    If when updating an entry, the entry is not found in the DB, there is no
+    point taking a look at its data objects. We return this error to indicate
+    such failure
+  """
+  object :update_entry_error do
+    field(:entry_id, non_null(:id))
+    field(:error, non_null(:string))
+  end
+
+  @desc ~S"""
+    If at least one data object member of an entry can be updated, then this
+    is the response sent
+  """
+  object :update_entry_some_success do
+    field(:entry, non_null(:update_entry))
+  end
+
+  @desc ~S"""
+    Response sent after entry is updated.
+  """
+  object :update_entry do
+    field(:entry_id, non_null(:id))
+
+    field(
+      :data_objects,
+      :update_data_object_union
+      |> non_null()
+      |> list_of()
+      |> non_null()
+    )
+
+    @desc ~S"""
+      If any entry data objects is updated, then the entry itself will
+      be updated to the latest dataObject.updatedAt
+    """
+    field(:updated_at, :datetime)
+  end
+
+  @desc """
+      An entry data object
+  """
+  object :data_object do
+    field(:id, non_null(:id))
+
+    @desc ~S"""
+      Client ID indicates that data object was created offline
+    """
+    field(:client_id, :id)
+
+    field(:data, non_null(:data_json))
+    field(:definition_id, non_null(:id))
+
+    field(:inserted_at, non_null(:datetime))
+    field(:updated_at, non_null(:datetime))
+  end
+
+  @desc """
+    An Experience entry that supports relay
+  """
+  object :entry do
+    @desc "Entry ID"
+    field(:id, non_null(:id))
+
+    @desc ~S"""
+      The ID of experience to which this entry belongs.
+    """
+    field(:experience_id, non_null(:id))
+
+    @desc ~S"""
+      The client ID which indicates that an entry has been created while server
+      is offline and is to be saved. The client ID uniquely
+      identifies this entry and will be used to prevent conflict while saving entry
+      created offline and must thus be non null in this situation.
+    """
+    field(:client_id, :id)
+
+    @desc """
+      The experience object to which this entry belongs
+    """
+    field(
+      :experience,
+      non_null(:experience),
+      resolve: dataloader(:data)
+    )
+
+    @desc """
+      The list of data belonging to this entry.
+    """
+    field(
+      :data_objects,
+      :data_object
+      |> list_of()
+      |> non_null()
+    )
+
+    field(:inserted_at, non_null(:datetime))
+    field(:updated_at, non_null(:datetime))
+
+    @desc ~S"""
+      Indicates whether entry has been modified offline, in which case this
+      property will be true, otherwise it will be falsy
+    """
+    field(:mod_offline, :boolean)
+  end
 
   @desc """
     Experience schema. Uses relay.
@@ -81,51 +245,66 @@ defmodule EbnisData.Schema.Experience do
     field(:updated_at, non_null(:datetime))
   end
 
-  @desc """
-    Error object returned if data definition refuses to save.
-  """
-  object :data_definition_error do
-    field(:name, :string)
-    field(:type, :string)
-
-    @desc """
-      May be we can't find the definition during an update
-    """
-    field(:definition, :string)
-  end
-
-  @desc """
-    Experience field errors during creation
-  """
-  object :create_experience_errors do
-    field(:title, :string)
-    field(:data_definitions_errors, list_of(:data_definition_errors))
-    field(:user, :string)
-    field(:client_id, :string)
-  end
-
-  object :data_definition_errors do
-    field(:index, non_null(:integer))
-    field(:errors, non_null(:data_definition_error))
-  end
-
-  @desc """
-    Object returned on experience creation
-  """
-  object :create_experience_return_value do
-    field(:experience, :experience)
-    field(:errors, :create_experience_errors)
-  end
-
   object :experience_success do
     field(:experience, non_null(:experience))
 
     field(
       :entries_errors,
-      :create_entry_errorx
+      :create_entry_error
       |> non_null()
       |> list_of()
     )
+  end
+
+  object :create_entry_success do
+    field(:entry, non_null(:entry))
+  end
+
+  object :data_object_error_meta do
+    field(:index, non_null(:integer))
+    field(:id, :id)
+    field(:client_id, :string)
+  end
+
+  object :create_entry_error_meta do
+    field(:experience_id, non_null(:id))
+    field(:index, non_null(:integer))
+    field(:client_id, :id)
+  end
+
+  object :create_entry_error do
+    field(:meta, non_null(:create_entry_error_meta))
+
+    @desc ~S"""
+      Did we fail because there are errors in the data object object?
+    """
+    field(:data_objects, list_of(:data_object_error))
+
+    @desc ~S"""
+      An offline entry of offline experience must have its experience ID same as
+      experience.clientId.
+    """
+    field(:experience_id, :string)
+
+    @desc ~S"""
+      May be we failed because entry.clientId is already taken by another
+      entry belonging to the experience.
+    """
+    field(:client_id, :string)
+
+    @desc ~S"""
+      A catch-all field for when we are unable to create an entry
+    """
+    field(:error, :string)
+  end
+
+  object :create_entry_errors do
+    field(:errors, non_null(:create_entry_error))
+  end
+
+  union :create_entry_union do
+    types([:create_entry_success, :create_entry_errors])
+    resolve_type(&ExperienceResolver.create_entry_union/2)
   end
 
   object :create_definition_errors do
@@ -145,7 +324,7 @@ defmodule EbnisData.Schema.Experience do
   @desc """
     Experience field errors during creation
   """
-  object :create_experience_errors1 do
+  object :create_experience_error do
     field(:meta, non_null(:create_experience_error_meta))
     field(:title, :string)
     field(:data_definitions, list_of(:create_definition_errors))
@@ -167,51 +346,13 @@ defmodule EbnisData.Schema.Experience do
     field(:client_id, :string)
   end
 
-  object :create_experience_errorss do
-    field(:errors, non_null(:create_experience_errors1))
+  object :create_experience_errors do
+    field(:errors, non_null(:create_experience_error))
   end
 
   union :create_experience_union do
-    types([:experience_success, :create_experience_errorss])
+    types([:experience_success, :create_experience_errors])
     resolve_type(&ExperienceResolver.create_experience_union/2)
-  end
-
-  object :create_offline_experience_errors do
-    @desc ~S"""
-      The error object representing the insert failure reasons
-    """
-    field(:errors, non_null(:create_experience_errors))
-
-    @desc ~S"""
-      The index of the failing experience in the list of experiences input
-    """
-    field(:index, non_null(:integer))
-
-    @desc ~S"""
-      The client ID of the failing experience. As user may not have provided a
-      client ID, this field is nullable and in that case, the index field will
-      be used to identify this error
-    """
-    field(:client_id, non_null(:id))
-  end
-
-  object :offline_experience do
-    @desc ~S"""
-      The experience which was successfully inserted
-      - will be null if experience fails to insert
-    """
-    field(:experience, :experience)
-
-    @desc ~S"""
-      If the experience fails to insert, then this is the error object
-      returned
-    """
-    field(:experience_errors, :create_offline_experience_errors)
-
-    @desc ~S"""
-      A list of error objects denoting entries which fail to insert
-    """
-    field(:entries_errors, list_of(:create_entries_errors))
   end
 
   @desc """
@@ -220,53 +361,6 @@ defmodule EbnisData.Schema.Experience do
   object :update_experience_errors do
     field(:title, :string)
     field(:client_id, :string)
-  end
-
-  @desc """
-    Object returned on experience update
-  """
-  object :update_experience_return_value do
-    field(:experience, :experience)
-    field(:errors, :update_experience_errors)
-  end
-
-  @desc """
-    Error returned while updating a definition
-  """
-  object :update_definition_error do
-    field(:id, non_null(:id))
-    field(:errors, non_null(:data_definition_error))
-  end
-
-  @desc """
-    An object representing an updated defintion
-  """
-  object :update_definition_response do
-    field(:definition, :data_definition)
-    field(:errors, :update_definition_error)
-  end
-
-  @desc """
-    An object representing the response of the update definitions operation
-  """
-  object :update_definitions_response do
-    @desc """
-      The experience to which the definitions updated belong. The experience
-      is always updated whenever a definition is updated with the most recent
-      updatedAt field of the definitions to be updated.
-    """
-    field(:experience, non_null(:experience))
-
-    @desc """
-      The definitions to be updated, successes/failures
-    """
-    field(
-      :definitions,
-      :update_definition_response
-      |> non_null()
-      |> list_of()
-      |> non_null()
-    )
   end
 
   object :definition_success do
@@ -444,7 +538,111 @@ defmodule EbnisData.Schema.Experience do
 
   ######################### END REGULAR OBJECTS ###########################
 
-  ############################ INPUT OBJECTS SECTION ####################
+  ############################ START INPUT OBJECTS SECTION ####################
+
+  input_object :update_data_object_input do
+    @desc ~S"""
+      The ID of the data object we wish to update
+    """
+    field(:id, non_null(:id))
+
+    @desc ~S"""
+      The data object of the new value. It is of the form:
+
+      ```json
+        {"integer":1}
+      ```
+    """
+    field(:data, non_null(:data_json))
+
+    @desc """
+      If updated offline, it might include timestamps
+    """
+    field(:updated_at, :datetime)
+  end
+
+  @desc ~S"""
+    An input object for updating an entry when updating several entries at once
+  """
+  input_object :update_entry_input do
+    field(:entry_id, non_null(:id))
+
+    field(
+      :data_objects,
+      :update_data_object_input
+      |> non_null()
+      |> list_of()
+      |> non_null()
+    )
+  end
+
+  input_object :create_entry_input do
+    @desc """
+      The entry data object for the experience entry
+    """
+    field(
+      :data_objects,
+      :create_data_object
+      |> non_null()
+      |> list_of()
+      |> non_null()
+    )
+
+    @desc ~S"""
+      If the experience ID is specified, then it must match either
+      entry.experience.id or entry.experience.clientId
+    """
+    field(:experience_id, :id)
+
+    @desc ~S"""
+      Client id for entries created while server is offline and to be saved.
+    """
+    field(:client_id, :id)
+
+    @desc """
+      If entry is created on the client, it might include timestamps
+    """
+    field(:inserted_at, :datetime)
+    field(:updated_at, :datetime)
+  end
+
+  @desc ~S"""
+    Variables for creating an entry field
+  """
+  input_object :create_data_object do
+    @desc ~S"""
+      The experience definition ID for which the experience data is to be
+      generated. If the associated experience of this entry has been created
+      offline, then this field **MUST BE THE SAME** as
+      `createEntryData.clientId` and will be rejected if not.
+    """
+    field(:definition_id, non_null(:id))
+
+    @desc ~S"""
+      The data of this entry. It is a JSON string of the form:
+
+      ```json
+        {date: '2017-01-01'}
+        {integer: 4}
+      ```
+    """
+    field(:data, non_null(:data_json))
+
+    @desc ~S"""
+      Indicates that data object was created offline
+    """
+    field(:client_id, :id)
+
+    @desc """
+      If data objects is created on the client, it might include timestamps
+    """
+    field(:inserted_at, :datetime)
+    field(:updated_at, :datetime)
+  end
+
+  @desc """
+    Variables for creating an experience entry
+  """
 
   @desc "Variables for defining field while defining a new experience"
   input_object :create_data_definition do
@@ -493,16 +691,6 @@ defmodule EbnisData.Schema.Experience do
     field(:entries, :create_entry_input |> list_of())
   end
 
-  @desc "Variables for updating an existing Experience"
-  input_object :update_experience_input do
-    @desc ~S"""
-      The ID of experience to be updated
-    """
-    field(:id, non_null(:id))
-    field(:title, :string)
-    field(:description, :string)
-  end
-
   input_object :get_experiences_input do
     @desc ~S"""
       Optionally paginate the experiences
@@ -535,22 +723,6 @@ defmodule EbnisData.Schema.Experience do
       date assigned offline.
     """
     field(:updated_at, :datetime)
-  end
-
-  @desc ~S"""
-    fields required to update a collection of data definitions belonging to an
-    experience
-  """
-  input_object :update_definitions_input do
-    field(:experience_id, non_null(:id))
-
-    field(
-      :definitions,
-      :update_definition_input
-      |> non_null()
-      |> list_of()
-      |> non_null()
-    )
   end
 
   @desc ~S"
@@ -586,7 +758,7 @@ defmodule EbnisData.Schema.Experience do
 
     field(
       :add_entries,
-      :create_an_entry_input
+      :create_entry_input
       |> non_null()
       |> list_of()
     )
@@ -600,20 +772,6 @@ defmodule EbnisData.Schema.Experience do
     Mutations allowed on Experience object
   """
   object :experience_mutations do
-    @desc "Create an experience"
-    field :create_experience, :create_experience_return_value do
-      arg(:input, non_null(:create_experience_input))
-
-      resolve(&ExperienceResolver.create_experience/2)
-    end
-
-    @desc "Save many experiences created offline"
-    field :save_offline_experiences, list_of(:offline_experience) do
-      arg(:input, :create_experience_input |> list_of() |> non_null())
-
-      resolve(&ExperienceResolver.save_offline_experiences/2)
-    end
-
     @desc ~S"""
       Delete several experiences
     """
@@ -627,22 +785,6 @@ defmodule EbnisData.Schema.Experience do
       )
 
       resolve(&ExperienceResolver.delete_experiences/2)
-    end
-
-    @desc "Update an experience"
-    field :update_experience, :update_experience_return_value do
-      arg(:input, non_null(:update_experience_input))
-
-      resolve(&ExperienceResolver.update_experience/2)
-    end
-
-    @desc """
-        Update several definitions
-    """
-    field :update_definitions, :update_definitions_response do
-      arg(:input, :update_definitions_input)
-
-      resolve(&ExperienceResolver.update_definitions/2)
     end
 
     @desc ~S"""
@@ -665,6 +807,15 @@ defmodule EbnisData.Schema.Experience do
       arg(:input, :create_experience_input |> list_of() |> non_null())
 
       resolve(&ExperienceResolver.create_experiences/2)
+    end
+
+    @desc ~S"""
+      Delete an entry
+    """
+    field :delete_entry, :entry do
+      arg(:id, non_null(:id))
+
+      resolve(&ExperienceResolver.delete_entry/2)
     end
   end
 
@@ -700,4 +851,5 @@ defmodule EbnisData.Schema.Experience do
   ######################### END QUERIES SECTION ##########################
 
   connection(node_type: :experience)
+  connection(node_type: :entry)
 end

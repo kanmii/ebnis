@@ -1,5 +1,6 @@
 defmodule EbnisData.Factory.Entry do
   alias EbnisData.Factory
+  alias EbnisData.EntryApi
 
   @integers 100..110
 
@@ -8,13 +9,10 @@ defmodule EbnisData.Factory.Entry do
   def insert(attrs, experience)
 
   def insert(%{} = attrs, experience) do
-    {:ok, entry} =
-      experience
-      |> params(attrs)
-      |> Map.put(:user_id, experience.user_id)
-      |> EbnisData.create_entry()
-
-    entry
+    experience
+    |> params(attrs)
+    |> Map.put(:user_id, experience.user_id)
+    |> EntryApi.create_entry(experience)
   end
 
   def params(%{} = experience) do

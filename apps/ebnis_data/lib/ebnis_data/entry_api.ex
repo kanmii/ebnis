@@ -165,59 +165,6 @@ defmodule EbnisData.EntryApi do
     multi
   end
 
-  @spec create_entry(
-          attrs :: %{
-            experience_id: integer() | binary(),
-            user_id: integer() | binary()
-          }
-        ) ::
-          {:error, Changeset.t()}
-          | {:ok, Entry.t()}
-  def create_entry(%{user_id: user_id, experience_id: experience_id} = attrs) do
-    case EbnisData.get_experience(experience_id, user_id) do
-      nil ->
-        fake_changeset = %{
-          errors: [experience: {"does not exist", []}],
-          changes: Map.put(attrs, :data_objects, [])
-        }
-
-        {:error, fake_changeset}
-
-      experience ->
-        case validate_data_objects_with_definitions(
-               experience.data_definitions,
-               attrs.data_objects
-             ) do
-          {:ok, data_objects_changesets} ->
-            Multi.new()
-            |> Multi.run(@entry_multi_key, &create_entry_multi(&1, &2, attrs))
-            |> Multi.merge(&create_data_objects_multi(&1, data_objects_changesets))
-            |> Repo.transaction()
-            |> case do
-              {:ok, result} ->
-                {:ok, process_create_entry_result(result)}
-
-              {:error, @entry_multi_key, changeset, _rest} ->
-                {:error, put_empty_data_objects_changes(changeset)}
-
-              {:error, data_object_index, changeset, _rest} ->
-                {
-                  :error,
-                  data_objects_changesets
-                  |> List.replace_at(data_object_index, changeset)
-                  |> fake_changeset_with_data_objects(attrs)
-                }
-            end
-
-          {:error, data_objects_changesets} ->
-            {
-              :error,
-              fake_changeset_with_data_objects(data_objects_changesets, attrs)
-            }
-        end
-    end
-  end
-
   defp process_create_entry_result(result) do
     {entry, data_list_map} = Map.pop(result, @entry_multi_key)
 
@@ -346,77 +293,6 @@ defmodule EbnisData.EntryApi do
     end)
   end
 
-  def create_entries(attrs) do
-    attrs
-    |> Enum.reduce(%{}, fn param, acc ->
-      experience_id = param.experience_id
-
-      case create_entry(param) do
-        {:ok, entry} ->
-          Map.update(
-            acc,
-            experience_id,
-            %{
-              entries: [entry],
-              errors: [],
-              experience_id: experience_id
-            },
-            fn map ->
-              update_in(map.entries, &[entry | &1])
-            end
-          )
-
-        {:error, changeset} ->
-          errors = %{
-            errors: changeset,
-            experience_id: experience_id,
-            client_id: changeset.changes.client_id
-          }
-
-          Map.update(
-            acc,
-            experience_id,
-            %{
-              entries: [],
-              errors: [errors],
-              experience_id: experience_id
-            },
-            fn map ->
-              update_in(map.errors, &[errors | &1])
-            end
-          )
-      end
-    end)
-    |> Enum.reduce(
-      %{},
-      &clean_up_create_entries_result_reducer/2
-    )
-  end
-
-  defp clean_up_create_entries_result_reducer({k, v}, acc) do
-    errors =
-      case v.errors do
-        [] ->
-          nil
-
-        [error] ->
-          [error]
-
-        errors ->
-          Enum.reverse(errors)
-      end
-
-    Map.put(
-      acc,
-      k,
-      %{
-        v
-        | entries: Enum.reverse(v.entries),
-          errors: errors
-      }
-    )
-  end
-
   def get_entry(id) do
     Entry
     |> where([e], e.id == ^id)
@@ -454,7 +330,7 @@ defmodule EbnisData.EntryApi do
       @error_not_found
   end
 
-  def update_data_object(params) do
+  defp update_data_object(params) do
     DataObject
     |> where([d], d.id == ^params.id)
     |> Repo.all()
@@ -480,53 +356,6 @@ defmodule EbnisData.EntryApi do
       end)
 
       @data_object_not_found
-  end
-
-  def update_entry(%{entry_id: entry_id} = params, user_id) do
-    from(
-      e in Entry,
-      where: e.id == ^entry_id,
-      join: ex in assoc(e, :experience),
-      where: ex.user_id == ^user_id
-    )
-    |> Repo.all()
-    |> case do
-      [] ->
-        %{
-          entry_id: entry_id,
-          error: @entry_not_found
-        }
-
-      [entry] ->
-        {
-          may_be_updated_data_objects,
-          updated_ats
-        } = update_data_objects(params.data_objects)
-
-        may_be_updated_entry = updated_entry_updated_at(entry, updated_ats)
-
-        %{
-          entry_id: entry_id,
-          updated_at: may_be_updated_entry.updated_at,
-          data_objects: may_be_updated_data_objects
-        }
-    end
-  rescue
-    error ->
-      Logger.error(fn ->
-        [
-          @update_entry_exception_header,
-          inspect(params),
-          @stacktrace,
-          Exception.format(:error, error, __STACKTRACE__)
-          |> Ebnis.prettify_with_new_line()
-        ]
-      end)
-
-      %{
-        entry_id: entry_id,
-        error: @entry_not_found
-      }
   end
 
   defp updated_entry_updated_at(entry, updated_ats) do
@@ -572,7 +401,7 @@ defmodule EbnisData.EntryApi do
     {Enum.reverse(may_be_updated_data_objects), updated_ats}
   end
 
-  def update_entry1(%{entry_id: entry_id} = params, experience) do
+  def update_entry(%{entry_id: entry_id} = params, experience) do
     from(
       e in Entry,
       where: e.id == ^entry_id,
@@ -624,7 +453,7 @@ defmodule EbnisData.EntryApi do
       }
   end
 
-  def create_entry1(attrs, experience) do
+  def create_entry(attrs, experience) do
     case validate_data_objects_with_definitions(
            experience.data_definitions,
            attrs.data_objects

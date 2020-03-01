@@ -3,77 +3,6 @@ defmodule EbnisData.Resolver.ExperienceResolver do
 
   alias EbnisData.Resolver
   alias EbnisData.Experience
-  alias EbnisData.Resolver.EntryResolver
-
-  def create_experience(
-        %{input: attrs},
-        %{context: %{current_user: %{id: id}}}
-      ) do
-    attrs
-    |> Map.put(:user_id, id)
-    |> EbnisData.create_experience()
-    |> case do
-      {:ok, experience} ->
-        {
-          :ok,
-          %{
-            experience: experience
-          }
-        }
-
-      {:error, %{} = changeset} ->
-        {
-          :ok,
-          %{
-            errors: create_experience_errors_from_changeset(changeset)
-          }
-        }
-
-      error ->
-        error
-    end
-  end
-
-  def create_experience(_, _) do
-    Resolver.unauthorized()
-  end
-
-  defp create_experience_errors_from_changeset(changeset) do
-    case changeset.errors do
-      [] ->
-        %{}
-
-      errors ->
-        changeset_errors_to_map(errors)
-    end
-    |> data_definition_changeset_to_error_map(changeset.changes.data_definitions)
-  end
-
-  defp data_definition_changeset_to_error_map(errors, changesets) do
-    changesets
-    |> Enum.reduce(
-      {[], 0},
-      fn
-        %{valid?: false, errors: errors}, {acc, index} ->
-          errors = %{
-            index: index,
-            errors: changeset_errors_to_map(errors)
-          }
-
-          {[errors | acc], index + 1}
-
-        _, {acc, index} ->
-          {acc, index + 1}
-      end
-    )
-    |> case do
-      {[], _} ->
-        errors
-
-      {data_definitions_errors, _} ->
-        Map.put(errors, :data_definitions_errors, data_definitions_errors)
-    end
-  end
 
   defp changeset_errors_to_map(errors) do
     errors
@@ -133,118 +62,6 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     end)
   end
 
-  def save_offline_experiences(
-        %{input: experiences},
-        %{context: %{current_user: %{id: user_id}}}
-      ) do
-    {
-      :ok,
-      experiences
-      |> Enum.with_index()
-      |> Enum.map(&save_offline_experience(&1, user_id))
-    }
-  end
-
-  def save_offline_experiences(_, _) do
-    Resolver.unauthorized()
-  end
-
-  defp save_offline_experience({experience, index}, user_id) do
-    case experience
-         |> Map.put(:user_id, user_id)
-         |> EbnisData.save_offline_experience() do
-      {:ok, experience, []} ->
-        %{experience: experience}
-
-      {:ok, experience, entries_changesets} ->
-        errors =
-          Enum.map(
-            entries_changesets,
-            &%{
-              errors: EntryResolver.entry_changeset_errors_to_map(&1),
-              experience_id: experience.id,
-              client_id: &1.changes.client_id
-            }
-          )
-
-        %{experience: experience, entries_errors: errors}
-
-      {:error, changeset} ->
-        %{
-          experience_errors: %{
-            index: index,
-            client_id: experience[:client_id] || index,
-            errors: create_experience_errors_from_changeset(changeset)
-          }
-        }
-    end
-  end
-
-  def update_experience(
-        %{input: %{} = args},
-        %{context: %{current_user: user}}
-      ) do
-    case EbnisData.update_experience(args, user.id) do
-      {:ok, experience} ->
-        {:ok, %{experience: experience}}
-
-      {:error, %{} = changeset} ->
-        {
-          :ok,
-          %{
-            errors: Resolver.changeset_errors_to_map(changeset.errors)
-          }
-        }
-
-      {:error, error} ->
-        {:error, error}
-    end
-  end
-
-  def update_experience(_, _) do
-    Resolver.unauthorized()
-  end
-
-  def update_definitions(
-        %{input: inputs},
-        %{context: %{current_user: %{id: user_id}}}
-      ) do
-    case EbnisData.update_definitions(inputs, user_id) do
-      %{experience: experience} = result ->
-        {
-          :ok,
-          %{
-            experience: experience,
-            definitions:
-              Enum.map(
-                result.definitions,
-                &map_update_definition_result/1
-              )
-          }
-        }
-
-      {:error, error} ->
-        {:error, error}
-    end
-  end
-
-  def update_definitions(_, _) do
-    Resolver.unauthorized()
-  end
-
-  defp map_update_definition_result(%{definition: definition}) do
-    %{definition: definition}
-  end
-
-  defp map_update_definition_result(%{errors: errors}) do
-    %{
-      errors: %{
-        id: errors.id,
-        errors: Resolver.changeset_errors_to_map(errors.errors)
-      }
-    }
-  end
-
   def update_definition_union(%{definition: _}, _) do
     :definition_success
   end
@@ -282,7 +99,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
       Enum.map(inputs, fn params ->
         experience_id = params.experience_id
 
-        case EbnisData.update_experience1(params, user.id) do
+        case EbnisData.update_experience(params, user.id) do
           %{} = updated_experience ->
             %{
               experience:
@@ -427,14 +244,16 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     errors = Resolver.changeset_errors_to_map(changeset.errors)
 
     %{
-      errors: Map.put(errors, :id, id)
+      errors: Map.put(errors, :meta, %{id: id})
     }
   end
 
   defp updated_data_object_to_gql_output({id, string_error}) do
     %{
       errors: %{
-        id: id,
+        meta: %{
+          id: id
+        },
         error: string_error
       }
     }
@@ -491,11 +310,14 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     Enum.reduce(changesets, {[], 0}, fn
       %{valid?: false, errors: errors, changes: changes}, {acc, index} ->
         mapped_errors =
-          %{
-            index: index,
-            client_id: changes[:client_id]
-          }
-          |> Map.merge(Resolver.changeset_errors_to_map(errors))
+          Map.put(
+            Resolver.changeset_errors_to_map(errors),
+            :meta,
+            %{
+              index: index,
+              client_id: changes[:client_id]
+            }
+          )
 
         {
           [
@@ -521,7 +343,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   def create_experience_union(_, _) do
-    :create_experience_errorss
+    :create_experience_errors
   end
 
   def create_experiences(
@@ -543,7 +365,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   defp create_experience_p({attrs, index}, user_id) do
     case attrs
          |> Map.put(:user_id, user_id)
-         |> EbnisData.create_experience1() do
+         |> EbnisData.create_experience() do
       {%{} = experience, []} ->
         %{experience: experience}
 
@@ -566,7 +388,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         %{
           errors:
             Map.put(
-              create_experience_errors_from_changeset1(changeset),
+              create_experience_errors_from_changeset(changeset),
               :meta,
               %{
                 index: index,
@@ -588,7 +410,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     end
   end
 
-  defp create_experience_errors_from_changeset1(changeset) do
+  defp create_experience_errors_from_changeset(changeset) do
     case changeset.errors do
       [] ->
         %{}
@@ -697,5 +519,37 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         error: "unauthorized"
       }
     }
+  end
+
+  def update_data_object_union(%{data_object: _}, _) do
+    :data_object_success
+  end
+
+  def update_data_object_union(%{errors: _}, _) do
+    :data_object_errors
+  end
+
+  def update_entry_union(%{errors: _}, _) do
+    :update_entry_errors
+  end
+
+  def update_entry_union(%{entry: _}, _) do
+    :update_entry_some_success
+  end
+
+  def create_entry_union(%{entry: _}, _) do
+    :create_entry_success
+  end
+
+  def create_entry_union(_, _) do
+    :create_entry_errors
+  end
+
+  def delete_entry(%{id: id}, %{context: %{current_user: %{id: _}}}) do
+    EbnisData.delete_entry(id)
+  end
+
+  def delete_entry(_, _) do
+    Resolver.unauthorized()
   end
 end

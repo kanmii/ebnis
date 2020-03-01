@@ -108,24 +108,16 @@ defmodule EbnisData do
 
   defdelegate get_experience(id, user_id), to: ExperienceApi
   defdelegate get_experiences(args), to: ExperienceApi
-  defdelegate save_offline_experience(args), to: ExperienceApi
   defdelegate create_experience(args), to: ExperienceApi
-  defdelegate create_experience1(args), to: ExperienceApi
   defdelegate delete_experience(id, user_id), to: ExperienceApi
   defdelegate update_experience(update_args, user_id), to: ExperienceApi
-  defdelegate update_experience1(update_args, user_id), to: ExperienceApi
-  defdelegate update_definitions(inputs, user_id), to: ExperienceApi
 
   #########################  END  EXPERIENCES ###############################
 
   ################################ START ENTRY SECTION #########
 
-  defdelegate create_entry(attrs), to: EntryApi
-  defdelegate create_entries(attrs), to: EntryApi
   defdelegate delete_entry(attrs), to: EntryApi
-  defdelegate update_data_object(arg), to: EntryApi
   defdelegate get_entry(id), to: EntryApi
-  defdelegate update_entry(params, user_id), to: EntryApi
 
   defdelegate get_paginated_entries(experiences_ids_pagination_args_tuples, repo_opts),
     to: EntryApi

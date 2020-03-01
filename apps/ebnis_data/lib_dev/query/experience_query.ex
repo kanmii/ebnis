@@ -1,6 +1,4 @@
 defmodule EbnisData.Query.Experience do
-  alias EbnisData.Query.Entry
-
   @fragment_name "ExperienceFragment"
 
   @data_definition_fragment_name "DataDefinitionFragment"
@@ -49,28 +47,10 @@ defmodule EbnisData.Query.Experience do
     #{@data_definition_fragment}
   """
 
-  @fragment_create_experience_errors_name "CreateExperienceErrorFragment"
-
-  @fragment_create_experience_errors """
-    fragment #{@fragment_create_experience_errors_name}
-      on CreateExperienceErrors {
-        title
-        user
-        clientId
-        dataDefinitionsErrors {
-          index
-          errors {
-            name
-            type
-          }
-        }
-      }
-  """
-
   @create_entry_error_fragment_name "CreateEntryErrorFragment"
 
   @create_entry_error_fragment """
-    fragment #{@create_entry_error_fragment_name} on CreateEntryErrorx {
+    fragment #{@create_entry_error_fragment_name} on CreateEntryError {
       meta {
         experienceId
         index
@@ -80,7 +60,9 @@ defmodule EbnisData.Query.Experience do
       clientId
       experienceId
       dataObjects {
-        index
+        meta {
+          index
+        }
         definition
         definitionId
         data
@@ -88,25 +70,6 @@ defmodule EbnisData.Query.Experience do
       }
     }
   """
-
-  def create do
-    """
-      mutation CreateExperience($input: CreateExperienceInput!) {
-        createExperience(input: $input) {
-          experience {
-            ...#{@fragment_name}
-          }
-
-          errors {
-            ...#{@fragment_create_experience_errors_name}
-          }
-        }
-      }
-
-      #{@fragment}
-      #{@fragment_create_experience_errors}
-    """
-  end
 
   def get do
     """
@@ -142,41 +105,6 @@ defmodule EbnisData.Query.Experience do
     """
   end
 
-  def save_offline_experiences do
-    {fragment_create_entry_errors, fragment_create_entry_errors_name} =
-      Entry.create_entry_errors()
-
-    """
-      mutation SaveOfflineExperiences($input: [CreateExperienceInput!]!) {
-        saveOfflineExperiences(input: $input) {
-          experience {
-            ...#{@fragment_name}
-          }
-
-          experienceErrors {
-            index
-            clientId
-            errors {
-              ...#{@fragment_create_experience_errors_name}
-            }
-          }
-
-          entriesErrors {
-            experienceId
-            clientId
-            errors {
-              ...#{fragment_create_entry_errors_name}
-            }
-          }
-        }
-      }
-
-      #{@fragment}
-      #{@fragment_create_experience_errors}
-      #{fragment_create_entry_errors}
-    """
-  end
-
   def delete do
     """
       mutation DeleteExperience($id: ID!) {
@@ -186,56 +114,6 @@ defmodule EbnisData.Query.Experience do
       }
 
       #{@fragment}
-    """
-  end
-
-  def update do
-    """
-      mutation UpdateExperience($input: UpdateExperienceInput!) {
-        updateExperience(input: $input) {
-          experience {
-            ...#{@fragment_name}
-          }
-
-          errors {
-            title
-            clientId
-          }
-        }
-      }
-
-      #{@fragment}
-    """
-  end
-
-  def update_definitions do
-    """
-      mutation UpdateDefinitions($input: UpdateDefinitionsInput!) {
-        updateDefinitions(input: $input) {
-          experience {
-            ...#{@fragment_name}
-          }
-
-          definitions {
-            definition {
-                ...#{@data_definition_fragment_name}
-            }
-
-
-            errors {
-              id
-              errors {
-                name
-                definition
-              }
-            }
-          }
-
-        }
-      }
-
-      #{@fragment}
-      #{@data_definition_fragment}
     """
   end
 
@@ -305,9 +183,11 @@ defmodule EbnisData.Query.Experience do
                         updatedAt
                         dataObjects {
                           __typename
-                          ... on DataObjectFullErrors {
+                          ... on DataObjectErrors {
                             errors {
-                              id
+                              meta {
+                                id
+                              }
                               definition
                               definitionId
                               clientId
@@ -331,7 +211,7 @@ defmodule EbnisData.Query.Experience do
                   }
                   newEntries {
                     __typename
-                    ... on CreateEntryErrorss {
+                    ... on CreateEntryErrors {
                       errors {
                         ...#{@create_entry_error_fragment_name}
                       }
@@ -377,7 +257,7 @@ defmodule EbnisData.Query.Experience do
               ...#{@create_entry_error_fragment_name}
             }
           }
-          ... on CreateExperienceErrorss {
+          ... on CreateExperienceErrors {
             errors {
               meta {
                 index
@@ -401,7 +281,6 @@ defmodule EbnisData.Query.Experience do
     """
   end
 
-
   def delete_experiences do
     """
       mutation DeleteExperiences($input: [ID!]!) {
@@ -423,6 +302,29 @@ defmodule EbnisData.Query.Experience do
                 }
               }
             }
+          }
+        }
+      }
+    """
+  end
+
+  def delete_entry do
+    """
+      mutation D($id: ID!) {
+        deleteEntry(id: $id) {
+          id
+          experienceId
+          clientId
+          insertedAt
+          updatedAt
+          modOffline
+          dataObjects {
+            id
+            definitionId
+            data
+            clientId
+            insertedAt
+            updatedAt
           }
         }
       }

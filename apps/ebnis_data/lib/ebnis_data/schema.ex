@@ -10,7 +10,6 @@ defmodule EbnisData.Schema do
   import_types(EbnisData.Schema.Credential)
   import_types(EbnisData.Schema.User)
   import_types(EbnisData.Schema.Experience)
-  import_types(EbnisData.Schema.Entry)
 
   query do
     import_fields(:user_query)
@@ -20,7 +19,6 @@ defmodule EbnisData.Schema do
   mutation do
     import_fields(:user_mutation)
     import_fields(:experience_mutations)
-    import_fields(:entry_mutations)
   end
 
   def context(ctx) do
