@@ -75,7 +75,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   def update_experience_union(_, _) do
-    :update_experience_full_errors
+    :update_experience_errors
   end
 
   def update_experiences_union(%{experiences: _}, _) do

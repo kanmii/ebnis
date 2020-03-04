@@ -128,7 +128,7 @@ defmodule EbnisData.Query.Experience do
           ... on UpdateExperiencesSomeSuccess {
             experiences {
               __typename
-              ... on UpdateExperienceFullErrors {
+              ... on UpdateExperienceErrors {
                 errors {
                   experienceId
                   error

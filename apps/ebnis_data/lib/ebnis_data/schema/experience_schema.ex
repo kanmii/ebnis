@@ -74,7 +74,7 @@ defmodule EbnisData.Schema.Experience do
   end
 
   object :update_entry_errors do
-    field(:errors, :update_entry_error)
+    field(:errors, non_null(:update_entry_error))
   end
 
   @desc ~S"""
@@ -355,14 +355,6 @@ defmodule EbnisData.Schema.Experience do
     resolve_type(&ExperienceResolver.create_experience_union/2)
   end
 
-  @desc """
-    Experience field errors during update
-  """
-  object :update_experience_errors do
-    field(:title, :string)
-    field(:client_id, :string)
-  end
-
   object :definition_success do
     field(:definition, non_null(:data_definition))
   end
@@ -490,12 +482,12 @@ defmodule EbnisData.Schema.Experience do
     field(:error, non_null(:string))
   end
 
-  object :update_experience_full_errors do
+  object :update_experience_errors do
     field(:errors, non_null(:update_experience_error))
   end
 
   union :update_experience_union do
-    types([:update_experience_some_success, :update_experience_full_errors])
+    types([:update_experience_some_success, :update_experience_errors])
     resolve_type(&ExperienceResolver.update_experience_union/2)
   end
 
