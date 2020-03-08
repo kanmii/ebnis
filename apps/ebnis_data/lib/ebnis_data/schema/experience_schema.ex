@@ -831,7 +831,10 @@ defmodule EbnisData.Schema.Experience do
     end
 
     @desc "Create many experiences"
-    field :create_experiences, list_of(:create_experience_union) do
+    field :create_experiences,
+          :create_experience_union
+          |> non_null()
+          |> list_of do
       arg(:input, :create_experience_input |> list_of() |> non_null())
 
       resolve(&ExperienceResolver.create_experiences/2)

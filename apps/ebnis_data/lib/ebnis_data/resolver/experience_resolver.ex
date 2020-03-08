@@ -437,7 +437,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
       errors ->
         changeset_errors_to_map(errors)
     end
-    |> data_definition_changeset_to_error_map1(changeset.changes.data_definitions)
+    |> data_definition_changeset_to_error_map(changeset.changes.data_definitions)
   end
 
   defp map_create_entry_errors({nil, _}, acc, _) do
@@ -459,7 +459,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     [errors | acc]
   end
 
-  defp data_definition_changeset_to_error_map1(errors, changesets) do
+  defp data_definition_changeset_to_error_map(errors, changesets) do
     changesets
     |> Enum.reduce(
       {[], 0},
