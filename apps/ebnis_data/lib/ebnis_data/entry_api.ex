@@ -270,7 +270,12 @@ defmodule EbnisData.EntryApi do
   end
 
   defp put_data_objects_in_entries(entries) do
-    entries_ids = Enum.map(entries, & &1.id)
+    # entries_ids reversed
+    {entries_ids, entries_map} =
+      Enum.reduce(entries, {[], %{}}, fn entry, {list, map} ->
+        id = entry.id
+        {[id | list], Map.put(map, id, entry)}
+      end)
 
     data_objects_map =
       from(
@@ -281,15 +286,16 @@ defmodule EbnisData.EntryApi do
       |> Repo.all()
       |> Enum.group_by(& &1.entry_id)
 
-    entries_map = Enum.reduce(entries, %{}, &Map.put(&2, &1.id, &1))
-
-    Enum.map(entries_ids, fn entry_id ->
+    # entries_ids in correct order
+    Enum.reduce(entries_ids, [], fn entry_id, acc ->
       entry = entries_map[entry_id]
 
-      %Entry{
+      updated_entry = %Entry{
         entry
         | data_objects: data_objects_map[entry_id]
       }
+
+      [updated_entry | acc]
     end)
   end
 
