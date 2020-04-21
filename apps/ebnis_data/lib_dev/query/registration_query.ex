@@ -8,11 +8,23 @@ defmodule EbnisData.Query.Registration do
     {credential_frag_name, credential_frag} = Credential.all_fields_fragment()
 
     query = """
-        registration(registration: $registration) {
-          ...#{user_frag_name}
+        registerUser(input: $input) {
+          __typename
+          ... on UserSuccess {
+            user {
+            ...#{user_frag_name}
+              credential {
+                ...#{credential_frag_name}
+              }
+            }
+          }
 
-          credential {
-            ...#{credential_frag_name}
+          ... on RegistrationErrors {
+            errors {
+              email
+              password
+              passwordConfirmation
+            }
           }
         }
     """
@@ -20,7 +32,7 @@ defmodule EbnisData.Query.Registration do
     %{
       query: query,
       fragments: ~s( #{credential_frag} #{user_frag} ),
-      parameters: "$registration: Registration!"
+      parameters: "$input: RegistrationInput!"
     }
   end
 end

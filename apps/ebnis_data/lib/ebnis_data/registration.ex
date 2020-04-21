@@ -44,7 +44,15 @@ defmodule EbnisData.Registration do
         {:ok, changes}
 
       _ ->
-        {:error, apply_action(changes, :insert)}
+        {
+          :error,
+          errors
+        } = apply_action(changes, :insert)
+
+        {
+          :error,
+          errors
+        }
     end
   end
 

@@ -13,7 +13,7 @@ defmodule EbnisData.Schema.UserTest do
   @moduletag :db
   @moduletag capture_log: true
 
-  describe "mutation" do
+  describe "registration mutation" do
     # @tag :skip
     test "registers user succeeds" do
       %{
@@ -37,29 +37,33 @@ defmodule EbnisData.Schema.UserTest do
       assert {:ok,
               %{
                 data: %{
-                  "registration" => %{
-                    "id" => _,
-                    "name" => ^name,
-                    "email" => ^email,
-                    "jwt" => _jwt,
-                    "credential" => %{
-                      "id" => _
+                  "registerUser" => %{
+                    "user" => %{
+                      "id" => _,
+                      "name" => ^name,
+                      "email" => ^email,
+                      "jwt" => jwt,
+                      "credential" => %{
+                        "id" => _
+                      }
                     }
                   }
                 }
               }} =
                Absinthe.run(query, Schema,
                  variables: %{
-                   "registration" => attrs
+                   "input" => attrs
                  }
                )
+
+      assert is_binary(jwt)
     end
 
     # @tag :skip
     test "registers user fails for none unique email" do
       attrs = RegFactory.params()
-
       RegFactory.insert(attrs)
+
       queryMap = RegQuery.register()
 
       query = """
@@ -70,31 +74,111 @@ defmodule EbnisData.Schema.UserTest do
         #{queryMap.fragments}
       """
 
-      error =
-        %{
-          errors: %{
-            email: "has already been taken"
-          },
-          name: "user"
-        }
-        |> Jason.encode!()
-
-      assert {:ok,
-              %{
-                errors: [
-                  %{
-                    message: ^error,
-                    path: ["registration"]
-                  }
-                ]
-              }} =
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "registerUser" => %{
+                     "errors" => %{
+                       "email" => email_error
+                     }
+                   }
+                 }
+               }
+             } =
                Absinthe.run(query, Schema,
                  variables: %{
-                   "registration" => RegFactory.stringify(attrs)
+                   "input" => RegFactory.stringify(attrs)
                  }
                )
+
+      assert is_binary(email_error)
     end
 
+    # @tag :skip
+    test "fails: passwords do not match" do
+      attrs = %{
+        "email" => "a@b.com",
+        "password" => "123456",
+        "passwordConfirmation" => "1234567",
+        "source" => "password",
+        "name" => "aa"
+      }
+
+      queryMap = RegQuery.register()
+
+      query = """
+        mutation RegisterUser(#{queryMap.parameters}) {
+          #{queryMap.query}
+        }
+
+        #{queryMap.fragments}
+      """
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "registerUser" => %{
+                     "errors" => %{
+                       "passwordConfirmation" => password_confirmation_error
+                     }
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(query, Schema,
+                 variables: %{
+                   "input" => attrs
+                 }
+               )
+
+      assert is_binary(password_confirmation_error)
+    end
+
+    # @tag :skip
+    test "fails: passwords too short" do
+      attrs = %{
+        "email" => "a@b.com",
+        "password" => "123",
+        "passwordConfirmation" => "1234567",
+        "source" => "password",
+        "name" => "aa"
+      }
+
+      queryMap = RegQuery.register()
+
+      query = """
+        mutation RegisterUser(#{queryMap.parameters}) {
+          #{queryMap.query}
+        }
+
+        #{queryMap.fragments}
+      """
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "registerUser" => %{
+                     "errors" => %{
+                       "password" => password_error
+                     }
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(query, Schema,
+                 variables: %{
+                   "input" => attrs
+                 }
+               )
+
+      assert is_binary(password_error)
+    end
+  end
+
+  describe "update mutation" do
     # @tag :skip
     test "update user succeeds" do
       user = RegFactory.insert()
@@ -107,7 +191,7 @@ defmodule EbnisData.Schema.UserTest do
       queryMap = Query.update()
 
       query = """
-        mutation updateUser(#{queryMap.parameters}) {
+        mutation UpdateUser(#{queryMap.parameters}) {
           #{queryMap.query}
         }
 
@@ -117,24 +201,28 @@ defmodule EbnisData.Schema.UserTest do
       assert {:ok,
               %{
                 data: %{
-                  "update" => %{
-                    "id" => _,
-                    "name" => name,
-                    "email" => email,
-                    "jwt" => _jwt
+                  "updateUser" => %{
+                    "user" => %{
+                      "id" => _,
+                      "name" => name,
+                      "email" => email,
+                      "jwt" => _jwt
+                    }
                   }
                 }
               }} =
                Absinthe.run(query, Schema,
                  variables: %{
-                   "user" => attrs
+                   "input" => attrs
                  }
                )
 
       refute user.name == name
       refute user.email == email
     end
+  end
 
+  describe "login mutation" do
     # @tag :skip
     test "login succeeds" do
       %{email: email, password: password} = params = RegFactory.params()
@@ -150,7 +238,7 @@ defmodule EbnisData.Schema.UserTest do
       """
 
       variables = %{
-        "login" => %{
+        "input" => %{
           "email" => email,
           "password" => password
         }
@@ -160,13 +248,17 @@ defmodule EbnisData.Schema.UserTest do
               %{
                 data: %{
                   "login" => %{
-                    "id" => _,
-                    "name" => name,
-                    "email" => ^email,
-                    "jwt" => _jwt
+                    "user" => %{
+                      "id" => _,
+                      "name" => name,
+                      "email" => ^email,
+                      "jwt" => jwt
+                    }
                   }
                 }
               }} = Absinthe.run(query, Schema, variables: variables)
+
+      assert is_binary(jwt)
     end
 
     # @tag :skip
@@ -186,18 +278,27 @@ defmodule EbnisData.Schema.UserTest do
 
       password = password <> "q"
 
-      assert {:ok,
-              %{
-                errors: [%{message: "{\"error\":\"Invalid email/password\"}"}]
-              }} =
+      assert {
+               #
+               :ok,
+               %{
+                 data: %{
+                   "login" => %{
+                     "error" => err
+                   }
+                 }
+               }
+             } =
                Absinthe.run(query, Schema,
                  variables: %{
-                   "login" => %{
+                   "input" => %{
                      "email" => email,
                      "password" => password
                    }
                  }
                )
+
+      assert is_binary(err)
     end
 
     # @tag :skip
@@ -210,19 +311,45 @@ defmodule EbnisData.Schema.UserTest do
           password_confirmation: password
         )
 
-      credential = user.credential
+      # change token to one Pbkdf2 will find invalid
       bogus_token = ""
 
-      Ecto.Changeset.change(credential, token: bogus_token)
+      Ecto.Changeset.change(user.credential, token: bogus_token)
       |> Repo.update!()
+
+      queryMap = Query.login()
+
+      query = """
+        mutation LoginUser(#{queryMap.parameters}) {
+          #{queryMap.query}
+        }
+
+        #{queryMap.fragments}
+      """
 
       log_message =
         capture_log(fn ->
-          assert {:error, "Invalid email/password"} =
-                   EbnisData.authenticate(%{
-                     email: user.email,
-                     password: password
-                   })
+          assert {
+                   #
+                   :ok,
+                   %{
+                     data: %{
+                       "login" => %{
+                         "error" => err
+                       }
+                     }
+                   }
+                 } =
+                   Absinthe.run(query, Schema,
+                     variables: %{
+                       "input" => %{
+                         "email" => user.email,
+                         "password" => password
+                       }
+                     }
+                   )
+
+          assert is_binary(err)
         end)
 
       assert log_message =~ "STACK"

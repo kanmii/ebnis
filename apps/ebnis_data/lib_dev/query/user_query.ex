@@ -21,15 +21,20 @@ defmodule EbnisData.Query.User do
     {user_frag_name, user_frag} = all_fields_fragment()
 
     query = """
-        update(user: $user) {
-          ...#{user_frag_name}
+        updateUser(input: $input) {
+          __typename
+          ... on UserSuccess {
+            user {
+              ...#{user_frag_name}
+            }
+          }
         }
     """
 
     %{
       query: query,
       fragments: ~s( #{user_frag} ),
-      parameters: "$user: UpdateUser!"
+      parameters: "$input: UpdateUserInput!"
     }
   end
 
@@ -55,15 +60,24 @@ defmodule EbnisData.Query.User do
     {_, user_frag} = all_fields_fragment()
 
     query = """
-        login(login: $login) {
-          ...#{@frag_name}
+        login(input: $input) {
+          __typename
+          ... on UserSuccess {
+            user {
+              ...#{@frag_name}
+            }
+          }
+
+          ... on LoginError {
+            error
+          }
         }
     """
 
     %{
       query: query,
       fragments: ~s(  #{user_frag} ),
-      parameters: "$login: LoginUser!"
+      parameters: "$input: LoginInput!"
     }
   end
 end

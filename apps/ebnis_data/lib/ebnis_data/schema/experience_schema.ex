@@ -64,7 +64,11 @@ defmodule EbnisData.Schema.Experience do
     or DataObjectErrors
   """
   union :update_data_object_union do
-    types([:data_object_success, :data_object_errors])
+    types([
+      :data_object_success,
+      :data_object_errors
+    ])
+
     resolve_type(&ExperienceResolver.update_data_object_union/2)
   end
 

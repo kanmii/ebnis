@@ -23,10 +23,13 @@ defmodule EbnisData.User do
   end
 
   @doc "Validation for new user"
-  def validate_create(changes),
-    do:
-      %{changes | data: %__MODULE__{}}
-      |> validate()
+  def validate_create(changes) do
+    %{
+      changes
+      | data: %__MODULE__{}
+    }
+    |> validate()
+  end
 
   defp validate(%Changeset{} = changes) do
     changes
