@@ -70,7 +70,7 @@ defmodule EbnisData.Schema.User do
   end
 
   @desc "Variables for creating User and credential"
-  input_object :registration_input do
+  input_object :register_user_input do
     field(:name, non_null(:string))
     field(:email, non_null(:string))
     field(:source, non_null(:string))
@@ -104,7 +104,7 @@ defmodule EbnisData.Schema.User do
     field :register_user, :registration do
       arg(
         :input,
-        non_null(:registration_input)
+        non_null(:register_user_input)
       )
 
       resolve(&Resolver.create/2)

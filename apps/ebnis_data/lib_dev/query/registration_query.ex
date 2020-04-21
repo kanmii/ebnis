@@ -32,7 +32,7 @@ defmodule EbnisData.Query.Registration do
     %{
       query: query,
       fragments: ~s( #{credential_frag} #{user_frag} ),
-      parameters: "$input: RegistrationInput!"
+      parameters: "$input: RegisterUserInput!"
     }
   end
 end
