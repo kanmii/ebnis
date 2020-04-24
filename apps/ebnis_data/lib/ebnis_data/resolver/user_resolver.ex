@@ -96,12 +96,12 @@ defmodule EbnisData.User.Resolver do
     end
   end
 
-  def registration_union(%{user: _}, _) do
+  def register_user_union(%{user: _}, _) do
     :user_success
   end
 
-  def registration_union(%{errors: _}, _) do
-    :registration_errors
+  def register_user_union(%{errors: _}, _) do
+    :register_user_errors
   end
 
   def update_union(%{user: _}, _) do

@@ -19,7 +19,7 @@ defmodule EbnisData.Query.Registration do
             }
           }
 
-          ... on RegistrationErrors {
+          ... on RegisterUserErrors {
             errors {
               email
               password

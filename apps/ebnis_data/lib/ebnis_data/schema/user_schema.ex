@@ -19,23 +19,23 @@ defmodule EbnisData.Schema.User do
     field(:user, non_null(:user))
   end
 
-  object :registration_error do
+  object :register_user_error do
     field(:email, :string)
     field(:password, :string)
     field(:password_confirmation, :string)
   end
 
-  object :registration_errors do
-    field(:errors, non_null(:registration_error))
+  object :register_user_errors do
+    field(:errors, non_null(:register_user_error))
   end
 
-  union :registration do
+  union :register_user do
     types([
       :user_success,
-      :registration_errors
+      :register_user_errors
     ])
 
-    resolve_type(&Resolver.registration_union/2)
+    resolve_type(&Resolver.register_user_union/2)
   end
 
   object :login_error do
@@ -101,7 +101,7 @@ defmodule EbnisData.Schema.User do
   @desc "Mutations allowed on User object"
   object :user_mutation do
     @doc "Create a user and her credential"
-    field :register_user, :registration do
+    field :register_user, :register_user do
       arg(
         :input,
         non_null(:register_user_input)
