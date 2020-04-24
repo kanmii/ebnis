@@ -15,7 +15,6 @@ defmodule EbnisData.Query.Experience do
   @fragment """
     fragment #{@fragment_name} on Experience {
       id
-      hasUnsaved
       title
       description
       clientId

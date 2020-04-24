@@ -1225,7 +1225,6 @@ defmodule EbnisData.Schema.ExperienceTest do
                               }
                             ],
                             "clientId" => ^client_id_taken,
-                            "hasUnsaved" => nil,
                             "entries" => %{
                               "edges" => [],
                               "pageInfo" => %{

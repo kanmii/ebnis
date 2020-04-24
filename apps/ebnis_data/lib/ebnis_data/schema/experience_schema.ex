@@ -218,7 +218,6 @@ defmodule EbnisData.Schema.Experience do
 
     field(:inserted_at, non_null(:datetime))
     field(:updated_at, non_null(:datetime))
-    field(:has_unsaved, :boolean)
   end
 
   @desc "An Experience data definition Field"
