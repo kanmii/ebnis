@@ -1,7 +1,6 @@
 defmodule EbnisData do
   require Logger
   import Ecto.Query, warn: false
-  import Ebnis
 
   alias EbnisData.Repo
   alias EbnisData.Registration
@@ -56,10 +55,10 @@ defmodule EbnisData do
               [
                 @authenticate_user_exception_header,
                 cred.user.email,
-                stacktrace_prefix(),
+                Ebnis.stacktrace_prefix(),
                 :error
                 |> Exception.format(error, __STACKTRACE__)
-                |> prettify_with_new_line()
+                |> Ebnis.prettify_with_new_line()
               ]
             end)
 

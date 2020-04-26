@@ -43,8 +43,8 @@ config :ebnis_web, EbnisWeb.Endpoint,
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
   check_origin: [
     "//localhost",
-    "//ebnis.netlify.com",
-    "//ebnis-staging.netlify.com"
+    "//ebnis.netlify.app",
+    "//ebnis-staging.netlify.app"
   ]
 
 # ## SSL Support
