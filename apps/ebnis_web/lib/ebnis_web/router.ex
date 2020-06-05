@@ -7,6 +7,8 @@ defmodule EbnisWeb.Router do
     plug(EbnisWeb.Plug.AuthContext)
   end
 
+  get("/health", EbnisWeb.HealthController, :health)
+
   if Application.get_env(:ebnis, :is_e2e) do
     scope "/" do
       get("/reset_db", EbnisWeb.E2eController, :reset_db)
