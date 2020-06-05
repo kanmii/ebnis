@@ -1,0 +1,15 @@
+/_build/
+/cover/
+/deps/
+/doc/
+/.fetch
+erl_crash.dump
+*.ez
+.elixir_ls/
+.formatter.exs
+.gitignore
+README.md
+lib_dev
+.tool-versions
+tags
+.vim
