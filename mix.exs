@@ -9,12 +9,11 @@ defmodule Ebnis.Umbrella.MixProject do
       deps: deps(),
       releases: [
         ebnis: [
-          include_executables_for: [:unix],
+          # include_executables_for: [:unix],
           applications: [
-            # ebnis_email: :permanent, -- started by ebnis_data
-            # ebnis_data: :permanent, -- started by ebnis_web
-            # this is the entry point of our app
             ebnis: :permanent,
+            ebnis_emails: :permanent,
+            ebnis_data: :permanent,
             ebnis_web: :permanent
           ]
         ]

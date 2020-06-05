@@ -12,41 +12,6 @@ use Mix.Config
 
 config :pbkdf2_elixir, :rounds, 100_000
 
-database_url =
-  System.get_env("DATABASE_URL") ||
-    raise """
-    environment variable DATABASE_URL is missing.
-    For example: ecto://USER:PASS@HOST/DATABASE
-    """
-
-config :ebnis_data, EbnisData.Repo,
-  # ssl: true,
-  url: database_url,
-  pool_size: String.to_integer(System.get_env("POOL_SIZE") || "18")
-
-secret_key_base =
-  System.get_env("SECRET_KEY_BASE") ||
-    raise """
-    environment variable SECRET_KEY_BASE is missing.
-    You can generate one by calling: mix phx.gen.secret
-    """
-
-port =
-  System.get_env("PORT")
-  |> Kernel.||(raise "environment variable PORT is missing")
-  |> String.to_integer()
-
-config :ebnis_web, EbnisWeb.Endpoint,
-  http: [:inet6, port: port],
-  url: [scheme: "https", host: "ebnis.herokuapp.com", port: port],
-  secret_key_base: secret_key_base,
-  force_ssl: [rewrite_on: [:x_forwarded_proto]],
-  check_origin: [
-    "//localhost",
-    "//ebnis.netlify.app",
-    "//ebnis-staging.netlify.app"
-  ]
-
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key
