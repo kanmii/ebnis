@@ -11,6 +11,10 @@ import Config
 
 config :pbkdf2_elixir, :rounds, 1
 
+config :ebnis,
+  ecto_repos: [EbnisData.Repo],
+  generators: [context_app: :ebnis_data]
+
 # Configure Mix tasks and generators
 config :ebnis_data,
   ecto_repos: [EbnisData.Repo]
