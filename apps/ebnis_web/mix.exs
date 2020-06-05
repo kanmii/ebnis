@@ -46,8 +46,8 @@ defmodule EbnisWeb.MixProject do
       {:ebnis_data, in_umbrella: true},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:absinthe_plug, "~> 1.4"},
-      {:absinthe_phoenix, "~> 1.4.0"},
+      {:absinthe_plug, "~> 1.4.7"},
+      {:absinthe_phoenix, "~> 1.4.4"},
       {:corsica, "~> 1.1"}
     ]
   end
