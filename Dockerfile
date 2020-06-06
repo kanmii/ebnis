@@ -84,12 +84,18 @@ RUN useradd ebnis
 RUN mkdir -p ${APP_PATH}
 WORKDIR ${APP_PATH}
 
+COPY ./docker/entrypoint.sh .
+
 RUN chown ebnis:ebnis ${APP_PATH}
+RUN chown ebnis:ebnis entrypoint.sh
+RUN chmod +x entrypoint.sh
 
 USER ebnis:ebnis
 
 COPY --from=build --chown=ebnis:ebnis ${APP_PATH}/_build/${MIX_ENV}/rel/${APP} ./
 
 ENV HOME=${APP_PATH}
+
+ENTRYPOINT ["/ebnis_app/entrypoint.sh"]
 
 CMD ["bin/ebnis", "start"]
