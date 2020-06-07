@@ -4,13 +4,16 @@
 # remember to add this file to your .gitignore.
 import Config
 
+# mandatory variables
 database_url = System.fetch_env!("EBNIS_DATABASE_URL")
-pool_size = System.fetch_env!("EBNIS_POOL_SIZE") |> String.to_integer()
 secret_key_base = System.fetch_env!("EBNIS_SECRET_KEY_BASE")
-port = System.fetch_env!("EBNIS_PORT") |> String.to_integer()
 host = System.fetch_env!("EBNIS_HOST")
-path = System.fetch_env!("EBNIS_PATH")
 origins = System.fetch_env!("EBNIS_ORIGINS") |> Jason.decode!()
+
+# optional variables
+port = System.get_env("EBNIS_PORT", "4000") |> String.to_integer()
+path = System.get_env("EBNIS_PATH", "/")
+pool_size = System.get_env("EBNIS_POOL_SIZE", "18") |> String.to_integer()
 
 config :ebnis_data, EbnisData.Repo,
   # ssl: true,

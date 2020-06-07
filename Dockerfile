@@ -5,24 +5,23 @@ ARG APPS_PATHS=${APP_PATH}/apps
 
 # ENV APP_PATH=${APP_PATH}
 ENV BUILD_DEPS="build-essential"
-ENV APP_DEPS="git python"
+ENV APP_DEPS="git"
 
 RUN apt-get update \
   && apt-get install -y ${BUILD_DEPS} --no-install-recommends \
+  && mix local.hex --force \
+  && mix local.rebar --force \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /usr/share/doc && rm -rf /usr/share/man \
+  && apt-get purge -y --auto-remove ${BUILD_DEPS} \
   && apt-get clean
 
 # prepare build dir
 RUN mkdir -p ${APPS_PATHS}
 WORKDIR ${APP_PATH}
 
-# install hex + rebar
-RUN mix local.hex --force && \
-    mix local.rebar --force
-
-# set build ENV
-ENV MIX_ENV=prod
+ARG MIX_ENV=prod
+ENV MIX_ENV=${MIX_ENV}
 
 # install mix dependencies
 COPY mix.exs mix.lock ./

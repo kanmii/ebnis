@@ -3,11 +3,14 @@ services:
   db:
     image: postgres:12.2
     ports:
-        - "127.0.0.1:15432:5432"
+      - "${EBNIS_DOCKER_HOST_DATABASE_PORT:-127.0.0.1:15432}:5432"
     restart: always
     environment:
+      # the value must be same as database password in database url in
+      # .env_docker
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ebnis_dev
+      # the value must be same as database name in database url in .env_docker
+      POSTGRES_DB: "${EBNIS_DATABASE_NAME:-ebnis_dev}"
     volumes:
       - ./docker/data/postgres:/var/lib/postgresql/data
     healthcheck:
@@ -21,8 +24,8 @@ services:
       context: .
     image: ebnis-demo
     ports:
-      - "4001:4000"
+      - "${EBNIS_DOCKER_HOST_PORT:-4000}:4000"
     depends_on:
       - "db"
     env_file:
-      - ".env_docker"
+      - ".env"
