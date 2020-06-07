@@ -22,7 +22,7 @@ services:
   api:
     build:
       context: .
-    image: ebnis-demo
+    image: ebnis
     ports:
       - "${EBNIS_DOCKER_HOST_PORT:-4000}:${EBNIS_PORT:-4000}"
     depends_on:

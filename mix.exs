@@ -9,7 +9,7 @@ defmodule Ebnis.Umbrella.MixProject do
       deps: deps(),
       releases: [
         ebnis: [
-          # include_executables_for: [:unix],
+          include_executables_for: [:unix],
           applications: [
             ebnis: :permanent,
             ebnis_emails: :permanent,
