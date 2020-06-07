@@ -71,6 +71,7 @@ ENV APP=${APP}
 ENV MIX_ENV=${MIX_ENV}
 ENV APP_DEPS="openssl"
 ENV LANG=C.UTF-8
+ENV EBNIS_PORT=4000
 
 RUN apt-get update \
   && apt-get install -y ${APP_DEPS} --no-install-recommends \
@@ -94,6 +95,8 @@ USER ebnis:ebnis
 COPY --from=build --chown=ebnis:ebnis ${APP_PATH}/_build/${MIX_ENV}/rel/${APP} ./
 
 ENV HOME=${APP_PATH}
+
+EXPOSE ${EBNIS_PORT}
 
 ENTRYPOINT ["/ebnis_app/entrypoint.sh"]
 

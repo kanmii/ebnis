@@ -24,7 +24,7 @@ services:
       context: .
     image: ebnis-demo
     ports:
-      - "${EBNIS_DOCKER_HOST_PORT:-4000}:4000"
+      - "${EBNIS_DOCKER_HOST_PORT:-4000}:${EBNIS_PORT:-4000}"
     depends_on:
       - "db"
     env_file:
