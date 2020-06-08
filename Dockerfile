@@ -3,18 +3,11 @@ FROM elixir:1.9.4-slim AS build
 ARG APP_PATH=/ebnis_app
 ARG APPS_PATHS=${APP_PATH}/apps
 
-# ENV APP_PATH=${APP_PATH}
-ENV BUILD_DEPS="build-essential"
-ENV APP_DEPS="git"
-
 RUN apt-get update \
-  && apt-get install -y ${BUILD_DEPS} --no-install-recommends \
   && mix local.hex --force \
   && mix local.rebar --force \
   && rm -rf /var/lib/apt/lists/* \
-  && rm -rf /usr/share/doc && rm -rf /usr/share/man \
-  && apt-get purge -y --auto-remove ${BUILD_DEPS} \
-  && apt-get clean
+  && rm -rf /usr/share/doc && rm -rf /usr/share/man
 
 # prepare build dir
 RUN mkdir -p ${APPS_PATHS}
