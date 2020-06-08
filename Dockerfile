@@ -4,22 +4,22 @@ ARG APP_PATH=/ebnis_app
 ARG APPS_PATHS=${APP_PATH}/apps
 
 RUN apt-get update \
-  && mix local.hex --force \
-  && mix local.rebar --force \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /usr/share/doc && rm -rf /usr/share/man
 
-# prepare build dir
 RUN mkdir -p ${APPS_PATHS}
 WORKDIR ${APP_PATH}
 
 ARG MIX_ENV=prod
 ENV MIX_ENV=${MIX_ENV}
 
-# install mix dependencies
+RUN mix local.hex --force \
+  && mix local.rebar --force
+
 COPY mix.exs mix.lock ./
 COPY config config
 
+# copy mix.exs files from apps/
 WORKDIR ${APPS_PATHS}
 
 RUN mkdir -p ${APPS_PATHS}/ebnis
@@ -35,20 +35,15 @@ RUN mkdir -p ${APPS_PATHS}/ebnis_web
 COPY apps/ebnis_web/mix.exs                     ebnis_web
 
 WORKDIR ${APP_PATH}
+
 RUN mix do deps.get --only ${MIX_ENV}, deps.compile
 
 WORKDIR ${APPS_PATHS}
-
 COPY apps/ebnis_data/priv                       ebnis_data/priv
 
-COPY apps/ebnis/lib                             ebnis/lib
-COPY apps/ebnis_emails/lib                      ebnis_emails/lib
-COPY apps/ebnis_data/lib                        ebnis_data/lib
-COPY apps/ebnis_web/lib                         ebnis_web/lib
-
-# uncomment COPY if rel/ exists
-# COPY rel rel
 WORKDIR ${APP_PATH}
+COPY rel rel
+COPY . .
 RUN mix do compile, release
 CMD ["/bin/bash"]
 
