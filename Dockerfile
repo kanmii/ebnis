@@ -1,3 +1,4 @@
+######################  BUILD ##############################################
 FROM elixir:1.9.4-slim AS build
 
 ARG APP_PATH=/ebnis_app
@@ -38,13 +39,10 @@ WORKDIR ${APP_PATH}
 
 RUN mix do deps.get --only ${MIX_ENV}, deps.compile
 
-WORKDIR ${APPS_PATHS}
-COPY apps/ebnis_data/priv                       ebnis_data/priv
-
-WORKDIR ${APP_PATH}
 COPY rel rel
 COPY . .
 RUN mix do compile, release
+
 CMD ["/bin/bash"]
 
 ############################ prepare release image ###########################
