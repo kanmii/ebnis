@@ -1,0 +1,18 @@
+version: "3.4"
+services:
+  db:
+    volumes:
+      - ./docker/data/postgres_dev:/var/lib/postgresql/data
+
+  api:
+    build:
+      dockerfile: Dockerfile.dev
+    image: ebnis-dev
+    entrypoint: ["/app/entrypoint.sh"]
+    volumes:
+      - ./apps:/app/apps
+      - ./config:/app/config
+      - ./deps:/app/deps
+      - ./.iex.exs:/app/.iex.exs
+      - ./mix.exs:/app/mix.exs
+      - ./mix.lock:/app/mix.lock

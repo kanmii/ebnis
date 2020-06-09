@@ -5,7 +5,7 @@ config :ebnis_data, EbnisData.Repo,
   username: "postgres",
   password: "postgres",
   database: "ebnis_dev",
-  hostname: "localhost",
+  hostname: System.get_env("EBNIS_DATABASE_HOST", "localhost"),
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
@@ -16,7 +16,7 @@ config :ebnis_data, EbnisData.Repo,
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
 config :ebnis_web, EbnisWeb.Endpoint,
-  http: [port: System.get_env("EBNIS_PORT", "4023") |> String.to_integer()],
+  http: [port: System.get_env("EBNIS_PORT", "4000") |> String.to_integer()],
   debug_errors: true,
   check_origin: false
 

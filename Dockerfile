@@ -1,4 +1,3 @@
-######################  BUILD ##############################################
 FROM elixir:1.9.4-slim AS build
 
 ARG APP_PATH=/ebnis_app
@@ -39,8 +38,16 @@ WORKDIR ${APP_PATH}
 
 RUN mix do deps.get --only ${MIX_ENV}, deps.compile
 
+
+WORKDIR ${APPS_PATHS}
+COPY apps/ebnis_data/priv                       ebnis_data/priv
+COPY apps/ebnis/lib                             ebnis/lib
+COPY apps/ebnis_emails/lib                      ebnis_emails/lib
+COPY apps/ebnis_data/lib                        ebnis_data/lib
+COPY apps/ebnis_web/lib                         ebnis_web/lib
+
+WORKDIR ${APP_PATH}
 COPY rel rel
-COPY . .
 RUN mix do compile, release
 
 CMD ["/bin/bash"]
@@ -84,6 +91,4 @@ ENV HOME=${APP_PATH}
 
 EXPOSE ${EBNIS_PORT}
 
-ENTRYPOINT ["/ebnis_app/entrypoint.sh"]
-
-CMD ["bin/ebnis", "start"]
+CMD ["/bin/bash"]

@@ -1,0 +1,56 @@
+FROM elixir:1.9.4-slim AS dev
+
+ARG APP_PATH=/app
+ARG APPS_PATHS=${APP_PATH}/apps
+ARG APP_DEPS="openssl git"
+ARG MIX_ENV=dev
+
+ENV MIX_ENV=${MIX_ENV}
+
+# The EBNIS_DATABASE_HOST must be the same as the postgres service name in
+# docker-compose.yml
+ENV EBNIS_DATABASE_HOST=db
+
+RUN apt-get update \
+  && apt-get install -y ${APP_DEPS} --no-install-recommends \
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /usr/share/doc && rm -rf /usr/share/man \
+  && apt-get clean
+
+
+RUN mkdir -p ${APPS_PATHS}
+WORKDIR ${APP_PATH}
+
+RUN mix local.hex --force \
+  && mix local.rebar --force
+
+COPY mix.exs mix.lock ./
+COPY config config
+
+# copy mix.exs files from apps/
+WORKDIR ${APPS_PATHS}
+
+RUN mkdir -p ${APPS_PATHS}/ebnis
+COPY apps/ebnis/mix.exs                         ebnis
+
+RUN mkdir -p ${APPS_PATHS}/ebnis_emails
+COPY apps/ebnis_emails/mix.exs                  ebnis_emails
+
+RUN mkdir -p ${APPS_PATHS}/ebnis_data
+COPY apps/ebnis_data/mix.exs                    ebnis_data
+
+RUN mkdir -p ${APPS_PATHS}/ebnis_web
+COPY apps/ebnis_web/mix.exs                     ebnis_web
+
+WORKDIR ${APP_PATH}
+COPY . .
+RUN rm -rf ./docker ./rel
+
+RUN GIT_SSL_NO_VERIFY=1 mix do deps.get, compile
+
+EXPOSE ${EBNIS_PORT}
+
+COPY ./docker/entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+CMD ["/bin/bash"]

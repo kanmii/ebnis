@@ -10,14 +10,13 @@ erl_crash.dump
 .git
 **/.gitignore
 **/README.md
-**/lib_dev/
 .tool-versions
 tags
 .vim
 *Dockerfile*
 docker/data/
+**/docker-compose*
 .env*
 Procfile
 *.code-workspace
 elixir_buildpack.config
-**/test/

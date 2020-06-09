@@ -7,10 +7,10 @@ services:
     restart: always
     environment:
       # the value must be same as database password in database url in
-      # .env_docker
+      # .env
       POSTGRES_PASSWORD: postgres
-      # the value must be same as database name in database url in .env_docker
-      POSTGRES_DB: "${EBNIS_DATABASE_NAME:-ebnis_dev}"
+      # the value must be same as database name in database url in .env
+      POSTGRES_DB: "${EBNIS_DATABASE_NAME:-ebnis_app}"
     volumes:
       - ./docker/data/postgres:/var/lib/postgresql/data
     healthcheck:
@@ -19,13 +19,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
   api:
     build:
       context: .
-    image: ebnis
+    # image will be production release by default
+    image: ebnis-release
+    entrypoint: ["/ebnis_app/entrypoint.sh"]
     ports:
       - "${EBNIS_DOCKER_HOST_PORT:-4000}:${EBNIS_PORT:-4000}"
     depends_on:
       - "db"
-    env_file:
-      - ".env"
+    env_file: .env
