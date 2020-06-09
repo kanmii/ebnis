@@ -1,14 +1,5 @@
 import Config
 
-# Configure your database
-config :ebnis_data, EbnisData.Repo,
-  username: "postgres",
-  password: "postgres",
-  database: "ebnis_dev",
-  hostname: System.get_env("EBNIS_DATABASE_HOST", "localhost"),
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
-
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
@@ -17,8 +8,7 @@ config :ebnis_data, EbnisData.Repo,
 # with webpack to recompile .js and .css sources.
 config :ebnis_web, EbnisWeb.Endpoint,
   http: [port: System.get_env("EBNIS_PORT", "4000") |> String.to_integer()],
-  debug_errors: true,
-  check_origin: false
+  debug_errors: true
 
 # ## SSL Support
 #

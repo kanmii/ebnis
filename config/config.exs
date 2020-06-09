@@ -9,6 +9,21 @@
 # move said applications out of the umbrella.
 import Config
 
+database_url =
+  System.get_env(
+    "EBNIS_DATABASE_URL",
+    "ecto://postgres:postgres@localhost:5432/ebnis_dev"
+  )
+
+secret_key_base =
+  System.get_env(
+    "EBNIS_SECRET_KEY_BASE",
+    "Shg9laalhF5NAba4r0RCABiKmqY9RHv+Jo1al7Nv1R2zPIDytJfzhGYSEc2g80d6"
+  )
+
+host = System.get_env("EBNIS_HOST", "localhost")
+port = System.get_env("EBNIS_PORT", "4000") |> String.to_integer()
+
 config :pbkdf2_elixir, :rounds, 1
 
 config :ebnis,
@@ -19,16 +34,24 @@ config :ebnis,
 config :ebnis_data,
   ecto_repos: [EbnisData.Repo]
 
+# Configure your database
+config :ebnis_data, EbnisData.Repo,
+  url: database_url,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10
+
 config :ebnis_web,
   ecto_repos: [EbnisData.Repo],
   generators: [context_app: :ebnis_data]
 
 # Configures the endpoint
 config :ebnis_web, EbnisWeb.Endpoint,
-  url: [host: "localhost"],
-  secret_key_base: "Shg9laalhF5NAba4r0RCABiKmqY9RHv+Jo1al7Nv1R2zPIDytJfzhGYSEc2g80d6",
+  url: [host: host],
+  http: [port: port],
+  secret_key_base: secret_key_base,
   render_errors: [view: EbnisWeb.ErrorView, accepts: ~w(html json)],
-  pubsub: [name: EbnisWeb.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: EbnisWeb.PubSub, adapter: Phoenix.PubSub.PG2],
+  check_origin: false
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -53,7 +76,7 @@ config :ebnis_emails,
 
 config :ebnis_data, EbnisData.Guardian,
   issuer: "ebnis",
-  secret_key: "DfAHXB4gq6YbApF5c5NgBP0kKpaaobjhFodpDzmceiaXfcPMZKDN1sBCTDHQ2RBy"
+  secret_key: secret_key_base
 
 config :ebnis_web, EbnisWeb.Plug.Pipeline,
   module: EbnisData.Guardian,

@@ -18,7 +18,8 @@ pool_size = System.get_env("EBNIS_POOL_SIZE", "18") |> String.to_integer()
 config :ebnis_data, EbnisData.Repo,
   # ssl: true,
   url: database_url,
-  pool_size: pool_size
+  pool_size: pool_size,
+  show_sensitive_data_on_connection_error: false
 
 config :ebnis_web, EbnisWeb.Endpoint,
   url: [
