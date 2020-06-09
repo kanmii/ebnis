@@ -7,8 +7,11 @@ services:
   api:
     build:
       dockerfile: Dockerfile.dev
+      args:
+        EBNIS_DOCKER_HOST_USER_NAME: "${EBNIS_DOCKER_HOST_USER_NAME}"
     image: ebnis-dev
-    entrypoint: ["/app/entrypoint.sh"]
+    entrypoint: ["/home/${EBNIS_DOCKER_HOST_USER_NAME}/app/entrypoint.sh"]
+    user: "${EBNIS_DOCKER_HOST_USER_NAME}"
     volumes:
       - ./apps:/app/apps
       - ./config:/app/config

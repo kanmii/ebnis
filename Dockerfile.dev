@@ -1,9 +1,11 @@
 FROM elixir:1.9.4-slim AS dev
 
-ARG APP_PATH=/app
-ARG APPS_PATHS=${APP_PATH}/apps
 ARG APP_DEPS="openssl git"
 ARG MIX_ENV=dev
+ARG EBNIS_DOCKER_HOST_USER_NAME
+ARG HOME_VAR=/home/${EBNIS_DOCKER_HOST_USER_NAME}
+ARG APP_PATH=${HOME_VAR}/app
+ARG APPS_PATHS=${APP_PATH}/apps
 
 ENV MIX_ENV=${MIX_ENV}
 
@@ -17,12 +19,19 @@ RUN apt-get update \
   && rm -rf /usr/share/doc && rm -rf /usr/share/man \
   && apt-get clean
 
+RUN groupadd ${EBNIS_DOCKER_HOST_USER_NAME} && \
+  useradd -m -g ${EBNIS_DOCKER_HOST_USER_NAME} \
+  ${EBNIS_DOCKER_HOST_USER_NAME}
 
-RUN mkdir -p ${APPS_PATHS}
-WORKDIR ${APP_PATH}
+USER ${EBNIS_DOCKER_HOST_USER_NAME}
 
 RUN mix local.hex --force \
   && mix local.rebar --force
+
+USER root
+
+RUN mkdir -p ${APPS_PATHS}
+WORKDIR ${APP_PATH}
 
 COPY mix.exs mix.lock ./
 COPY config config
@@ -43,14 +52,19 @@ RUN mkdir -p ${APPS_PATHS}/ebnis_web
 COPY apps/ebnis_web/mix.exs                     ebnis_web
 
 WORKDIR ${APP_PATH}
+COPY ./docker/entrypoint.sh .
 COPY . .
 RUN rm -rf ./docker ./rel
+
+RUN chown -R ${EBNIS_DOCKER_HOST_USER_NAME}:${EBNIS_DOCKER_HOST_USER_NAME} \
+  ${HOME_VAR}
+
+USER ${EBNIS_DOCKER_HOST_USER_NAME}
 
 RUN GIT_SSL_NO_VERIFY=1 mix do deps.get, compile
 
 EXPOSE ${EBNIS_PORT}
 
-COPY ./docker/entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
 CMD ["/bin/bash"]
