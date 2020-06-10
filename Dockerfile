@@ -38,7 +38,6 @@ WORKDIR ${APP_PATH}
 
 RUN mix do deps.get --only ${MIX_ENV}, deps.compile
 
-
 WORKDIR ${APPS_PATHS}
 COPY apps/ebnis_data/priv                       ebnis_data/priv
 COPY apps/ebnis/lib                             ebnis/lib
@@ -56,15 +55,17 @@ CMD ["/bin/bash"]
 
 FROM debian:buster
 
-ARG APP_PATH=/ebnis_app
+ARG HOME_VAR=/home/ebnis
+ARG APP_PATH=${HOME_VAR}/ebnis_app
 ARG APP=ebnis
+ARG BUILD_APP_PATH=/ebnis_app
 ARG MIX_ENV=prod
+ARG EBNIS_PORT
 
 ENV APP=${APP}
 ENV MIX_ENV=${MIX_ENV}
 ENV APP_DEPS="openssl"
 ENV LANG=C.UTF-8
-ENV EBNIS_PORT=4000
 
 RUN apt-get update \
   && apt-get install -y ${APP_DEPS} --no-install-recommends \
@@ -72,7 +73,8 @@ RUN apt-get update \
   && rm -rf /usr/share/doc && rm -rf /usr/share/man \
   && apt-get clean
 
-RUN useradd ebnis
+RUN groupadd ebnis && \
+    useradd -m -g ebnis ebnis
 
 RUN mkdir -p ${APP_PATH}
 WORKDIR ${APP_PATH}
@@ -80,12 +82,11 @@ WORKDIR ${APP_PATH}
 COPY ./docker/entrypoint.sh .
 
 RUN chown ebnis:ebnis ${APP_PATH}
-RUN chown ebnis:ebnis entrypoint.sh
 RUN chmod +x entrypoint.sh
 
 USER ebnis:ebnis
 
-COPY --from=build --chown=ebnis:ebnis ${APP_PATH}/_build/${MIX_ENV}/rel/${APP} ./
+COPY --from=build --chown=ebnis:ebnis ${BUILD_APP_PATH}/_build/${MIX_ENV}/rel/${APP} ./
 
 ENV HOME=${APP_PATH}
 

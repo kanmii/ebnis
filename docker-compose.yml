@@ -25,7 +25,7 @@ services:
       context: .
     # image will be production release by default
     image: ebnis-release
-    entrypoint: ["/ebnis_app/entrypoint.sh"]
+    entrypoint: ["/home/ebnis/ebnis_app/entrypoint.sh"]
     ports:
       - "${EBNIS_DOCKER_HOST_PORT:-4000}:${EBNIS_PORT:-4000}"
     depends_on:
