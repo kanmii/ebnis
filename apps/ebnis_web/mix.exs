@@ -48,7 +48,9 @@ defmodule EbnisWeb.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:absinthe_plug, "~> 1.4.7"},
       {:absinthe_phoenix, "~> 1.4.4"},
-      {:corsica, "~> 1.1"}
+      {:corsica, "~> 1.1"},
+      {:telemetry_metrics, "~> 0.4"},
+      {:telemetry_poller, "~> 0.4"}
     ]
   end
 

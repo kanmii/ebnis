@@ -3,31 +3,39 @@ services:
   db:
     image: postgres:12.2
     ports:
-      - "${EBNIS_DOCKER_HOST_DATABASE_PORT:-127.0.0.1:15432}:5432"
+      - "${DOCKER_HOST_DATABASE_PORT:-127.0.0.1:45432}:5432"
     restart: always
     environment:
-      # the value must be same as database password in database url in
-      # .env
       POSTGRES_PASSWORD: postgres
-      # the value must be same as database name in database url in .env
-      POSTGRES_DB: "${EBNIS_DATABASE_NAME:-ebnis_app}"
-    volumes:
-      - ./docker/data/postgres:/var/lib/postgresql/data
+      POSTGRES_DB: "${DATABASE_NAME:-ebnis_dev}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    volumes:
+      - "./docker/data/postgres-${MIX_ENV:-dev}:/var/lib/postgresql/data"
 
   api:
     build:
       context: .
-    # image will be production release by default
-    image: ebnis-release
-    entrypoint: ["/home/ebnis/ebnis_app/entrypoint.sh"]
-    ports:
-      - "${EBNIS_DOCKER_HOST_PORT:-4000}:${EBNIS_PORT:-4000}"
+      dockerfile: Dockerfile.dev
+      args:
+        DOCKER_HOST_USER_NAME: "${DOCKER_HOST_USER_NAME}"
+    image: ebnis-be-dev
     depends_on:
       - "db"
+    entrypoint: ["/usr/local/bin/entrypoint.sh"]
+    user: "${DOCKER_HOST_USER_NAME}"
     env_file: .env
+    ports:
+      - "${DOCKER_HOST_PORT:-4000}:${PORT:-4000}"
+    user: "${DOCKER_HOST_USER_NAME}"
+    volumes:
+      - ".:/home/${DOCKER_HOST_USER_NAME}/src"
+      - "notUsed_build:/home/${DOCKER_HOST_USER_NAME}/src/_build"
+      - "notUsed_docker:/home/${DOCKER_HOST_USER_NAME}/src/docker"
+volumes:
+  notUsed_build:
+  notUsed_docker:

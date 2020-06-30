@@ -7,8 +7,11 @@ import Config
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
 config :ebnis_web, EbnisWeb.Endpoint,
-  http: [port: System.get_env("EBNIS_PORT", "4000") |> String.to_integer()],
-  debug_errors: true
+  debug_errors: true,
+  code_reloader: true,
+  watchers: []
+
+config :ebnis_web, Absinthe.Plug.GraphiQL, enabled: true
 
 # ## SSL Support
 #
@@ -43,5 +46,3 @@ config :phoenix, :plug_init_mode, :runtime
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
 config :phoenix, :stacktrace_depth, 20
-
-config :ebnis_web, Absinthe.Plug.GraphiQL, enabled: true

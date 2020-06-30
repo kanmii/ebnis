@@ -12,6 +12,9 @@ import Config
 
 config :pbkdf2_elixir, :rounds, 100_000
 
+config :ebnis_data, EbnisData.Repo,
+  show_sensitive_data_on_connection_error: false
+
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key

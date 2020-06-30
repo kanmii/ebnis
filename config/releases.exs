@@ -4,22 +4,34 @@
 # remember to add this file to your .gitignore.
 import Config
 
-# mandatory variables
-database_url = System.fetch_env!("EBNIS_DATABASE_URL")
-secret_key_base = System.fetch_env!("EBNIS_SECRET_KEY_BASE")
-host = System.fetch_env!("EBNIS_HOST")
-origins = System.fetch_env!("EBNIS_ORIGINS") |> Jason.decode!()
+database_url = System.fetch_env!("DATABASE_URL")
+secret_key_base = System.fetch_env!("SECRET_KEY_BASE")
 
-# optional variables
-port = System.get_env("EBNIS_PORT", "4000") |> String.to_integer()
-path = System.get_env("EBNIS_PATH", "/")
-pool_size = System.get_env("EBNIS_POOL_SIZE", "18") |> String.to_integer()
+database_ssl =
+  case System.fetch_env!("DATABASE_SSL") do
+    "true" ->
+      true
+
+    _ ->
+      false
+  end
+
+port =
+  System.fetch_env!("PORT")
+  |> String.to_integer()
+
+pool_size =
+  (System.get_env("POOL_SIZE") || "18")
+  |> String.to_integer()
+
+host = System.fetch_env!("HOST")
+
+check_origin = System.fetch_env!("CHECK_ORIGINS")
 
 config :ebnis_data, EbnisData.Repo,
-  # ssl: true,
+  ssl: database_ssl,
   url: database_url,
-  pool_size: pool_size,
-  show_sensitive_data_on_connection_error: false
+  pool_size: pool_size
 
 config :ebnis_web, EbnisWeb.Endpoint,
   url: [
@@ -32,7 +44,7 @@ config :ebnis_web, EbnisWeb.Endpoint,
   ],
   secret_key_base: secret_key_base,
   server: true,
-  check_origin: origins
+  check_origin: check_origin
 
 config :ebnis_data, EbnisData.Guardian,
   issuer: "ebnis",

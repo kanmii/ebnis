@@ -25,7 +25,12 @@ defmodule EbnisWeb.Endpoint do
   plug(
     Corsica,
     origins: "*",
-    allow_headers: ~w(Accept Content-Type Authorization Origin)
+    allow_headers: ~w(
+      Accept
+      Content-Type
+      Authorization
+      Origin
+    )
   )
 
   plug EbnisWeb.Router
