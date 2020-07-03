@@ -101,7 +101,7 @@ mix test.watch
 cp .env.example .env-prod
 ```
 
-Edit `.env-prod` set production environment variables
+Edit `.env-prod` to set production environment variables
 
 
 Do not forget to set `DATABASE_SSL` to a value that is not `true` to disable
@@ -110,10 +110,17 @@ Do not forget to set `DATABASE_SSL` to a value that is not `true` to disable
 And set `MIX_ENV` to `prod`
 
 
+Source the environment variables in your shell
+
+```
+set -a; . .env-prod; set +a
+```
+
+
 Build the docker image:
 
 ```
-docker build -t ebnis-be-release .
+docker build --build-arg DOCKER_HOST_USER_NAME -t ebnis-be-release .
 ```
 
 A docker image named `ebnis-be-release` will be built

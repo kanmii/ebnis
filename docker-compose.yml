@@ -20,7 +20,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      target: dev
       args:
         DOCKER_HOST_USER_NAME: "${DOCKER_HOST_USER_NAME}"
     image: ebnis-be-dev
