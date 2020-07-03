@@ -1,4 +1,4 @@
-FROM elixir:1.9.4-slim AS build
+FROM hexpm/elixir:1.9.4-erlang-22.3.4.2-debian-buster-20200511 AS build
 
 ENV MIX_ENV=prod
 
@@ -21,7 +21,7 @@ RUN mix do deps.get --only prod, compile \
 
 CMD ["/bin/bash"]
 
-############################ prepare release image ###########################
+############################### release image ###############################
 
 FROM debian:buster AS release
 
@@ -33,21 +33,21 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /usr/share/doc && rm -rf /usr/share/man \
   && apt-get clean \
-  && groupadd me \
-  && useradd -g me me \
-  && mkdir -p /me-app/assets/build \
-  && chown -R me:me /me-app
+  && groupadd ebnis \
+  && useradd -g ebnis ebnis \
+  && mkdir -p /ebnis-app \
+  && chown -R ebnis:ebnis /ebnis-app
 
 COPY ./docker/entrypoint.sh /usr/local/bin
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-WORKDIR /me-app
+WORKDIR /ebnis-app
 
-COPY --from=build --chown=me:me /src/_build/prod/rel/me ./
+COPY --from=build --chown=ebnis:ebnis /src/_build/prod/rel/ebnis ./
 
-USER me
+USER ebnis
 
-ENV HOME=/me-app
+ENV HOME=/ebnis-app
 
 CMD ["/bin/bash"]
