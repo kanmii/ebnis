@@ -2,9 +2,8 @@ FROM hexpm/elixir:1.9.4-erlang-22.3.4.2-debian-buster-20200511 AS dev
 
 ARG DOCKER_HOST_USER_NAME=ebnis
 
-ARG APP_DEPS="openssl git ca-certificates"
-ARG HOME_VAR=/home/${DOCKER_HOST_USER_NAME}
-ARG APP_PATH=${HOME_VAR}/src
+ENV APP_DEPS="openssl git ca-certificates" \
+   HOME_VAR=/home/${DOCKER_HOST_USER_NAME}
 
 RUN apt-get update \
   && apt-get install -y ${APP_DEPS} ${BUILD_DEPS} --no-install-recommends \
@@ -15,18 +14,16 @@ RUN apt-get update \
   && useradd -m -g ${DOCKER_HOST_USER_NAME} ${DOCKER_HOST_USER_NAME}
 
 COPY ./docker/entrypoint.sh /usr/local/bin
-RUN chmod +x /usr/local/bin/entrypoint.sh
 
-WORKDIR ${APP_PATH}
+WORKDIR ${HOME_VAR}/src
 
-COPY mix.exs mix.lock ./
-COPY config config
 COPY . .
 
 RUN chown -R \
   ${DOCKER_HOST_USER_NAME}:${DOCKER_HOST_USER_NAME} \
   ${HOME_VAR} \
-  && rm -rf docker
+  && rm -rf docker \
+  && chmod +x /usr/local/bin/entrypoint.sh
 
 # run app as non root user to avoid volume mount problems
 USER ${DOCKER_HOST_USER_NAME}
