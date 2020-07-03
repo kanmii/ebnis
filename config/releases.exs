@@ -36,7 +36,7 @@ config :ebnis_data, EbnisData.Repo,
 config :ebnis_web, EbnisWeb.Endpoint,
   url: [
     host: host,
-    path: path
+    port: port
   ],
   http: [
     :inet6,
