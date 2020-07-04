@@ -1,0 +1,4 @@
+docker
+.elixir_ls/
+.env
+.env-*

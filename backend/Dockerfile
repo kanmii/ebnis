@@ -13,7 +13,7 @@ RUN apt-get update \
   && groupadd ${DOCKER_HOST_USER_NAME} \
   && useradd -m -g ${DOCKER_HOST_USER_NAME} ${DOCKER_HOST_USER_NAME}
 
-COPY ./docker/entrypoint.sh /usr/local/bin
+COPY ./entrypoint.sh /usr/local/bin
 
 WORKDIR ${HOME_VAR}/src
 
@@ -22,7 +22,6 @@ COPY . .
 RUN chown -R \
   ${DOCKER_HOST_USER_NAME}:${DOCKER_HOST_USER_NAME} \
   ${HOME_VAR} \
-  && rm -rf docker \
   && chmod +x /usr/local/bin/entrypoint.sh
 
 # run app as non root user to avoid volume mount problems
@@ -64,7 +63,7 @@ RUN apt-get update \
   && mkdir -p /ebnis-app \
   && chown -R ebnis:ebnis /ebnis-app
 
-COPY ./docker/entrypoint.sh /usr/local/bin
+COPY ./entrypoint.sh /usr/local/bin
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

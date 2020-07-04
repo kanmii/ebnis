@@ -19,7 +19,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ./backend
       target: dev
       args:
         DOCKER_HOST_USER_NAME: "${DOCKER_HOST_USER_NAME}"
@@ -33,9 +33,7 @@ services:
       - "${DOCKER_HOST_PORT:-4000}:${PORT:-4000}"
     user: "${DOCKER_HOST_USER_NAME}"
     volumes:
-      - ".:/home/${DOCKER_HOST_USER_NAME}/src"
+      - "./backend:/home/${DOCKER_HOST_USER_NAME}/src"
       - "notUsed_build:/home/${DOCKER_HOST_USER_NAME}/src/_build"
-      - "notUsed_docker:/home/${DOCKER_HOST_USER_NAME}/src/docker"
 volumes:
   notUsed_build:
-  notUsed_docker:
