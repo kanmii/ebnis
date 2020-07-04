@@ -5,14 +5,14 @@ set -e
 TIMEOUT=60
 
 wait_for() {
-  echo -e "\n\n\n=========Running $@================\n\n\n"
+  echo -e "\n\n\n=========Running $@================\n\n"
   eval "$@"
 
   for i in `seq $TIMEOUT` ; do
     result=$?
 
     if [ $result -eq 0 ] ; then
-      echo -e "\n\n\n========= Done running $@================\n\n\n"
+      echo -e "\n\n\n========= Done running $@================\n\n"
       return 0
     else
         eval "$@"
@@ -25,8 +25,12 @@ wait_for() {
 }
 
 if [ "$MIX_ENV" == "prod" ]; then
-  wait_for bin/ebnis eval "Ebnis.Release.create"
-  bin/ebnis eval "Ebnis.Release.migrate"
+  if [ -n "$CREATE_DATABASE" ]; then
+    wait_for bin/ebnis eval "Ebnis.Release.create"
+  else
+    wait_for bin/ebnis eval "Ebnis.Release.migrate"
+  fi
+
   bin/ebnis start
 else
   node_name="${DEV_NODE_NAME:-$MIX_ENV}"
