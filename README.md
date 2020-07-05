@@ -1,4 +1,4 @@
-### Ebnis backend
+### Ebnis
 
 # How to develop
 
@@ -34,7 +34,7 @@ the `DEV_COOKIE` environment variable.
 environment variable.
 
 
-See the file `docker/entrypoint.sh`
+See the file `backend/entrypoint.sh`
 
 ----
 
