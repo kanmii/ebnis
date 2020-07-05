@@ -49,13 +49,17 @@ docker exec -it container_name bash
 ```
 iex --sname you_must_choose_a_name \
   --cookie enter_cookie \
-  --remsh node@container_id
+  --remsh node_name@container_id
 ```
 
 
-You can get the `container_id` from your `bash` prompt inside the container.
+You can get the `container_id` from your `bash` prompt inside the container
+or `HOSTNAME` environment variable inside the container
+or run `docker ps` in another shell to obtain your `container_id`
 
-Or run `docker ps` in another shell to obtain your `container_id`
+
+To make it easy, a `bash` alias was created: `conn_iex`
+See the file `backend/entrypoint.sh`
 
 
 # Testing
