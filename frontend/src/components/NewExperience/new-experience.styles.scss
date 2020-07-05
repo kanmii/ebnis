@@ -1,0 +1,86 @@
+@import "../../styles/extensions";
+
+.component-new-experience {
+  @extend %modal;
+
+  .scroll-into-view {
+    @extend %modal-scroll-into-view;
+  }
+
+  .form {
+    &__control {
+      width: 100%;
+
+      &--hidden {
+        display: none;
+      }
+    }
+
+    &__label-description {
+      display: flex;
+      align-items: center;
+
+      &-toggle {
+        padding: 10px 35px 10px 10px;
+      }
+
+      &-hide {
+        @extend %chevron-down;
+      }
+
+      &-show {
+        @extend %chevron-up;
+      }
+    }
+
+    &__field--errors {
+      @extend %form-field-errors;
+    }
+  }
+
+  .select {
+    width: 100%;
+  }
+
+  .data-definitions {
+    margin-top: 20px;
+  }
+
+  .data-definition {
+    border: 1px solid var(--app-color);
+    padding: 10px;
+    border-radius: 4px;
+  }
+
+  .data-definition + .data-definition {
+    margin-top: 30px;
+  }
+
+  .data-definitions {
+    border: 1px solid var(--app-color);
+    margin-bottom: 20px;
+    padding: 10px;
+    border-radius: 4px;
+
+    &.errors {
+      border-color: $danger;
+    }
+  }
+
+  .data-definition-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  .data-definition-control {
+    & + .data-definition-control {
+      /* this should ideally be something like (15/1rem)rem for responsiveness */
+      margin-left: 15px;
+    }
+  }
+
+  .fas {
+    color: var(--app-color);
+  }
+}

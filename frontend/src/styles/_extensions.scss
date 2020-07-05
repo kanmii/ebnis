@@ -1,0 +1,139 @@
+@import "./variables";
+
+%modal {
+  .modal {
+    &-background {
+      pointer-events: none;
+    }
+
+    &-card {
+      min-height: 500px;
+
+      @media (max-height: 500px) {
+        min-height: 100vh;
+      }
+
+      max-width: 450px;
+    }
+
+    &-card-title {
+      flex-shrink: 1;
+    }
+
+    &-card-body {
+      border-left: 1px solid $modal-card-body-border-color;
+      border-right: 1px solid $modal-card-body-border-color;
+    }
+  }
+}
+
+%form-field-errors {
+  color: $danger;
+
+  label {
+    color: $danger;
+  }
+
+  input {
+    color: $danger;
+    border-color: $danger;
+  }
+}
+
+%visually-hidden {
+  width: 1px;
+  height: 1px;
+  visibility: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  display: block;
+}
+
+%scroll-into-view {
+  @extend %visually-hidden;
+}
+
+%modal-scroll-into-view {
+  @extend %scroll-into-view;
+  position: relative;
+  top: -$modal-card-body-padding;
+}
+
+%chevron-down {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-bottom: 10px solid black;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+}
+
+%chevron-up {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 10px solid black;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+}
+
+%floating-circular {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: var(--app-color);
+  color: #fff;
+  position: fixed;
+  right: 30px;
+  bottom: $floating-circular-bottom;
+  cursor: pointer;
+}
+
+%auth-form {
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .other-auth {
+    margin-top: 80px;
+    text-align: center;
+  }
+
+  .other-auth__other-link {
+    font-weight: 800;
+  }
+
+  .form {
+    width: 100%;
+
+    &__caption {
+      margin-bottom: 30px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    &__label {
+      padding: 0px;
+    }
+
+    &__submit {
+      text-align: center;
+
+      + .form__submit {
+        margin-top: 20px;
+      }
+    }
+
+    &__field--errors {
+      @extend %form-field-errors;
+    }
+
+    &__control-wrapper {
+      flex: 1;
+    }
+  }
+}

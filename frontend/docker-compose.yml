@@ -1,0 +1,21 @@
+version: '2.3'
+services:
+  cra:
+    build:
+      context: .
+      args:
+        - "NODE_ENV=${NODE_ENV:-production}"
+    command: yarn nps e2eDev
+    env_file:
+      - ".env"
+    ports:
+      - "${DOCKER_WEB_PORT:-127.0.0.1:3022}:3000"
+      - "9229:9229"
+      - "9230:9230"
+    volumes:
+      - .:/opt/node_app/app:delegated
+      - ./package.json:/opt/node_app/package.json
+      - ./yarn.lock:/opt/node_app/yarn.lock
+      - /opt/node_app/app/node_modules
+    environment:
+      - NODE_ENV=development

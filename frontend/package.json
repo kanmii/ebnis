@@ -1,0 +1,121 @@
+{
+  "name": "ebnis",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "nps",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "@apollo/react-hooks": "^3.1.5",
+    "@fortawesome/fontawesome-free": "^5.13.0",
+    "@kanmii/socket": "^0.2.2",
+    "@kanmii/socket-apollo-link": "^0.2.3",
+    "apollo-cache-inmemory": "^1.6.5",
+    "apollo-cache-persist": "^0.1.1",
+    "apollo-client": "^2.6.8",
+    "apollo-link": "^1.2.14",
+    "apollo-link-error": "^1.1.13",
+    "apollo-link-http": "^1.5.17",
+    "bulma": "^0.8.2",
+    "classnames": "^2.2.6",
+    "date-fns": "^2.12.0",
+    "fuzzysort": "^1.1.4",
+    "graphql": "14.5.8",
+    "graphql-tag": "^2.10.3",
+    "immer": "^6.0.3",
+    "immutability-helper": "^3.0.2",
+    "lodash": "^4.17.15",
+    "phoenix": "^1.5.1",
+    "react": "^16.13.1",
+    "react-app-rewire-hot-loader": "^2.0.1",
+    "react-app-rewired": "^2.1.5",
+    "react-dom": "npm:@hot-loader/react-dom",
+    "react-hot-loader": "^4.12.20",
+    "react-router-dom": "^5.1.2",
+    "react-scripts": "3.4.1",
+    "typescript": "~3.7.2",
+    "uuidv4": "^6.0.7",
+    "zen-observable-ts": "^0.8.21"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^10.4.3",
+    "@types/classnames": "^2.2.10",
+    "@types/jest": "^24.0.0",
+    "@types/lodash": "^4.14.157",
+    "@types/node": "^12.0.0",
+    "@types/phoenix": "^1.4.4",
+    "@types/react": "^16.9.0",
+    "@types/react-dom": "^16.9.0",
+    "@types/react-router-dom": "^5.1.4",
+    "apollo": "^2.27.3",
+    "cypress": "^4.4.1",
+    "env-cmd": "^10.1.0",
+    "netlify": "^4.0.5",
+    "node-fetch": "^2.6.0",
+    "node-sass": "^4.14.0",
+    "nps": "^5.9.12",
+    "prettier": "^2.0.5",
+    "rimraf": "^3.0.2",
+    "serve": "^11.3.0",
+    "shelljs": "^0.8.3",
+    "start-server-and-test": "^1.11.0",
+    "workbox-build": "^5.1.2",
+    "workbox-window": "^5.1.2"
+  },
+  "eslintConfig": {
+    "extends": "react-app",
+    "overrides": [
+      {
+        "files": [
+          "cypress/**/*.ts"
+        ],
+        "rules": {
+          "jest/expect-expect": "off",
+          "jest/valid-expect-in-promise": "off",
+          "jest/valid-expect": "off"
+        }
+      },
+      {
+        "files": [
+          "**/*.tsx"
+        ],
+        "rules": {
+          "react/prop-types": "off"
+        }
+      }
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "resolutions": {
+    "graphql": "14.5.8"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.ts*",
+      "!src/__tests__/**",
+      "!src/graphql/**",
+      "!src/register-service-worker.*",
+      "!src/react-app-env.d.ts"
+    ],
+    "watchPathIgnorePatterns": [
+      "<rootDir>/node_modules*",
+      "<rootDir>/package.json",
+      "<rootDir>/build/",
+      "<rootDir>/coverage/",
+      "<rootDir>/public/",
+      "<rootDir>/.netlify/"
+    ]
+  }
+}

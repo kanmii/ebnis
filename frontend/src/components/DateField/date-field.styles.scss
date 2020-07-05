@@ -1,0 +1,36 @@
+.date-field {
+  display: flex;
+  justify-content: space-around;
+}
+
+.light-border {
+  border: 1px solid var(--light-blue-border);
+  padding: 5px;
+}
+
+.datetime-field {
+  &__time {
+    display: flex;
+    width: 50%;
+    justify-content: space-around;
+    margin: 0 auto;
+  }
+
+  &__hour {
+    margin-right: 10px;
+  }
+
+  &__date {
+    border: none;
+  }
+}
+
+.field_label {
+  display: block;
+  margin: 0 0 0.28571429rem 0;
+  color: #000000de;
+  font-size: 0.92857143em;
+  font-weight: 700;
+  text-transform: none;
+  text-align: center;
+}

@@ -1,0 +1,13 @@
+.git
+*Dockerfile*
+*docker-compose*
+node_modules
+.vscode/
+tags
+.vim
+coverage
+cypress
+.env-cmdrc.example.js
+.prettierrc.js
+README.md
+.dockerignore
