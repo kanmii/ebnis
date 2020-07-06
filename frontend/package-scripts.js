@@ -12,19 +12,24 @@ const {
 
 const distFolderName = "build";
 const distAbsPath = path.resolve(__dirname, `./${distFolderName}`);
-const reactScript = "react-app-rewired";
+const reactScript = "react-app-rewired"; // provides HMR
 // const reactScript = "react-scripts";
 
-const test = `env-cmd -e test yarn ${reactScript} test --runInBand`;
-
-const startServer = `yarn ${reactScript} start`;
 const api_url = process.env.API_URL;
 
 // Inside a docker container, we bind to the `HOSTNAME` environment variable
-// if available
+// if available otherwise we will not be able to access react application
+// from outside the container
 const host = process.env.HOSTNAME || "localhost";
 
-const react_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REACT_APP_API_URL=${api_url} HOST=${host}`;
+const dev_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REACT_APP_API_URL=${api_url} HOST=${host}`;
+
+const startServer = `yarn ${reactScript} start`;
+
+const test_envs =
+  "API_URL=http://localhost:4022 IS_UNIT_TEST=true NODE_ENV=test";
+
+const test = `${test_envs} yarn react-scripts test --runInBand`;
 
 function buildFn(flag) {
   const reactBuild = `yarn ${reactScript} build`;
@@ -54,7 +59,7 @@ function buildFn(flag) {
 
 module.exports = {
   scripts: {
-    dev: `${react_envs} ${startServer}`,
+    dev: `${dev_envs} ${startServer}`,
     e2eDev: `REACT_APP_API_URL=${api_url} env-cmd -e e2eDev ${startServer}`,
     build: {
       deploy: buildFn("prod") + "  && yarn start netlify",
@@ -65,8 +70,8 @@ module.exports = {
     },
     test: {
       default: `CI=true ${test}`,
-      d: `CI=true env-cmd -e test react-scripts --inspect-brk test --runInBand --no-cache  `, // debug
-      dw: `env-cmd -e test react-scripts --inspect-brk test --runInBand --no-cache`, // debug watch
+      d: `CI=true env-cmd ${test_envs} react-scripts --inspect-brk test --runInBand --no-cache  `, // debug
+      dw: `${test_envs} react-scripts --inspect-brk test --runInBand --no-cache`, // debug watch
       // "node --inspect node_modules/.bin/jest --runInBand"
       w: test,
       wc: `${test} --coverage`,

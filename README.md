@@ -41,7 +41,7 @@ See the file `backend/entrypoint.sh`
 3. Attach to the running container
 
 ```
-docker exec -it container_name bash
+docker-compose exec api bash
 ```
 
 4. Inside the container:
@@ -58,7 +58,7 @@ or `HOSTNAME` environment variable inside the container
 or run `docker ps` in another shell to obtain your `container_id`
 
 
-To make it easy, a `bash` alias was created: `conn_iex`
+To make it easy, a `bash` alias was created: `conn-iex`
 See the file `backend/entrypoint.sh`
 
 
