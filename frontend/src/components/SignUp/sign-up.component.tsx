@@ -14,22 +14,23 @@ import { FieldError } from "../../utils/common-errors";
 import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
 import {
   nameInputId,
-  nameErrorId,
   nameFieldId,
   submitId,
   notificationId,
   emailInputId,
-  emailErrorId,
   emailFieldId,
   passwordInputId,
-  passwordErrorId,
   passwordFieldId,
   passwordConfirmationInputId,
-  passwordConfirmationErrorId,
   passwordConfirmationFieldId,
+  resetId,
 } from "./sign-up.dom";
 import makeClassNames from "classnames";
-import { warningClassName, errorClassName } from "../../utils/utils.dom";
+import {
+  warningClassName,
+  errorClassName,
+  outerFieldClassName,
+} from "../../utils/utils.dom";
 import { StateValue, InputChangeEvent } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { formFieldErrorClass } from "../../utils/utils.dom";
@@ -163,6 +164,7 @@ export function SignUp(props: Props) {
         <div className="form__submit">
           <button
             type="button"
+            id={resetId}
             className="button is-rounded is-warning"
             onClick={() => {
               dispatch({
@@ -206,7 +208,7 @@ function Name(props: FieldComponentProps) {
   return (
     <div
       className={makeClassNames({
-        field: true,
+        [outerFieldClassName]: true,
         [nameFieldId]: true,
         [formFieldErrorClass]: !!nameErrors,
       })}
@@ -233,7 +235,7 @@ function Name(props: FieldComponentProps) {
       </div>
 
       {nameErrors && (
-        <FormCtrlError id={nameErrorId}>
+        <FormCtrlError>
           {nameErrors.map((errorText, index) => {
             return (
               <div key={index}>
@@ -268,7 +270,7 @@ function Email(props: FieldComponentProps) {
   return (
     <div
       className={makeClassNames({
-        field: true,
+        [outerFieldClassName]: true,
         [emailFieldId]: true,
         [formFieldErrorClass]: !!emailErrors,
       })}
@@ -295,7 +297,7 @@ function Email(props: FieldComponentProps) {
       </div>
 
       {emailErrors && (
-        <FormCtrlError id={emailErrorId}>
+        <FormCtrlError>
           {emailErrors.map((errorText, index) => {
             return (
               <div key={index}>
@@ -330,7 +332,7 @@ function Password(props: FieldComponentProps) {
   return (
     <div
       className={makeClassNames({
-        field: true,
+        [outerFieldClassName]: true,
         [passwordFieldId]: true,
         [formFieldErrorClass]: !!passwordErrors,
       })}
@@ -357,7 +359,7 @@ function Password(props: FieldComponentProps) {
       </div>
 
       {passwordErrors && (
-        <FormCtrlError id={passwordErrorId}>
+        <FormCtrlError>
           {passwordErrors.map((errorText, index) => {
             return (
               <div key={index}>
@@ -392,7 +394,7 @@ function PasswordConfirmation(props: FieldComponentProps) {
   return (
     <div
       className={makeClassNames({
-        field: true,
+        [outerFieldClassName]: true,
         [passwordConfirmationFieldId]: true,
         [formFieldErrorClass]: !!passwordConfirmationErrors,
       })}
@@ -422,7 +424,7 @@ function PasswordConfirmation(props: FieldComponentProps) {
       </div>
 
       {passwordConfirmationErrors && (
-        <FormCtrlError id={passwordConfirmationErrorId}>
+        <FormCtrlError>
           {passwordConfirmationErrors.map((errorText, index) => {
             return (
               <div key={index}>

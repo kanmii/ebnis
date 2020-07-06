@@ -2,6 +2,7 @@
 import React, { PropsWithChildren } from "react";
 import makeClassName from "classnames";
 import { ComponentProps } from "../../utils/types";
+import { formCtrlErrorClassName } from "../../utils/utils.dom";
 
 interface Props extends PropsWithChildren<{}>, ComponentProps {
   error?: null | string;
@@ -15,6 +16,7 @@ export function FormCtrlError(props: Props) {
       className={makeClassName({
         "is-danger help": true,
         [className]: !!className,
+        [formCtrlErrorClassName]: true,
       })}
       id={id}
       {...others}

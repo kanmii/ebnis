@@ -82,7 +82,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
       });
     },
 
-    // true
+    // true,
   );
 
 ////////////////////////// STATE UPDATE SECTION /////////////////
@@ -254,7 +254,7 @@ function validateForm(proxy: DraftState): RegisterUserInput {
 
     if (!regex.test(value)) {
       validateFormPutFieldErrorHelper(submissionErrorState, validityState0, [
-        ["", "ust be a valid email address"],
+        ["", "must be a valid email address"],
       ]);
     } else {
       input.email = value;
@@ -379,9 +379,11 @@ function handleResetFormFieldsAction(proxy: DraftState) {
 
   submission.value = StateValue.inactive;
 
-  Object.values(fields).forEach(({ states }) => {
-    states.value = StateValue.unchanged;
-    delete states[StateValue.changed];
+  Object.entries(fields).forEach(([field, { states }]) => {
+    if (field !== "source") {
+      states.value = StateValue.unchanged;
+      delete states[StateValue.changed];
+    }
   });
 }
 
@@ -409,6 +411,10 @@ function handleServerErrorsAction(
       passwordConfirmation: passwordConfirmationErrors,
     },
   } = payload;
+
+  handleCommonErrorAction(proxy, {
+    error: GENERIC_SERVER_ERROR,
+  });
 
   const submissionErrorState = submission as CommonErrorsState;
   let hasErrors = false;
@@ -505,7 +511,6 @@ const registerUserEffect: DefRegisterUserEffect["func"] = async (
       return;
     } else {
       const { user } = validResponse;
-
       manageUserAuthentication(user);
       await persistor.persist();
       windowChangeUrl(MY_URL, ChangeUrlType.replace);
