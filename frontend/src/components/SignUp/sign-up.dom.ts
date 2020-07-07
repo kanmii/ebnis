@@ -11,3 +11,4 @@ export const passwordConfirmationFieldId = `${domPrefix}-password-confirmation-f
 export const submitId = `${domPrefix}-submit`;
 export const resetId = `${domPrefix}-reset`;
 export const notificationId = `${domPrefix}-notification`;
+export const scrollIntoViewDomId = `${domPrefix}-scroll-into-view`;

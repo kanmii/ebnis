@@ -24,6 +24,7 @@ import {
   passwordConfirmationInputId,
   passwordConfirmationFieldId,
   resetId,
+  scrollIntoViewDomId,
 } from "./sign-up.dom";
 import makeClassNames from "classnames";
 import {
@@ -121,6 +122,8 @@ export function SignUp(props: Props) {
   return (
     <div className="sign-up-component ">
       <Header />
+
+      <span className="scroll-into-view" id={scrollIntoViewDomId} />
 
       <form onSubmit={onSubmit} className="form">
         <div className="form__caption">Sign up with email</div>

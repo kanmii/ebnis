@@ -35,6 +35,7 @@ import { manageUserAuthentication } from "../../utils/manage-user-auth";
 import { EbnisContextProps } from "../../utils/app-context";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { MY_URL } from "../../utils/urls";
+import {scrollIntoViewDomId} from './sign-up.dom'
 
 export enum ActionType {
   SUBMISSION = "@sign-up/submission",
@@ -471,7 +472,7 @@ function handleServerErrorsAction(
 ////////////////////////// EFFECTS SECTION /////////////////////////
 
 const scrollIntoViewEffect: DefScrollToTopEffect["func"] = () => {
-  scrollIntoView("");
+  scrollIntoView(scrollIntoViewDomId);
 };
 
 type DefScrollToTopEffect = EffectDefinition<"scrollIntoViewEffect", {}>;

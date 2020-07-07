@@ -25,6 +25,7 @@ import { fillField } from "../tests.utils";
 import { RegisterUserMutationResult } from "../utils/user.gql.types";
 import { manageUserAuthentication } from "../utils/manage-user-auth";
 import { windowChangeUrl } from "../utils/global-window";
+import { scrollIntoView } from "../utils/scroll-into-view";
 
 jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
@@ -42,6 +43,9 @@ const persistor = {
 } as AppPersistor;
 
 const mockRegisterUser = jest.fn();
+
+jest.mock("../utils/scroll-into-view");
+const mockScrollIntoView = scrollIntoView as jest.Mock;
 
 afterEach(() => {
   cleanup();
@@ -66,11 +70,15 @@ it("reset/form errors", async () => {
 
   expect(getNotificationEl()).toBeNull();
 
+  expect(mockScrollIntoView).not.toBeCalled();
+
   const submitEl = getSubmitEl();
   submitEl.click();
 
   let notificationEl = await waitForElement(getNotificationEl);
   expect(notificationEl.classList).toContain(warningClassName);
+  expect(mockScrollIntoView).toHaveBeenCalled();
+  mockScrollIntoView.mockReset();
 
   (document.getElementById(resetId) as HTMLElement).click();
   expect(getNotificationEl()).toBeNull();
@@ -103,9 +111,12 @@ it("reset/form errors", async () => {
   );
   expect(getErrorEl(passwordConfirmationFieldEl)).toBeNull();
 
+  expect(mockScrollIntoView).not.toBeCalled();
+
   submitEl.click();
   notificationEl = await waitForElement(getNotificationEl);
   expect(notificationEl.classList).toContain(errorClassName);
+  expect(mockScrollIntoView).toBeCalled();
 
   expect(nameFieldEl.classList).toContain(formFieldErrorClass);
   expect(getErrorEl(nameFieldEl)).not.toBeNull();
