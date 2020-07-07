@@ -16,8 +16,15 @@ Edit `.env-dev` to set up the environment variables to appropriate values
 
 ## Start the containers with docker-compose
 
+
+We will need to source the `env` file in the shell as an alternative to
+providing a `.env` file required by docker and docker-compose to read
+environment variables when building images. Sourcing in shell provides
+the flexibility to build and run different images in different shells since
+there can be only one `.env` file in the root of our project.
+
 ```
-cp .env-dev .env && docker-compose up
+set -a; . .env-dev; set +a; docker-compose up
 ```
 
 
@@ -62,7 +69,7 @@ To make it easy, a `bash` alias was created: `conn-iex`
 See the file `backend/entrypoint.sh`
 
 
-# Testing
+# Testing elixir backend
 
 
 ```
@@ -74,24 +81,10 @@ Edit `.env-test` to set testing environment variables
 Do not forget to set `MIX_ENV` to `test` and set `DATABASE_URL` appropriately
 
 
-Source the environment variables in your shell
+Start testing with docker-compose
 
 ```
-set -a; . .env-test; set +a
-```
-
-
-Start `test` task
-
-```
-mix test
-```
-
-
-Or watch files
-
-```
-mix test.watch
+set -a; . .env-test; set +a; docker-compose up api
 ```
 
 

@@ -17,12 +17,7 @@ const reactScript = "react-app-rewired"; // provides HMR
 
 const api_url = process.env.API_URL;
 
-// Inside a docker container, we bind to the `HOSTNAME` environment variable
-// if available otherwise we will not be able to access react application
-// from outside the container
-const host = process.env.HOSTNAME || "localhost";
-
-const dev_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REACT_APP_API_URL=${api_url} HOST=${host}`;
+const dev_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REACT_APP_API_URL=${api_url} `;
 
 const startServer = `yarn ${reactScript} start`;
 

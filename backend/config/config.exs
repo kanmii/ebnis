@@ -17,13 +17,12 @@ port =
   System.get_env("PORT", "4000")
   |> String.to_integer()
 
-host = System.get_env("HOST", "localhost")
+host = System.get_env("BACKEND_SERVER_HOST", "localhost")
 
 pool_size =
   System.get_env("POOL_SIZE")
   |> Kernel.||("10")
   |> String.to_integer()
-
 
 config :ebnis,
   ecto_repos: [EbnisData.Repo],
@@ -46,7 +45,9 @@ config :ebnis_web,
   generators: [context_app: :ebnis_data]
 
 config :ebnis_web, EbnisWeb.Endpoint,
-  url: [host: host],
+  url: [
+    host: host
+  ],
   http: [port: port],
   secret_key_base: secret_key_base,
   render_errors: [

@@ -24,7 +24,7 @@ pool_size =
   (System.get_env("POOL_SIZE") || "18")
   |> String.to_integer()
 
-host = System.fetch_env!("HOST")
+host = System.fetch_env!("BACKEND_SERVER_HOST")
 
 check_origin = System.fetch_env!("CHECK_ORIGINS")
 
