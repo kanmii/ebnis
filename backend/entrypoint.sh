@@ -1,35 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
-TIMEOUT=60
-
-wait_for() {
-  comm="$1"
-  echo -e "\n\n\n=========Running $comm================\n\n"
-  eval $comm
-
-  for i in `seq $TIMEOUT` ; do
-    result=$?
-
-    if [ $result -eq 0 ] ; then
-      echo -e "\n\n\n========= Done running $comm=================\n\n"
-      return 0
-    else
-        eval $comm
-    fi
-    sleep 1
-  done
-
-  echo -e "\nOperation timed out" >&2
-  exit 1
-}
-
 if [ "$MIX_ENV" == "prod" ]; then
   if [ -n "$CREATE_DATABASE" ]; then
-    wait_for "bin/ebnis eval "Ebnis.Release.create""
+    /usr/local/bin/wait-until "bin/ebnis eval "Ebnis.Release.create""
   else
-    wait_for "bin/ebnis eval "Ebnis.Release.migrate""
+    wait-until "bin/ebnis eval "Ebnis.Release.migrate""
   fi
 
   bin/ebnis start
@@ -37,7 +14,7 @@ else
   node_name="${DEV_NODE_NAME:-$MIX_ENV}"
   cookie="${DEV_COOKIE:-"ebnis-cookie"}"
 
-  wait_for "mix ecto.create"
+  /usr/local/bin/wait-until "mix ecto.create"
   mix ecto.migrate
 
   # we need the node name so we can attach ao remote iex console thus:
