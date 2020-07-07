@@ -47,7 +47,8 @@ defmodule EbnisData.MixProject do
       {:ebnis_emails, in_umbrella: true},
       {:ebnis, in_umbrella: true},
       {:timex, "~> 3.6"},
-      {:ecto_ulid, "~> 0.2.0"}
+      {:ecto_ulid, "~> 0.2.0"},
+      {:cortex, "~> 0.6.0", only: [:dev, :test]}
     ]
   end
 

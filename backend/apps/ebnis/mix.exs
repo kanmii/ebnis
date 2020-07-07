@@ -34,6 +34,8 @@ defmodule Ebnis.MixProject do
   #
   # Type `mix help deps` for examples and options.
   defp deps do
-    []
+    [
+      {:cortex, "~> 0.6.0", only: [:dev, :test]},
+    ]
   end
 end

@@ -2,7 +2,7 @@ FROM hexpm/elixir:1.9.4-erlang-22.3.4.2-debian-buster-20200511 AS dev
 
 ARG DOCKER_HOST_USER_NAME
 
-ENV APP_DEPS="openssl git ca-certificates" \
+ENV APP_DEPS="openssl git ca-certificates inotify-tools" \
    HOME_VAR=/home/${DOCKER_HOST_USER_NAME}
 
 RUN apt-get update \

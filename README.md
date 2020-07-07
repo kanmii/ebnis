@@ -72,20 +72,26 @@ See the file `backend/entrypoint.sh`
 # Testing elixir backend
 
 
-```
-cp .env.example .env-test
-```
-
-Edit `.env-test` to set testing environment variables
-
-Do not forget to set `MIX_ENV` to `test` and set `DATABASE_URL` appropriately
-
-
-Start testing with docker-compose
+In a new shell, `docker-compose exec` into a running `api` docker-compose
+service container running in development mode:
 
 ```
-set -a; . .env-test; set +a; docker-compose up api
+set -a; . .env-dev; set +a; docker-compose exec api
 ```
+
+
+Once inside the container,
+
+
+```
+MIX_ENV=test iex -S mix
+```
+
+
+Since we are using [cortex](https://github.com/urbint/cortex) as test running,
+tests will be automatically ran on file changes. You may also manually run
+tests. See the [cortex](https://github.com/urbint/cortex) project for how
+to do this.
 
 
 # Production
@@ -107,18 +113,12 @@ Do not forget to set `DATABASE_SSL` to a value that is not `true` to disable
 And set `MIX_ENV` to `prod`
 
 
-Source the environment variables in your shell
+Source the environment variables in your shell and build the docker image
 
 ```
-set -a; . .env-prod; set +a
+set -a; . .env-prod; set +a; docker build --build-arg DOCKER_HOST_USER_NAME -t ebnis-be-release ./backend
 ```
 
-
-Build the docker image:
-
-```
-docker build --build-arg DOCKER_HOST_USER_NAME -t ebnis-be-release .
-```
 
 A docker image named `ebnis-be-release` will be built
 
@@ -173,6 +173,13 @@ docker run -d --name postgres-container-name -e POSTGRES_PASSWORD=password postg
 ```
 
 
+Or restart one
+
+```
+docker start postgres-container-name
+```
+
+
 Start phoenix app, linking the database host to the running postgres container
 
 ```
@@ -180,6 +187,27 @@ docker run -it --rm \
   --name ebnis-prod-api \
   --link=postgres-container-name:db \
   --env-file=.env-prod \
-  -p $DOCKER_HOST_PORT:$PORT \
+  -p $DOCKER_HOST_API_PORT:$PORT \
   ebnis-be-release /usr/local/bin/entrypoint.sh
+```
+
+
+## frontend
+
+
+`cd` into `frontend` folder and run `yarn start` to discover available commands
+
+
+### Watch files and run tests
+
+
+```
+yarn start test.w
+```
+
+
+### test coverage
+
+```
+yarn start test.c
 ```

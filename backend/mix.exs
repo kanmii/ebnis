@@ -30,7 +30,6 @@ defmodule Ebnis.Umbrella.MixProject do
 
   defp deps do
     [
-      {:mix_test_watch, "~> 0.9.0", only: :test, runtime: false},
       {:excoveralls, "~> 0.12", only: :test}
     ]
   end

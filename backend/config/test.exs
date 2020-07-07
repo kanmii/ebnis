@@ -20,6 +20,3 @@ config :logger,
 
 config :ebnis_emails, EbEmails.DefaultImplementation.Mailer,
   adapter: Swoosh.Adapters.Test
-
-config :mix_test_watch,
-  clear: true
