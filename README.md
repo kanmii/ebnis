@@ -76,7 +76,7 @@ In a new shell, `docker-compose exec` into a running `api` docker-compose
 service container running in development mode:
 
 ```
-set -a; . .env-dev; set +a; docker-compose exec api
+set -a; . .env-dev; set +a; docker-compose exec api bash
 ```
 
 
