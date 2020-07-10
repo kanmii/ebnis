@@ -6,7 +6,7 @@ ENV APP_DEPS="openssl git ca-certificates inotify-tools curl" \
    HOME_VAR=/home/${DOCKER_HOST_USER_NAME}
 
 RUN apt-get update \
-  && apt-get install -y ${APP_DEPS} ${BUILD_DEPS} --no-install-recommends \
+  && apt-get install -y ${APP_DEPS} --no-install-recommends \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /usr/share/doc && rm -rf /usr/share/man \
   && apt-get clean \
