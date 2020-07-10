@@ -12,7 +12,7 @@ import {
   effectFunctions,
 } from "./my.utils";
 
-export default () => {
+export function MyIndex() {
   const [stateMachine, dispatch] = useReducer(
     indexReducer,
     undefined,
@@ -58,7 +58,7 @@ export default () => {
       )}
     </>
   );
-};
+}
 
 function FetchExperiencesFail(props: { error: string; onReFetch: () => void }) {
   const { error, onReFetch } = props;
@@ -87,3 +87,5 @@ function FetchExperiencesFail(props: { error: string; onReFetch: () => void }) {
     </div>
   );
 }
+
+export default MyIndex;

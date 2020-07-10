@@ -8,7 +8,7 @@ import { DetailExperience } from "./detail-experience.component";
 import { parseStringError } from "../../utils/common-errors";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 
-export default (props: CallerProps) => {
+export function DetailExperienceIndex(props: CallerProps) {
   const { experienceId } = (props.match as Match).params;
 
   const { data, loading, error } = useGetExperienceDetail({
@@ -31,4 +31,6 @@ export default (props: CallerProps) => {
       )}
     </>
   );
-};
+}
+
+export default DetailExperienceIndex;

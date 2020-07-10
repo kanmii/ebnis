@@ -44,6 +44,8 @@ export enum ActionType {
   SET_TIMEOUT = "@detailed-experience/set-timeout",
   ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION = "@detailed-experience/on-close-entries-errors-notification",
   ON_EDIT_ENTRY = "@detailed-experience/on-edit-entry",
+  DELETE_EXPERIENCE_REQUEST = "@detailed-experience/delete-experience-request",
+  DELETE_EXPERIENCE_DECLINED = "@detailed-experience/delete-experience-declined",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -82,6 +84,14 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           case ActionType.ON_EDIT_ENTRY:
             handleOnEditEntryAction(proxy, payload as OnEditEntryPayload);
             break;
+
+          case ActionType.DELETE_EXPERIENCE_REQUEST:
+            proxy.states.deleteExperience.value = StateValue.active;
+            break;
+
+          case ActionType.DELETE_EXPERIENCE_DECLINED:
+            proxy.states.deleteExperience.value = StateValue.inactive;
+            break;
         }
       });
     },
@@ -89,7 +99,11 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
   );
 
 ////////////////////////// STATE UPDATE SECTION ////////////////////////////
+
 export function initState(props: Props): StateMachine {
+  const deleteExperienceRequested =
+    props.location.state && props.location.state.delete;
+
   return {
     context: {},
     effects: {
@@ -119,6 +133,11 @@ export function initState(props: Props): StateMachine {
       },
       entriesErrors: {
         value: StateValue.inactive,
+      },
+      deleteExperience: {
+        value: deleteExperienceRequested
+          ? StateValue.active
+          : StateValue.inactive,
       },
     },
   };
@@ -247,12 +266,12 @@ function handleMaybeEntriesErrorsHelper(
   } = proxy;
 
   const entriesErrorsState = entriesErrors as Draft<EntriesErrorsNotification>;
-  const errorValues = {} as UnsyncableEntriesErrors
+  const errorValues = {} as UnsyncableEntriesErrors;
 
   entriesErrorsState.value = StateValue.active;
   entriesErrorsState.active = {
     context: {
-      errors: errorValues
+      errors: errorValues,
     },
   };
 
@@ -535,8 +554,19 @@ export type StateMachine = GenericGeneralEffect<EffectType> &
           }
         | NotificationActive
       >;
+
+      deleteExperience: DeleteExperienceState;
     }>;
   }>;
+
+type DeleteExperienceState = Readonly<
+  | {
+      value: InActiveVal;
+    }
+  | {
+      value: ActiveVal;
+    }
+>;
 
 type NewEntryActive = Readonly<{
   value: ActiveVal;
@@ -578,10 +608,16 @@ type NotificationActive = Readonly<{
   }>;
 }>;
 
-export type CallerProps = RouteChildrenProps<DetailExperienceRouteMatch>;
+export type CallerProps = RouteChildrenProps<
+  DetailExperienceRouteMatch,
+  {
+    delete: boolean;
+  }
+>;
 
 export type Props = CallerProps & {
   experience: ExperienceFragment;
+  delete?: boolean;
 };
 export type Match = match<DetailExperienceRouteMatch>;
 
@@ -603,7 +639,13 @@ type Action =
     }
   | ({
       type: ActionType.ON_EDIT_ENTRY;
-    } & OnEditEntryPayload);
+    } & OnEditEntryPayload)
+  | {
+      type: ActionType.DELETE_EXPERIENCE_REQUEST;
+    }
+  | {
+      type: ActionType.DELETE_EXPERIENCE_DECLINED;
+    };
 
 interface OnEditEntryPayload {
   entryClientId: string;

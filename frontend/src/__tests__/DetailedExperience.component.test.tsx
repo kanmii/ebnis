@@ -338,9 +338,16 @@ function makeComp({
   mockGetSyncEntriesErrorsLedger.mockReturnValue(syncEntriesErrors || {});
 
   const experience = props.experience || defaultExperience;
+  const location = props.location || ({} as any);
 
   return {
-    ui: <DetailExperienceP {...props} experience={experience} />,
+    ui: (
+      <DetailExperienceP
+        location={location}
+        {...props}
+        experience={experience}
+      />
+    ),
   };
 }
 
