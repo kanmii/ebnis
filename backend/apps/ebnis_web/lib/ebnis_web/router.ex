@@ -1,6 +1,15 @@
 defmodule EbnisWeb.Router do
   use EbnisWeb, :router
 
+  @is_e2e Application.get_env(:ebnis, :is_e2e)
+
+  @enable_graphql_plug Application.get_env(
+                         :ebnis_web,
+                         Absinthe.Plug.GraphiQL,
+                         []
+                       )
+                       |> Keyword.get(:enabled, false)
+
   pipeline :api do
     plug(:accepts, ["json"])
     plug(EbnisWeb.Plug.Pipeline)
@@ -9,7 +18,7 @@ defmodule EbnisWeb.Router do
 
   get("/health", EbnisWeb.HealthController, :health)
 
-  if Application.get_env(:ebnis, :is_e2e) do
+  if @is_e2e do
     scope "/" do
       get("/reset_db", EbnisWeb.E2eController, :reset_db)
       post("/create_user", EbnisWeb.E2eController, :create_user)
@@ -19,12 +28,7 @@ defmodule EbnisWeb.Router do
   scope "/" do
     pipe_through(:api)
 
-    if Application.get_env(
-         :ebnis_web,
-         Absinthe.Plug.GraphiQL,
-         []
-       )
-       |> Keyword.get(:enabled, false) do
+    if @enable_graphql_plug do
       forward(
         "/___graphql",
         Absinthe.Plug.GraphiQL,
@@ -63,11 +67,14 @@ if Application.get_env(:ebnis, :is_e2e) do
 
       with {:ok, user} <- EbnisData.register(user_creation_params),
            {:ok, jwt, _claim} <- AppGuardian.encode_and_sign(user) do
-        json(
-          conn,
+        user_with_jwt =
           user
           |> Map.take([:id, :email, :name])
           |> Map.put(:jwt, jwt)
+
+        json(
+          conn,
+          user_with_jwt
         )
       else
         _ ->
