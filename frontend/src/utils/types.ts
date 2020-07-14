@@ -89,6 +89,11 @@ export type UnChangedVal = "unchanged";
 export type ChangedVal = "changed";
 export type ErrorsVal = "errors";
 export type SyncOfflineExperienceErrorsVal = "syncOfflineExperienceErrors";
+export type LoadingVal = "loading";
+export type DataVal = "data";
+export type CancelledVal = "cancelled";
+export type DeletedVal = "deleted";
+export type RequestedVal = "requested";
 
 export const StateValue = {
   noEffect: "noEffect" as NoEffectVal,
@@ -105,4 +110,9 @@ export const StateValue = {
   initial: "initial" as InitialVal,
   errors: "errors" as ErrorsVal,
   syncOfflineExperienceErrors: "syncOfflineExperienceErrors" as SyncOfflineExperienceErrorsVal,
+  loading: "loading" as LoadingVal,
+  data: "data" as DataVal,
+  cancelled: "cancelled" as CancelledVal,
+  deleted: "deleted" as DeletedVal,
+  requested: "requested" as RequestedVal,
 } as const;

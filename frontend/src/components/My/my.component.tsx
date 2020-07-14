@@ -16,9 +16,9 @@ import {
 import { setUpRoutePage } from "../../utils/global-window";
 import "./my.styles.scss";
 import Loading from "../Loading/loading.component";
+import { StateValue } from "../../utils/types";
 import {
   reducer,
-  StateValue,
   initState,
   ActionType,
   Props,
@@ -28,6 +28,8 @@ import {
   SearchState,
   SearchActive,
   makeDefaultSearchActive,
+  DeletedExperienceState,
+  effectFunctions,
 } from "./my.utils";
 import { NewExperience } from "./my.lazy";
 import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMiniFragment";
@@ -36,6 +38,7 @@ import { Link } from "react-router-dom";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { getOnlineStatus } from "../DetailExperience/detail-experience.utils";
 import { InputChangeEvent } from "../../utils/types";
+import { useRunEffects } from "../../utils/use-run-effects";
 
 export function My(props: Props) {
   const { experiences } = props;
@@ -43,8 +46,16 @@ export function My(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
   const {
-    states: { newExperienceActivated, experiences: descriptionsActive, search },
+    states: {
+      newExperienceActivated,
+      experiences: descriptionsActive,
+      search,
+      deletedExperience: deleteExperienceState,
+    },
+    effects: { general: generalEffects },
   } = stateMachine;
+
+  useRunEffects(generalEffects, effectFunctions, props, { dispatch });
 
   useLayoutEffect(() => {
     setUpRoutePage({
@@ -71,6 +82,12 @@ export function My(props: Props) {
   const onNewExperienceActivated = useCallback(() => {
     dispatch({
       type: ActionType.ACTIVATE_NEW_EXPERIENCE,
+    });
+  }, []);
+
+  const onCloseDeleteExperienceNotification = useCallback(() => {
+    dispatch({
+      type: ActionType.CLOSE_DELETE_EXPERIENCE_NOTIFICATION,
     });
   }, []);
 
@@ -102,6 +119,13 @@ export function My(props: Props) {
         ) : (
           <>
             <SearchComponent state={search} dispatch={dispatch} />
+
+            <DeletedExperienceNotification
+              state={deleteExperienceState}
+              onCloseDeleteExperienceNotification={
+                onCloseDeleteExperienceNotification
+              }
+            />
 
             <ExperiencesComponent
               dispatch={dispatch}
@@ -235,17 +259,20 @@ const ExperienceComponent = React.memo(
         >
           <div className="dropdown-menu" role="menu">
             <div className="dropdown-content">
-              <Link
-                to={{
-                  pathname: detailPath,
-                  state: {
-                    delete: true,
-                  },
-                }}
+              <div
                 className="neutral-link"
+                style={{
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  dispatch({
+                    type: ActionType.DELETE_EXPERIENCE_REQUEST,
+                    id,
+                  });
+                }}
               >
                 Delete
-              </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -339,6 +366,40 @@ const SearchComponent = (props: SearchProps) => {
   );
 };
 
+function DeletedExperienceNotification(
+  props: DeleteExperienceNotificationProps,
+) {
+  const { state, onCloseDeleteExperienceNotification } = props;
+  let title = "";
+  let message = "";
+
+  switch (state.value) {
+    case StateValue.inactive:
+      return null;
+
+    case StateValue.cancelled:
+      title = state.cancelled.context.title;
+      message = "cancelled";
+      break;
+
+    case StateValue.deleted:
+      title = state.deleted.context.title;
+      message = "successful";
+      break;
+  }
+
+  return (
+    <div className="notification is-warning">
+      <button
+        className="delete"
+        onClick={onCloseDeleteExperienceNotification}
+      />
+      Delete of experience
+      <strong> {title} </strong> {message}
+    </div>
+  );
+}
+
 interface ExperiencesComponentProps {
   experiences: ExperienceMiniFragment[];
   experiencesStates: ExperiencesMap;
@@ -354,4 +415,9 @@ interface ExperienceProps {
 interface SearchProps {
   state: SearchState;
   dispatch: DispatchType;
+}
+
+interface DeleteExperienceNotificationProps {
+  onCloseDeleteExperienceNotification: () => void;
+  state: DeletedExperienceState;
 }

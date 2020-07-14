@@ -40,7 +40,7 @@ services:
     user: "${DOCKER_HOST_USER_NAME}"
     volumes:
       - "./backend:/home/${DOCKER_HOST_USER_NAME}/src"
-      - "notUsed_build:/home/${DOCKER_HOST_USER_NAME}/src/_build"
+      - "not_used_build:/home/${DOCKER_HOST_USER_NAME}/src/_build"
       - "not_used_elixir_ls:/home/${DOCKER_HOST_USER_NAME}/src/.elixir_ls"
 
   cra:
@@ -61,8 +61,8 @@ services:
       - "./frontend:/home/node/ebnis-web"
       - "./frontend/package.json:/home/node/ebnis-web/package.json"
       - "./frontend/yarn.lock:/home/node/ebnis-web/yarn.lock"
-      - "notUsed_node_modules:/home/node/ebnis-web/node_modules"
+      - "not_used_node_modules:/home/node/ebnis-web/node_modules"
 volumes:
-  notUsed_build:
-  notUsed_node_modules:
+  not_used_build:
+  not_used_node_modules:
   not_used_elixir_ls:

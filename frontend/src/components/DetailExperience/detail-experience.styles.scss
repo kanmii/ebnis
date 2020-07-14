@@ -32,3 +32,14 @@
 .new-entry-trigger {
   @extend %floating-circular;
 }
+
+.delete-experience-component {
+  .modal-card {
+    max-width: 350px;
+    width: 90%;
+  }
+
+  .cancel-button {
+    margin-left: 15px;
+  }
+}

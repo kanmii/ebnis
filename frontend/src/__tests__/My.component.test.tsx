@@ -6,7 +6,6 @@ import {
   Props,
   reducer,
   initState,
-  StateValue,
   ActionType,
   MyChildDispatchProps,
 } from "../components/My/my.utils";
@@ -21,6 +20,7 @@ import { act } from "react-dom/test-utils";
 import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
 import { makeOfflineId } from "../utils/offlines";
 import { fillField } from "../tests.utils";
+import { StateValue } from "../utils/types";
 
 jest.mock("../components/Header/header.component", () => () => null);
 jest.mock("../utils/global-window");
@@ -322,8 +322,9 @@ const MyP = My as ComponentType<Partial<Props>>;
 
 function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   const experiences = props.experiences || [];
+  const location = (props.location || {}) as any;
 
   return {
-    ui: <MyP {...props} experiences={experiences} />,
+    ui: <MyP {...props} experiences={experiences} location={location} />,
   };
 }

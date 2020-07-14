@@ -15,9 +15,9 @@ const distAbsPath = path.resolve(__dirname, `./${distFolderName}`);
 const reactScript = "react-app-rewired"; // provides HMR
 // const reactScript = "react-scripts";
 
-const api_url = process.env.API_URL;
+const apiUrl = process.env.API_URL;
 
-const dev_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REACT_APP_API_URL=${api_url} `;
+const dev_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REACT_APP_API_URL=${apiUrl} `;
 
 const startServer = `yarn ${reactScript} start`;
 
@@ -55,7 +55,7 @@ function buildFn(flag) {
 module.exports = {
   scripts: {
     dev: `${dev_envs} ${startServer}`,
-    e2eDev: `REACT_APP_API_URL=${api_url} env-cmd -e e2eDev ${startServer}`,
+    e2eDev: `REACT_APP_API_URL=${apiUrl} env-cmd -e e2eDev ${startServer}`,
     build: {
       deploy: buildFn("prod") + "  && yarn start netlify",
       serve: {
@@ -85,8 +85,7 @@ module.exports = {
     },
     lint: "eslint . --ext .js,.jsx,.ts,.tsx",
     gqlTypes: {
-      e: "env-cmd -e e2eDev yarn start fetchGqlTypes",
-      d: "env-cmd -e dev yarn start fetchGqlTypes",
+      default: "yarn start fetchGqlTypes",
     },
     fetchGqlTypes: `node -e 'require("./package-scripts").fetchGqlTypes()'`,
   },
@@ -165,10 +164,9 @@ module.exports = {
     const exec = require("child_process").exec;
 
     shell.rm("-rf", "src/graphql/apollo-types");
-    const endpoint = process.env.API_URL;
 
     exec(
-      `./node_modules/.bin/apollo codegen:generate --endpoint=${endpoint} --tagName=gql --target=typescript --includes=src/graphql/*.ts --outputFlat=src/graphql/apollo-types`,
+      `./node_modules/.bin/apollo codegen:generate --endpoint=${apiUrl} --tagName=gql --target=typescript --includes=src/graphql/*.ts --outputFlat=src/graphql/apollo-types`,
       (error, stdout, stderr) => {
         if (error) {
           console.error(`exec error: ${error}`);
@@ -177,7 +175,7 @@ module.exports = {
         console.log(`stdout: ${stdout}`);
         console.log(`stderr: ${stderr}`);
 
-        fetch(endpoint, {
+        fetch(apiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

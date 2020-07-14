@@ -5,19 +5,16 @@ import { My } from "./my.component";
 import { fetchExperiencesErrorsDomId, fetchErrorRetryDomId } from "./my.dom";
 import errorImage from "../../media/error-96.png";
 import {
-  initIndexState,
-  StateValue,
+  initState,
   ActionType,
-  indexReducer,
+  reducer,
   effectFunctions,
-} from "./my.utils";
+} from "./my-index.utils";
+import { StateValue } from "../../utils/types";
+import { CallerProps } from "./my.utils";
 
-export function MyIndex() {
-  const [stateMachine, dispatch] = useReducer(
-    indexReducer,
-    undefined,
-    initIndexState,
-  );
+export function MyIndex(props: CallerProps) {
+  const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
   const {
     states,
     effects: { general: generalEffects },
@@ -41,7 +38,7 @@ export function MyIndex() {
 
   const onReFetch = useCallback(() => {
     dispatch({
-      type: ActionType.ON_DATA_RE_FETCHED,
+      type: ActionType.DATA_RE_FETCH_REQUEST,
     });
   }, []);
 
@@ -49,12 +46,12 @@ export function MyIndex() {
     <>
       <Header />
 
-      {states.value === StateValue.error ? (
+      {states.value === StateValue.errors ? (
         <FetchExperiencesFail error={states.error} onReFetch={onReFetch} />
       ) : states.value === StateValue.loading ? (
         <Loading />
       ) : (
-        <My experiences={states.data} />
+        <My experiences={states.data} {...props} parentDispatch={dispatch} />
       )}
     </>
   );

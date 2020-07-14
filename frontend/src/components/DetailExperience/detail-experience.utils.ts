@@ -8,7 +8,7 @@ import { getUnsyncedExperience } from "../../apollo/unsynced-ledger";
 import immer, { Draft } from "immer";
 import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
-import { ActiveVal, InActiveVal } from "../../utils/types";
+import { ActiveVal, InActiveVal, RequestedVal } from "../../utils/types";
 import {
   GenericGeneralEffect,
   getGeneralEffects,
@@ -36,6 +36,12 @@ import {
   UnsyncableEntryError,
   RemoveUnsyncableEntriesErrors,
 } from "../../utils/unsynced-ledger.types";
+import { MY_URL } from "../../utils/urls";
+import {
+  getDeleteExperienceLedger,
+  putOrRemoveDeleteExperienceLedger,
+} from "../../apollo/delete-experience-cache";
+import { DeleteExperiencesComponentProps } from "../../utils/experience.gql.types";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -45,7 +51,8 @@ export enum ActionType {
   ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION = "@detailed-experience/on-close-entries-errors-notification",
   ON_EDIT_ENTRY = "@detailed-experience/on-edit-entry",
   DELETE_EXPERIENCE_REQUEST = "@detailed-experience/delete-experience-request",
-  DELETE_EXPERIENCE_DECLINED = "@detailed-experience/delete-experience-declined",
+  DELETE_EXPERIENCE_CANCELLED = "@detailed-experience/delete-experience-cancelled",
+  DELETE_EXPERIENCE_CONFIRMED = "@detailed-experience/delete-experience-confirmed",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -86,11 +93,18 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             break;
 
           case ActionType.DELETE_EXPERIENCE_REQUEST:
-            proxy.states.deleteExperience.value = StateValue.active;
+            handleDeleteExperienceRequestAction(
+              proxy,
+              payload as DeleteExperienceRequestPayload,
+            );
             break;
 
-          case ActionType.DELETE_EXPERIENCE_DECLINED:
-            proxy.states.deleteExperience.value = StateValue.inactive;
+          case ActionType.DELETE_EXPERIENCE_CANCELLED:
+            handleDeleteExperienceCancelledAction(proxy);
+            break;
+
+          case ActionType.DELETE_EXPERIENCE_CONFIRMED:
+            handleDeleteExperienceConfirmedAction(proxy);
             break;
         }
       });
@@ -101,9 +115,6 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 ////////////////////////// STATE UPDATE SECTION ////////////////////////////
 
 export function initState(props: Props): StateMachine {
-  const deleteExperienceRequested =
-    props.location.state && props.location.state.delete;
-
   return {
     context: {},
     effects: {
@@ -114,6 +125,10 @@ export function initState(props: Props): StateMachine {
             effects: [
               {
                 key: "onOfflineExperienceSyncedEffect",
+                ownArgs: {},
+              },
+              {
+                key: "deleteExperienceRequestedEffect",
                 ownArgs: {},
               },
             ],
@@ -135,9 +150,7 @@ export function initState(props: Props): StateMachine {
         value: StateValue.inactive,
       },
       deleteExperience: {
-        value: deleteExperienceRequested
-          ? StateValue.active
-          : StateValue.inactive,
+        value: StateValue.inactive,
       },
     },
   };
@@ -355,6 +368,53 @@ function handleOnEditEntryAction(
   };
 }
 
+function handleDeleteExperienceRequestAction(
+  proxy: DraftStateMachine,
+  payload: DeleteExperienceRequestPayload,
+) {
+  const {
+    states: { deleteExperience },
+  } = proxy;
+
+  deleteExperience.value = StateValue.active;
+  const deleteExperienceActive = deleteExperience as Draft<
+    DeleteExperienceActiveState
+  >;
+
+  deleteExperienceActive.active = {
+    context: {
+      key: payload.key,
+    },
+  };
+}
+
+function handleDeleteExperienceCancelledAction(proxy: DraftStateMachine) {
+  const {
+    states: { deleteExperience },
+  } = proxy;
+
+  deleteExperience.value = StateValue.inactive;
+
+  const deleteExperienceActive = deleteExperience as DeleteExperienceActiveState;
+
+  const effects = getGeneralEffects(proxy);
+
+  effects.push({
+    key: "cancelDeleteExperienceEffect",
+    ownArgs: {
+      key: deleteExperienceActive.active.context.key,
+    },
+  });
+}
+
+function handleDeleteExperienceConfirmedAction(proxy: DraftStateMachine) {
+  const effects = getGeneralEffects(proxy);
+  effects.push({
+    key: "deleteExperienceEffect",
+    ownArgs: {},
+  });
+}
+
 ////////////////////////// END STATE UPDATE ////////////////////////////
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
@@ -484,12 +544,112 @@ type DefOnEntrySyncedEffect = EffectDefinition<
   }
 >;
 
+const cancelDeleteExperienceEffect: DefCancelDeleteExperienceEffect["func"] = (
+  { key },
+  props,
+) => {
+  if (key) {
+    const { history, experience } = props;
+    const { id, title } = experience;
+
+    putOrRemoveDeleteExperienceLedger({
+      key: StateValue.cancelled,
+      id,
+      title,
+    });
+
+    history.push(MY_URL);
+  }
+};
+
+type DefCancelDeleteExperienceEffect = EffectDefinition<
+  "cancelDeleteExperienceEffect",
+  DeleteExperienceRequestPayload
+>;
+
+const deleteExperienceRequestedEffect: DefDeleteExperienceRequestedEffect["func"] = (
+  _,
+  props,
+  { dispatch },
+) => {
+  const deleteExperienceLedger = getDeleteExperienceLedger(props.experience.id);
+
+  if (
+    deleteExperienceLedger &&
+    deleteExperienceLedger.key === StateValue.requested
+  ) {
+    putOrRemoveDeleteExperienceLedger();
+
+    dispatch({
+      type: ActionType.DELETE_EXPERIENCE_REQUEST,
+      key: deleteExperienceLedger.key,
+    });
+  }
+};
+
+type DefDeleteExperienceRequestedEffect = EffectDefinition<
+  "deleteExperienceRequestedEffect"
+>;
+
+const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
+  _,
+  props,
+) => {
+  const {
+    deleteExperiences,
+    experience: { id, title },
+    history,
+  } = props;
+
+  try {
+    const response = await deleteExperiences({
+      variables: {
+        input: [id],
+      },
+    });
+
+    const validResponse =
+      response && response.data && response.data.deleteExperiences;
+
+    if (!validResponse) {
+      return;
+    }
+
+    if (validResponse.__typename === "DeleteExperiencesAllFail") {
+      return;
+    }
+
+    const experienceResponse = validResponse.experiences[0];
+
+    if (experienceResponse.__typename === "DeleteExperienceErrors") {
+      return;
+    }
+
+    const {
+      experience: { id: responseId },
+    } = experienceResponse;
+
+    putOrRemoveDeleteExperienceLedger({
+      id: responseId,
+      key: StateValue.deleted,
+      title,
+    });
+
+    history.push(MY_URL);
+  } catch (error) {}
+};
+
+type DefDeleteExperienceEffect = EffectDefinition<"deleteExperienceEffect">;
+
 export const effectFunctions = {
   scrollDocToTopEffect,
   autoCloseNotificationEffect,
   onOfflineExperienceSyncedEffect,
   putEntriesErrorsInLedgerEffect,
   onEntrySyncedEffect,
+  cancelDeleteExperienceEffect,
+  deleteExperienceRequestedEffect,
+  deleteExperienceEffect,
 };
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
 
@@ -563,10 +723,17 @@ type DeleteExperienceState = Readonly<
   | {
       value: InActiveVal;
     }
-  | {
-      value: ActiveVal;
-    }
+  | DeleteExperienceActiveState
 >;
+
+type DeleteExperienceActiveState = Readonly<{
+  value: ActiveVal;
+  active: {
+    context: {
+      key?: RequestedVal;
+    };
+  };
+}>;
 
 type NewEntryActive = Readonly<{
   value: ActiveVal;
@@ -615,10 +782,11 @@ export type CallerProps = RouteChildrenProps<
   }
 >;
 
-export type Props = CallerProps & {
-  experience: ExperienceFragment;
-  delete?: boolean;
-};
+export type Props = CallerProps &
+  DeleteExperiencesComponentProps & {
+    experience: ExperienceFragment;
+    delete?: boolean;
+  };
 export type Match = match<DetailExperienceRouteMatch>;
 
 type Action =
@@ -640,12 +808,19 @@ type Action =
   | ({
       type: ActionType.ON_EDIT_ENTRY;
     } & OnEditEntryPayload)
-  | {
+  | ({
       type: ActionType.DELETE_EXPERIENCE_REQUEST;
+    } & DeleteExperienceRequestPayload)
+  | {
+      type: ActionType.DELETE_EXPERIENCE_CANCELLED;
     }
   | {
-      type: ActionType.DELETE_EXPERIENCE_DECLINED;
+      type: ActionType.DELETE_EXPERIENCE_CONFIRMED;
     };
+
+interface DeleteExperienceRequestPayload {
+  key?: RequestedVal;
+}
 
 interface OnEditEntryPayload {
   entryClientId: string;
@@ -684,5 +859,8 @@ type EffectType =
   | DefAutoCloseNotificationEffect
   | DefOnOfflineExperienceSyncedEffect
   | DefPutEntriesErrorsInLedgerEffect
-  | DefOnEntrySyncedEffect;
+  | DefOnEntrySyncedEffect
+  | DefCancelDeleteExperienceEffect
+  | DefDeleteExperienceRequestedEffect
+  | DefDeleteExperienceEffect;
 type EffectList = EffectType[];

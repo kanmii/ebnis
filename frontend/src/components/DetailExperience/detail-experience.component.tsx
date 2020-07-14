@@ -46,7 +46,10 @@ export function DetailExperience(props: Props) {
   const entries = entryConnectionToNodes(experience.entries);
 
   const {
-    states: { newEntryActive: newEntryActiveState },
+    states: {
+      newEntryActive: newEntryActiveState,
+      deleteExperience: deleteExperienceState,
+    },
     effects: { general: generalEffects },
     context,
   } = stateMachine;
@@ -85,6 +88,18 @@ export function DetailExperience(props: Props) {
     });
   }, []);
 
+  const onDeclineDeleteExperience = useCallback(() => {
+    dispatch({
+      type: ActionType.DELETE_EXPERIENCE_CANCELLED,
+    });
+  }, []);
+
+  const onConfirmDeleteExperience = useCallback(() => {
+    dispatch({
+      type: ActionType.DELETE_EXPERIENCE_CONFIRMED,
+    });
+  }, []);
+
   const { autoCloseNotificationTimeoutId } = context;
 
   useEffect(() => {
@@ -98,6 +113,14 @@ export function DetailExperience(props: Props) {
 
   return (
     <>
+      {deleteExperienceState.value === StateValue.active && (
+        <DeleteExperienceModal
+          title={experience.title}
+          onDeclineDeleteExperience={onDeclineDeleteExperience}
+          onConfirmDeleteExperience={onConfirmDeleteExperience}
+        />
+      )}
+
       <div className="container detailed-experience-component">
         {newEntryActiveState.value === StateValue.active && (
           <Suspense fallback={<Loading />}>
@@ -295,6 +318,52 @@ function NewEntryNotification(props: {
   );
 }
 
+function DeleteExperienceModal(props: DeleteExperienceProps) {
+  const { title, onDeclineDeleteExperience, onConfirmDeleteExperience } = props;
+
+  return (
+    <div className="modal is-active delete-experience-component">
+      <div className="modal-background"></div>
+
+      <div className="modal-card">
+        <header className="modal-card-head">
+          <div className="modal-card-title">
+            <strong>Delete Experience</strong>
+            <div className="experience-title">{title}</div>
+          </div>
+
+          <button
+            className="delete new-entry__delete"
+            aria-label="close"
+            type="button"
+            onClick={onDeclineDeleteExperience}
+          ></button>
+        </header>
+
+        <footer className="modal-card-foot">
+          <button
+            className="button is-success"
+            id={""}
+            type="button"
+            onClick={onConfirmDeleteExperience}
+          >
+            Ok
+          </button>
+
+          <button
+            className="button is-danger cancel-button"
+            id={""}
+            type="button"
+            onClick={onDeclineDeleteExperience}
+          >
+            Cancel
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
 interface EntryProps {
   entry: EntryFragment;
   dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
@@ -304,4 +373,10 @@ interface EntryProps {
 
 interface DataDefinitionIdToNameMap {
   [dataDefinitionId: string]: string;
+}
+
+interface DeleteExperienceProps {
+  title: string;
+  onDeclineDeleteExperience: () => void;
+  onConfirmDeleteExperience: () => void;
 }

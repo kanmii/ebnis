@@ -3,11 +3,35 @@ import { wrapReducer } from "../../logger";
 import immer, { Draft } from "immer";
 import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMiniFragment";
 import fuzzysort from "fuzzysort";
-import { GetExperienceConnectionMini } from "../../graphql/apollo-types/GetExperienceConnectionMini";
-import { GetExperienceConnectionMini_getExperiences_edges } from "../../graphql/apollo-types/GetExperienceConnectionMini";
-import { ApolloQueryResult } from "apollo-client";
-import { manuallyFetchExperienceConnectionMini } from "../../utils/experience.gql.types";
-import { parseStringError } from "../../utils/common-errors";
+import { RouteChildrenProps } from "react-router-dom";
+import {
+  StateValue,
+  InActiveVal,
+  ActiveVal,
+  DeletedVal,
+  CancelledVal,
+} from "../../utils/types";
+import {
+  GenericGeneralEffect,
+  getGeneralEffects,
+  GenericEffectDefinition,
+} from "../../utils/effects";
+import { makeDetailedExperienceRoute } from "../../utils/urls";
+import {
+  putOrRemoveDeleteExperienceLedger,
+  getDeleteExperienceLedger,
+  DeletedExperienceLedgerDeleted,
+  DeletedExperienceLedgerCancelled,
+} from "../../apollo/delete-experience-cache";
+import {
+  replaceOrRemoveExperiencesInGetExperiencesMiniQuery,
+  purgeExperiencesFromCache,
+} from "../../apollo/update-get-experiences-mini-query";
+import {
+  MyIndexDispatchType,
+  ActionType as ParentActionType,
+} from "./my-index.utils";
+import { unstable_batchedUpdates } from "react-dom";
 
 export enum ActionType {
   ACTIVATE_NEW_EXPERIENCE = "@my/activate-new-experience",
@@ -17,20 +41,10 @@ export enum ActionType {
   CLOSE_ALL_OPTIONS_MENU = "@my/close-all-options-menu",
   SEARCH = "@my/search",
   CLEAR_SEARCH = "@my/clear-search",
-  ON_DATA_RECEIVED = "@my/on-data-received",
-  ON_DATA_RE_FETCHED = "@my/on-data-reFetched",
+  CLOSE_DELETE_EXPERIENCE_NOTIFICATION = "@my/close-delete-experience-notification",
+  DELETE_EXPERIENCE_REQUEST = "@my/delete-experience-request",
+  ON_DELETE_EXPERIENCE_PROCESSED = "@my/on-delete-experience-processed",
 }
-
-export const StateValue = {
-  inactive: "inactive" as InActiveVal,
-  active: "active" as ActiveVal,
-  error: "error" as ErrorVal,
-  loading: "loading" as LoadingVal,
-  data: "data" as DataVal,
-  noEffect: "noEffect" as NoEffectVal,
-  hasEffects: "hasEffects" as HasEffectsVal,
-  initial: "initial" as InitialVal,
-};
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
   wrapReducer(
@@ -50,14 +64,14 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           case ActionType.TOGGLE_SHOW_DESCRIPTION:
             handleToggleShowDescriptionAction(
               proxy,
-              payload as ToggleDescriptionPayload,
+              payload as WithExperienceIdPayload,
             );
             break;
 
           case ActionType.TOGGLE_SHOW_OPTIONS_MENU:
             handleToggleShowOptionsMenuAction(
               proxy,
-              payload as ToggleDescriptionPayload,
+              payload as WithExperienceIdPayload,
             );
             break;
 
@@ -72,6 +86,24 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           case ActionType.CLEAR_SEARCH:
             handleClearSearchAction(proxy);
             break;
+
+          case ActionType.CLOSE_DELETE_EXPERIENCE_NOTIFICATION:
+            handleDeleteExperienceNotificationAction(proxy);
+            break;
+
+          case ActionType.DELETE_EXPERIENCE_REQUEST:
+            handleDeleteExperienceRequestAction(
+              proxy,
+              payload as WithExperienceIdPayload,
+            );
+            break;
+
+          case ActionType.ON_DELETE_EXPERIENCE_PROCESSED:
+            handleOnDeleteExperienceProcessed(
+              proxy,
+              payload as OnDeleteExperienceProcessedPayload,
+            );
+            break;
         }
       });
     },
@@ -84,6 +116,22 @@ export function initState(props: Props): StateMachine {
   const { experiences } = props;
 
   return {
+    effects: {
+      general: {
+        value: StateValue.hasEffects,
+        hasEffects: {
+          context: {
+            effects: [
+              {
+                key: "onDeleteExperienceProcessedEffect",
+                ownArgs: {},
+              },
+            ],
+          },
+        },
+      },
+    },
+
     context: {
       experiencesPrepared: prepareExperiencesForSearch(experiences),
     },
@@ -94,6 +142,9 @@ export function initState(props: Props): StateMachine {
       },
       experiences: {},
       search: {
+        value: StateValue.inactive,
+      },
+      deletedExperience: {
         value: StateValue.inactive,
       },
     },
@@ -120,7 +171,7 @@ function handleDeactivateNewExperienceAction(proxy: StateMachine) {
 
 function handleToggleShowDescriptionAction(
   proxy: StateMachine,
-  { id }: ToggleDescriptionPayload,
+  { id }: WithExperienceIdPayload,
 ) {
   const {
     states: { experiences: experiencesState },
@@ -134,7 +185,7 @@ function handleToggleShowDescriptionAction(
 
 function handleToggleShowOptionsMenuAction(
   proxy: StateMachine,
-  { id }: ToggleDescriptionPayload,
+  { id }: WithExperienceIdPayload,
 ) {
   const {
     states: { experiences: experiencesState },
@@ -208,37 +259,189 @@ function handleClearSearchAction(proxy: DraftState) {
   }
 }
 
+function handleDeleteExperienceNotificationAction(proxy: DraftState) {
+  proxy.states.deletedExperience.value = StateValue.inactive;
+}
+
+function handleDeleteExperienceRequestAction(
+  proxy: DraftState,
+  payload: WithExperienceIdPayload,
+) {
+  const effects = getGeneralEffects(proxy);
+
+  effects.push({
+    key: "deletedExperienceRequestEffect",
+    ownArgs: {
+      id: payload.id,
+    },
+  });
+}
+
+function handleOnDeleteExperienceProcessed(
+  proxy: DraftState,
+  payload: OnDeleteExperienceProcessedPayload,
+) {
+  const {
+    states: { deletedExperience },
+  } = proxy;
+
+  const context = {
+    context: {
+      title: payload.title,
+    },
+  };
+
+  switch (payload.key) {
+    case StateValue.cancelled:
+      {
+        const state = deletedExperience as Draft<
+          DeletedExperienceCancelledState
+        >;
+
+        state.value = StateValue.cancelled;
+        state.cancelled = context;
+      }
+      break;
+
+    case StateValue.deleted:
+      {
+        const state = deletedExperience as Draft<DeletedExperienceSuccessState>;
+
+        state.value = StateValue.deleted;
+        state.deleted = context;
+      }
+      break;
+  }
+}
+
 ////////////////////////// END STATE UPDATE SECTION //////////////////////
+
+////////////////////////// EFFECTS SECTION ////////////////////////////
+
+const deletedExperienceRequestEffect: DefDeleteExperienceRequestEffect["func"] = (
+  { id },
+  props,
+) => {
+  putOrRemoveDeleteExperienceLedger({
+    key: StateValue.requested,
+    id,
+  });
+
+  props.history.push(makeDetailedExperienceRoute(id));
+};
+
+type DefDeleteExperienceRequestEffect = EffectDefinition<
+  "deletedExperienceRequestEffect",
+  WithExperienceIdPayload
+>;
+
+const onDeleteExperienceProcessedEffect: DefOnDeleteExperienceProcessedEffect["func"] = async (
+  _,
+  props,
+  { dispatch },
+) => {
+  const deletedExperience = getDeleteExperienceLedger();
+
+  if (!deletedExperience) {
+    return;
+  }
+
+  const { id } = deletedExperience;
+  const { parentDispatch } = props;
+
+  putOrRemoveDeleteExperienceLedger();
+
+  switch (deletedExperience.key) {
+    case StateValue.cancelled:
+      dispatch({
+        type: ActionType.ON_DELETE_EXPERIENCE_PROCESSED,
+        ...deletedExperience,
+      });
+      break;
+
+    case StateValue.deleted:
+      {
+        replaceOrRemoveExperiencesInGetExperiencesMiniQuery({
+          [id]: null,
+        });
+
+        const { persistor } = window.____ebnis;
+        await persistor.persist();
+
+        purgeExperiencesFromCache([id]);
+
+        unstable_batchedUpdates(() => {
+          parentDispatch({
+            type: ParentActionType.DATA_RE_FETCH_REQUEST,
+          });
+
+          dispatch({
+            type: ActionType.ON_DELETE_EXPERIENCE_PROCESSED,
+            ...deletedExperience,
+          });
+        });
+      }
+      break;
+  }
+};
+
+type DefOnDeleteExperienceProcessedEffect = EffectDefinition<
+  "onDeleteExperienceProcessedEffect"
+>;
+
+export const effectFunctions = {
+  deletedExperienceRequestEffect,
+  onDeleteExperienceProcessedEffect,
+};
+
+////////////////////////// END EFFECTS SECTION ////////////////////////
 
 type DraftState = Draft<StateMachine>;
 
-export interface StateMachine {
-  readonly context: {
-    experiencesPrepared: ExperiencesSearchPrepared;
-  };
-  readonly states: {
-    readonly newExperienceActivated:
-      | {
-          value: InActiveVal;
-        }
-      | {
-          value: ActiveVal;
-        };
-    readonly experiences: ExperiencesMap;
-    readonly search: SearchState;
-  };
-}
+export type StateMachine = GenericGeneralEffect<EffectType> &
+  Readonly<{
+    context: {
+      experiencesPrepared: ExperiencesSearchPrepared;
+    };
+    states: Readonly<{
+      newExperienceActivated:
+        | {
+            value: InActiveVal;
+          }
+        | {
+            value: ActiveVal;
+          };
+      experiences: ExperiencesMap;
+      search: SearchState;
+      deletedExperience: DeletedExperienceState;
+    }>;
+  }>;
 
-////////////////////////// STRINGY TYPES SECTION ///////////
-type InActiveVal = "inactive";
-type ActiveVal = "active";
-type LoadingVal = "loading";
-type ErrorVal = "error";
-type DataVal = "data";
-type HasEffectsVal = "hasEffects";
-type NoEffectVal = "noEffect";
-type InitialVal = "initial";
-////////////////////////// END STRINGY TYPES SECTION /////////
+export type DeletedExperienceState = Readonly<
+  | {
+      value: InActiveVal;
+    }
+  | DeletedExperienceCancelledState
+  | DeletedExperienceSuccessState
+>;
+
+type DeletedExperienceSuccessState = Readonly<{
+  value: DeletedVal;
+  deleted: Readonly<{
+    context: Readonly<{
+      title: string;
+    }>;
+  }>;
+}>;
+
+type DeletedExperienceCancelledState = Readonly<{
+  value: CancelledVal;
+  cancelled: Readonly<{
+    context: Readonly<{
+      title: string;
+    }>;
+  }>;
+}>;
 
 export type SearchState =
   | {
@@ -270,10 +473,10 @@ type Action =
     }
   | ({
       type: ActionType.TOGGLE_SHOW_DESCRIPTION;
-    } & ToggleDescriptionPayload)
+    } & WithExperienceIdPayload)
   | ({
       type: ActionType.TOGGLE_SHOW_OPTIONS_MENU;
-    } & ToggleDescriptionPayload)
+    } & WithExperienceIdPayload)
   | {
       type: ActionType.CLOSE_ALL_OPTIONS_MENU;
     }
@@ -282,9 +485,22 @@ type Action =
     }
   | ({
       type: ActionType.SEARCH;
-    } & SetSearchTextPayload);
+    } & SetSearchTextPayload)
+  | {
+      type: ActionType.CLOSE_DELETE_EXPERIENCE_NOTIFICATION;
+    }
+  | ({
+      type: ActionType.DELETE_EXPERIENCE_REQUEST;
+    } & WithExperienceIdPayload)
+  | ({
+      type: ActionType.ON_DELETE_EXPERIENCE_PROCESSED;
+    } & OnDeleteExperienceProcessedPayload);
 
-interface ToggleDescriptionPayload {
+type OnDeleteExperienceProcessedPayload =
+  | DeletedExperienceLedgerDeleted
+  | DeletedExperienceLedgerCancelled;
+
+interface WithExperienceIdPayload {
   id: string;
 }
 
@@ -298,7 +514,16 @@ export interface MyChildDispatchProps {
   myDispatch: DispatchType;
 }
 
-export type Props = {
+export type CallerProps = RouteChildrenProps<
+  {},
+  {
+    cancelledExperienceDelete: string;
+  }
+> & {
+  parentDispatch: MyIndexDispatchType;
+};
+
+export type Props = CallerProps & {
   experiences: ExperienceMiniFragment[];
 };
 
@@ -317,230 +542,15 @@ export type ExperiencesSearchPrepared = {
   id: string;
 }[];
 
-////////////////////////// INDEX ////////////////////////////
-
-export const indexReducer: Reducer<IndexStateMachine, IndexAction> = (
-  state,
-  action,
-) =>
-  wrapReducer(
-    state,
-    action,
-    (prevState, { type, ...payload }) => {
-      return immer(prevState, (proxy) => {
-        proxy.effects.general.value = StateValue.noEffect;
-        delete proxy.effects.general[StateValue.hasEffects];
-
-        switch (type) {
-          case ActionType.ON_DATA_RECEIVED:
-            handleOnDataReceivedAction(proxy, payload as OnDataReceivedPayload);
-            break;
-
-          case ActionType.ON_DATA_RE_FETCHED:
-            handleOnDataReFetchedAction(proxy);
-            break;
-        }
-      });
-    },
-
-    // true,
-  );
-
-function handleOnDataReceivedAction(
-  proxy: IndexDraftState,
-  payload: OnDataReceivedPayload,
-) {
-  switch (payload.key) {
-    case StateValue.data:
-      {
-        const { data, loading } = payload.data;
-
-        if (loading) {
-          proxy.states = {
-            value: StateValue.loading,
-          };
-        } else {
-          proxy.states = {
-            value: StateValue.data,
-            data: experienceNodesFromEdges(data),
-          };
-        }
-      }
-      break;
-
-    case StateValue.error:
-      proxy.states = {
-        value: StateValue.error,
-        error: parseStringError(payload.error),
-      };
-
-      break;
-  }
+export interface EffectArgs {
+  dispatch: DispatchType;
 }
 
-async function handleOnDataReFetchedAction(proxy: IndexDraftState) {
-  const effects = getGeneralEffects(proxy);
-  effects.push({
-    key: "fetchExperiencesEffect",
-    ownArgs: {},
-  });
-}
+type EffectType =
+  | DefDeleteExperienceRequestEffect
+  | DefOnDeleteExperienceProcessedEffect;
 
-export function experienceNodesFromEdges(data?: GetExperienceConnectionMini) {
-  const d = data && data.getExperiences;
-
-  return d
-    ? (d.edges as GetExperienceConnectionMini_getExperiences_edges[]).map(
-        (edge) => {
-          return edge.node as ExperienceMiniFragment;
-        },
-      )
-    : // istanbul ignore next:
-      ([] as ExperienceMiniFragment[]);
-}
-
-export function initIndexState(): IndexStateMachine {
-  return {
-    states: {
-      value: StateValue.loading,
-    },
-    effects: {
-      general: {
-        value: StateValue.hasEffects,
-        hasEffects: {
-          context: {
-            effects: [
-              {
-                key: "fetchExperiencesEffect",
-                ownArgs: {},
-              },
-            ],
-          },
-        },
-      },
-    },
-  };
-}
-
-////////////////////////// END INDEX ////////////////////////////
-
-type IndexDraftState = Draft<IndexStateMachine>;
-
-interface IndexStateMachine {
-  readonly states:
-    | {
-        value: LoadingVal;
-      }
-    | IndexErrorState
-    | IndexDataState;
-  readonly effects: {
-    readonly general: EffectState | { value: NoEffectVal };
-  };
-}
-
-interface IndexErrorState {
-  value: ErrorVal;
-  error: string;
-}
-
-interface IndexDataState {
-  value: DataVal;
-  data: ExperienceMiniFragment[];
-}
-
-export interface EffectState {
-  value: HasEffectsVal;
-  hasEffects: {
-    context: {
-      effects: EffectsList;
-    };
-  };
-}
-
-interface EffectDefinition<
+type EffectDefinition<
   Key extends keyof typeof effectFunctions,
   OwnArgs = {}
-> {
-  key: Key;
-  ownArgs: OwnArgs;
-  func?: (
-    ownArgs: OwnArgs,
-    args: EffectArgs,
-  ) => void | Promise<void | (() => void)> | (() => void);
-}
-
-type EffectsList = DefFetchExperiencesEffect[];
-
-export interface EffectArgs {
-  dispatch: Dispatch<IndexAction>;
-}
-
-type DefFetchExperiencesEffect = EffectDefinition<
-  "fetchExperiencesEffect",
-  {
-    initial?: InitialVal;
-  }
->;
-
-const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
-  _,
-  { dispatch },
-) => {
-  try {
-    const data = await manuallyFetchExperienceConnectionMini("cache-first");
-
-    dispatch({
-      type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      data,
-    });
-  } catch (error) {
-    dispatch({
-      type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.error,
-      error,
-    });
-  }
-};
-
-export const effectFunctions = {
-  fetchExperiencesEffect,
-};
-
-function getGeneralEffects(proxy: IndexDraftState) {
-  const generalEffects = proxy.effects.general as EffectState;
-  generalEffects.value = StateValue.hasEffects;
-  let effects: EffectsList = [];
-
-  // istanbul ignore next: trivial
-  if (!generalEffects.hasEffects) {
-    generalEffects.hasEffects = {
-      context: {
-        effects,
-      },
-    };
-  } else {
-    // istanbul ignore next: trivial
-    effects = generalEffects.hasEffects.context.effects;
-  }
-
-  return effects;
-}
-
-type IndexAction =
-  | ({
-      type: ActionType.ON_DATA_RECEIVED;
-    } & OnDataReceivedPayload)
-  | {
-      type: ActionType.ON_DATA_RE_FETCHED;
-    };
-
-type OnDataReceivedPayload =
-  | {
-      key: DataVal;
-      data: ApolloQueryResult<GetExperienceConnectionMini>;
-    }
-  | {
-      key: ErrorVal;
-      error: Error;
-    };
+> = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;

@@ -7,9 +7,11 @@ import Loading from "../Loading/loading.component";
 import { DetailExperience } from "./detail-experience.component";
 import { parseStringError } from "../../utils/common-errors";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
+import { useDeleteExperiencesMutation } from "../../utils/experience.gql.types";
 
 export function DetailExperienceIndex(props: CallerProps) {
   const { experienceId } = (props.match as Match).params;
+  const [deleteExperiences] = useDeleteExperiencesMutation();
 
   const { data, loading, error } = useGetExperienceDetail({
     id: experienceId,
@@ -27,7 +29,11 @@ export function DetailExperienceIndex(props: CallerProps) {
       ) : loading ? (
         <Loading />
       ) : (
-        <DetailExperience {...props} experience={experience} />
+        <DetailExperience
+          {...props}
+          experience={experience}
+          deleteExperiences={deleteExperiences}
+        />
       )}
     </>
   );

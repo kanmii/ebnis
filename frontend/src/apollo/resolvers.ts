@@ -21,6 +21,7 @@ export function initState() {
       [UNSYNCED_LEDGER_CACHE_KEY]: null,
       [SYNCING_EXPERIENCES_LEDGER_CACHE_KEY]: null,
       [ENTRIES_SYNC_ERRORS_LEDGER_CACHE_KEY]: null,
+      deleteExperience: "null",
     },
   };
 }
