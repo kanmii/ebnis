@@ -23,10 +23,7 @@ import {
   DeletedExperienceLedgerDeleted,
   DeletedExperienceLedgerCancelled,
 } from "../../apollo/delete-experience-cache";
-import {
-  replaceOrRemoveExperiencesInGetExperiencesMiniQuery,
-  purgeExperiencesFromCache,
-} from "../../apollo/update-get-experiences-mini-query";
+import { purgeExperiencesFromCache1 } from "../../apollo/update-get-experiences-mini-query";
 import {
   MyIndexDispatchType,
   ActionType as ParentActionType,
@@ -357,30 +354,23 @@ const onDeleteExperienceProcessedEffect: DefOnDeleteExperienceProcessedEffect["f
         type: ActionType.ON_DELETE_EXPERIENCE_PROCESSED,
         ...deletedExperience,
       });
+
       break;
 
     case StateValue.deleted:
-      {
-        replaceOrRemoveExperiencesInGetExperiencesMiniQuery({
-          [id]: null,
+      purgeExperiencesFromCache1([id]);
+
+      unstable_batchedUpdates(() => {
+        parentDispatch({
+          type: ParentActionType.DATA_RE_FETCH_REQUEST,
         });
 
-        const { persistor } = window.____ebnis;
-        await persistor.persist();
-
-        purgeExperiencesFromCache([id]);
-
-        unstable_batchedUpdates(() => {
-          parentDispatch({
-            type: ParentActionType.DATA_RE_FETCH_REQUEST,
-          });
-
-          dispatch({
-            type: ActionType.ON_DELETE_EXPERIENCE_PROCESSED,
-            ...deletedExperience,
-          });
+        dispatch({
+          type: ActionType.ON_DELETE_EXPERIENCE_PROCESSED,
+          ...deletedExperience,
         });
-      }
+      });
+
       break;
   }
 };

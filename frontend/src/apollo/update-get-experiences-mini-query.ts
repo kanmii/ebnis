@@ -16,6 +16,11 @@ import {
   getExperiencesMiniQuery,
   readOptions,
 } from "./get-experiences-mini-query";
+import { readExperienceFragment } from "./read-experience-fragment";
+import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
+import { EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
+import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 
 export function makeDefaultExperienceMiniConnection(): GetExperienceConnectionMini_getExperiences {
   return {
@@ -278,4 +283,115 @@ export function purgeExperiencesFromCache(ids: string[]) {
   }
 
   dataProxy.broadcastWatches();
+}
+
+export function purgeExperiencesFromCache1(ids: string[]) {
+  const experiencesMini = getExperiencesMiniQuery();
+
+  if (!experiencesMini) {
+    return;
+  }
+
+  const { cache, client } = window.____ebnis;
+  const dataProxy = cache as any;
+  const data = dataProxy.data.data;
+
+  const idsMap = ids.reduce((accId, id) => {
+    accId[id] = true;
+    return accId;
+  }, {} as { [key: string]: true });
+
+  let allLen = 0;
+  let writtenLen = 0;
+
+  const updatedExperienceConnection = immer(experiencesMini, (proxy) => {
+    const edges = (proxy.edges || []) as ExperienceConnectionFragment_edges[];
+    const newEdges: ExperienceConnectionFragment_edges[] = [];
+
+    for (let edge of edges) {
+      ++allLen;
+
+      edge = edge as ExperienceConnectionFragment_edges;
+      const node = edge.node as ExperienceConnectionFragment_edges_node;
+
+      const id = node.id;
+      const idFound = idsMap[id];
+
+      if (idFound) {
+        purgeExperience(id, data);
+
+        // we are deleting this experience from this list
+        continue;
+      }
+
+      // the rest of the experience mini will be rewritten to the cache
+      newEdges.push(edge);
+      ++writtenLen;
+    }
+
+    proxy.edges = newEdges;
+  });
+
+  client.writeQuery<
+    GetExperienceConnectionMini,
+    GetExperienceConnectionMiniVariables
+  >({
+    ...readOptions,
+    data: { getExperiences: updatedExperienceConnection },
+  });
+
+  const miniQueryKeyPart = `$ROOT_QUERY.getExperiences({"input":{"pagination":{"first":20000}}}).edges.`;
+
+  for (let index = writtenLen; index < allLen; index++) {
+    const query = `${miniQueryKeyPart}${index}`;
+    delete data[query];
+  }
+
+  dataProxy.broadcastWatches();
+}
+
+function purgeExperience(experienceId: string, data: any) {
+  const experience = readExperienceFragment(experienceId);
+
+  if (experience) {
+    const { dataDefinitions, entries } = experience;
+
+    dataDefinitions.forEach((d) => {
+      const id = (d as DataDefinitionFragment).id;
+      delete data[`DataDefinition:${id}`];
+    });
+
+    const toDelete = `Experience:${experienceId}`;
+    const toDeleteEntry = `$${toDelete}.entries({"pagination":{"first":20000}})`;
+
+    purgeEntries(entries, data, toDeleteEntry);
+    delete data[toDelete];
+    delete data[toDeleteEntry];
+  }
+}
+
+function purgeEntries(
+  entries: EntryConnectionFragment,
+  data: any,
+  toDeleteEntry: string,
+) {
+  const edges = entries.edges;
+
+  if (!edges) {
+    return;
+  }
+
+  edges.forEach((edge, index) => {
+    const entry = (edge && edge.node) as EntryFragment;
+    const entryId = entry.id;
+
+    entry.dataObjects.forEach((d) => {
+      const id = (d as DataObjectFragment).id;
+      delete data[`DataObject:${id}`];
+    });
+
+    delete data[`Entry:${entryId}`];
+    delete data[`${toDeleteEntry}.pageInfo`];
+    delete data[`${toDeleteEntry}.edges.${index}`];
+  });
 }
