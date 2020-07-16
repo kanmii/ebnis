@@ -11,7 +11,7 @@ import {
 } from "../../utils/types";
 import { manageCachedMutations } from "../../apollo/managed-cached-mutations";
 
-export function WithEmitter(
+export function WithSubscriptions(
   props: PropsWithChildren<{ observable: Observable<EmitPayload> }>,
 ) {
   const { observable, children } = props;
@@ -55,4 +55,4 @@ export function WithEmitter(
 }
 
 // istanbul ignore next:
-export default WithEmitter;
+export default WithSubscriptions;

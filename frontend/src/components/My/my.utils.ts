@@ -358,18 +358,21 @@ const onDeleteExperienceProcessedEffect: DefOnDeleteExperienceProcessedEffect["f
       break;
 
     case StateValue.deleted:
-      purgeExperiencesFromCache1([id]);
+      /* eslint-disable-next-line no-lone-blocks*/
+      {
+        await purgeExperiencesFromCache1([id]);
 
-      unstable_batchedUpdates(() => {
-        parentDispatch({
-          type: ParentActionType.DATA_RE_FETCH_REQUEST,
-        });
+        unstable_batchedUpdates(() => {
+          parentDispatch({
+            type: ParentActionType.DATA_RE_FETCH_REQUEST,
+          });
 
-        dispatch({
-          type: ActionType.ON_DELETE_EXPERIENCE_PROCESSED,
-          ...deletedExperience,
+          dispatch({
+            type: ActionType.ON_DELETE_EXPERIENCE_PROCESSED,
+            ...deletedExperience,
+          });
         });
-      });
+      }
 
       break;
   }

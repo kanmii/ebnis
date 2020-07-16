@@ -285,14 +285,14 @@ export function purgeExperiencesFromCache(ids: string[]) {
   dataProxy.broadcastWatches();
 }
 
-export function purgeExperiencesFromCache1(ids: string[]) {
+export async function purgeExperiencesFromCache1(ids: string[]) {
   const experiencesMini = getExperiencesMiniQuery();
 
   if (!experiencesMini) {
     return;
   }
 
-  const { cache, client } = window.____ebnis;
+  const { cache, client, persistor } = window.____ebnis;
   const dataProxy = cache as any;
   const data = dataProxy.data.data;
 
@@ -348,6 +348,7 @@ export function purgeExperiencesFromCache1(ids: string[]) {
   }
 
   dataProxy.broadcastWatches();
+  await persistor.persist();
 }
 
 function purgeExperience(experienceId: string, data: any) {
@@ -367,6 +368,7 @@ function purgeExperience(experienceId: string, data: any) {
     purgeEntries(entries, data, toDeleteEntry);
     delete data[toDelete];
     delete data[toDeleteEntry];
+    delete data[`${toDeleteEntry}.pageInfo`];
   }
 }
 
@@ -391,7 +393,6 @@ function purgeEntries(
     });
 
     delete data[`Entry:${entryId}`];
-    delete data[`${toDeleteEntry}.pageInfo`];
     delete data[`${toDeleteEntry}.edges.${index}`];
   });
 }

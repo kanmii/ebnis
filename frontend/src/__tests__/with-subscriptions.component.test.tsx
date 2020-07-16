@@ -3,7 +3,7 @@ import React, { ComponentType } from "react";
 import { render, cleanup } from "@testing-library/react";
 import { E2EWindowObject } from "../utils/types";
 import { cleanupObservableSubscription } from "../components/App/app.injectables";
-import { WithEmitter } from "../components/App/with-emitter.component";
+import { WithSubscriptions } from "../components/App/with-subscriptions.component";
 import { makeObservable, EmitActionType } from "../utils/observable-manager";
 import { act } from "react-dom/test-utils";
 
@@ -54,7 +54,7 @@ it("x", () => {
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
-const WithEmitterP = WithEmitter as ComponentType<Partial<{}>>;
+const WithEmitterP = WithSubscriptions as ComponentType<Partial<{}>>;
 
 function makeComp() {
   makeObservable(zen);

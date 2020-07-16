@@ -6,7 +6,7 @@ import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import { E2EWindowObject } from "../../utils/types";
 import { restoreCacheOrPurgeStorage } from "../../apollo/setup";
 import Loading from "../Loading/loading.component";
-import WithEmitter from "./with-emitter.component";
+import WithSubscriptions from "./with-subscriptions.component";
 import {
   ROOT_URL,
   LOGIN_URL,
@@ -39,7 +39,7 @@ export function AppInner({ obj }: { obj: E2EWindowObject }) {
           }}
         >
           <Suspense fallback={<Loading />}>
-            <WithEmitter observable={observable}>
+            <WithSubscriptions observable={observable}>
               <Switch>
                 <AuthenticationRequired
                   exact={true}
@@ -61,7 +61,7 @@ export function AppInner({ obj }: { obj: E2EWindowObject }) {
 
                 <Route component={Login} />
               </Switch>
-            </WithEmitter>
+            </WithSubscriptions>
           </Suspense>
         </EbnisAppProvider>
       </ApolloProvider>

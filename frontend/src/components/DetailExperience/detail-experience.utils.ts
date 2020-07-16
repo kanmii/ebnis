@@ -53,6 +53,7 @@ export enum ActionType {
   DELETE_EXPERIENCE_REQUEST = "@detailed-experience/delete-experience-request",
   DELETE_EXPERIENCE_CANCELLED = "@detailed-experience/delete-experience-cancelled",
   DELETE_EXPERIENCE_CONFIRMED = "@detailed-experience/delete-experience-confirmed",
+  TOGGLE_SHOW_OPTIONS_MENU = "@detailed-experience/toggle-options-menu",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -106,6 +107,13 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           case ActionType.DELETE_EXPERIENCE_CONFIRMED:
             handleDeleteExperienceConfirmedAction(proxy);
             break;
+
+          case ActionType.TOGGLE_SHOW_OPTIONS_MENU:
+            handleToggleShowOptionsMenuAction(
+              proxy,
+              payload as ToggleOptionsMenuPayload,
+            );
+            break;
         }
       });
     },
@@ -150,6 +158,9 @@ export function initState(props: Props): StateMachine {
         value: StateValue.inactive,
       },
       deleteExperience: {
+        value: StateValue.inactive,
+      },
+      showingOptionsMenu: {
         value: StateValue.inactive,
       },
     },
@@ -413,6 +424,29 @@ function handleDeleteExperienceConfirmedAction(proxy: DraftStateMachine) {
     key: "deleteExperienceEffect",
     ownArgs: {},
   });
+}
+
+function handleToggleShowOptionsMenuAction(
+  proxy: DraftStateMachine,
+  payload: ToggleOptionsMenuPayload,
+) {
+  const {
+    states: { showingOptionsMenu },
+  } = proxy;
+
+  if (payload.key) {
+    // istanbul ignore else:
+    if (payload.key === "close") {
+      showingOptionsMenu.value = StateValue.inactive;
+    }
+
+    return;
+  }
+
+  showingOptionsMenu.value =
+    showingOptionsMenu.value === StateValue.inactive
+      ? StateValue.active
+      : StateValue.inactive;
 }
 
 ////////////////////////// END STATE UPDATE ////////////////////////////
@@ -716,8 +750,19 @@ export type StateMachine = GenericGeneralEffect<EffectType> &
       >;
 
       deleteExperience: DeleteExperienceState;
+
+      showingOptionsMenu: ShowingOptionsMenuState;
     }>;
   }>;
+
+export type ShowingOptionsMenuState = Readonly<
+  | {
+      value: InActiveVal;
+    }
+  | {
+      value: ActiveVal;
+    }
+>;
 
 type DeleteExperienceState = Readonly<
   | {
@@ -730,7 +775,7 @@ type DeleteExperienceActiveState = Readonly<{
   value: ActiveVal;
   active: {
     context: {
-      key?: RequestedVal;
+      key?: RequestedVal; // with key, we know request came from 'my' component
     };
   };
 }>;
@@ -816,7 +861,14 @@ type Action =
     }
   | {
       type: ActionType.DELETE_EXPERIENCE_CONFIRMED;
-    };
+    }
+  | ({
+      type: ActionType.TOGGLE_SHOW_OPTIONS_MENU;
+    } & ToggleOptionsMenuPayload);
+
+interface ToggleOptionsMenuPayload {
+  key?: "close" | "open";
+}
 
 interface DeleteExperienceRequestPayload {
   key?: RequestedVal;

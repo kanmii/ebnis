@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
-import "./detail-experience.styles.scss";
+import "./styles.scss";
 import {
   Props,
   initState,
@@ -15,6 +15,7 @@ import {
   effectFunctions,
   StateMachine,
   DispatchType,
+  ShowingOptionsMenuState,
 } from "./detail-experience.utils";
 import { setUpRoutePage } from "../../utils/global-window";
 import { NewEntry } from "./detail-experience.lazy";
@@ -30,6 +31,7 @@ import { useRunEffects } from "../../utils/use-run-effects";
 import {
   newEntryCreatedNotificationCloseId,
   entriesErrorsNotificationCloseId,
+  noTriggerDocumentEventClassName,
 } from "./detail-experience.dom";
 import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
@@ -49,6 +51,7 @@ export function DetailExperience(props: Props) {
     states: {
       newEntryActive: newEntryActiveState,
       deleteExperience: deleteExperienceState,
+      showingOptionsMenu,
     },
     effects: { general: generalEffects },
     context,
@@ -58,6 +61,25 @@ export function DetailExperience(props: Props) {
     setUpRoutePage({
       title: experience.title,
     });
+
+    function onDocClicked(event: Event) {
+      const target = event.target as HTMLElement;
+
+      if (target.classList.contains(noTriggerDocumentEventClassName)) {
+        return;
+      }
+
+      dispatch({
+        type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
+        key: "close",
+      });
+    }
+
+    document.documentElement.addEventListener("click", onDocClicked);
+
+    return () => {
+      document.documentElement.removeEventListener("click", onDocClicked);
+    };
   }, [experience]);
 
   useRunEffects(generalEffects, effectFunctions, props, { dispatch });
@@ -97,6 +119,18 @@ export function DetailExperience(props: Props) {
   const onConfirmDeleteExperience = useCallback(() => {
     dispatch({
       type: ActionType.DELETE_EXPERIENCE_CONFIRMED,
+    });
+  }, []);
+
+  const onDeleteExperienceRequest = useCallback(() => {
+    dispatch({
+      type: ActionType.DELETE_EXPERIENCE_REQUEST,
+    });
+  }, []);
+
+  const onToggleMenu = useCallback(() => {
+    dispatch({
+      type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
     });
   }, []);
 
@@ -144,24 +178,42 @@ export function DetailExperience(props: Props) {
           }
         />
 
-        {entries.length === 0 ? (
-          <button className="button no-entry-alert" onClick={onOpenNewEntry}>
-            Click here to create your first entry
-          </button>
-        ) : (
-          <div className="entries">
-            {entries.map((entry) => {
-              return (
-                <EntryComponent
-                  key={entry.id}
-                  entry={entry}
-                  dataDefinitionIdToNameMap={dataDefinitionIdToNameMap}
-                  entriesErrors={syncEntriesErrors[entry.clientId as string]}
-                  dispatch={dispatch}
-                />
-              );
-            })}
+        {entries.length === 0 && (
+          <div className="no-entry-alert">
+            <button className="button no-entry-button" onClick={onOpenNewEntry}>
+              Click here to create your first entry
+            </button>
+
+            <Menu
+              state={showingOptionsMenu}
+              onToggleMenu={onToggleMenu}
+              onDeleteExperienceRequest={onDeleteExperienceRequest}
+            />
           </div>
+        )}
+
+        {entries.length > 0 && (
+          <>
+            <Menu
+              state={showingOptionsMenu}
+              onToggleMenu={onToggleMenu}
+              onDeleteExperienceRequest={onDeleteExperienceRequest}
+            />
+
+            <div className="entries">
+              {entries.map((entry) => {
+                return (
+                  <EntryComponent
+                    key={entry.id}
+                    entry={entry}
+                    dataDefinitionIdToNameMap={dataDefinitionIdToNameMap}
+                    entriesErrors={syncEntriesErrors[entry.clientId as string]}
+                    dispatch={dispatch}
+                  />
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
@@ -364,6 +416,50 @@ function DeleteExperienceModal(props: DeleteExperienceProps) {
   );
 }
 
+function Menu(props: MenuProps) {
+  const { state, onToggleMenu, onDeleteExperienceRequest } = props;
+
+  return (
+    <div className="detailed-menu">
+      <div
+        className={makeClassNames({
+          "dropdown is-right": true,
+          "is-active": state.value === StateValue.active,
+        })}
+      >
+        <div className="dropdown-menu detailed-menu__menu" role="menu">
+          <div className="dropdown-content" onClick={onDeleteExperienceRequest}>
+            <div className="detailed-menu__content">Delete</div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        className={makeClassNames({
+          "button top-options-menu dropdown-trigger": true,
+          [noTriggerDocumentEventClassName]: true,
+        })}
+        onClick={onToggleMenu}
+      >
+        <span
+          className={makeClassNames({
+            "icon is-small": true,
+            [noTriggerDocumentEventClassName]: true,
+          })}
+        >
+          <i
+            className={makeClassNames({
+              "fas fa-ellipsis-h": true,
+              [noTriggerDocumentEventClassName]: true,
+            })}
+            aria-hidden="true"
+          />
+        </span>
+      </button>
+    </div>
+  );
+}
+
 interface EntryProps {
   entry: EntryFragment;
   dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
@@ -379,4 +475,10 @@ interface DeleteExperienceProps {
   title: string;
   onDeclineDeleteExperience: () => void;
   onConfirmDeleteExperience: () => void;
+}
+
+interface MenuProps {
+  state: ShowingOptionsMenuState;
+  onToggleMenu: () => void;
+  onDeleteExperienceRequest: () => void;
 }
