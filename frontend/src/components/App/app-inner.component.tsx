@@ -6,7 +6,7 @@ import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import { E2EWindowObject } from "../../utils/types";
 import { restoreCacheOrPurgeStorage } from "../../apollo/setup";
 import Loading from "../Loading/loading.component";
-import WithSubscriptions from "./with-subscriptions.component";
+import WithSubscriptions from "../WithSubscriptions/with-subscriptions.component";
 import {
   ROOT_URL,
   LOGIN_URL,
@@ -24,7 +24,7 @@ const DetailExperience = lazy(() =>
 const SignUp = lazy(() => import("../SignUp/sign-up.component"));
 
 export function AppInner({ obj }: { obj: E2EWindowObject }) {
-  const { client, cache, persistor, observable } = obj;
+  const { client, cache, persistor, observable, bc } = obj;
 
   return (
     <Router>
@@ -39,7 +39,7 @@ export function AppInner({ obj }: { obj: E2EWindowObject }) {
           }}
         >
           <Suspense fallback={<Loading />}>
-            <WithSubscriptions observable={observable}>
+            <WithSubscriptions observable={observable} bc={bc}>
               <Switch>
                 <AuthenticationRequired
                   exact={true}

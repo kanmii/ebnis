@@ -360,7 +360,9 @@ const onDeleteExperienceProcessedEffect: DefOnDeleteExperienceProcessedEffect["f
     case StateValue.deleted:
       /* eslint-disable-next-line no-lone-blocks*/
       {
-        await purgeExperiencesFromCache1([id]);
+        purgeExperiencesFromCache1([id]);
+        const { persistor } = window.____ebnis;
+        await persistor.persist();
 
         unstable_batchedUpdates(() => {
           parentDispatch({

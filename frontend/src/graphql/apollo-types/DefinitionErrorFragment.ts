@@ -15,7 +15,7 @@ export interface DefinitionErrorFragment {
   id: string;
   /**
    * The name of the definition is not unique or less than minimum char
-   *   length
+   * length
    */
   name: string | null;
   /**

@@ -32,6 +32,7 @@ export interface DeleteExperiences_deleteExperiences_DeleteExperiencesSomeSucces
    * The title of the experience
    */
   id: string;
+  title: string;
 }
 
 export interface DeleteExperiences_deleteExperiences_DeleteExperiencesSomeSuccess_experiences_DeleteExperienceSuccess {
@@ -44,6 +45,8 @@ export type DeleteExperiences_deleteExperiences_DeleteExperiencesSomeSuccess_exp
 export interface DeleteExperiences_deleteExperiences_DeleteExperiencesSomeSuccess {
   __typename: "DeleteExperiencesSomeSuccess";
   experiences: DeleteExperiences_deleteExperiences_DeleteExperiencesSomeSuccess_experiences[];
+  clientSession: string;
+  clientToken: string;
 }
 
 export type DeleteExperiences_deleteExperiences = DeleteExperiences_deleteExperiences_DeleteExperiencesAllFail | DeleteExperiences_deleteExperiences_DeleteExperiencesSomeSuccess;

@@ -13,7 +13,7 @@ export interface PreFetchExperiences_getExperiences_edges_node_dataDefinitions {
   __typename: "DataDefinition";
   id: string;
   /**
-   * Name of field e.g start, end, meal
+   * Name of field e.g start, end, meal 
    */
   name: string;
   /**
@@ -22,9 +22,9 @@ export interface PreFetchExperiences_getExperiences_edges_node_dataDefinitions {
   type: DataTypes;
   /**
    * String that uniquely identifies this data definition has been
-   *   created offline. If an associated entry is also created
-   *   offline, then `dataDefinition.definitionId` **MUST BE** the same as this
-   *   field and will be validated as such.
+   * created offline. If an associated entry is also created
+   * offline, then `dataDefinition.definitionId` **MUST BE** the same as this
+   * field and will be validated as such.
    */
   clientId: string | null;
 }
@@ -66,9 +66,9 @@ export interface PreFetchExperiences_getExperiences_edges_node_entries_edges_nod
   experienceId: string;
   /**
    * The client ID which indicates that an entry has been created while server
-   *   is offline and is to be saved. The client ID uniquely
-   *   identifies this entry and will be used to prevent conflict while saving entry
-   *   created offline and must thus be non null in this situation.
+   * is offline and is to be saved. The client ID uniquely
+   * identifies this entry and will be used to prevent conflict while saving entry
+   * created offline and must thus be non null in this situation.
    */
   clientId: string | null;
   insertedAt: any;
@@ -81,13 +81,7 @@ export interface PreFetchExperiences_getExperiences_edges_node_entries_edges_nod
 
 export interface PreFetchExperiences_getExperiences_edges_node_entries_edges {
   __typename: "EntryEdge";
-  /**
-   * A cursor for use in pagination
-   */
-  cursor: string;
-  /**
-   * The item at the end of the edge
-   */
+  cursor: string | null;
   node: PreFetchExperiences_getExperiences_edges_node_entries_edges_node | null;
 }
 
@@ -115,13 +109,7 @@ export interface PreFetchExperiences_getExperiences_edges_node {
 
 export interface PreFetchExperiences_getExperiences_edges {
   __typename: "ExperienceEdge";
-  /**
-   * A cursor for use in pagination
-   */
-  cursor: string;
-  /**
-   * The item at the end of the edge
-   */
+  cursor: string | null;
   node: PreFetchExperiences_getExperiences_edges_node | null;
 }
 
@@ -133,8 +121,8 @@ export interface PreFetchExperiences_getExperiences {
 export interface PreFetchExperiences {
   /**
    * Get all experiences belonging to a user.
-   *   The experiences returned may be paginated
-   *   and may be filtered by IDs
+   * The experiences returned may be paginated
+   * and may be filtered by IDs
    */
   getExperiences: PreFetchExperiences_getExperiences | null;
 }

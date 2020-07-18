@@ -40,7 +40,7 @@ export interface UpdateExperienceFragment_updatedDefinitions_DefinitionErrors_er
   id: string;
   /**
    * The name of the definition is not unique or less than minimum char
-   *   length
+   * length
    */
   name: string | null;
   /**
@@ -62,7 +62,7 @@ export interface UpdateExperienceFragment_updatedDefinitions_DefinitionSuccess_d
   __typename: "DataDefinition";
   id: string;
   /**
-   * Name of field e.g start, end, meal
+   * Name of field e.g start, end, meal 
    */
   name: string;
   /**
@@ -71,9 +71,9 @@ export interface UpdateExperienceFragment_updatedDefinitions_DefinitionSuccess_d
   type: DataTypes;
   /**
    * String that uniquely identifies this data definition has been
-   *   created offline. If an associated entry is also created
-   *   offline, then `dataDefinition.definitionId` **MUST BE** the same as this
-   *   field and will be validated as such.
+   * created offline. If an associated entry is also created
+   * offline, then `dataDefinition.definitionId` **MUST BE** the same as this
+   * field and will be validated as such.
    */
   clientId: string | null;
 }
@@ -115,7 +115,7 @@ export interface UpdateExperienceFragment_updatedEntries_UpdateEntrySomeSuccess_
   data: string | null;
   /**
    * For generic errors unrelated to the fields of the data object e.g.
-   *   not found error
+   * not found error
    */
   error: string | null;
 }
@@ -150,7 +150,7 @@ export interface UpdateExperienceFragment_updatedEntries_UpdateEntrySomeSuccess_
   entryId: string;
   /**
    * If any entry data objects is updated, then the entry itself will
-   *   be updated to the latest dataObject.updatedAt
+   * be updated to the latest dataObject.updatedAt
    */
   updatedAt: any | null;
   dataObjects: UpdateExperienceFragment_updatedEntries_UpdateEntrySomeSuccess_entry_dataObjects[];
@@ -198,12 +198,12 @@ export interface UpdateExperienceFragment_newEntries_CreateEntryErrors_errors {
   error: string | null;
   /**
    * May be we failed because entry.clientId is already taken by another
-   *   entry belonging to the experience.
+   * entry belonging to the experience.
    */
   clientId: string | null;
   /**
    * An offline entry of offline experience must have its experience ID same as
-   *   experience.clientId.
+   * experience.clientId.
    */
   experienceId: string | null;
   /**
@@ -242,9 +242,9 @@ export interface UpdateExperienceFragment_newEntries_CreateEntrySuccess_entry {
   experienceId: string;
   /**
    * The client ID which indicates that an entry has been created while server
-   *   is offline and is to be saved. The client ID uniquely
-   *   identifies this entry and will be used to prevent conflict while saving entry
-   *   created offline and must thus be non null in this situation.
+   * is offline and is to be saved. The client ID uniquely
+   * identifies this entry and will be used to prevent conflict while saving entry
+   * created offline and must thus be non null in this situation.
    */
   clientId: string | null;
   insertedAt: any;
@@ -287,9 +287,9 @@ export interface UpdateExperienceFragment_deletedEntries_EntrySuccess_entry {
   experienceId: string;
   /**
    * The client ID which indicates that an entry has been created while server
-   *   is offline and is to be saved. The client ID uniquely
-   *   identifies this entry and will be used to prevent conflict while saving entry
-   *   created offline and must thus be non null in this situation.
+   * is offline and is to be saved. The client ID uniquely
+   * identifies this entry and will be used to prevent conflict while saving entry
+   * created offline and must thus be non null in this situation.
    */
   clientId: string | null;
   insertedAt: any;

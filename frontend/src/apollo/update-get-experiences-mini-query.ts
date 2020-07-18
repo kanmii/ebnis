@@ -99,7 +99,7 @@ export function insertExperiencesInGetExperiencesMiniQuery(
           node: e,
           cursor: "",
           __typename: "ExperienceEdge" as "ExperienceEdge",
-        };
+        } as ExperienceConnectionFragment_edges;
       })
       .concat(edges);
   });
@@ -285,14 +285,14 @@ export function purgeExperiencesFromCache(ids: string[]) {
   dataProxy.broadcastWatches();
 }
 
-export async function purgeExperiencesFromCache1(ids: string[]) {
+export function purgeExperiencesFromCache1(ids: string[]) {
   const experiencesMini = getExperiencesMiniQuery();
 
   if (!experiencesMini) {
     return;
   }
 
-  const { cache, client, persistor } = window.____ebnis;
+  const { cache, client } = window.____ebnis;
   const dataProxy = cache as any;
   const data = dataProxy.data.data;
 
@@ -348,7 +348,6 @@ export async function purgeExperiencesFromCache1(ids: string[]) {
   }
 
   dataProxy.broadcastWatches();
-  await persistor.persist();
 }
 
 function purgeExperience(experienceId: string, data: any) {

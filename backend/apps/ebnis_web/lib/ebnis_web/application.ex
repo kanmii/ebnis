@@ -11,7 +11,8 @@ defmodule EbnisWeb.Application do
       # Start the endpoint when the application starts
       EbnisWeb.Endpoint,
       # Start the Telemetry supervisor
-      EbnisWeb.Telemetry
+      EbnisWeb.Telemetry,
+      {Absinthe.Subscription, EbnisWeb.Endpoint}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

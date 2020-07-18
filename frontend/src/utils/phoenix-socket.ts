@@ -2,6 +2,7 @@
 import { Socket as PhoenixSocket } from "phoenix";
 import { getBackendUrls } from "./get-backend-urls";
 import { storeConnectionStatus } from "./connections";
+import { getSessionId } from "./session-manager";
 
 export interface AppSocket extends PhoenixSocket {
   ebnisConnect: (token?: string | null) => AppSocket;
@@ -21,7 +22,7 @@ export const defineSocket = ({ uri, token: connToken }: DefineParams) => {
     const params = makeParams(token);
     socket = new PhoenixSocket(
       getBackendUrls(uri).websocketUrl,
-      params
+      params,
     ) as AppSocket;
 
     socket.ebnisConnect = ebnisConnect;
@@ -58,7 +59,12 @@ export const defineSocket = ({ uri, token: connToken }: DefineParams) => {
   }
 
   function makeParams(token?: string | null) {
-    const params = {} as { token?: string };
+    const params = {
+      session_id: getSessionId(),
+    } as {
+      token?: string;
+      session_id: string;
+    };
 
     if (token) {
       params.token = token;

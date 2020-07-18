@@ -30,6 +30,9 @@ export interface LoginMutation_login_LoginError {
 export type LoginMutation_login = LoginMutation_login_UserSuccess | LoginMutation_login_LoginError;
 
 export interface LoginMutation {
+  /**
+   * Log in a user
+   */
   login: LoginMutation_login | null;
 }
 

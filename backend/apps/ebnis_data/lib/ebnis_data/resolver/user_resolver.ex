@@ -29,6 +29,9 @@ defmodule EbnisData.User.Resolver do
             errors: errors
           }
         }
+
+      _ ->
+        {:error, "unsuccessful"}
     end
   end
 

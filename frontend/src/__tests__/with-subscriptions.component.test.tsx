@@ -2,20 +2,25 @@
 import React, { ComponentType } from "react";
 import { render, cleanup } from "@testing-library/react";
 import { E2EWindowObject } from "../utils/types";
-import { cleanupObservableSubscription } from "../components/App/app.injectables";
-import { WithSubscriptions } from "../components/App/with-subscriptions.component";
+import { cleanupObservableSubscription } from "../components/WithSubscriptions/with-subscriptions.injectables";
+import { WithSubscriptions } from "../components/WithSubscriptions/with-subscriptions.component";
 import { makeObservable, EmitActionType } from "../utils/observable-manager";
 import { act } from "react-dom/test-utils";
 
 let withEmitterProviderValue = null as any;
-jest.mock("../components/App/app.injectables", () => ({
-  WithEmitterProvider: ({ children, value }: any) => {
-    withEmitterProviderValue = value;
 
-    return children;
-  },
-  cleanupObservableSubscription: jest.fn(),
-}));
+jest.mock(
+  "../components/WithSubscriptions/with-subscriptions.injectables",
+  () => ({
+    WithEmitterProvider: ({ children, value }: any) => {
+      withEmitterProviderValue = value;
+
+      return children;
+    },
+    cleanupObservableSubscription: jest.fn(),
+  }),
+);
+
 const mockCleanupObservableSubscription = cleanupObservableSubscription as jest.Mock;
 
 const zen = {} as E2EWindowObject;

@@ -34,9 +34,9 @@ export interface GetExperienceConnectionMini_getExperiences_edges_node {
   description: string | null;
   /**
    * The client ID. For experiences created on the client while server is
-   *   offline and to be saved , the client ID uniquely identifies such and can
-   *   be used to enforce uniqueness at the DB level. Not providing client_id
-   *   assumes a fresh experience.
+   * offline and to be saved , the client ID uniquely identifies such and can
+   * be used to enforce uniqueness at the DB level. Not providing client_id
+   * assumes a fresh experience.
    */
   clientId: string | null;
   insertedAt: any;
@@ -45,13 +45,7 @@ export interface GetExperienceConnectionMini_getExperiences_edges_node {
 
 export interface GetExperienceConnectionMini_getExperiences_edges {
   __typename: "ExperienceEdge";
-  /**
-   * A cursor for use in pagination
-   */
-  cursor: string;
-  /**
-   * The item at the end of the edge
-   */
+  cursor: string | null;
   node: GetExperienceConnectionMini_getExperiences_edges_node | null;
 }
 
@@ -64,8 +58,8 @@ export interface GetExperienceConnectionMini_getExperiences {
 export interface GetExperienceConnectionMini {
   /**
    * Get all experiences belonging to a user.
-   *   The experiences returned may be paginated
-   *   and may be filtered by IDs
+   * The experiences returned may be paginated
+   * and may be filtered by IDs
    */
   getExperiences: GetExperienceConnectionMini_getExperiences | null;
 }

@@ -452,9 +452,13 @@ export const DELETE_EXPERIENCES_MUTATION = gql`
           ... on DeleteExperienceSuccess {
             experience {
               id
+              title
             }
           }
         }
+
+        clientSession
+        clientToken
       }
     }
   }
@@ -496,6 +500,20 @@ export const PRE_FETCH_EXPERIENCES_QUERY = gql`
   }
 
   ${EXPERIENCE_CONNECTION_PRE_FETCH_FRAGMENT}
+`;
+
+export const ON_EXPERIENCES_DELETED_SUBSCRIPTION = gql`
+  subscription OnExperiencesDeletedSubscription($clientSession: String!) {
+    onExperiencesDeleted(clientSession: $clientSession) {
+      experiences {
+        id
+        title
+      }
+
+      clientSession
+      clientToken
+    }
+  }
 `;
 
 ////////////////////////// GET EXPERIENCE DETAIL //////////////////

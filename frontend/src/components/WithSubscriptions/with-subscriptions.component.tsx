@@ -4,24 +4,32 @@ import { EmitActionType } from "../../utils/observable-manager";
 import {
   cleanupObservableSubscription,
   WithEmitterProvider,
-} from "./app.injectables";
+} from "./with-subscriptions.injectables";
 import {
   EmitActionConnectionChangedPayload,
   EmitPayload,
+  BChannel,
+  BroadcastMessage,
 } from "../../utils/types";
 import { manageCachedMutations } from "../../apollo/managed-cached-mutations";
+import { useOnExperiencesDeletedSubscription } from "../../utils/experience.gql.types";
 
-export function WithSubscriptions(
-  props: PropsWithChildren<{ observable: Observable<EmitPayload> }>,
-) {
-  const { observable, children } = props;
+export function WithSubscriptions(props: PropsWithChildren<CallerProps>) {
+  const { observable, children, bc } = props;
   const [state, setState] = useState(false);
+  const { data } = useOnExperiencesDeletedSubscription();
 
   useEffect(() => {
-    manageCachedMutations();
-  });
+    function onStorageChanged(event: StorageEvent) {}
 
-  useEffect(() => {
+    window.addEventListener("storage", onStorageChanged);
+
+    function onMessage({ type, payload }: BroadcastMessage) {
+      //
+    }
+
+    bc.addEventListener("message", onMessage);
+
     const subscription = observable.subscribe({
       next({ type, ...payload }) {
         switch (type) {
@@ -39,9 +47,14 @@ export function WithSubscriptions(
 
     return () => {
       cleanupObservableSubscription(subscription);
+      window.removeEventListener("storage", onStorageChanged);
     };
     /* eslint-disable react-hooks/exhaustive-deps*/
   }, []);
+
+  useEffect(() => {
+    manageCachedMutations();
+  });
 
   return (
     <WithEmitterProvider
@@ -56,3 +69,8 @@ export function WithSubscriptions(
 
 // istanbul ignore next:
 export default WithSubscriptions;
+
+interface CallerProps {
+  observable: Observable<EmitPayload>;
+  bc: BChannel;
+}

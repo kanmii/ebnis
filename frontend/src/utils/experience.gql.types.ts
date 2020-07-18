@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@apollo/react-hooks";
+import { useMutation, useQuery, useSubscription } from "@apollo/react-hooks";
 import {
   MutationFunctionOptions,
   MutationResult,
@@ -11,6 +11,7 @@ import {
   DELETE_EXPERIENCES_MUTATION,
   GET_EXPERIENCES_CONNECTION_MINI_QUERY,
   getExperienceConnectionMiniVariables,
+  ON_EXPERIENCES_DELETED_SUBSCRIPTION,
 } from "../graphql/experience.gql";
 import { UpdateExperienceFragment } from "../graphql/apollo-types/UpdateExperienceFragment";
 import {
@@ -44,6 +45,8 @@ import {
   GetExperienceConnectionMini,
 } from "../graphql/apollo-types/GetExperienceConnectionMini";
 import { FetchPolicy } from "apollo-client";
+import { OnExperiencesDeletedSubscription } from "../graphql/apollo-types/OnExperiencesDeletedSubscription";
+import { getSessionId } from "./session-manager";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 
@@ -191,6 +194,17 @@ export type UseDeleteExperiencesMutation = [
 // component's props should extend this
 export interface DeleteExperiencesComponentProps {
   deleteExperiences: DeleteExperiencesMutationFn;
+}
+
+export function useOnExperiencesDeletedSubscription() {
+  return useSubscription<OnExperiencesDeletedSubscription>(
+    ON_EXPERIENCES_DELETED_SUBSCRIPTION,
+    {
+      variables: {
+        clientSession: getSessionId(),
+      },
+    },
+  );
 }
 
 ////////////////////////// END DELETE EXPERIENCES SECTION ////////////

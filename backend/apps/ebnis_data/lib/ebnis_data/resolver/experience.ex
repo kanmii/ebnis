@@ -503,7 +503,16 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     :delete_experiences_some_success
   end
 
-  def delete_experiences(%{input: ids}, %{context: %{current_user: user}}) do
+  def delete_experiences(
+        %{input: ids},
+        %{
+          context: %{
+            current_user: user,
+            client_session: client_session,
+            client_token: token
+          }
+        }
+      ) do
     results =
       ids
       |> Enum.map(fn id ->
@@ -526,7 +535,9 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     {
       :ok,
       %{
-        experiences: results
+        experiences: results,
+        client_session: client_session,
+        client_token: token
       }
     }
   end
@@ -570,5 +581,42 @@ defmodule EbnisData.Resolver.ExperienceResolver do
 
   def delete_entry_union(_, _) do
     :delete_entry_errors
+  end
+
+  def on_experiences_deleted(
+        %{client_token: client_token} = _mutation_result,
+        _args,
+        %{context: %{client_token: client_token}} = _context
+      ) do
+    {:error, "same client"}
+  end
+
+  def on_experiences_deleted(
+        %{
+          experiences: experiences_some_success
+        } = result,
+        _args,
+        _resolution
+      ) do
+    experiences =
+      Enum.reduce(experiences_some_success, [], fn
+        %{experience: experience}, acc ->
+          [experience | acc]
+
+        _, acc ->
+          acc
+      end)
+
+    result = %{
+      experiences: experiences,
+      client_session: result.client_session,
+      client_token: result.client_token
+    }
+
+    {:ok, result}
+  end
+
+  def on_experiences_deleted(_, _, _) do
+    {:error, "unsuccessful"}
   end
 end

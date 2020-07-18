@@ -5,8 +5,9 @@ import { InMemoryCache } from "apollo-cache-inmemory";
 import { ApolloClient } from "apollo-client";
 import { Observable } from "zen-observable-ts";
 import { CachePersistor } from "apollo-cache-persist";
-import { EmitActionType } from "./observable-manager";
+import { EmitActionType, BroadcastMessageType } from "./observable-manager";
 import { ChangeEvent } from "react";
+import { BroadcastChannel } from "broadcast-channel";
 
 export type EmitData = (params: EmitPayload) => void;
 
@@ -37,6 +38,7 @@ export interface E2EWindowObject extends ObservableUtils {
   experienceDefinitionResolversAdded?: boolean;
   newEntryResolversAdded?: boolean;
   logApolloQueries?: boolean;
+  bc: BChannel;
 }
 
 export interface ConnectionStatus {
@@ -55,6 +57,16 @@ declare global {
     ____ebnis: E2EWindowObject;
   }
 }
+
+export type BroadcastMessage = {
+  type: BroadcastMessageType.experienceDeleted;
+  payload: {
+    id: string;
+    title: string;
+  };
+};
+
+export type BChannel = BroadcastChannel<BroadcastMessage>;
 
 export type CommonError = Error | string;
 

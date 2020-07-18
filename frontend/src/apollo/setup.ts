@@ -22,9 +22,9 @@ import {
   resetConnectionObject,
   storeConnectionStatus,
 } from "../utils/connections";
-import { makeObservable } from "../utils/observable-manager";
+import { makeObservable, makeBChannel } from "../utils/observable-manager";
 import possibleTypes from "../graphql/apollo-types/fragment-types.json";
-import { ConnectionStatus, ObservableUtils, EmitPayload } from "../utils/types";
+import { E2EWindowObject } from "../utils/types";
 
 export function buildClientCache(
   {
@@ -62,7 +62,7 @@ export function buildClientCache(
 
   persistor = makePersistor(cache, persistor);
 
-  const makeSocketLink: MakeSocketLinkFn = makeSocketLinkArgs => {
+  const makeSocketLink: MakeSocketLinkFn = (makeSocketLinkArgs) => {
     const absintheSocket = AbsintheSocket.create(
       getSocket({
         uri,
@@ -169,6 +169,7 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
 
   if (!window.Cypress) {
     makeObservable(window.____ebnis);
+    makeBChannel(window.____ebnis);
     makeConnectionObject();
     return window.____ebnis;
   }
@@ -185,6 +186,7 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
     // reset globals
     cypressApollo = {} as E2EWindowObject;
     makeObservable(cypressApollo);
+    makeBChannel(cypressApollo);
 
     // reset connections
     cypressApollo.connectionStatus = resetConnectionObject();
@@ -204,7 +206,7 @@ function addToGlobals(args: {
   const keys: (keyof typeof args)[] = ["client", "cache", "persistor"];
   const globals = window.Cypress ? getGlobalsFromCypress() : window.____ebnis;
 
-  keys.forEach(key => {
+  keys.forEach((key) => {
     /* eslint-disable-next-line @typescript-eslint/no-explicit-any*/
     (globals as any)[key] = args[key];
   });
@@ -226,18 +228,6 @@ function getGlobalsFromCypress() {
   }
 
   return globalVars;
-}
-
-export interface E2EWindowObject extends ObservableUtils {
-  cache: InMemoryCache;
-  client: ApolloClient<{}>;
-  persistor: CachePersistor<{}>;
-  connectionStatus: ConnectionStatus;
-  emitter: ZenObservable.SubscriptionObserver<EmitPayload>;
-  emitting: boolean;
-  experienceDefinitionResolversAdded?: boolean;
-  newEntryResolversAdded?: boolean;
-  logApolloQueries?: boolean;
 }
 
 type KeyOfE2EWindowObject = keyof E2EWindowObject;

@@ -21,6 +21,10 @@ defmodule EbnisData.Schema do
     import_fields(:experience_mutations)
   end
 
+  subscription do
+    import_fields(:experience_subscriptions)
+  end
+
   def context(ctx) do
     loader =
       Dataloader.new()
