@@ -23,7 +23,7 @@ const DetailExperience = lazy(() =>
 );
 const SignUp = lazy(() => import("../SignUp/sign-up.component"));
 
-export function AppInner({ obj }: { obj: E2EWindowObject }) {
+export function AppInner({ obj }: Props) {
   const { client, cache, persistor, observable, bc } = obj;
 
   return (
@@ -71,3 +71,7 @@ export function AppInner({ obj }: { obj: E2EWindowObject }) {
 
 // istanbul ignore next:
 export default AppInner;
+
+interface Props {
+  obj: E2EWindowObject;
+}

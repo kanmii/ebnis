@@ -1,33 +1,43 @@
-import React, { useState, PropsWithChildren, useEffect } from "react";
-import { Observable } from "zen-observable-ts";
+import React, { PropsWithChildren, useEffect, useReducer } from "react";
 import { EmitActionType } from "../../utils/observable-manager";
 import {
   cleanupObservableSubscription,
   WithEmitterProvider,
 } from "./with-subscriptions.injectables";
-import {
-  EmitActionConnectionChangedPayload,
-  EmitPayload,
-  BChannel,
-  BroadcastMessage,
-} from "../../utils/types";
+import { EmitActionConnectionChangedPayload } from "../../utils/types";
 import { manageCachedMutations } from "../../apollo/managed-cached-mutations";
 import { useOnExperiencesDeletedSubscription } from "../../utils/experience.gql.types";
+import {
+  CallerProps,
+  onMessage,
+  ActionType,
+  reducer,
+  initState,
+  effectFunctions,
+} from "./with-subscriptions.utils";
+import { useRunEffects } from "../../utils/use-run-effects";
 
 export function WithSubscriptions(props: PropsWithChildren<CallerProps>) {
   const { observable, children, bc } = props;
-  const [state, setState] = useState(false);
   const { data } = useOnExperiencesDeletedSubscription();
+  const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
+  const {
+    effects: { general: generalEffects },
+    states: { connected: connectionStatus },
+  } = stateMachine;
+
+  useRunEffects(generalEffects, effectFunctions, props, {
+    dispatch,
+  });
 
   useEffect(() => {
-    function onStorageChanged(event: StorageEvent) {}
+    dispatch({
+      type: ActionType.EXPERIENCE_DELETED,
+      data,
+    });
+  }, [data]);
 
-    window.addEventListener("storage", onStorageChanged);
-
-    function onMessage({ type, payload }: BroadcastMessage) {
-      //
-    }
-
+  useEffect(() => {
     bc.addEventListener("message", onMessage);
 
     const subscription = observable.subscribe({
@@ -38,7 +48,11 @@ export function WithSubscriptions(props: PropsWithChildren<CallerProps>) {
               const {
                 connected,
               } = payload as EmitActionConnectionChangedPayload;
-              setState(connected);
+
+              dispatch({
+                type: ActionType.CONNECTION_CHANGED,
+                connected,
+              });
             }
             break;
         }
@@ -47,7 +61,6 @@ export function WithSubscriptions(props: PropsWithChildren<CallerProps>) {
 
     return () => {
       cleanupObservableSubscription(subscription);
-      window.removeEventListener("storage", onStorageChanged);
     };
     /* eslint-disable react-hooks/exhaustive-deps*/
   }, []);
@@ -59,7 +72,7 @@ export function WithSubscriptions(props: PropsWithChildren<CallerProps>) {
   return (
     <WithEmitterProvider
       value={{
-        connected: state,
+        connected: connectionStatus,
       }}
     >
       {children}
@@ -69,8 +82,3 @@ export function WithSubscriptions(props: PropsWithChildren<CallerProps>) {
 
 // istanbul ignore next:
 export default WithSubscriptions;
-
-interface CallerProps {
-  observable: Observable<EmitPayload>;
-  bc: BChannel;
-}

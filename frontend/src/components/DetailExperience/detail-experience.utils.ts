@@ -631,7 +631,7 @@ const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
 ) => {
   const {
     deleteExperiences,
-    experience: { id, title },
+    experience: { id },
     history,
   } = props;
 
@@ -660,7 +660,7 @@ const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
     }
 
     const {
-      experience: { id: responseId },
+      experience: { id: responseId, title },
     } = experienceResponse;
 
     putOrRemoveDeleteExperienceLedger({
@@ -685,6 +685,7 @@ export const effectFunctions = {
   deleteExperienceRequestedEffect,
   deleteExperienceEffect,
 };
+
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
 
 ////////////////////////// HELPER FUNCTIONS ////////////////////////////
@@ -897,10 +898,6 @@ export interface EffectArgs {
   dispatch: DispatchType;
 }
 
-export interface EffectArgs {
-  dispatch: DispatchType;
-}
-
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
   OwnArgs = {}
@@ -915,4 +912,3 @@ type EffectType =
   | DefCancelDeleteExperienceEffect
   | DefDeleteExperienceRequestedEffect
   | DefDeleteExperienceEffect;
-type EffectList = EffectType[];

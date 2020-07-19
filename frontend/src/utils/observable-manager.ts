@@ -32,11 +32,3 @@ export function makeBChannel(globals: E2EWindowObject) {
   globals.bc = bc;
   return globals;
 }
-
-// bc.postMessage({
-//   type: BroadcastMessageType.experienceDeleted,
-//   payload: {
-//     id: "",
-//     title: "",
-//   },
-// });

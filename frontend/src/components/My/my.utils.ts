@@ -29,6 +29,7 @@ import {
   ActionType as ParentActionType,
 } from "./my-index.utils";
 import { unstable_batchedUpdates } from "react-dom";
+import { BroadcastMessageType } from "../../utils/observable-manager";
 
 export enum ActionType {
   ACTIVATE_NEW_EXPERIENCE = "@my/activate-new-experience",
@@ -361,7 +362,7 @@ const onDeleteExperienceProcessedEffect: DefOnDeleteExperienceProcessedEffect["f
       /* eslint-disable-next-line no-lone-blocks*/
       {
         purgeExperiencesFromCache1([id]);
-        const { persistor } = window.____ebnis;
+        const { persistor, bc } = window.____ebnis;
         await persistor.persist();
 
         unstable_batchedUpdates(() => {
@@ -373,6 +374,14 @@ const onDeleteExperienceProcessedEffect: DefOnDeleteExperienceProcessedEffect["f
             type: ActionType.ON_DELETE_EXPERIENCE_PROCESSED,
             ...deletedExperience,
           });
+        });
+
+        bc.postMessage({
+          type: BroadcastMessageType.experienceDeleted,
+          payload: {
+            id,
+            title: deletedExperience.title,
+          },
         });
       }
 

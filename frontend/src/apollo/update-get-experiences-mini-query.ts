@@ -356,18 +356,23 @@ function purgeExperience(experienceId: string, data: any) {
   if (experience) {
     const { dataDefinitions, entries } = experience;
 
-    dataDefinitions.forEach((d) => {
-      const id = (d as DataDefinitionFragment).id;
-      delete data[`DataDefinition:${id}`];
-    });
+    if (dataDefinitions) {
+      dataDefinitions.forEach((d) => {
+        const id = (d as DataDefinitionFragment).id;
+        delete data[`DataDefinition:${id}`];
+      });
+    }
 
     const toDelete = `Experience:${experienceId}`;
-    const toDeleteEntry = `$${toDelete}.entries({"pagination":{"first":20000}})`;
 
-    purgeEntries(entries, data, toDeleteEntry);
+    if (entries) {
+      const toDeleteEntry = `$${toDelete}.entries({"pagination":{"first":20000}})`;
+      purgeEntries(entries, data, toDeleteEntry);
+      delete data[toDeleteEntry];
+      delete data[`${toDeleteEntry}.pageInfo`];
+    }
+
     delete data[toDelete];
-    delete data[toDeleteEntry];
-    delete data[`${toDeleteEntry}.pageInfo`];
   }
 }
 
