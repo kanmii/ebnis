@@ -3,12 +3,6 @@ const path = require("path");
 const fs = require("fs");
 const shell = require("shelljs");
 const pkg = require("./package.json");
-const settings = require("./.env-cmdrc");
-const {
-  apiUrlReactEnv,
-  regServiceWorkerReactEnv,
-  noLogReactEnv,
-} = require("./src/utils/env-variables");
 
 const distFolderName = "build";
 const distAbsPath = path.resolve(__dirname, `./${distFolderName}`);
@@ -26,43 +20,10 @@ const test_envs =
 
 const test = `${test_envs} yarn react-scripts test --runInBand`;
 
-function buildFn(flag) {
-  const reactBuild = `yarn ${reactScript} build`;
-  const preBuild = `rimraf ${distFolderName}`;
-  const startSw = "yarn start serviceWorker";
-
-  let env;
-
-  switch (flag) {
-    case "prod":
-      env = "prod";
-      break;
-    default:
-      throw new Error("Please specify environment (e.g. 'prod') to build for!");
-  }
-
-  const envStmt = `env-cmd -e ${env}`;
-
-  return `${preBuild} && \
-  ${apiUrlReactEnv}=${settings.prod.API_URL} \
-    ${regServiceWorkerReactEnv}=${settings.prod.register_service_worker} \
-    ${noLogReactEnv}=true \
-    ${envStmt} ${reactBuild} && \
-  ${envStmt} ${startSw}
-`;
-}
-
 module.exports = {
   scripts: {
     dev: `${dev_envs} ${startServer}`,
     e2eDev: `REACT_APP_API_URL=${apiUrl} env-cmd -e e2eDev ${startServer}`,
-    build: {
-      deploy: buildFn("prod") + "  && yarn start netlify",
-      serve: {
-        prod: `${buildFn("prod")} yarn start serve`,
-      },
-      prod: buildFn("prod"),
-    },
     test: {
       default: `CI=true ${test}`,
       d: `CI=true env-cmd ${test_envs} react-scripts --inspect-brk test --runInBand --no-cache  `, // debug
@@ -72,7 +33,6 @@ module.exports = {
       wc: `${test} --coverage`,
       c: `rimraf coverage && CI=true ${test} --coverage`,
     },
-    serve: `serve -s ${distFolderName} -l ${settings.serve.port}`,
     serviceWorker: `node -e 'require("./package-scripts").serviceWorker()'`,
     netlify: `node -e 'require("./package-scripts").netlify()'`,
     cy: {

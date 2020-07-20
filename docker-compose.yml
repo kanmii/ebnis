@@ -42,6 +42,7 @@ services:
       - "./backend:/home/${DOCKER_HOST_USER_NAME}/src"
       - "not_used_build:/home/${DOCKER_HOST_USER_NAME}/src/_build"
       - "not_used_elixir_ls:/home/${DOCKER_HOST_USER_NAME}/src/.elixir_ls"
+      - "not_used_deps:/home/${DOCKER_HOST_USER_NAME}/src/deps"
 
   cra:
     build:
@@ -66,3 +67,4 @@ volumes:
   not_used_build:
   not_used_node_modules:
   not_used_elixir_ls:
+  not_used_deps:

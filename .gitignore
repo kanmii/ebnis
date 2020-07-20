@@ -2,3 +2,4 @@ docker
 .elixir_ls/
 .env
 .env-*
+.tool-versions

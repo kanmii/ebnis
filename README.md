@@ -162,7 +162,13 @@ docker run -it --rm \
 
 ## frontend
 
-`cd` into `frontend` folder and run `yarn start` to discover available commands
+`cd` into `frontend` folder
+
+Get dependencies
+
+`yarn install`
+
+run `yarn start` to discover available commands
 
 ### Watch files and run tests
 
