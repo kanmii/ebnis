@@ -141,17 +141,17 @@ module.exports = {
           body: JSON.stringify({
             variables: {},
             query: `
-      {
-        __schema {
-          types {
-            kind
-            name
-            possibleTypes {
-              name
-            }
-          }
-        }
-      }
+              {
+                __schema {
+                  types {
+                    kind
+                    name
+                    possibleTypes {
+                      name
+                    }
+                  }
+                }
+              }
     `,
           }),
         })
