@@ -46,7 +46,8 @@ services:
 
   cra:
     build:
-      context: ./frontend
+      context: .
+      target: web
       args:
         NODE_ENV: "${NODE_ENV}"
     # without this, react scripts 3.4.1 will not attach to tty
