@@ -19,7 +19,7 @@ services:
 
   api:
     build:
-      context: ./backend
+      context: .
       target: dev
       args:
         DOCKER_HOST_USER_NAME: "${DOCKER_HOST_USER_NAME}"
