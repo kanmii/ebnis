@@ -1,4 +1,4 @@
-import { Reducer, Dispatch } from "react";
+import { Reducer, Dispatch, PropsWithChildren } from "react";
 import { Observable } from "zen-observable-ts";
 import { wrapReducer } from "../../logger";
 import immer, { Draft } from "immer";
@@ -152,10 +152,12 @@ interface ExperienceDeletedPayload {
   data?: OnExperiencesDeletedSubscription;
 }
 
-export interface CallerProps {
+export type CallerProps = PropsWithChildren<{
   observable: Observable<EmitPayload>;
   bc: BChannel;
-}
+}>;
+
+export type Props = CallerProps
 
 type DispatchType = Dispatch<Action>;
 

@@ -1,15 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ComponentType } from "react";
 import { render, cleanup } from "@testing-library/react";
-import DetailExperience from "../components/DetailExperience/detail-experience.index";
-import { useGetExperienceDetail } from "../utils/experience.gql.types";
+import { DetailExperienceIndex } from "../components/DetailExperience/detail-experience.index";
+import {
+  useGetExperienceDetail,
+  useDeleteExperiencesMutation,
+} from "../components/DetailExperience/detail-experience.injectables";
 
 jest.mock("../components/Header/header.component", () => {
   return () => null;
 });
 
-jest.mock("../utils/experience.gql.types");
+jest.mock("../components/DetailExperience/detail-experience.injectables");
 const mockUseGetExperienceDetail = useGetExperienceDetail as jest.Mock;
+const mockUseDeleteExperiencesMutation = useDeleteExperiencesMutation as jest.Mock;
 
 const mockLoadingDomId = "aa";
 jest.mock("../components/Loading/loading.component", () => {
@@ -21,6 +25,10 @@ jest.mock("../components/DetailExperience/detail-experience.component", () => {
   return {
     DetailExperience: () => <div id={mockDetailedExperienceDomId} />,
   };
+});
+
+beforeEach(() => {
+  mockUseDeleteExperiencesMutation.mockReturnValue([]);
 });
 
 afterEach(() => {
@@ -53,7 +61,9 @@ it("renders data", () => {
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
-const ComponentP = DetailExperience as ComponentType<Partial<{}>>;
+const DetailExperienceIndexP = DetailExperienceIndex as ComponentType<
+  Partial<{}>
+>;
 
 function makeComp({
   props = {
@@ -65,6 +75,6 @@ function makeComp({
   },
 }: { props?: Partial<{}> } = {}) {
   return {
-    ui: <ComponentP {...props} />,
+    ui: <DetailExperienceIndexP {...props} />,
   };
 }

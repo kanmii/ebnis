@@ -1,12 +1,12 @@
-import React, { PropsWithChildren, useEffect, useReducer } from "react";
+import React, { useEffect, useReducer } from "react";
 import { EmitActionType } from "../../utils/observable-manager";
 import {
   cleanupObservableSubscription,
   WithEmitterProvider,
+  useOnExperiencesDeletedSubscription,
 } from "./with-subscriptions.injectables";
 import { EmitActionConnectionChangedPayload } from "../../utils/types";
 import { manageCachedMutations } from "../../apollo/managed-cached-mutations";
-import { useOnExperiencesDeletedSubscription } from "../../utils/experience.gql.types";
 import {
   CallerProps,
   onMessage,
@@ -14,10 +14,11 @@ import {
   reducer,
   initState,
   effectFunctions,
+  Props,
 } from "./with-subscriptions.utils";
 import { useRunEffects } from "../../utils/use-run-effects";
 
-export function WithSubscriptions(props: PropsWithChildren<CallerProps>) {
+export function WithSubscriptions(props: Props) {
   const { observable, children, bc } = props;
   const { data } = useOnExperiencesDeletedSubscription();
   const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
@@ -81,4 +82,6 @@ export function WithSubscriptions(props: PropsWithChildren<CallerProps>) {
 }
 
 // istanbul ignore next:
-export default WithSubscriptions;
+export default (props: CallerProps) => {
+  return <WithSubscriptions {...props} />;
+};

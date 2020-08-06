@@ -22,6 +22,7 @@ import { makeOfflineId } from "../utils/offlines";
 import { fillField } from "../tests.utils";
 import { StateValue } from "../utils/types";
 
+jest.mock("../apollo/delete-experience-cache");
 jest.mock("../components/Header/header.component", () => () => null);
 jest.mock("../utils/global-window");
 

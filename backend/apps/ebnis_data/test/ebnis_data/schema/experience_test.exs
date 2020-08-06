@@ -1663,7 +1663,11 @@ defmodule EbnisData.Schema.ExperienceTest do
                      Query.delete_experiences(),
                      Schema,
                      variables: variables,
-                     context: context(user)
+                     context:
+                       user
+                       |> context()
+                       |> client_session_context()
+                       |> client_token_context()
                    )
 
           assert is_binary(raises_error)
@@ -1675,4 +1679,12 @@ defmodule EbnisData.Schema.ExperienceTest do
   end
 
   defp context(user), do: %{current_user: user}
+
+  defp client_session_context(context_val, val \\ "s") do
+    Map.put(context_val, :client_session, val)
+  end
+
+  defp client_token_context(context_val, val \\ "t") do
+    Map.put(context_val, :client_token, val)
+  end
 end

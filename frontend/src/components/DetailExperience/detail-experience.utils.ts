@@ -821,18 +821,24 @@ type NotificationActive = Readonly<{
   }>;
 }>;
 
-export type CallerProps = RouteChildrenProps<
+export type IndexCallerProps = RouteChildrenProps<
   DetailExperienceRouteMatch,
   {
     delete: boolean;
   }
 >;
 
-export type Props = CallerProps &
-  DeleteExperiencesComponentProps & {
-    experience: ExperienceFragment;
-    delete?: boolean;
-  };
+export type IndexProps = IndexCallerProps;
+
+export type CallerProps = {
+  experience: ExperienceFragment;
+  delete?: boolean;
+};
+
+export type Props = IndexCallerProps &
+  CallerProps &
+  DeleteExperiencesComponentProps;
+
 export type Match = match<DetailExperienceRouteMatch>;
 
 type Action =

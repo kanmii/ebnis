@@ -32,6 +32,7 @@ import {
   newEntryCreatedNotificationCloseId,
   entriesErrorsNotificationCloseId,
   noTriggerDocumentEventClassName,
+  noEntryTrigger,
 } from "./detail-experience.dom";
 import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
@@ -180,7 +181,13 @@ export function DetailExperience(props: Props) {
 
         {entries.length === 0 && (
           <div className="no-entry-alert">
-            <button className="button no-entry-button" onClick={onOpenNewEntry}>
+            <button
+              className={makeClassNames({
+                button: true,
+                [noEntryTrigger]: true,
+              })}
+              onClick={onOpenNewEntry}
+            >
               Click here to create your first entry
             </button>
 
