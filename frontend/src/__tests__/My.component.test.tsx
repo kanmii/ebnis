@@ -303,16 +303,18 @@ describe("component", () => {
 
 describe("reducer", () => {
   test("deactivate new experience", () => {
-    let state = initState({ experiences: [] } as Props);
+    let state = initState(({ experiences: [] } as unknown) as Props);
 
     state = reducer(state, {
       type: ActionType.ACTIVATE_NEW_EXPERIENCE,
     });
+
     expect(state.states.newExperienceActivated.value).toBe(StateValue.active);
 
     state = reducer(state, {
       type: ActionType.DEACTIVATE_NEW_EXPERIENCE,
     });
+
     expect(state.states.newExperienceActivated.value).toBe(StateValue.inactive);
   });
 });
