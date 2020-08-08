@@ -351,29 +351,31 @@ export function purgeExperiencesFromCache1(ids: string[]) {
 }
 
 function purgeExperience(experienceId: string, data: any) {
-  const experience = readExperienceFragment(experienceId);
+  const toDelete = `Experience:${experienceId}`;
 
-  if (experience) {
-    const { dataDefinitions, entries } = experience;
+  try {
+    const experience = readExperienceFragment(experienceId);
 
-    if (dataDefinitions) {
-      dataDefinitions.forEach((d) => {
-        const id = (d as DataDefinitionFragment).id;
-        delete data[`DataDefinition:${id}`];
-      });
+    if (experience) {
+      const { dataDefinitions, entries } = experience;
+
+      if (dataDefinitions) {
+        dataDefinitions.forEach((d) => {
+          const id = (d as DataDefinitionFragment).id;
+          delete data[`DataDefinition:${id}`];
+        });
+      }
+
+      if (entries) {
+        const toDeleteEntry = `$${toDelete}.entries({"pagination":{"first":20000}})`;
+        purgeEntries(entries, data, toDeleteEntry);
+        delete data[toDeleteEntry];
+        delete data[`${toDeleteEntry}.pageInfo`];
+      }
     }
+  } catch (error) {}
 
-    const toDelete = `Experience:${experienceId}`;
-
-    if (entries) {
-      const toDeleteEntry = `$${toDelete}.entries({"pagination":{"first":20000}})`;
-      purgeEntries(entries, data, toDeleteEntry);
-      delete data[toDeleteEntry];
-      delete data[`${toDeleteEntry}.pageInfo`];
-    }
-
-    delete data[toDelete];
-  }
+  delete data[toDelete];
 }
 
 function purgeEntries(

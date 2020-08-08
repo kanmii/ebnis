@@ -2,15 +2,9 @@
 
 ## Development
 
-### Copy environment file
-`cp .env-cmdrc.example.js .env-cmdrc.js`
-
 ### To find out available commands:
+
 `yarn start`
-
-### Start the development server
-
-`yarn start dev`
 
 ## Testing
 
