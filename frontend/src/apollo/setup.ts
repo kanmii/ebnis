@@ -1,16 +1,15 @@
 /* istanbul ignore file */
-import {
-  InMemoryCache,
-  IntrospectionFragmentMatcher,
-} from "apollo-cache-inmemory";
-import { ApolloClient } from "apollo-client";
-import { CachePersistor } from "apollo-cache-persist";
+import { InMemoryCache, ApolloClient } from "@apollo/client";
+import { CachePersistor } from "apollo-cache-persist-dev";
 import * as AbsintheSocket from "@kanmii/socket";
 import { createAbsintheSocketLink } from "@kanmii/socket-apollo-link";
 import { SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY } from "./schema-keys";
 import { getSocket } from "../utils/phoenix-socket";
 import { initState, CUSTOM_QUERY_RESOLVERS } from "./resolvers";
-import { PersistentStorage, PersistedData } from "apollo-cache-persist/types";
+import {
+  PersistentStorage,
+  PersistedData,
+} from "apollo-cache-persist-dev/types";
 import {
   MakeSocketLinkFn,
   middlewareErrorLink,
@@ -47,17 +46,9 @@ export function buildClientCache(
     return globalVars;
   }
 
-  const fragmentMatcher = new IntrospectionFragmentMatcher({
-    introspectionQueryResultData: possibleTypes,
-  });
-
   cache = new InMemoryCache({
     addTypename: true,
-    cacheRedirects: {
-      ...CUSTOM_QUERY_RESOLVERS,
-    },
-    freezeResults: true,
-    fragmentMatcher,
+    possibleTypes,
   }) as InMemoryCache;
 
   persistor = makePersistor(cache, persistor);
