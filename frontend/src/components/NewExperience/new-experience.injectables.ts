@@ -1,4 +1,4 @@
-import ApolloClient from "apollo-client";
+import { ApolloClient } from "@apollo/client";
 import { experienceDefinitionResolvers } from "./new-experience.resolvers";
 
 // istanbul ignore next:

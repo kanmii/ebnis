@@ -1,4 +1,5 @@
 /* istanbul ignore file */
+import { makeVar } from "@apollo/client";
 import gql from "graphql-tag";
 import {
   UnsyncedLedger,
@@ -14,6 +15,8 @@ const UNSYNCED_LEDGER_QUERY = gql`
   }
 `;
 
+export const unsyncedLedgerVar = makeVar<null | UnsyncedLedger>(null);
+
 export function writeUnsyncedExperience(id: string, data: UnsyncedLedgerItem) {
   const unsyncedLedger = getUnsyncedLedger();
 
@@ -23,7 +26,7 @@ export function writeUnsyncedExperience(id: string, data: UnsyncedLedgerItem) {
     delete unsyncedLedger[id];
   }
 
-  writeUnsyncedLedger(unsyncedLedger);
+  unsyncedLedgerVar(unsyncedLedger);
 }
 
 export function getUnsyncedExperience(id: string): UnsyncedLedgerItem | null {
@@ -34,7 +37,7 @@ export function getUnsyncedExperience(id: string): UnsyncedLedgerItem | null {
 export function removeUnsyncedExperience(id: string) {
   const unsyncedLedger = getUnsyncedLedger();
   delete unsyncedLedger[id];
-  writeUnsyncedLedger(unsyncedLedger);
+  unsyncedLedgerVar(unsyncedLedger);
 }
 
 export function removeUnsyncedExperiences(ids: string[]) {
@@ -44,30 +47,20 @@ export function removeUnsyncedExperiences(ids: string[]) {
     delete unsyncedLedger[id];
   });
 
-  writeUnsyncedLedger(unsyncedLedger);
-}
-
-function writeUnsyncedLedger(unsyncedLedger: UnsyncedLedger) {
-  const { cache } = window.____ebnis;
-  cache.writeData({
-    data: {
-      unsyncedLedger: JSON.stringify(unsyncedLedger),
-    },
-  });
+  unsyncedLedgerVar(unsyncedLedger);
 }
 
 function getUnsyncedLedger() {
   const { cache } = window.____ebnis;
+
   const data = cache.readQuery<UnsyncedLedgerQueryResult>({
     query: UNSYNCED_LEDGER_QUERY,
   });
 
-  const unsyncedLedger = data && data.unsyncedLedger;
-
-  return unsyncedLedger ? JSON.parse(unsyncedLedger) : {};
+  return data ? data.unsyncedLedger : {};
 }
 
-export function putAndRemoveSyncEntriesErrorsLedger(
+export function putAndRemoveUnSyncableEntriesErrorsLedger(
   experienceId: string,
   newLedgerItems: UnsyncableEntriesErrors | RemoveUnsyncableEntriesErrors = {},
 ) {
@@ -105,5 +98,5 @@ export function getSyncEntriesErrorsLedger(
 }
 
 interface UnsyncedLedgerQueryResult {
-  unsyncedLedger: string; // UnsyncedLedger;
+  unsyncedLedger: UnsyncedLedger;
 }

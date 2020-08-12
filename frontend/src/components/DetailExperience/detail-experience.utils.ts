@@ -30,7 +30,7 @@ import {
   CreateEntryErrorFragment,
   CreateEntryErrorFragment_dataObjects,
 } from "../../graphql/apollo-types/CreateEntryErrorFragment";
-import { putAndRemoveSyncEntriesErrorsLedger } from "../../apollo/unsynced-ledger";
+import { putAndRemoveUnSyncableEntriesErrorsLedger } from "../../apollo/unsynced-ledger";
 import {
   UnsyncableEntriesErrors,
   UnsyncableEntryError,
@@ -557,7 +557,7 @@ const putEntriesErrorsInLedgerEffect: DefPutEntriesErrorsInLedgerEffect["func"] 
   ownArgs,
   props,
 ) => {
-  putAndRemoveSyncEntriesErrorsLedger(props.experience.id, ownArgs);
+  putAndRemoveUnSyncableEntriesErrorsLedger(props.experience.id, ownArgs);
 };
 
 type DefPutEntriesErrorsInLedgerEffect = EffectDefinition<

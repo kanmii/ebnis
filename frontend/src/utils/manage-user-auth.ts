@@ -1,22 +1,18 @@
 /* istanbul ignore file */
 import gql from "graphql-tag";
+import { makeVar } from "@apollo/client";
 import { UserFragment } from "../graphql/apollo-types/UserFragment";
-import {
-  LOGGED_IN_USER_CACHE_KEY,
-  LOGGED_OUT_USER_CACHE_KEY,
-} from "../apollo/resolvers";
-import { useQuery } from "@apollo/react-hooks";
-import { USER_FRAGMENT } from "../graphql/user.gql";
+import { useQuery } from "@apollo/client";
+
+export const loggedOutUserVar = makeVar<null | UserFragment>(null);
+export const loggedInUserVar = makeVar<null | UserFragment>(null);
 
 const TOKEN_KEY = "nOQhAH4V54h9MMBS3BSwtE/2eZeQWHRnPfoC4K+RDuWairX";
 
 const LOGGED_IN_USER_QUERY = gql`
   query {
-    loggedInUser @client {
-      ...UserFragment
-    }
+    loggedInUser @client
   }
-  ${USER_FRAGMENT}
 `;
 
 export function manageUserAuthentication(user: UserFragment | null) {
@@ -27,25 +23,18 @@ export function manageUserAuthentication(user: UserFragment | null) {
 
     localStorage.setItem(TOKEN_KEY, user.jwt);
 
-    cache.writeData({
-      data: {
-        [LOGGED_IN_USER_CACHE_KEY]: user,
-        [LOGGED_OUT_USER_CACHE_KEY]: null,
-      },
-    });
+    loggedInUserVar(user);
+    loggedOutUserVar(null);
   } else {
     // logout
     localStorage.removeItem(TOKEN_KEY);
+
     const data = cache.readQuery<LoggedInUserQueryResult>({
       query: LOGGED_IN_USER_QUERY,
     });
 
-    cache.writeData({
-      data: {
-        [LOGGED_IN_USER_CACHE_KEY]: null,
-        [LOGGED_OUT_USER_CACHE_KEY]: data ? data.loggedInUser : null,
-      },
-    });
+    loggedInUserVar(null);
+    loggedOutUserVar(data ? data.loggedInUser : null);
   }
 }
 

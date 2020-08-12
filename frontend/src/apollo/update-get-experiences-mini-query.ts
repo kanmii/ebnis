@@ -1,5 +1,5 @@
 import update from "immutability-helper";
-import { DataProxy } from "apollo-cache";
+import { DataProxy } from "@apollo/client";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import {
   GetExperienceConnectionMini,

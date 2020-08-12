@@ -1,5 +1,5 @@
 /* istanbul ignore file */
-import { ApolloLink } from "apollo-link";
+import { ApolloLink } from "@apollo/client";
 import { onError } from "apollo-link-error";
 import { getToken } from "../utils/manage-user-auth";
 import { doNotLog } from "../logger";

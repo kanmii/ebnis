@@ -1,9 +1,9 @@
 /* eslint-disable react-hooks/rules-of-hooks*/
+import { makeVar } from "@apollo/client";
 import gql from "graphql-tag";
 import {
   LocalResolverFn,
   MUTATION_NAME_createExperienceOffline,
-  SYNCING_EXPERIENCES_LEDGER_CACHE_KEY,
 } from "../../apollo/resolvers";
 import { CreateDataDefinition } from "../../graphql/apollo-types/globalTypes";
 import { makeOfflineId } from "../../utils/offlines";
@@ -15,13 +15,13 @@ import { EXPERIENCE_FRAGMENT } from "../../graphql/experience.gql";
 import { insertExperienceInGetExperiencesMiniQuery } from "../../apollo/update-get-experiences-mini-query";
 import { writeUnsyncedExperience } from "../../apollo/unsynced-ledger";
 import { writeExperienceFragmentToCache } from "../../apollo/write-experience-fragment";
-import { useMutation } from "@apollo/react-hooks";
 import {
   MutationFunction,
   MutationFunctionOptions,
   MutationResult,
-  ExecutionResult,
-} from "@apollo/react-common";
+  useMutation,
+} from "@apollo/client";
+import { ExecutionResult } from "graphql/execution/execute";
 import {
   CreateExperiencesVariables,
   CreateExperiences_createExperiences,
@@ -196,22 +196,20 @@ const SYNCING_EXPERIENCES_LEDGER_QUERY = gql`
   }
 `;
 
+////////////////////////// SYNCING_EXPERIENCES_LEDGER_CACHE_KEY /////////////
+
+export const syncingExperiencesLedgerVar = makeVar<null | SyncingExperiencesLedger>(
+  null,
+);
+
 function getSyncingExperiencesLedger() {
   const { cache } = window.____ebnis;
+
   const data = cache.readQuery<SyncingExperiencesLedgerQueryResult>({
     query: SYNCING_EXPERIENCES_LEDGER_QUERY,
   });
-  const string = data && data[SYNCING_EXPERIENCES_LEDGER_CACHE_KEY];
-  return (string ? JSON.parse(string) : {}) as SyncingExperiencesLedger;
-}
 
-function writeSyncingExperiencesLedger(ledger: SyncingExperiencesLedger) {
-  const { cache } = window.____ebnis;
-  cache.writeData({
-    data: {
-      [SYNCING_EXPERIENCES_LEDGER_CACHE_KEY]: JSON.stringify(ledger),
-    },
-  });
+  return data ? data.syncingExperiencesLedger : {};
 }
 
 /**
@@ -230,7 +228,7 @@ export function putOrRemoveSyncingExperience(
     delete ledger[id];
   }
 
-  writeSyncingExperiencesLedger(ledger);
+  syncingExperiencesLedgerVar(ledger);
 }
 
 export function getSyncingExperience(id: string): SyncingExperience | null {
@@ -239,7 +237,7 @@ export function getSyncingExperience(id: string): SyncingExperience | null {
 }
 
 interface SyncingExperiencesLedgerQueryResult {
-  syncingExperiencesLedger: string;
+  syncingExperiencesLedger: SyncingExperiencesLedger;
 }
 
 interface SyncingExperiencesLedger {

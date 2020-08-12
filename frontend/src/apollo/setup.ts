@@ -5,7 +5,6 @@ import * as AbsintheSocket from "@kanmii/socket";
 import { createAbsintheSocketLink } from "@kanmii/socket-apollo-link";
 import { SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY } from "./schema-keys";
 import { getSocket } from "../utils/phoenix-socket";
-import { initState, CUSTOM_QUERY_RESOLVERS } from "./resolvers";
 import {
   PersistentStorage,
   PersistedData,
@@ -24,6 +23,11 @@ import {
 import { makeObservable, makeBChannel } from "../utils/observable-manager";
 import possibleTypes from "../graphql/apollo-types/fragment-types.json";
 import { E2EWindowObject } from "../utils/types";
+
+import { loggedInUserVar, loggedOutUserVar } from "../utils/manage-user-auth";
+import { unsyncedLedgerVar } from "../apollo/unsynced-ledger";
+import { syncingExperiencesLedgerVar } from "../components/NewExperience/new-experience.resolvers";
+import { deleteExperienceVar } from "../apollo/delete-experience-cache";
 
 export function buildClientCache(
   {
@@ -49,6 +53,41 @@ export function buildClientCache(
   cache = new InMemoryCache({
     addTypename: true,
     possibleTypes,
+    typePolicies: {
+      Query: {
+        fields: {
+          loggedInUser: {
+            read() {
+              return loggedInUserVar();
+            },
+          },
+
+          loggedOutUser: {
+            read() {
+              return loggedOutUserVar();
+            },
+          },
+
+          unsyncedLedger: {
+            read() {
+              return unsyncedLedgerVar();
+            },
+          },
+
+          syncingExperiencesLedger: {
+            read() {
+              return syncingExperiencesLedgerVar();
+            },
+          },
+
+          deleteExperience: {
+            read() {
+              return deleteExperienceVar();
+            },
+          },
+        },
+      },
+    },
   }) as InMemoryCache;
 
   persistor = makePersistor(cache, persistor);
@@ -73,14 +112,6 @@ export function buildClientCache(
     link,
     assumeImmutableResults: true,
   }) as ApolloClient<{}>;
-
-  const state = initState();
-
-  cache.writeData({
-    data: state.defaults,
-  });
-
-  client.addResolvers(state.resolvers);
 
   if (resolvers) {
     client.addResolvers(resolvers);

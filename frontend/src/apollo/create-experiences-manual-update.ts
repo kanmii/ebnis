@@ -1,4 +1,4 @@
-import { DataProxy } from "apollo-cache";
+import { DataProxy } from "@apollo/client";
 import { CreateExperiencesMutationResult } from "../utils/experience.gql.types";
 import {
   ExperienceFragment,

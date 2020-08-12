@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 import React, { lazy, Suspense } from "react";
-import { ApolloProvider } from "@apollo/react-hooks";
+import { ApolloProvider } from "@apollo/client";
 import { EbnisAppProvider } from "./app.injectables";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import { E2EWindowObject } from "../../utils/types";
