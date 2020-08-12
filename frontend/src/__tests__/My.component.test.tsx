@@ -15,6 +15,15 @@ import {
   domPrefix,
   experiencesDomId,
   searchInputDomId,
+  experienceWarningClassName,
+  experienceDangerClassName,
+  descriptionMoreClassName,
+  descriptionSummaryClassName,
+  descriptionFullClassName,
+  descriptionLessClassName,
+  descriptionControlClassName,
+  dropdownTriggerClassName,
+  dropdownIsActiveClassName,
 } from "../components/My/my.dom";
 import { act } from "react-dom/test-utils";
 import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
@@ -77,17 +86,8 @@ function getContainer() {
 
 describe("component", () => {
   const experienceClassName = "experience";
-  const experienceDangerClassName = "experience--is-danger";
-  const experienceWarningClassName = "experience--is-warning";
-  const dropdownTriggerClassName = "dropdown-trigger media-right";
   const dropdownMenuClassName = "dropdown";
-  const dropdownIsActiveClassName = "is-active";
   const descriptionClassName = "description";
-  const descriptionControlClassName = "description__control";
-  const descriptionMoreClassName = "description__control--more";
-  const descriptionLessClassName = "description__control--less";
-  const descriptionFullClassName = "description__text--full";
-  const descriptionSummaryClassName = "description__text--summary";
 
   it("no experiences", () => {
     const { ui } = makeComp();

@@ -85,7 +85,9 @@ export function DetailExperience(props: Props) {
 
   useRunEffects(generalEffects, effectFunctions, props, { dispatch });
 
-  const onOpenNewEntry = useCallback(() => {
+  const onOpenNewEntry = useCallback((e) => {
+    e.preventDefault();
+
     dispatch({
       type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,
     });
@@ -123,7 +125,9 @@ export function DetailExperience(props: Props) {
     });
   }, []);
 
-  const onDeleteExperienceRequest = useCallback(() => {
+  const onDeleteExperienceRequest = useCallback((e) => {
+    e.preventDefault();
+
     dispatch({
       type: ActionType.DELETE_EXPERIENCE_REQUEST,
     });
@@ -195,6 +199,7 @@ export function DetailExperience(props: Props) {
               state={showingOptionsMenu}
               onToggleMenu={onToggleMenu}
               onDeleteExperienceRequest={onDeleteExperienceRequest}
+              className="no-entry-menu"
             />
           </div>
         )}
@@ -224,9 +229,9 @@ export function DetailExperience(props: Props) {
         )}
       </div>
 
-      <div className="new-entry-trigger" onClick={onOpenNewEntry}>
+      <a className="new-entry-trigger" onClick={onOpenNewEntry} href="*">
         <span>+</span>
-      </div>
+      </a>
     </>
   );
 }
@@ -424,10 +429,15 @@ function DeleteExperienceModal(props: DeleteExperienceProps) {
 }
 
 function Menu(props: MenuProps) {
-  const { state, onToggleMenu, onDeleteExperienceRequest } = props;
+  const {
+    state,
+    onToggleMenu,
+    onDeleteExperienceRequest,
+    className = "",
+  } = props;
 
   return (
-    <div className="detailed-menu">
+    <div className={`detailed-menu ${className}`}>
       <div
         className={makeClassNames({
           "dropdown is-right": true,
@@ -435,9 +445,16 @@ function Menu(props: MenuProps) {
         })}
       >
         <div className="dropdown-menu detailed-menu__menu" role="menu">
-          <div className="dropdown-content" onClick={onDeleteExperienceRequest}>
+          <a
+            className="dropdown-content neutral-link"
+            onClick={onDeleteExperienceRequest}
+            href="*"
+            style={{
+              display: "block",
+            }}
+          >
             <div className="detailed-menu__content">Delete</div>
-          </div>
+          </a>
         </div>
       </div>
 
@@ -488,4 +505,5 @@ interface MenuProps {
   state: ShowingOptionsMenuState;
   onToggleMenu: () => void;
   onDeleteExperienceRequest: () => void;
+  className?: string;
 }

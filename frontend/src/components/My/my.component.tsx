@@ -12,6 +12,15 @@ import {
   domPrefix,
   experiencesDomId,
   searchInputDomId,
+  experienceDangerClassName,
+  experienceWarningClassName,
+  descriptionMoreClassName,
+  descriptionSummaryClassName,
+  descriptionFullClassName,
+  descriptionLessClassName,
+  descriptionControlClassName,
+  dropdownTriggerClassName,
+  dropdownIsActiveClassName,
 } from "./my.dom";
 import { setUpRoutePage } from "../../utils/global-window";
 import "./my.styles.scss";
@@ -79,7 +88,9 @@ export function My(props: Props) {
     };
   }, []);
 
-  const onNewExperienceActivated = useCallback(() => {
+  const onNewExperienceActivated = useCallback((e) => {
+    e.preventDefault();
+
     dispatch({
       type: ActionType.ACTIVATE_NEW_EXPERIENCE,
     });
@@ -136,13 +147,14 @@ export function My(props: Props) {
         )}
       </div>
 
-      <div
+      <a
+        href="*"
         id={activateNewDomId}
         className="new-experience-trigger"
         onClick={onNewExperienceActivated}
       >
         <span>+</span>
-      </div>
+      </a>
     </>
   );
 }
@@ -191,6 +203,7 @@ const ExperienceComponent = React.memo(
     const { showingDescription, showingOptionsMenu } = state;
 
     const onToggleShowMenuOptions = useCallback((e) => {
+      e.preventDefault();
       dispatch({
         type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
         id,
@@ -198,9 +211,20 @@ const ExperienceComponent = React.memo(
       /* eslint-disable-next-line react-hooks/exhaustive-deps*/
     }, []);
 
-    const onToggleShowDescription = useCallback(() => {
+    const onToggleShowDescription = useCallback((e) => {
+      e.preventDefault();
+
       dispatch({
         type: ActionType.TOGGLE_SHOW_DESCRIPTION,
+        id,
+      });
+      /* eslint-disable-next-line react-hooks/exhaustive-deps*/
+    }, []);
+
+    const onDeleteExperience = useCallback((e) => {
+      e.preventDefault();
+      dispatch({
+        type: ActionType.DELETE_EXPERIENCE_REQUEST,
         id,
       });
       /* eslint-disable-next-line react-hooks/exhaustive-deps*/
@@ -210,8 +234,8 @@ const ExperienceComponent = React.memo(
       <article
         className={makeClassNames({
           "experience box media": true,
-          "experience--is-danger": isOffline,
-          "experience--is-warning": isPartOffline,
+          [experienceDangerClassName]: isOffline,
+          [experienceWarningClassName]: isPartOffline,
         })}
       >
         <div className="media-content">
@@ -224,15 +248,25 @@ const ExperienceComponent = React.memo(
               <div className="description">
                 <div
                   onClick={onToggleShowDescription}
-                  className="description__control"
+                  className={descriptionControlClassName}
                 >
-                  <span className="icon">
+                  <a className="icon neutral-link" href="*">
                     {showingDescription ? (
-                      <i className="fas fa-minus description__control--less"></i>
+                      <i
+                        className={makeClassNames({
+                          "fas fa-minus": true,
+                          [descriptionLessClassName]: true,
+                        })}
+                      ></i>
                     ) : (
-                      <i className="fas fa-plus description__control--more"></i>
+                      <i
+                        className={makeClassNames({
+                          "fas fa-plus": true,
+                          [descriptionMoreClassName]: true,
+                        })}
+                      ></i>
                     )}
-                  </span>
+                  </a>
 
                   <strong className="description__label">Description</strong>
                 </div>
@@ -240,8 +274,8 @@ const ExperienceComponent = React.memo(
                 <pre
                   className={makeClassNames({
                     description__text: true,
-                    "description__text--full": showingDescription,
-                    "description__text--summary": !showingDescription,
+                    [descriptionFullClassName]: showingDescription,
+                    [descriptionSummaryClassName]: !showingDescription,
                   })}
                 >
                   {description}
@@ -254,37 +288,35 @@ const ExperienceComponent = React.memo(
         <div
           className={makeClassNames({
             "dropdown is-right": true,
-            "is-active": showingOptionsMenu,
+            [dropdownIsActiveClassName]: showingOptionsMenu,
           })}
         >
           <div className="dropdown-menu" role="menu">
             <div className="dropdown-content">
-              <div
+              <a
                 className="neutral-link"
                 style={{
                   cursor: "pointer",
+                  display: "block",
                 }}
-                onClick={() => {
-                  dispatch({
-                    type: ActionType.DELETE_EXPERIENCE_REQUEST,
-                    id,
-                  });
-                }}
+                onClick={onDeleteExperience}
+                href="a"
               >
                 Delete
-              </div>
+              </a>
             </div>
           </div>
         </div>
 
-        <figure
-          className="dropdown-trigger media-right"
+        <a
+          className={dropdownTriggerClassName}
           onClick={onToggleShowMenuOptions}
+          href="a"
         >
           <span className="icon is-small">
             <i className="fas fa-ellipsis-v" aria-hidden="true" />
           </span>
-        </figure>
+        </a>
       </article>
     );
   },
