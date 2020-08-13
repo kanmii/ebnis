@@ -5,11 +5,11 @@ import {
   AuthenticationRequired, //
   Props,
 } from "../components/AuthenticationRequired/authentication-required.component";
-import { useUser } from "../utils/manage-user-auth";
+import { getUser } from "../utils/manage-user-auth";
 import { LOGIN_URL } from "../utils/urls";
 
 jest.mock("../utils/manage-user-auth");
-const mockUseUser = useUser as jest.Mock;
+const mockGetUser = getUser as jest.Mock;
 
 const mockRedirectComponentId = "rr";
 jest.mock("react-router-dom", () => ({
@@ -33,11 +33,7 @@ const location = "ll";
 
 it("renders authenticated route", () => {
   // user is logged in
-  mockUseUser.mockReturnValue({
-    data: {
-      loggedInUser: {},
-    },
-  });
+  mockGetUser.mockReturnValue({});
 
   const { ui } = makeComp();
   render(ui);
@@ -47,9 +43,7 @@ it("renders authenticated route", () => {
 
 it("redirects unauthenticated user", () => {
   // user is not logged in
-  mockUseUser.mockReturnValue({
-    data: null,
-  });
+  mockGetUser.mockReturnValue(null);
 
   const { ui } = makeComp();
   render(ui);
