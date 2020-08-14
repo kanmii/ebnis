@@ -1,6 +1,6 @@
 import React, { PropsWithChildren } from "react";
 import { Route, Redirect, RouteProps } from "react-router-dom";
-import { useUser } from "../../utils/manage-user-auth";
+import { getUser } from "../../utils/manage-user-auth";
 import {
   LOGIN_URL, //
 } from "../../utils/urls";
@@ -11,8 +11,7 @@ export function AuthenticationRequired(props: Props) {
     component,
     ...rest
   } = props;
-  const { data } = useUser();
-  const user = data && data.loggedInUser;
+  const user = getUser();
 
   if (user) {
     return <Route {...props} />;

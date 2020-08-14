@@ -1,5 +1,6 @@
 /* istanbul ignore file */
 import gql from "graphql-tag";
+import { FieldPolicy } from "@apollo/client/cache/inmemory/policies";
 import {
   UnsyncedLedger,
   UnsyncedLedgerItem,
@@ -49,25 +50,29 @@ export function removeUnsyncedExperiences(ids: string[]) {
 
 function writeUnsyncedLedger(unsyncedLedger: UnsyncedLedger) {
   const { cache } = window.____ebnis;
-  cache.writeData({
+  cache.writeQuery({
+    query: UNSYNCED_LEDGER_QUERY,
     data: {
-      unsyncedLedger: JSON.stringify(unsyncedLedger),
+      // unsyncedLedger: JSON.stringify(unsyncedLedger),
+      unsyncedLedger,
     },
   });
 }
 
 function getUnsyncedLedger() {
   const { cache } = window.____ebnis;
+
   const data = cache.readQuery<UnsyncedLedgerQueryResult>({
     query: UNSYNCED_LEDGER_QUERY,
   });
 
   const unsyncedLedger = data && data.unsyncedLedger;
 
-  return unsyncedLedger ? JSON.parse(unsyncedLedger) : {};
+  // return unsyncedLedger ? JSON.parse(unsyncedLedger) : {};
+  return unsyncedLedger || {};
 }
 
-export function putAndRemoveSyncEntriesErrorsLedger(
+export function putAndRemoveUnSyncableEntriesErrorsLedger(
   experienceId: string,
   newLedgerItems: UnsyncableEntriesErrors | RemoveUnsyncableEntriesErrors = {},
 ) {
@@ -105,5 +110,11 @@ export function getSyncEntriesErrorsLedger(
 }
 
 interface UnsyncedLedgerQueryResult {
-  unsyncedLedger: string; // UnsyncedLedger;
+  unsyncedLedger: UnsyncedLedger;
 }
+
+export const unsyncedLedgerPolicy: FieldPolicy<UnsyncedLedger> = {
+  read(existing) {
+    return existing || {};
+  },
+};

@@ -60,8 +60,6 @@ services:
       - "${DOCKER_HOST_WEB_PORT}:${PORT}"
     volumes:
       - "./frontend:/home/node/ebnis-web"
-      - "./frontend/package.json:/home/node/ebnis-web/package.json"
-      - "./frontend/yarn.lock:/home/node/ebnis-web/yarn.lock"
       - "not_used_node_modules:/home/node/ebnis-web/node_modules"
 volumes:
   not_used_build:

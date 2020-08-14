@@ -1,11 +1,11 @@
 /* eslint-disable react-hooks/rules-of-hooks*/
-import { useMutation } from "@apollo/react-hooks";
 import {
   MutationFunctionOptions,
   MutationResult,
-  ExecutionResult,
   MutationFunction,
-} from "@apollo/react-common";
+  useMutation,
+} from "@apollo/client";
+import { ExecutionResult } from "graphql/execution/execute";
 import {
   LoginMutation,
   LoginMutationVariables,
@@ -27,7 +27,7 @@ export function useLoginMutation(): UseLoginMutation {
 
 type UseLoginMutation = [
   LoginMutationFn, //
-  MutationResult<LoginMutation>
+  MutationResult<LoginMutation>,
 ];
 
 type LoginMutationFn = MutationFunction<
@@ -60,7 +60,7 @@ export function registerUserMutation(): UseRegisterUserMutation {
 
 type UseRegisterUserMutation = [
   RegisterUserMutationFn, //
-  MutationResult<RegisterUserMutation>
+  MutationResult<RegisterUserMutation>,
 ];
 
 type RegisterUserMutationFn = MutationFunction<

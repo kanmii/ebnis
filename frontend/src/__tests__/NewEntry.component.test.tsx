@@ -35,7 +35,7 @@ import { E2EWindowObject } from "../utils/types";
 import { makeOfflineId } from "../utils/offlines";
 import { windowChangeUrl } from "../utils/global-window";
 import { removeUnsyncedExperience } from "../apollo/unsynced-ledger";
-import { putOrRemoveSyncingExperience } from "../components/NewExperience/new-experience.resolvers";
+import { putOrRemoveSyncingExperience } from "../apollo/syncing-experience-ledger";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 
 jest.mock("../utils/scroll-into-view");
@@ -87,7 +87,7 @@ const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
 jest.mock("../apollo/unsynced-ledger");
 const mockRemoveUnsyncedExperience = removeUnsyncedExperience as jest.Mock;
 
-jest.mock("../components/NewExperience/new-experience.resolvers");
+jest.mock("../apollo/syncing-experience-ledger");
 const mockPutOrRemoveSyncingExperience = putOrRemoveSyncingExperience as jest.Mock;
 
 const mockDispatch = jest.fn();

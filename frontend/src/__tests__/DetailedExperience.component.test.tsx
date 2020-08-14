@@ -20,7 +20,7 @@ import { act } from "react-dom/test-utils";
 import { defaultExperience } from "../tests.utils";
 import { makeOfflineId } from "../utils/offlines";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
-import { getSyncingExperience } from "../components/NewExperience/new-experience.resolvers";
+import { getSyncingExperience } from "../apollo/syncing-experience-ledger";
 import { replaceOrRemoveExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
 import { E2EWindowObject } from "../utils/types";
 import { getSyncEntriesErrorsLedger } from "../apollo/unsynced-ledger";
@@ -31,7 +31,7 @@ jest.mock("../apollo/delete-experience-cache");
 jest.mock("../components/DetailExperience/detail-experience.injectables");
 const mockScrollDocumentToTop = scrollDocumentToTop as jest.Mock;
 
-jest.mock("../components/NewExperience/new-experience.resolvers");
+jest.mock("../apollo/syncing-experience-ledger");
 const mockGetSyncingExperience = getSyncingExperience as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");

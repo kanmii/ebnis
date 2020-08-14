@@ -1,10 +1,13 @@
-import { useMutation, useQuery, useSubscription } from "@apollo/react-hooks";
+import { useMutation, useQuery, useSubscription } from "@apollo/client";
 import {
   MutationFunctionOptions,
   MutationResult,
-  ExecutionResult,
   MutationFunction,
-} from "@apollo/react-common";
+  FetchPolicy,
+} from "@apollo/client";
+import {
+  ExecutionResult,
+} from "graphql/execution/execute";
 import {
   UPDATE_EXPERIENCES_ONLINE_MUTATION,
   CREATE_EXPERIENCES_MUTATION,
@@ -44,7 +47,6 @@ import {
   GetExperienceConnectionMiniVariables,
   GetExperienceConnectionMini,
 } from "../graphql/apollo-types/GetExperienceConnectionMini";
-import { FetchPolicy } from "apollo-client";
 import { OnExperiencesDeletedSubscription } from "../graphql/apollo-types/OnExperiencesDeletedSubscription";
 import { getSessionId } from "./session-manager";
 

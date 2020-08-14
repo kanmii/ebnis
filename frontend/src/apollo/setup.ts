@@ -1,16 +1,14 @@
 /* istanbul ignore file */
-import {
-  InMemoryCache,
-  IntrospectionFragmentMatcher,
-} from "apollo-cache-inmemory";
-import { ApolloClient } from "apollo-client";
-import { CachePersistor } from "apollo-cache-persist";
+import { InMemoryCache, ApolloClient } from "@apollo/client";
+import { CachePersistor } from "apollo-cache-persist-dev";
 import * as AbsintheSocket from "@kanmii/socket";
 import { createAbsintheSocketLink } from "@kanmii/socket-apollo-link";
 import { SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY } from "./schema-keys";
 import { getSocket } from "../utils/phoenix-socket";
-import { initState, CUSTOM_QUERY_RESOLVERS } from "./resolvers";
-import { PersistentStorage, PersistedData } from "apollo-cache-persist/types";
+import {
+  PersistentStorage,
+  PersistedData,
+} from "apollo-cache-persist-dev/types";
 import {
   MakeSocketLinkFn,
   middlewareErrorLink,
@@ -25,6 +23,9 @@ import {
 import { makeObservable, makeBChannel } from "../utils/observable-manager";
 import possibleTypes from "../graphql/apollo-types/fragment-types.json";
 import { E2EWindowObject } from "../utils/types";
+import { unsyncedLedgerPolicy } from "./unsynced-ledger";
+import { syncingExperiencesLedgerPolicy } from "./syncing-experience-ledger";
+import { deleteExperienceVar } from "../apollo/delete-experience-cache";
 
 export function buildClientCache(
   {
@@ -47,17 +48,28 @@ export function buildClientCache(
     return globalVars;
   }
 
-  const fragmentMatcher = new IntrospectionFragmentMatcher({
-    introspectionQueryResultData: possibleTypes,
-  });
-
   cache = new InMemoryCache({
     addTypename: true,
-    cacheRedirects: {
-      ...CUSTOM_QUERY_RESOLVERS,
+    possibleTypes,
+    typePolicies: {
+      unsyncedLedger: {
+        keyFields: false,
+      },
+
+      Query: {
+        fields: {
+          deleteExperience: {
+            read() {
+              return deleteExperienceVar();
+            },
+          },
+
+          unsyncedLedger: unsyncedLedgerPolicy,
+
+          syncingExperiencesLedger: syncingExperiencesLedgerPolicy,
+        },
+      },
     },
-    freezeResults: true,
-    fragmentMatcher,
   }) as InMemoryCache;
 
   persistor = makePersistor(cache, persistor);
@@ -82,14 +94,6 @@ export function buildClientCache(
     link,
     assumeImmutableResults: true,
   }) as ApolloClient<{}>;
-
-  const state = initState();
-
-  cache.writeData({
-    data: state.defaults,
-  });
-
-  client.addResolvers(state.resolvers);
 
   if (resolvers) {
     client.addResolvers(resolvers);

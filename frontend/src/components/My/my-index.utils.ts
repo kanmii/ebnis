@@ -3,7 +3,7 @@ import { wrapReducer } from "../../logger";
 import immer, { Draft } from "immer";
 import { GetExperienceConnectionMini } from "../../graphql/apollo-types/GetExperienceConnectionMini";
 import { GetExperienceConnectionMini_getExperiences_edges } from "../../graphql/apollo-types/GetExperienceConnectionMini";
-import { ApolloQueryResult } from "apollo-client";
+import { ApolloQueryResult } from "@apollo/client";
 import { manuallyFetchExperienceConnectionMini } from "../../utils/experience.gql.types";
 import { parseStringError } from "../../utils/common-errors";
 import {
