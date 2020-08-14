@@ -53,8 +53,8 @@ services:
     stdin_open: true
     image: "ebnis-fe-${NODE_ENV}"
     entrypoint: ["/usr/local/bin/entrypoint.sh"]
-    depends_on:
-      - "api"
+    # depends_on:
+    #   - "api"
     env_file: ".env-${MIX_ENV}"
     ports:
       - "${DOCKER_HOST_WEB_PORT}:${PORT}"
