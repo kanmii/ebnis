@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/rules-of-hooks*/
-import { makeVar } from "@apollo/client";
 import gql from "graphql-tag";
 import {
   LocalResolverFn,
@@ -28,13 +27,12 @@ import {
   CreateExperiences_createExperiences_CreateExperienceErrors_errors,
   CreateExperiences_createExperiences_ExperienceSuccess,
 } from "../../graphql/apollo-types/CreateExperiences";
-import { uuid } from "uuidv4";
+import { v4 } from "uuid";
 import { getExperiencesMiniQuery } from "../../apollo/get-experiences-mini-query";
 import {
   GetExperienceConnectionMini_getExperiences_edges,
   GetExperienceConnectionMini_getExperiences_edges_node,
 } from "../../graphql/apollo-types/GetExperienceConnectionMini";
-import { CreateEntryErrorFragment } from "../../graphql/apollo-types/CreateEntryErrorFragment";
 
 const createOfflineExperienceResolver: LocalResolverFn<
   CreateExperiencesVariables,
@@ -69,7 +67,7 @@ const createOfflineExperienceResolver: LocalResolverFn<
 
   const today = new Date();
   const timestamp = today.toJSON();
-  const experienceId = makeOfflineId(uuid());
+  const experienceId = makeOfflineId(v4());
 
   const {
     dataDefinitions: createDataDefinitions,
@@ -188,64 +186,4 @@ export const experienceDefinitionResolvers = {
   },
 
   Query: {},
-};
-
-const SYNCING_EXPERIENCES_LEDGER_QUERY = gql`
-  query {
-    syncingExperiencesLedger @client
-  }
-`;
-
-////////////////////////// SYNCING_EXPERIENCES_LEDGER_CACHE_KEY /////////////
-
-export const syncingExperiencesLedgerVar = makeVar<null | SyncingExperiencesLedger>(
-  null,
-);
-
-function getSyncingExperiencesLedger() {
-  const { cache } = window.____ebnis;
-
-  const data = cache.readQuery<SyncingExperiencesLedgerQueryResult>({
-    query: SYNCING_EXPERIENCES_LEDGER_QUERY,
-  });
-
-  return data ? data.syncingExperiencesLedger : {};
-}
-
-/**
- * When called with 2 arguments === put
- * when called with 1 argument == remove
- */
-export function putOrRemoveSyncingExperience(
-  id: string,
-  data?: SyncingExperience,
-) {
-  const ledger = getSyncingExperiencesLedger();
-
-  if (data) {
-    ledger[id] = data;
-  } else {
-    delete ledger[id];
-  }
-
-  syncingExperiencesLedgerVar(ledger);
-}
-
-export function getSyncingExperience(id: string): SyncingExperience | null {
-  const ledger = getSyncingExperiencesLedger();
-  return ledger[id] || null;
-}
-
-interface SyncingExperiencesLedgerQueryResult {
-  syncingExperiencesLedger: SyncingExperiencesLedger;
-}
-
-interface SyncingExperiencesLedger {
-  [experienceId: string]: SyncingExperience;
-}
-
-export type SyncingExperience = {
-  offlineExperienceId: string;
-  newEntryClientId: string;
-  entriesErrors?: CreateEntryErrorFragment[];
 };

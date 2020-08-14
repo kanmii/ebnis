@@ -1,5 +1,5 @@
 import update from "immutability-helper";
-import { DataProxy } from "@apollo/client";
+import { DataProxy, InMemoryCache } from "@apollo/client";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import {
   GetExperienceConnectionMini,
@@ -292,7 +292,7 @@ export function purgeExperiencesFromCache1(ids: string[]) {
     return;
   }
 
-  const { cache, client } = window.____ebnis;
+  const { cache } = window.____ebnis;
   const dataProxy = cache as any;
   const data = dataProxy.data.data;
 
@@ -301,16 +301,11 @@ export function purgeExperiencesFromCache1(ids: string[]) {
     return accId;
   }, {} as { [key: string]: true });
 
-  let allLen = 0;
-  let writtenLen = 0;
-
   const updatedExperienceConnection = immer(experiencesMini, (proxy) => {
     const edges = (proxy.edges || []) as ExperienceConnectionFragment_edges[];
     const newEdges: ExperienceConnectionFragment_edges[] = [];
 
     for (let edge of edges) {
-      ++allLen;
-
       edge = edge as ExperienceConnectionFragment_edges;
       const node = edge.node as ExperienceConnectionFragment_edges_node;
 
@@ -318,7 +313,7 @@ export function purgeExperiencesFromCache1(ids: string[]) {
       const idFound = idsMap[id];
 
       if (idFound) {
-        purgeExperience(id, data);
+        purgeExperience(id, data, cache);
 
         // we are deleting this experience from this list
         continue;
@@ -326,13 +321,12 @@ export function purgeExperiencesFromCache1(ids: string[]) {
 
       // the rest of the experience mini will be rewritten to the cache
       newEdges.push(edge);
-      ++writtenLen;
     }
 
     proxy.edges = newEdges;
   });
 
-  client.writeQuery<
+  cache.writeQuery<
     GetExperienceConnectionMini,
     GetExperienceConnectionMiniVariables
   >({
@@ -340,17 +334,14 @@ export function purgeExperiencesFromCache1(ids: string[]) {
     data: { getExperiences: updatedExperienceConnection },
   });
 
-  const miniQueryKeyPart = `$ROOT_QUERY.getExperiences({"input":{"pagination":{"first":20000}}}).edges.`;
-
-  for (let index = writtenLen; index < allLen; index++) {
-    const query = `${miniQueryKeyPart}${index}`;
-    delete data[query];
-  }
-
   dataProxy.broadcastWatches();
 }
 
-function purgeExperience(experienceId: string, data: any) {
+function purgeExperience(
+  experienceId: string,
+  data: any,
+  cache: InMemoryCache,
+) {
   const toDelete = `Experience:${experienceId}`;
 
   try {
@@ -367,22 +358,16 @@ function purgeExperience(experienceId: string, data: any) {
       }
 
       if (entries) {
-        const toDeleteEntry = `$${toDelete}.entries({"pagination":{"first":20000}})`;
-        purgeEntries(entries, data, toDeleteEntry);
-        delete data[toDeleteEntry];
-        delete data[`${toDeleteEntry}.pageInfo`];
+        purgeEntries(entries, data);
       }
     }
   } catch (error) {}
 
   delete data[toDelete];
+  delete data.ROOT_QUERY[`getExperience({"id":"${experienceId}"})`];
 }
 
-function purgeEntries(
-  entries: EntryConnectionFragment,
-  data: any,
-  toDeleteEntry: string,
-) {
+function purgeEntries(entries: EntryConnectionFragment, data: any) {
   const edges = entries.edges;
 
   if (!edges) {
@@ -399,6 +384,5 @@ function purgeEntries(
     });
 
     delete data[`Entry:${entryId}`];
-    delete data[`${toDeleteEntry}.edges.${index}`];
   });
 }

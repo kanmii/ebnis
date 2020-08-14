@@ -3,10 +3,6 @@ import gql from "graphql-tag";
 import { makeVar } from "@apollo/client";
 import { DeletedVal, CancelledVal, RequestedVal } from "../utils/types";
 
-export const deleteExperienceVar = makeVar<null | DeletedExperienceLedger>(
-  null,
-);
-
 const DELETE_EXPERIENCES_QUERY = gql`
   query {
     deleteExperience @client
@@ -51,6 +47,10 @@ export function getDeleteExperienceLedger(
 
   return putOrRemoveDeleteExperienceLedger();
 }
+
+export const deleteExperienceVar = makeVar<null | DeletedExperienceLedger>(
+  null,
+);
 
 interface DeleteExperienceQueryResult {
   deleteExperience: DeletedExperienceLedger;

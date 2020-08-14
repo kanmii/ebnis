@@ -23,8 +23,8 @@ import {
 import { makeObservable, makeBChannel } from "../utils/observable-manager";
 import possibleTypes from "../graphql/apollo-types/fragment-types.json";
 import { E2EWindowObject } from "../utils/types";
-import { unsyncedLedgerPolicy } from "../apollo/unsynced-ledger";
-import { syncingExperiencesLedgerVar } from "../components/NewExperience/new-experience.resolvers";
+import { unsyncedLedgerPolicy } from "./unsynced-ledger";
+import { syncingExperiencesLedgerPolicy } from "./syncing-experience-ledger";
 import { deleteExperienceVar } from "../apollo/delete-experience-cache";
 
 export function buildClientCache(
@@ -58,12 +58,6 @@ export function buildClientCache(
 
       Query: {
         fields: {
-          syncingExperiencesLedger: {
-            read() {
-              return syncingExperiencesLedgerVar();
-            },
-          },
-
           deleteExperience: {
             read() {
               return deleteExperienceVar();
@@ -71,6 +65,8 @@ export function buildClientCache(
           },
 
           unsyncedLedger: unsyncedLedgerPolicy,
+
+          syncingExperiencesLedger: syncingExperiencesLedgerPolicy,
         },
       },
     },

@@ -179,7 +179,7 @@ module.exports = {
 
             const unionTypes = result.data.__schema.types.reduce(
               (acc, { possibleTypes, name }) => {
-                if (possibleTypes !== null) {
+                if (possibleTypes) {
                   acc[name] = possibleTypes.map(
                     ({ name: possibleTypeName }) => possibleTypeName,
                   );

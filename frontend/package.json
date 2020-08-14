@@ -30,7 +30,7 @@
     "react-router-dom": "^5.1.2",
     "react-scripts": "3.4.1",
     "typescript": "~3.7.2",
-    "uuidv4": "^6.0.7",
+    "uuid": "^8.3.0",
     "zen-observable-ts": "^0.8.21"
   },
   "devDependencies": {
@@ -44,6 +44,7 @@
     "@types/react-dom": "^16.9.0",
     "@types/react-router-dom": "^5.1.4",
     "@types/testing-library__dom": "7.0.2",
+    "@types/uuid": "^8.3.0",
     "apollo": "^2.30.2",
     "cypress": "^4.4.1",
     "env-cmd": "^10.1.0",

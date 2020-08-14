@@ -362,7 +362,8 @@ const onDeleteExperienceProcessedEffect: DefOnDeleteExperienceProcessedEffect["f
       /* eslint-disable-next-line no-lone-blocks*/
       {
         purgeExperiencesFromCache1([id]);
-        const { persistor, bc } = window.____ebnis;
+        const { persistor, bc, cache } = window.____ebnis;
+        cache.evict({id})
         await persistor.persist();
 
         unstable_batchedUpdates(() => {

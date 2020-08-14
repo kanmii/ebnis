@@ -20,7 +20,7 @@ import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import {
   getSyncingExperience,
   putOrRemoveSyncingExperience,
-} from "../NewExperience/new-experience.resolvers";
+} from "../../apollo/syncing-experience-ledger";
 import {
   replaceOrRemoveExperiencesInGetExperiencesMiniQuery,
   purgeExperiencesFromCache,
