@@ -8,6 +8,8 @@ import { EmitActionType, BroadcastMessageType } from "./observable-manager";
 import { ChangeEvent } from "react";
 import { BroadcastChannel } from "broadcast-channel";
 
+export type ReactMouseEvent = React.MouseEvent<HTMLAnchorElement, MouseEvent>;
+
 export type EmitData = (params: EmitPayload) => void;
 
 export type EmitPayload =

@@ -15,6 +15,7 @@ import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFr
 import {
   getExperiencesMiniQuery,
   readOptions,
+  makeGetExperienceApolloCacheKey,
 } from "./get-experiences-mini-query";
 import { readExperienceFragment } from "./read-experience-fragment";
 import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
@@ -364,7 +365,7 @@ function purgeExperience(
   } catch (error) {}
 
   delete data[toDelete];
-  delete data.ROOT_QUERY[`getExperience({"id":"${experienceId}"})`];
+  delete data.ROOT_QUERY[makeGetExperienceApolloCacheKey(experienceId)];
 }
 
 function purgeEntries(entries: EntryConnectionFragment, data: any) {

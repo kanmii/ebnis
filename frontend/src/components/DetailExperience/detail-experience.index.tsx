@@ -15,6 +15,7 @@ export function DetailExperienceIndex(props: IndexProps) {
   const { experienceId } = (props.match as Match).params;
   const [deleteExperiences] = useDeleteExperiencesMutation();
 
+
   const { data, loading, error } = useGetExperienceDetail({
     id: experienceId,
     entriesPagination: entriesPaginationVariables.entriesPagination,

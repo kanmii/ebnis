@@ -5,9 +5,7 @@ import {
   MutationFunction,
   FetchPolicy,
 } from "@apollo/client";
-import {
-  ExecutionResult,
-} from "graphql/execution/execute";
+import { ExecutionResult } from "graphql/execution/execute";
 import {
   UPDATE_EXPERIENCES_ONLINE_MUTATION,
   CREATE_EXPERIENCES_MUTATION,

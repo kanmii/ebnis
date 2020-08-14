@@ -10,10 +10,12 @@ import {
   ExperienceFragment_dataDefinitions,
   ExperienceFragment,
 } from "../../graphql/apollo-types/ExperienceFragment";
-import { EXPERIENCE_FRAGMENT } from "../../graphql/experience.gql";
+import {
+  EXPERIENCE_FRAGMENT,
+  GET_DETAIL_EXPERIENCE_QUERY,
+} from "../../graphql/experience.gql";
 import { insertExperienceInGetExperiencesMiniQuery } from "../../apollo/update-get-experiences-mini-query";
 import { writeUnsyncedExperience } from "../../apollo/unsynced-ledger";
-import { writeExperienceFragmentToCache } from "../../apollo/write-experience-fragment";
 import {
   MutationFunction,
   MutationFunctionOptions,
@@ -33,11 +35,16 @@ import {
   GetExperienceConnectionMini_getExperiences_edges,
   GetExperienceConnectionMini_getExperiences_edges_node,
 } from "../../graphql/apollo-types/GetExperienceConnectionMini";
+import {
+  GetDetailExperience,
+  GetDetailExperienceVariables,
+} from "../../graphql/apollo-types/GetDetailExperience";
+import { entriesPaginationVariables } from "../../graphql/entry.gql";
 
 const createOfflineExperienceResolver: LocalResolverFn<
   CreateExperiencesVariables,
   CreateExperiences_createExperiences
-> = (_, variables) => {
+> = (_, variables, { cache }) => {
   const { input: inputs } = variables;
   const input = inputs[0];
 
@@ -109,7 +116,16 @@ const createOfflineExperienceResolver: LocalResolverFn<
     },
   };
 
-  writeExperienceFragmentToCache(experience);
+  cache.writeQuery<GetDetailExperience, GetDetailExperienceVariables>({
+    query: GET_DETAIL_EXPERIENCE_QUERY,
+    data: {
+      getExperience: experience,
+    },
+    variables: {
+      id: experienceId,
+      entriesPagination: entriesPaginationVariables.entriesPagination,
+    },
+  });
 
   insertExperienceInGetExperiencesMiniQuery(experience, {
     force: true,

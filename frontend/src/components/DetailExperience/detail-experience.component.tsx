@@ -26,7 +26,7 @@ import {
 } from "../../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
-import { StateValue } from "../../utils/types";
+import { StateValue , ReactMouseEvent} from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 import {
   newEntryCreatedNotificationCloseId,
@@ -125,7 +125,7 @@ export function DetailExperience(props: Props) {
     });
   }, []);
 
-  const onDeleteExperienceRequest = useCallback((e) => {
+  const onDeleteExperienceRequest = useCallback((e: ReactMouseEvent) => {
     e.preventDefault();
 
     dispatch({
@@ -504,6 +504,6 @@ interface DeleteExperienceProps {
 interface MenuProps {
   state: ShowingOptionsMenuState;
   onToggleMenu: () => void;
-  onDeleteExperienceRequest: () => void;
+  onDeleteExperienceRequest: (event: ReactMouseEvent) => void;
   className?: string;
 }

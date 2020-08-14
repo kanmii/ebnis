@@ -16,9 +16,9 @@ const UNSYNCED_LEDGER_QUERY = gql`
 `;
 
 export function writeUnsyncedExperience(id: string, data: UnsyncedLedgerItem) {
-  const unsyncedLedger = getUnsyncedLedger();
+  const unsyncedLedger = { ...getUnsyncedLedger() };
 
-  if (Object.keys(data).length) {
+  if (data === true || Object.keys(data).length) {
     unsyncedLedger[id] = data;
   } else {
     delete unsyncedLedger[id];
@@ -33,13 +33,13 @@ export function getUnsyncedExperience(id: string): UnsyncedLedgerItem | null {
 }
 
 export function removeUnsyncedExperience(id: string) {
-  const unsyncedLedger = getUnsyncedLedger();
+  const unsyncedLedger = { ...getUnsyncedLedger() };
   delete unsyncedLedger[id];
   writeUnsyncedLedger(unsyncedLedger);
 }
 
 export function removeUnsyncedExperiences(ids: string[]) {
-  const unsyncedLedger = getUnsyncedLedger();
+  const unsyncedLedger = { ...getUnsyncedLedger() };
 
   ids.forEach((id) => {
     delete unsyncedLedger[id];
@@ -81,6 +81,8 @@ export function putAndRemoveUnSyncableEntriesErrorsLedger(
 
   let entriesErrors = (unsyncedExperience.entriesErrors ||
     {}) as UnsyncableEntriesErrors;
+
+  entriesErrors = { ...entriesErrors };
 
   Object.entries(newLedgerItems).forEach(([k, v]) => {
     if (v === null) {
