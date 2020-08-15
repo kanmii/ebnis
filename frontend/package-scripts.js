@@ -3,21 +3,15 @@ const path = require("path");
 const fs = require("fs");
 const shell = require("shelljs");
 const pkg = require("./package.json");
-const settings = require("./.env-cmdrc");
-const {
-  apiUrlReactEnv,
-  regServiceWorkerReactEnv,
-  noLogReactEnv,
-} = require("./src/utils/env-variables");
 
 const distFolderName = "build";
 const distAbsPath = path.resolve(__dirname, `./${distFolderName}`);
 const reactScript = "react-app-rewired"; // provides HMR
 // const reactScript = "react-scripts";
 
-const api_url = process.env.API_URL;
+const apiUrl = process.env.API_URL;
 
-const dev_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REACT_APP_API_URL=${api_url} `;
+const dev_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REACT_APP_API_URL=${apiUrl} `;
 
 const startServer = `yarn ${reactScript} start`;
 
@@ -26,43 +20,10 @@ const test_envs =
 
 const test = `${test_envs} yarn react-scripts test --runInBand`;
 
-function buildFn(flag) {
-  const reactBuild = `yarn ${reactScript} build`;
-  const preBuild = `rimraf ${distFolderName}`;
-  const startSw = "yarn start serviceWorker";
-
-  let env;
-
-  switch (flag) {
-    case "prod":
-      env = "prod";
-      break;
-    default:
-      throw new Error("Please specify environment (e.g. 'prod') to build for!");
-  }
-
-  const envStmt = `env-cmd -e ${env}`;
-
-  return `${preBuild} && \
-  ${apiUrlReactEnv}=${settings.prod.API_URL} \
-    ${regServiceWorkerReactEnv}=${settings.prod.register_service_worker} \
-    ${noLogReactEnv}=true \
-    ${envStmt} ${reactBuild} && \
-  ${envStmt} ${startSw}
-`;
-}
-
 module.exports = {
   scripts: {
     dev: `${dev_envs} ${startServer}`,
-    e2eDev: `REACT_APP_API_URL=${api_url} env-cmd -e e2eDev ${startServer}`,
-    build: {
-      deploy: buildFn("prod") + "  && yarn start netlify",
-      serve: {
-        prod: `${buildFn("prod")} yarn start serve`,
-      },
-      prod: buildFn("prod"),
-    },
+    e2eDev: `REACT_APP_API_URL=${apiUrl} env-cmd -e e2eDev ${startServer}`,
     test: {
       default: `CI=true ${test}`,
       d: `CI=true env-cmd ${test_envs} react-scripts --inspect-brk test --runInBand --no-cache  `, // debug
@@ -72,7 +33,6 @@ module.exports = {
       wc: `${test} --coverage`,
       c: `rimraf coverage && CI=true ${test} --coverage`,
     },
-    serve: `serve -s ${distFolderName} -l ${settings.serve.port}`,
     serviceWorker: `node -e 'require("./package-scripts").serviceWorker()'`,
     netlify: `node -e 'require("./package-scripts").netlify()'`,
     cy: {
@@ -85,8 +45,7 @@ module.exports = {
     },
     lint: "eslint . --ext .js,.jsx,.ts,.tsx",
     gqlTypes: {
-      e: "env-cmd -e e2eDev yarn start fetchGqlTypes",
-      d: "env-cmd -e dev yarn start fetchGqlTypes",
+      default: "yarn start fetchGqlTypes",
     },
     fetchGqlTypes: `node -e 'require("./package-scripts").fetchGqlTypes()'`,
   },
@@ -164,25 +123,9 @@ module.exports = {
     const fetch = require("node-fetch");
     const exec = require("child_process").exec;
 
-    shell.rm("-rf", "src/graphql/apollo-types");
-    const endpoint = process.env.API_URL;
+    const outputFilename = "./src/graphql/apollo-types/fragment-types.json";
 
-    exec(
-      `./node_modules/.bin/apollo codegen:generate --endpoint=${endpoint} --tagName=gql --target=typescript --includes=src/graphql/*.ts --outputFlat=src/graphql/apollo-types`,
-      (error, stdout, stderr) => {
-        if (error) {
-          console.error(`exec error: ${error}`);
-          return;
-        }
-        console.log(`stdout: ${stdout}`);
-        console.log(`stderr: ${stderr}`);
-
-        fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            variables: {},
-            query: `
+    const query = `
       {
         __schema {
           types {
@@ -194,27 +137,66 @@ module.exports = {
           }
         }
       }
-    `,
+    `;
+
+    shell.rm("-rf", "src/graphql/apollo-types");
+
+    exec(
+      `./node_modules/.bin/apollo client:codegen \
+        --endpoint=${apiUrl} \
+        --tagName=gql \
+        --target=typescript \
+        --includes=src/graphql/*.ts \
+        --outputFlat=src/graphql/apollo-types
+      `,
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+          return;
+        }
+
+        console.log("\n");
+
+        if (stdout) {
+          console.log(`stdout:\n${stdout}`);
+        }
+
+        if (stderr) {
+          console.log(`stderr:\n${stderr}`);
+        }
+
+        fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            variables: {},
+            query,
           }),
         })
           .then((result) => result.json())
           .then((result) => {
             // here we're filtering out any type information unrelated to unions or interfaces
-            const filteredData = result.data.__schema.types.filter(
-              (type) => type.possibleTypes !== null,
-            );
-            result.data.__schema.types = filteredData;
-            fs.writeFile(
-              "./src/graphql/apollo-types/fragment-types.json",
-              JSON.stringify(result.data),
-              (err) => {
-                if (err) {
-                  console.error("Error writing fragmentTypes file", err);
-                } else {
-                  console.log("Fragment types successfully extracted!");
+
+            const unionTypes = result.data.__schema.types.reduce(
+              (acc, { possibleTypes, name }) => {
+                if (possibleTypes) {
+                  acc[name] = possibleTypes.map(
+                    ({ name: possibleTypeName }) => possibleTypeName,
+                  );
                 }
+
+                return acc;
               },
+              {},
             );
+
+            fs.writeFile(outputFilename, JSON.stringify(unionTypes), (err) => {
+              if (err) {
+                console.error("Error writing fragmentTypes file", err);
+              } else {
+                console.log("Fragment types successfully extracted!");
+              }
+            });
           });
       },
     );

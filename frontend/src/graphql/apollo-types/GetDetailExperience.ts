@@ -13,7 +13,7 @@ export interface GetDetailExperience_getExperience_dataDefinitions {
   __typename: "DataDefinition";
   id: string;
   /**
-   * Name of field e.g start, end, meal
+   * Name of field e.g start, end, meal 
    */
   name: string;
   /**
@@ -22,9 +22,9 @@ export interface GetDetailExperience_getExperience_dataDefinitions {
   type: DataTypes;
   /**
    * String that uniquely identifies this data definition has been
-   *   created offline. If an associated entry is also created
-   *   offline, then `dataDefinition.definitionId` **MUST BE** the same as this
-   *   field and will be validated as such.
+   * created offline. If an associated entry is also created
+   * offline, then `dataDefinition.definitionId` **MUST BE** the same as this
+   * field and will be validated as such.
    */
   clientId: string | null;
 }
@@ -66,9 +66,9 @@ export interface GetDetailExperience_getExperience_entries_edges_node {
   experienceId: string;
   /**
    * The client ID which indicates that an entry has been created while server
-   *   is offline and is to be saved. The client ID uniquely
-   *   identifies this entry and will be used to prevent conflict while saving entry
-   *   created offline and must thus be non null in this situation.
+   * is offline and is to be saved. The client ID uniquely
+   * identifies this entry and will be used to prevent conflict while saving entry
+   * created offline and must thus be non null in this situation.
    */
   clientId: string | null;
   insertedAt: any;
@@ -81,13 +81,7 @@ export interface GetDetailExperience_getExperience_entries_edges_node {
 
 export interface GetDetailExperience_getExperience_entries_edges {
   __typename: "EntryEdge";
-  /**
-   * A cursor for use in pagination
-   */
-  cursor: string;
-  /**
-   * The item at the end of the edge
-   */
+  cursor: string | null;
   node: GetDetailExperience_getExperience_entries_edges_node | null;
 }
 
@@ -110,9 +104,9 @@ export interface GetDetailExperience_getExperience {
   description: string | null;
   /**
    * The client ID. For experiences created on the client while server is
-   *   offline and to be saved , the client ID uniquely identifies such and can
-   *   be used to enforce uniqueness at the DB level. Not providing client_id
-   *   assumes a fresh experience.
+   * offline and to be saved , the client ID uniquely identifies such and can
+   * be used to enforce uniqueness at the DB level. Not providing client_id
+   * assumes a fresh experience.
    */
   clientId: string | null;
   insertedAt: any;

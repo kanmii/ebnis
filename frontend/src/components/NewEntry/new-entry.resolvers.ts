@@ -1,10 +1,10 @@
-import { useMutation } from "@apollo/react-hooks";
 import {
+  useMutation,
   MutationFunction,
   MutationFunctionOptions,
   MutationResult,
-  ExecutionResult,
-} from "@apollo/react-common";
+} from "@apollo/client";
+import { ExecutionResult } from "graphql/execution/execute";
 import {
   LocalResolverFn,
   MUTATION_NAME_createOfflineEntry,

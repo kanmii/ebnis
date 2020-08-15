@@ -512,6 +512,18 @@ defmodule EbnisData.Schema.Experience do
 
   ################## delete experiences objects section ###########
 
+  object :on_experiences_deleted do
+    field(:client_session, non_null(:string))
+    field(:client_token, non_null(:string))
+
+    field(
+      :experiences,
+      :experience
+      |> list_of()
+      |> non_null()
+    )
+  end
+
   object :delete_experience_success do
     field(:experience, non_null(:experience))
   end
@@ -538,6 +550,9 @@ defmodule EbnisData.Schema.Experience do
       |> list_of()
       |> non_null()
     )
+
+    field(:client_session, non_null(:string))
+    field(:client_token, non_null(:string))
   end
 
   object :delete_experiences_all_fail do
@@ -868,6 +883,35 @@ defmodule EbnisData.Schema.Experience do
   end
 
   ######################### END QUERIES SECTION ##########################
+
+  ######################### SUBSCRIPTIONS SECTION #########################
+
+  @desc """
+    Subscriptions for Experience object
+  """
+  object :experience_subscriptions do
+    @desc """
+      Experiences Deleted
+    """
+    field :on_experiences_deleted,
+          :on_experiences_deleted do
+      arg(:client_session, non_null(:string))
+
+      config(fn _args, _resolution ->
+        {:ok, topic: "delete", context_id: "a"}
+      end)
+
+      trigger(:delete_experiences,
+        topic: fn _return_val_of_mutation ->
+          "delete"
+        end
+      )
+
+      resolve(&ExperienceResolver.on_experiences_deleted/3)
+    end
+  end
+
+  ######################### END SUBSCRIPTIONS SECTION #######################
 
   connection(node_type: :experience)
   connection(node_type: :entry)

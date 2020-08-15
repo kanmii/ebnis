@@ -9,7 +9,7 @@ defmodule EbnisWeb.UserSocket do
   ## Channels
   channel("data:*", EbnisWeb.DataChannel)
 
-  def connect(%{"token" => token}, socket) do
+  def connect(%{"token" => token} = params, socket) do
     case GuardianApp.resource_from_token(token) do
       {:ok, user, _claims} ->
         {
@@ -18,7 +18,9 @@ defmodule EbnisWeb.UserSocket do
           |> assign(:user, user)
           |> Absinthe.Phoenix.Socket.put_options(
             context: %{
-              current_user: user
+              current_user: user,
+              client_session: params["session_id"],
+              client_token: token
             }
           )
         }

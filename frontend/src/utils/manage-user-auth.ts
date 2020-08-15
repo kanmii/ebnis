@@ -1,62 +1,35 @@
 /* istanbul ignore file */
-import gql from "graphql-tag";
 import { UserFragment } from "../graphql/apollo-types/UserFragment";
-import {
-  LOGGED_IN_USER_CACHE_KEY,
-  LOGGED_OUT_USER_CACHE_KEY,
-} from "../apollo/resolvers";
-import { useQuery } from "@apollo/react-hooks";
-import { USER_FRAGMENT } from "../graphql/user.gql";
 
-const TOKEN_KEY = "nOQhAH4V54h9MMBS3BSwtE/2eZeQWHRnPfoC4K+RDuWairX";
-
-const LOGGED_IN_USER_QUERY = gql`
-  query {
-    loggedInUser @client {
-      ...UserFragment
-    }
-  }
-  ${USER_FRAGMENT}
-`;
+const LOGGED_IN_USER_KEY = "Qxh/MFAJO/rKi8D10ZPQmY+7X3J4fO9zAxzPto";
+const LOGGED_OUT_USER_KEY = "DphF4ksph7pU04HrrQ3M7s/flARX2Q3G3uff7";
 
 export function manageUserAuthentication(user: UserFragment | null) {
-  const cache = window.____ebnis.cache;
-
   if (user) {
     // login
 
-    localStorage.setItem(TOKEN_KEY, user.jwt);
-
-    cache.writeData({
-      data: {
-        [LOGGED_IN_USER_CACHE_KEY]: user,
-        [LOGGED_OUT_USER_CACHE_KEY]: null,
-      },
-    });
+    localStorage.setItem(LOGGED_IN_USER_KEY, JSON.stringify(user));
+    localStorage.removeItem(LOGGED_OUT_USER_KEY);
   } else {
     // logout
-    localStorage.removeItem(TOKEN_KEY);
-    const data = cache.readQuery<LoggedInUserQueryResult>({
-      query: LOGGED_IN_USER_QUERY,
-    });
 
-    cache.writeData({
-      data: {
-        [LOGGED_IN_USER_CACHE_KEY]: null,
-        [LOGGED_OUT_USER_CACHE_KEY]: data ? data.loggedInUser : null,
-      },
-    });
+    const data = localStorage.getItem(LOGGED_IN_USER_KEY);
+    localStorage.removeItem(LOGGED_IN_USER_KEY);
+
+    if (data) {
+      localStorage.setItem(LOGGED_OUT_USER_KEY, data);
+    } else {
+      localStorage.removeItem(LOGGED_OUT_USER_KEY);
+    }
   }
 }
 
-export function useUser() {
-  return useQuery<LoggedInUserQueryResult>(LOGGED_IN_USER_QUERY);
+export function getUser() {
+  const data = localStorage.getItem(LOGGED_IN_USER_KEY);
+  return data ? (JSON.parse(data) as UserFragment) : null;
 }
 
 export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-interface LoggedInUserQueryResult {
-  loggedInUser: UserFragment;
+  const data = getUser();
+  return data && data.jwt;
 }

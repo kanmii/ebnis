@@ -6,7 +6,6 @@ import {
   Props,
   reducer,
   initState,
-  StateValue,
   ActionType,
   MyChildDispatchProps,
 } from "../components/My/my.utils";
@@ -16,12 +15,23 @@ import {
   domPrefix,
   experiencesDomId,
   searchInputDomId,
+  experienceWarningClassName,
+  experienceDangerClassName,
+  descriptionMoreClassName,
+  descriptionSummaryClassName,
+  descriptionFullClassName,
+  descriptionLessClassName,
+  descriptionControlClassName,
+  dropdownTriggerClassName,
+  dropdownIsActiveClassName,
 } from "../components/My/my.dom";
 import { act } from "react-dom/test-utils";
 import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
 import { makeOfflineId } from "../utils/offlines";
 import { fillField } from "../tests.utils";
+import { StateValue } from "../utils/types";
 
+jest.mock("../apollo/delete-experience-cache");
 jest.mock("../components/Header/header.component", () => () => null);
 jest.mock("../utils/global-window");
 
@@ -76,17 +86,8 @@ function getContainer() {
 
 describe("component", () => {
   const experienceClassName = "experience";
-  const experienceDangerClassName = "experience--is-danger";
-  const experienceWarningClassName = "experience--is-warning";
-  const dropdownTriggerClassName = "dropdown-trigger media-right";
   const dropdownMenuClassName = "dropdown";
-  const dropdownIsActiveClassName = "is-active";
   const descriptionClassName = "description";
-  const descriptionControlClassName = "description__control";
-  const descriptionMoreClassName = "description__control--more";
-  const descriptionLessClassName = "description__control--less";
-  const descriptionFullClassName = "description__text--full";
-  const descriptionSummaryClassName = "description__text--summary";
 
   it("no experiences", () => {
     const { ui } = makeComp();
@@ -302,16 +303,18 @@ describe("component", () => {
 
 describe("reducer", () => {
   test("deactivate new experience", () => {
-    let state = initState({ experiences: [] } as Props);
+    let state = initState(({ experiences: [] } as unknown) as Props);
 
     state = reducer(state, {
       type: ActionType.ACTIVATE_NEW_EXPERIENCE,
     });
+
     expect(state.states.newExperienceActivated.value).toBe(StateValue.active);
 
     state = reducer(state, {
       type: ActionType.DEACTIVATE_NEW_EXPERIENCE,
     });
+
     expect(state.states.newExperienceActivated.value).toBe(StateValue.inactive);
   });
 });
@@ -322,8 +325,9 @@ const MyP = My as ComponentType<Partial<Props>>;
 
 function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   const experiences = props.experiences || [];
+  const location = (props.location || {}) as any;
 
   return {
-    ui: <MyP {...props} experiences={experiences} />,
+    ui: <MyP {...props} experiences={experiences} location={location} />,
   };
 }

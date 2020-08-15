@@ -26,7 +26,7 @@ export interface UpdateEntryFragment_dataObjects_DataObjectErrors_errors {
   data: string | null;
   /**
    * For generic errors unrelated to the fields of the data object e.g.
-   *   not found error
+   * not found error
    */
   error: string | null;
 }
@@ -61,7 +61,7 @@ export interface UpdateEntryFragment {
   entryId: string;
   /**
    * If any entry data objects is updated, then the entry itself will
-   *   be updated to the latest dataObject.updatedAt
+   * be updated to the latest dataObject.updatedAt
    */
   updatedAt: any | null;
   dataObjects: UpdateEntryFragment_dataObjects[];

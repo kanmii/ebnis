@@ -1,4 +1,4 @@
-import React, { useState, PropsWithChildren, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   buildClientCache,
   restoreCacheOrPurgeStorage,
@@ -50,5 +50,3 @@ interface State {
   readonly renderChildren: boolean;
   readonly connected: boolean;
 }
-
-type Props = PropsWithChildren<{}>;

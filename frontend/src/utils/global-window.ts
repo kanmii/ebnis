@@ -33,6 +33,10 @@ export function setUpRoutePage(args: SetUpRoutePageArgs) {
   }
 }
 
+export function getLocation() {
+  return window.location;
+}
+
 interface SetUpRoutePageArgs {
   title?: string;
   rootClassName?: string;

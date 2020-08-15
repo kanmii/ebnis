@@ -34,7 +34,7 @@ export interface CreateExperienceErrorsFragment_errors {
   meta: CreateExperienceErrorsFragment_errors_meta;
   /**
    * A catch all for error unrelated to fields of experience e.g. an exception
-   *   was raised
+   * was raised
    */
   error: string | null;
   title: string | null;

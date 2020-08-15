@@ -110,7 +110,7 @@ defmodule EbnisData.Schema.User do
       resolve(&Resolver.create/2)
     end
 
-    @doc "Log in a user"
+    @desc "Log in a user"
     field :login, :login do
       arg(
         :input,
@@ -120,7 +120,7 @@ defmodule EbnisData.Schema.User do
       resolve(&Resolver.login/2)
     end
 
-    @doc "Update a user"
+    @desc "Update a user"
     field :update_user, :update_user do
       arg(
         :input,

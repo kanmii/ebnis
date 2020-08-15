@@ -32,9 +32,9 @@ export interface EntryFragment {
   experienceId: string;
   /**
    * The client ID which indicates that an entry has been created while server
-   *   is offline and is to be saved. The client ID uniquely
-   *   identifies this entry and will be used to prevent conflict while saving entry
-   *   created offline and must thus be non null in this situation.
+   * is offline and is to be saved. The client ID uniquely
+   * identifies this entry and will be used to prevent conflict while saving entry
+   * created offline and must thus be non null in this situation.
    */
   clientId: string | null;
   insertedAt: any;

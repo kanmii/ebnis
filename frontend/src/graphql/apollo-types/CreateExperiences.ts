@@ -13,7 +13,7 @@ export interface CreateExperiences_createExperiences_ExperienceSuccess_experienc
   __typename: "DataDefinition";
   id: string;
   /**
-   * Name of field e.g start, end, meal
+   * Name of field e.g start, end, meal 
    */
   name: string;
   /**
@@ -22,9 +22,9 @@ export interface CreateExperiences_createExperiences_ExperienceSuccess_experienc
   type: DataTypes;
   /**
    * String that uniquely identifies this data definition has been
-   *   created offline. If an associated entry is also created
-   *   offline, then `dataDefinition.definitionId` **MUST BE** the same as this
-   *   field and will be validated as such.
+   * created offline. If an associated entry is also created
+   * offline, then `dataDefinition.definitionId` **MUST BE** the same as this
+   * field and will be validated as such.
    */
   clientId: string | null;
 }
@@ -66,9 +66,9 @@ export interface CreateExperiences_createExperiences_ExperienceSuccess_experienc
   experienceId: string;
   /**
    * The client ID which indicates that an entry has been created while server
-   *   is offline and is to be saved. The client ID uniquely
-   *   identifies this entry and will be used to prevent conflict while saving entry
-   *   created offline and must thus be non null in this situation.
+   * is offline and is to be saved. The client ID uniquely
+   * identifies this entry and will be used to prevent conflict while saving entry
+   * created offline and must thus be non null in this situation.
    */
   clientId: string | null;
   insertedAt: any;
@@ -81,13 +81,7 @@ export interface CreateExperiences_createExperiences_ExperienceSuccess_experienc
 
 export interface CreateExperiences_createExperiences_ExperienceSuccess_experience_entries_edges {
   __typename: "EntryEdge";
-  /**
-   * A cursor for use in pagination
-   */
-  cursor: string;
-  /**
-   * The item at the end of the edge
-   */
+  cursor: string | null;
   node: CreateExperiences_createExperiences_ExperienceSuccess_experience_entries_edges_node | null;
 }
 
@@ -110,9 +104,9 @@ export interface CreateExperiences_createExperiences_ExperienceSuccess_experienc
   description: string | null;
   /**
    * The client ID. For experiences created on the client while server is
-   *   offline and to be saved , the client ID uniquely identifies such and can
-   *   be used to enforce uniqueness at the DB level. Not providing client_id
-   *   assumes a fresh experience.
+   * offline and to be saved , the client ID uniquely identifies such and can
+   * be used to enforce uniqueness at the DB level. Not providing client_id
+   * assumes a fresh experience.
    */
   clientId: string | null;
   insertedAt: any;
@@ -162,12 +156,12 @@ export interface CreateExperiences_createExperiences_ExperienceSuccess_entriesEr
   error: string | null;
   /**
    * May be we failed because entry.clientId is already taken by another
-   *   entry belonging to the experience.
+   * entry belonging to the experience.
    */
   clientId: string | null;
   /**
    * An offline entry of offline experience must have its experience ID same as
-   *   experience.clientId.
+   * experience.clientId.
    */
   experienceId: string | null;
   /**
@@ -209,7 +203,7 @@ export interface CreateExperiences_createExperiences_CreateExperienceErrors_erro
   meta: CreateExperiences_createExperiences_CreateExperienceErrors_errors_meta;
   /**
    * A catch all for error unrelated to fields of experience e.g. an exception
-   *   was raised
+   * was raised
    */
   error: string | null;
   title: string | null;

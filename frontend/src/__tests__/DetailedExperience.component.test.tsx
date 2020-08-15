@@ -14,20 +14,24 @@ import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import {
   newEntryCreatedNotificationCloseId,
   entriesErrorsNotificationCloseId,
+  noEntryTrigger,
 } from "../components/DetailExperience/detail-experience.dom";
 import { act } from "react-dom/test-utils";
 import { defaultExperience } from "../tests.utils";
 import { makeOfflineId } from "../utils/offlines";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
-import { getSyncingExperience } from "../components/NewExperience/new-experience.resolvers";
+import { getSyncingExperience } from "../apollo/syncing-experience-ledger";
 import { replaceOrRemoveExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
 import { E2EWindowObject } from "../utils/types";
 import { getSyncEntriesErrorsLedger } from "../apollo/unsynced-ledger";
+import { getDeleteExperienceLedger } from "../apollo/delete-experience-cache";
+
+jest.mock("../apollo/delete-experience-cache");
 
 jest.mock("../components/DetailExperience/detail-experience.injectables");
 const mockScrollDocumentToTop = scrollDocumentToTop as jest.Mock;
 
-jest.mock("../components/NewExperience/new-experience.resolvers");
+jest.mock("../apollo/syncing-experience-ledger");
 const mockGetSyncingExperience = getSyncingExperience as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
@@ -118,7 +122,9 @@ describe("components", () => {
     // new entry UI initially not visible
     expect(document.getElementById(mockNewEntryId)).toBeNull();
 
-    getNoEntryEl().click();
+    act(() => {
+      getNoEntryEl().click();
+    });
 
     expect(mockScrollDocumentToTop).not.toHaveBeenCalled();
 
@@ -130,7 +136,10 @@ describe("components", () => {
       return document.getElementById(mockNewEntryId) as HTMLElement;
     });
 
-    newEntryEl.click();
+    act(() => {
+      newEntryEl.click();
+    });
+
     expect(document.getElementById(mockNewEntryId)).toBeNull();
     let newEntryNotificationEl = await waitForElement(
       getNewEntryNotificationEl,
@@ -139,16 +148,28 @@ describe("components", () => {
 
     expect(mockScrollDocumentToTop).toHaveBeenCalled();
 
-    newEntryNotificationEl.click();
+    act(() => {
+      newEntryNotificationEl.click();
+    });
+
     expect(getNewEntryNotificationEl()).toBeNull();
 
-    entriesErrorsNotificationEl.click();
+    act(() => {
+      entriesErrorsNotificationEl.click();
+    });
     expect(getEntriesErrorsNotificationEl()).toBeNull();
 
     // simulate auto close notification
     const newEntryToggleEl = getNewEntryTriggerEl();
-    newEntryToggleEl.click();
-    (document.getElementById(mockNewEntryId) as HTMLElement).click();
+
+    act(() => {
+      newEntryToggleEl.click();
+    });
+
+    act(() => {
+      (document.getElementById(mockNewEntryId) as HTMLElement).click();
+    });
+
     await waitForElement(getNewEntryNotificationEl); // exists
 
     act(() => {
@@ -192,9 +213,17 @@ describe("components", () => {
     expect(document.getElementById(mockNewEntryId)).toBeNull();
 
     const newEntryToggleEl = getNewEntryTriggerEl();
-    newEntryToggleEl.click();
+
+    act(() => {
+      newEntryToggleEl.click();
+    });
+
     expect(document.getElementById(mockNewEntryId)).not.toBeNull();
-    newEntryToggleEl.click();
+
+    act(() => {
+      newEntryToggleEl.click();
+    });
+
     expect(document.getElementById(mockNewEntryId)).toBeNull();
 
     const entryEl = document.querySelector(".entry") as HTMLElement;
@@ -312,7 +341,9 @@ describe("components", () => {
 
     expect(document.getElementById(mockNewEntryId)).toBeNull();
 
-    (entryEl.querySelector(".entry__edit") as HTMLElement).click();
+    act(() => {
+      (entryEl.querySelector(".entry__edit") as HTMLElement).click();
+    });
 
     await waitForElement(() => {
       return document.getElementById(mockNewEntryId) as HTMLElement;
@@ -338,16 +369,21 @@ function makeComp({
   mockGetSyncEntriesErrorsLedger.mockReturnValue(syncEntriesErrors || {});
 
   const experience = props.experience || defaultExperience;
+  const location = props.location || ({} as any);
 
   return {
-    ui: <DetailExperienceP {...props} experience={experience} />,
+    ui: (
+      <DetailExperienceP
+        location={location}
+        {...props}
+        experience={experience}
+      />
+    ),
   };
 }
 
 function getNoEntryEl() {
-  return document
-    .getElementsByClassName("no-entry-alert")
-    .item(0) as HTMLElement;
+  return document.getElementsByClassName(noEntryTrigger).item(0) as HTMLElement;
 }
 
 function getEntriesEl() {

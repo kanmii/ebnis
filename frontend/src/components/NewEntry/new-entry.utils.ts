@@ -61,7 +61,7 @@ import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitio
 import {
   putOrRemoveSyncingExperience,
   SyncingExperience,
-} from "../NewExperience/new-experience.resolvers";
+} from "../../apollo/syncing-experience-ledger";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import {

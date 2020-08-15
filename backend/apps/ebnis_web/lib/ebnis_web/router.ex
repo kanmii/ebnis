@@ -34,7 +34,8 @@ defmodule EbnisWeb.Router do
         Absinthe.Plug.GraphiQL,
         schema: EbnisData.Schema,
         context: %{pubsub: EbnisWeb.Endpoint},
-        json_codec: Jason
+        json_codec: Jason,
+        socket: EbnisWeb.UserSocket
       )
     end
 

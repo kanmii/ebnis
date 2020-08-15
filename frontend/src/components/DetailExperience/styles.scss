@@ -1,0 +1,76 @@
+@import "../../styles/variables";
+@import "../../styles/extensions";
+
+.detailed-experience-component {
+  padding-bottom: $floating-circular-bottom * 1.5;
+  padding-top: 10px;
+
+  .data-object {
+    border: none;
+  }
+
+  .no-entry-alert {
+    display: flex;
+    flex-direction: column;
+    max-width: 16rem;
+    margin: 0 auto;
+    height: initial;
+    white-space: normal;
+    font-weight: 500;
+  }
+
+  .entry {
+    &--is-danger {
+      box-shadow: $media-shadow-1 $danger, $media-shadow-2 $danger;
+    }
+
+    &__updated-at {
+      margin-top: 10px;
+      text-align: right;
+    }
+  }
+
+  .top-options-menu {
+    padding: 0 25px;
+    height: 20px;
+    margin-bottom: 20px;
+  }
+
+  .no-entry-button {
+    margin-bottom: 20px;
+  }
+
+  .detailed-menu {
+    display: flex;
+    flex-direction: row-reverse;
+
+    &__menu {
+      top: 75%;
+    }
+
+    &__content {
+      padding-left: 20px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+  }
+
+  .no-entry-menu {
+    margin-top: 10px;
+  }
+}
+
+.new-entry-trigger {
+  @extend %floating-circular;
+}
+
+.delete-experience-component {
+  .modal-card {
+    max-width: 350px;
+    width: 90%;
+  }
+
+  .cancel-button {
+    margin-left: 15px;
+  }
+}

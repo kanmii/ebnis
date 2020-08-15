@@ -409,7 +409,6 @@ defmodule EbnisData.Schema.UserTest do
                 data: %{"refresh" => nil},
                 errors: [
                   %{
-                    locations: [%{column: 0, line: 2}],
                     message: "{\"error\":\"invalid_token\"}",
                     path: ["refresh"]
                   }

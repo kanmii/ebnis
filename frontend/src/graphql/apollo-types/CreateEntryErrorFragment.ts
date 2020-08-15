@@ -42,12 +42,12 @@ export interface CreateEntryErrorFragment {
   error: string | null;
   /**
    * May be we failed because entry.clientId is already taken by another
-   *   entry belonging to the experience.
+   * entry belonging to the experience.
    */
   clientId: string | null;
   /**
    * An offline entry of offline experience must have its experience ID same as
-   *   experience.clientId.
+   * experience.clientId.
    */
   experienceId: string | null;
   /**

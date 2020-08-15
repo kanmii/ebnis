@@ -26,7 +26,7 @@ export interface DataObjectErrorFragment {
   data: string | null;
   /**
    * For generic errors unrelated to the fields of the data object e.g.
-   *   not found error
+   * not found error
    */
   error: string | null;
 }

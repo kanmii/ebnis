@@ -1,15 +1,20 @@
 import React from "react";
 import Header from "../Header/header.component";
-import { CallerProps, Match } from "./detail-experience.utils";
-import { useGetExperienceDetail } from "../../utils/experience.gql.types";
+import { Match, IndexProps } from "./detail-experience.utils";
 import { entriesPaginationVariables } from "../../graphql/entry.gql";
 import Loading from "../Loading/loading.component";
 import { DetailExperience } from "./detail-experience.component";
 import { parseStringError } from "../../utils/common-errors";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
+import {
+  useDeleteExperiencesMutation,
+  useGetExperienceDetail,
+} from "./detail-experience.injectables";
 
-export default (props: CallerProps) => {
+export function DetailExperienceIndex(props: IndexProps) {
   const { experienceId } = (props.match as Match).params;
+  const [deleteExperiences] = useDeleteExperiencesMutation();
+
 
   const { data, loading, error } = useGetExperienceDetail({
     id: experienceId,
@@ -27,8 +32,15 @@ export default (props: CallerProps) => {
       ) : loading ? (
         <Loading />
       ) : (
-        <DetailExperience {...props} experience={experience} />
+        <DetailExperience
+          {...props}
+          experience={experience}
+          deleteExperiences={deleteExperiences}
+        />
       )}
     </>
   );
-};
+}
+
+// istanbul ignore next:
+export default DetailExperienceIndex;

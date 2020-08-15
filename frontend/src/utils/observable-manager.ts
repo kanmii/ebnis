@@ -1,5 +1,6 @@
 import { Observable } from "zen-observable-ts";
-import { E2EWindowObject, EmitPayload } from "./types";
+import { E2EWindowObject, EmitPayload, BChannel } from "./types";
+import { BroadcastChannel } from "broadcast-channel";
 
 export enum EmitActionType {
   connectionChanged = "@emit-action/connection-changed",
@@ -19,5 +20,15 @@ export function makeObservable(globals: E2EWindowObject) {
     }
   };
 
+  return globals;
+}
+
+export enum BroadcastMessageType {
+  experienceDeleted = "@broadcast/experience-deleted",
+}
+
+export function makeBChannel(globals: E2EWindowObject) {
+  const bc: BChannel = new BroadcastChannel("ebnis-broadcast-channel");
+  globals.bc = bc;
   return globals;
 }

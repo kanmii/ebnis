@@ -44,9 +44,9 @@ export interface EntryConnectionFragment_edges_node {
   experienceId: string;
   /**
    * The client ID which indicates that an entry has been created while server
-   *   is offline and is to be saved. The client ID uniquely
-   *   identifies this entry and will be used to prevent conflict while saving entry
-   *   created offline and must thus be non null in this situation.
+   * is offline and is to be saved. The client ID uniquely
+   * identifies this entry and will be used to prevent conflict while saving entry
+   * created offline and must thus be non null in this situation.
    */
   clientId: string | null;
   insertedAt: any;
@@ -59,13 +59,7 @@ export interface EntryConnectionFragment_edges_node {
 
 export interface EntryConnectionFragment_edges {
   __typename: "EntryEdge";
-  /**
-   * A cursor for use in pagination
-   */
-  cursor: string;
-  /**
-   * The item at the end of the edge
-   */
+  cursor: string | null;
   node: EntryConnectionFragment_edges_node | null;
 }
 

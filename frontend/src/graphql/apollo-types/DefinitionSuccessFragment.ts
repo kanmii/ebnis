@@ -13,7 +13,7 @@ export interface DefinitionSuccessFragment_definition {
   __typename: "DataDefinition";
   id: string;
   /**
-   * Name of field e.g start, end, meal
+   * Name of field e.g start, end, meal 
    */
   name: string;
   /**
@@ -22,9 +22,9 @@ export interface DefinitionSuccessFragment_definition {
   type: DataTypes;
   /**
    * String that uniquely identifies this data definition has been
-   *   created offline. If an associated entry is also created
-   *   offline, then `dataDefinition.definitionId` **MUST BE** the same as this
-   *   field and will be validated as such.
+   * created offline. If an associated entry is also created
+   * offline, then `dataDefinition.definitionId` **MUST BE** the same as this
+   * field and will be validated as such.
    */
   clientId: string | null;
 }

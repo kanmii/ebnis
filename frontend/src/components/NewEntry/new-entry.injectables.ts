@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { ApolloClient } from "apollo-client";
+import { ApolloClient } from "@apollo/client";
 import { newEntryResolvers } from "./new-entry.resolvers";
 import immer from "immer";
 import {

@@ -429,6 +429,13 @@ export const CREATE_EXPERIENCES_MUTATION = gql`
   ${EXPERIENCE_FRAGMENT}
 `;
 
+const DELETE_EXPERIENCE_ERROR = gql`
+  fragment DeleteExperienceErrorFragment on DeleteExperienceError {
+    id
+    error
+  }
+`;
+
 export const DELETE_EXPERIENCES_MUTATION = gql`
   mutation DeleteExperiences($input: [ID!]!) {
     deleteExperiences(input: $input) {
@@ -439,19 +446,24 @@ export const DELETE_EXPERIENCES_MUTATION = gql`
         experiences {
           ... on DeleteExperienceErrors {
             errors {
-              id
-              error
+              ...DeleteExperienceErrorFragment
             }
           }
           ... on DeleteExperienceSuccess {
             experience {
               id
+              title
             }
           }
         }
+
+        clientSession
+        clientToken
       }
     }
   }
+
+  ${DELETE_EXPERIENCE_ERROR}
 `;
 
 // this query will be kept around after we ran it and all experiences list will
@@ -488,6 +500,20 @@ export const PRE_FETCH_EXPERIENCES_QUERY = gql`
   }
 
   ${EXPERIENCE_CONNECTION_PRE_FETCH_FRAGMENT}
+`;
+
+export const ON_EXPERIENCES_DELETED_SUBSCRIPTION = gql`
+  subscription OnExperiencesDeletedSubscription($clientSession: String!) {
+    onExperiencesDeleted(clientSession: $clientSession) {
+      experiences {
+        id
+        title
+      }
+
+      clientSession
+      clientToken
+    }
+  }
 `;
 
 ////////////////////////// GET EXPERIENCE DETAIL //////////////////

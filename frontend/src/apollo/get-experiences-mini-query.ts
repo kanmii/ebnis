@@ -30,3 +30,7 @@ export function getExperiencesMiniQuery() {
 
   return getExperiences;
 }
+
+export function makeGetExperienceApolloCacheKey(id: string) {
+  return `getExperience({"id":"${id}"})`;
+}

@@ -1,25 +1,26 @@
-FROM hexpm/elixir:1.9.4-erlang-22.3.4.2-debian-buster-20200511 AS dev
+FROM hexpm/elixir:1.10.4-erlang-23.0.2-debian-stretch-20200511 AS dev
 
 ARG DOCKER_HOST_USER_NAME
 
 ENV APP_DEPS="openssl git ca-certificates inotify-tools curl" \
-   HOME_VAR=/home/${DOCKER_HOST_USER_NAME}
+  HOME_VAR=/home/${DOCKER_HOST_USER_NAME} \
+  HOST_APP_HOME="backend"
 
 RUN apt-get update \
-  && apt-get install -y ${APP_DEPS} ${BUILD_DEPS} --no-install-recommends \
+  && apt-get install -y ${APP_DEPS} --no-install-recommends \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /usr/share/doc && rm -rf /usr/share/man \
   && apt-get clean \
   && groupadd ${DOCKER_HOST_USER_NAME} \
   && useradd -m -g ${DOCKER_HOST_USER_NAME} ${DOCKER_HOST_USER_NAME}
 
-COPY ./entrypoint.sh /usr/local/bin
+COPY ${HOST_APP_HOME}/entrypoint.sh /usr/local/bin
 
 ADD https://raw.githubusercontent.com/humpangle/wait-until/v0.1.1/wait-until /usr/local/bin/
 
 WORKDIR ${HOME_VAR}/src
 
-COPY . .
+COPY ${HOST_APP_HOME} .
 
 RUN chown -R \
   ${DOCKER_HOST_USER_NAME}:${DOCKER_HOST_USER_NAME} \
@@ -54,7 +55,8 @@ FROM debian:buster AS release
 ARG DOCKER_HOST_USER_NAME
 
 ENV APP_DEPS="openssl" \
-    LANG=C.UTF-8
+  LANG=C.UTF-8 \
+  HOST_APP_HOME="backend"
 
 RUN apt-get update \
   && apt-get install -y ${APP_DEPS} --no-install-recommends \
@@ -66,12 +68,12 @@ RUN apt-get update \
   && mkdir -p /ebnis-app \
   && chown -R ebnis:ebnis /ebnis-app
 
-COPY ./entrypoint.sh /usr/local/bin
+COPY ${HOST_APP_HOME}/entrypoint.sh /usr/local/bin
 
 ADD https://raw.githubusercontent.com/humpangle/wait-until/v0.1.1/wait-until /usr/local/bin/
 
 RUN chmod 755 /usr/local/bin/entrypoint.sh \
-    && chmod 755 /usr/local/bin/wait-until
+  && chmod 755 /usr/local/bin/wait-until
 
 WORKDIR /ebnis-app
 

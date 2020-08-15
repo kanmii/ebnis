@@ -1,12 +1,14 @@
 /* istanbul ignore file */
 /* eslint-disable @typescript-eslint/no-explicit-any*/
 import { PropsWithChildren } from "react";
-import { InMemoryCache } from "apollo-cache-inmemory";
-import { ApolloClient } from "apollo-client";
+import { InMemoryCache, ApolloClient } from "@apollo/client";
 import { Observable } from "zen-observable-ts";
-import { CachePersistor } from "apollo-cache-persist";
-import { EmitActionType } from "./observable-manager";
+import { CachePersistor } from "apollo-cache-persist-dev";
+import { EmitActionType, BroadcastMessageType } from "./observable-manager";
 import { ChangeEvent } from "react";
+import { BroadcastChannel } from "broadcast-channel";
+
+export type ReactMouseEvent = React.MouseEvent<HTMLAnchorElement, MouseEvent>;
 
 export type EmitData = (params: EmitPayload) => void;
 
@@ -37,6 +39,7 @@ export interface E2EWindowObject extends ObservableUtils {
   experienceDefinitionResolversAdded?: boolean;
   newEntryResolversAdded?: boolean;
   logApolloQueries?: boolean;
+  bc: BChannel;
 }
 
 export interface ConnectionStatus {
@@ -55,6 +58,16 @@ declare global {
     ____ebnis: E2EWindowObject;
   }
 }
+
+export type BroadcastMessage = {
+  type: BroadcastMessageType.experienceDeleted;
+  payload: {
+    id: string;
+    title: string;
+  };
+};
+
+export type BChannel = BroadcastChannel<BroadcastMessage>;
 
 export type CommonError = Error | string;
 
@@ -89,6 +102,11 @@ export type UnChangedVal = "unchanged";
 export type ChangedVal = "changed";
 export type ErrorsVal = "errors";
 export type SyncOfflineExperienceErrorsVal = "syncOfflineExperienceErrors";
+export type LoadingVal = "loading";
+export type DataVal = "data";
+export type CancelledVal = "cancelled";
+export type DeletedVal = "deleted";
+export type RequestedVal = "requested";
 
 export const StateValue = {
   noEffect: "noEffect" as NoEffectVal,
@@ -105,4 +123,9 @@ export const StateValue = {
   initial: "initial" as InitialVal,
   errors: "errors" as ErrorsVal,
   syncOfflineExperienceErrors: "syncOfflineExperienceErrors" as SyncOfflineExperienceErrorsVal,
+  loading: "loading" as LoadingVal,
+  data: "data" as DataVal,
+  cancelled: "cancelled" as CancelledVal,
+  deleted: "deleted" as DeletedVal,
+  requested: "requested" as RequestedVal,
 } as const;

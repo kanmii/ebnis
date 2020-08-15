@@ -1,4 +1,4 @@
-import { ApolloError } from "apollo-client";
+import { ApolloError } from "@apollo/client";
 import { CommonError, CommonErrorsVal } from "./types";
 
 export function parseStringError(error: string | Error): string {

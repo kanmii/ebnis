@@ -36,7 +36,7 @@ import { scrollIntoViewDomId } from "./new-experience.dom";
 import { CreateExperienceOfflineMutationComponentProps } from "./new-experience.resolvers";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
-import { uuid } from "uuidv4";
+import { v4 } from "uuid";
 import { MyChildDispatchProps } from "../My/my.utils";
 import {
   InActiveVal,
@@ -349,7 +349,7 @@ export const effectFunctions = {
 function makeDataDefinitionFormField(index: number): DataDefinitionFormField {
   return {
     index,
-    id: uuid(),
+    id: v4(),
     name: {
       states: {
         value: StateValue.unchanged,

@@ -12,13 +12,22 @@ import {
   domPrefix,
   experiencesDomId,
   searchInputDomId,
+  experienceDangerClassName,
+  experienceWarningClassName,
+  descriptionMoreClassName,
+  descriptionSummaryClassName,
+  descriptionFullClassName,
+  descriptionLessClassName,
+  descriptionControlClassName,
+  dropdownTriggerClassName,
+  dropdownIsActiveClassName,
 } from "./my.dom";
 import { setUpRoutePage } from "../../utils/global-window";
 import "./my.styles.scss";
 import Loading from "../Loading/loading.component";
+import { StateValue } from "../../utils/types";
 import {
   reducer,
-  StateValue,
   initState,
   ActionType,
   Props,
@@ -28,6 +37,8 @@ import {
   SearchState,
   SearchActive,
   makeDefaultSearchActive,
+  DeletedExperienceState,
+  effectFunctions,
 } from "./my.utils";
 import { NewExperience } from "./my.lazy";
 import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMiniFragment";
@@ -36,6 +47,7 @@ import { Link } from "react-router-dom";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { getOnlineStatus } from "../DetailExperience/detail-experience.utils";
 import { InputChangeEvent } from "../../utils/types";
+import { useRunEffects } from "../../utils/use-run-effects";
 
 export function My(props: Props) {
   const { experiences } = props;
@@ -43,8 +55,16 @@ export function My(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
   const {
-    states: { newExperienceActivated, experiences: descriptionsActive, search },
+    states: {
+      newExperienceActivated,
+      experiences: descriptionsActive,
+      search,
+      deletedExperience: deleteExperienceState,
+    },
+    effects: { general: generalEffects },
   } = stateMachine;
+
+  useRunEffects(generalEffects, effectFunctions, props, { dispatch });
 
   useLayoutEffect(() => {
     setUpRoutePage({
@@ -68,9 +88,17 @@ export function My(props: Props) {
     };
   }, []);
 
-  const onNewExperienceActivated = useCallback(() => {
+  const onNewExperienceActivated = useCallback((e) => {
+    e.preventDefault();
+
     dispatch({
       type: ActionType.ACTIVATE_NEW_EXPERIENCE,
+    });
+  }, []);
+
+  const onCloseDeleteExperienceNotification = useCallback(() => {
+    dispatch({
+      type: ActionType.CLOSE_DELETE_EXPERIENCE_NOTIFICATION,
     });
   }, []);
 
@@ -103,6 +131,13 @@ export function My(props: Props) {
           <>
             <SearchComponent state={search} dispatch={dispatch} />
 
+            <DeletedExperienceNotification
+              state={deleteExperienceState}
+              onCloseDeleteExperienceNotification={
+                onCloseDeleteExperienceNotification
+              }
+            />
+
             <ExperiencesComponent
               dispatch={dispatch}
               experiences={experiences}
@@ -112,13 +147,14 @@ export function My(props: Props) {
         )}
       </div>
 
-      <div
+      <a
+        href="*"
         id={activateNewDomId}
         className="new-experience-trigger"
         onClick={onNewExperienceActivated}
       >
         <span>+</span>
-      </div>
+      </a>
     </>
   );
 }
@@ -167,6 +203,7 @@ const ExperienceComponent = React.memo(
     const { showingDescription, showingOptionsMenu } = state;
 
     const onToggleShowMenuOptions = useCallback((e) => {
+      e.preventDefault();
       dispatch({
         type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
         id,
@@ -174,9 +211,20 @@ const ExperienceComponent = React.memo(
       /* eslint-disable-next-line react-hooks/exhaustive-deps*/
     }, []);
 
-    const onToggleShowDescription = useCallback(() => {
+    const onToggleShowDescription = useCallback((e) => {
+      e.preventDefault();
+
       dispatch({
         type: ActionType.TOGGLE_SHOW_DESCRIPTION,
+        id,
+      });
+      /* eslint-disable-next-line react-hooks/exhaustive-deps*/
+    }, []);
+
+    const onDeleteExperience = useCallback((e) => {
+      e.preventDefault();
+      dispatch({
+        type: ActionType.DELETE_EXPERIENCE_REQUEST,
         id,
       });
       /* eslint-disable-next-line react-hooks/exhaustive-deps*/
@@ -186,8 +234,8 @@ const ExperienceComponent = React.memo(
       <article
         className={makeClassNames({
           "experience box media": true,
-          "experience--is-danger": isOffline,
-          "experience--is-warning": isPartOffline,
+          [experienceDangerClassName]: isOffline,
+          [experienceWarningClassName]: isPartOffline,
         })}
       >
         <div className="media-content">
@@ -200,15 +248,25 @@ const ExperienceComponent = React.memo(
               <div className="description">
                 <div
                   onClick={onToggleShowDescription}
-                  className="description__control"
+                  className={descriptionControlClassName}
                 >
-                  <span className="icon">
+                  <a className="icon neutral-link" href="*">
                     {showingDescription ? (
-                      <i className="fas fa-minus description__control--less"></i>
+                      <i
+                        className={makeClassNames({
+                          "fas fa-minus": true,
+                          [descriptionLessClassName]: true,
+                        })}
+                      ></i>
                     ) : (
-                      <i className="fas fa-plus description__control--more"></i>
+                      <i
+                        className={makeClassNames({
+                          "fas fa-plus": true,
+                          [descriptionMoreClassName]: true,
+                        })}
+                      ></i>
                     )}
-                  </span>
+                  </a>
 
                   <strong className="description__label">Description</strong>
                 </div>
@@ -216,8 +274,8 @@ const ExperienceComponent = React.memo(
                 <pre
                   className={makeClassNames({
                     description__text: true,
-                    "description__text--full": showingDescription,
-                    "description__text--summary": !showingDescription,
+                    [descriptionFullClassName]: showingDescription,
+                    [descriptionSummaryClassName]: !showingDescription,
                   })}
                 >
                   {description}
@@ -230,34 +288,35 @@ const ExperienceComponent = React.memo(
         <div
           className={makeClassNames({
             "dropdown is-right": true,
-            "is-active": showingOptionsMenu,
+            [dropdownIsActiveClassName]: showingOptionsMenu,
           })}
         >
           <div className="dropdown-menu" role="menu">
             <div className="dropdown-content">
-              <Link
-                to={{
-                  pathname: detailPath,
-                  state: {
-                    delete: true,
-                  },
-                }}
+              <a
                 className="neutral-link"
+                style={{
+                  cursor: "pointer",
+                  display: "block",
+                }}
+                onClick={onDeleteExperience}
+                href="a"
               >
                 Delete
-              </Link>
+              </a>
             </div>
           </div>
         </div>
 
-        <figure
-          className="dropdown-trigger media-right"
+        <a
+          className={dropdownTriggerClassName}
           onClick={onToggleShowMenuOptions}
+          href="a"
         >
           <span className="icon is-small">
             <i className="fas fa-ellipsis-v" aria-hidden="true" />
           </span>
-        </figure>
+        </a>
       </article>
     );
   },
@@ -339,6 +398,40 @@ const SearchComponent = (props: SearchProps) => {
   );
 };
 
+function DeletedExperienceNotification(
+  props: DeleteExperienceNotificationProps,
+) {
+  const { state, onCloseDeleteExperienceNotification } = props;
+  let title = "";
+  let message = "";
+
+  switch (state.value) {
+    case StateValue.inactive:
+      return null;
+
+    case StateValue.cancelled:
+      title = state.cancelled.context.title;
+      message = "cancelled";
+      break;
+
+    case StateValue.deleted:
+      title = state.deleted.context.title;
+      message = "successful";
+      break;
+  }
+
+  return (
+    <div className="notification is-warning">
+      <button
+        className="delete"
+        onClick={onCloseDeleteExperienceNotification}
+      />
+      Delete of experience
+      <strong> {title} </strong> {message}
+    </div>
+  );
+}
+
 interface ExperiencesComponentProps {
   experiences: ExperienceMiniFragment[];
   experiencesStates: ExperiencesMap;
@@ -354,4 +447,9 @@ interface ExperienceProps {
 interface SearchProps {
   state: SearchState;
   dispatch: DispatchType;
+}
+
+interface DeleteExperienceNotificationProps {
+  onCloseDeleteExperienceNotification: () => void;
+  state: DeletedExperienceState;
 }
