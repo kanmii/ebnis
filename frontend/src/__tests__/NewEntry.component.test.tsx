@@ -22,7 +22,7 @@ import {
   notificationCloseId,
   fieldErrorSelector,
 } from "../components/NewEntry/new-entry.dom";
-import { isConnected } from "../utils/connections";
+import { getIsConnected } from "../utils/connections";
 import {
   UpdateExperiencesOnlineMutationResult,
   CreateExperiencesMutationResult,
@@ -42,7 +42,7 @@ jest.mock("../utils/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
 
 jest.mock("../utils/connections");
-const mockIsConnected = isConnected as jest.Mock;
+const mockIsConnected = getIsConnected as jest.Mock;
 
 jest.mock("../components/NewEntry/new-entry.injectables");
 

@@ -49,7 +49,7 @@ export function storeConnectionStatus(
   return connectionStatus;
 }
 
-export function isConnected() {
+export function getIsConnected() {
   const connectionStatus = getConnectionStatus();
 
   return connectionStatus ? connectionStatus.isConnected : null;

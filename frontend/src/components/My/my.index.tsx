@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useReducer } from "react";
+import React, { useCallback, useReducer } from "react";
 import Header from "../Header/header.component";
 import Loading from "../Loading/loading.component";
 import { My } from "./my.component";
@@ -12,6 +12,7 @@ import {
 } from "./my-index.utils";
 import { StateValue } from "../../utils/types";
 import { CallerProps } from "./my.utils";
+import { useRunEffects } from "../../utils/use-run-effects";
 
 export function MyIndex(props: CallerProps) {
   const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
@@ -20,21 +21,7 @@ export function MyIndex(props: CallerProps) {
     effects: { general: generalEffects },
   } = stateMachine;
 
-  useEffect(() => {
-    if (generalEffects.value !== StateValue.hasEffects) {
-      return;
-    }
-
-    for (const { key, ownArgs } of generalEffects.hasEffects.context.effects) {
-      effectFunctions[key](
-        /* eslint-disable-next-line @typescript-eslint/no-explicit-any*/
-        ownArgs as any,
-        { dispatch },
-      );
-    }
-
-    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
-  }, [generalEffects]);
+  useRunEffects(generalEffects, effectFunctions, props, { dispatch });
 
   const onReFetch = useCallback(() => {
     dispatch({

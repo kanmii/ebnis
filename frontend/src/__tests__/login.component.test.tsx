@@ -29,7 +29,7 @@ import {
   errorClassName, //
 } from "../utils/utils.dom";
 import { scrollIntoView } from "../utils/scroll-into-view";
-import { isConnected } from "../utils/connections";
+import { getIsConnected } from "../utils/connections";
 import { LoginMutationVariables } from "../graphql/apollo-types/LoginMutation";
 import { LoginMutationResult } from "../utils/user.gql.types";
 import { AppPersistor } from "../utils/app-context";
@@ -42,7 +42,7 @@ jest.mock("../utils/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
 
 jest.mock("../utils/connections");
-const mockIsConnected = isConnected as jest.Mock;
+const mockIsConnected = getIsConnected as jest.Mock;
 
 jest.mock("../utils/global-window");
 const mockWindowReplaceUrl = windowChangeUrl as jest.Mock;

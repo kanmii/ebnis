@@ -4,6 +4,7 @@ import {
   MutationResult,
   MutationFunction,
   FetchPolicy,
+  ApolloQueryResult,
 } from "@apollo/client";
 import { ExecutionResult } from "graphql/execution/execute";
 import {
@@ -40,7 +41,7 @@ import {
   GetDetailExperience,
   GetDetailExperienceVariables,
 } from "../graphql/apollo-types/GetDetailExperience";
-import { GET_DETAIL_EXPERIENCE_QUERY } from "../graphql/experience.gql";
+import { GET_COMPLETE_EXPERIENCE_QUERY } from "../graphql/experience.gql";
 import {
   GetExperienceConnectionMiniVariables,
   GetExperienceConnectionMini,
@@ -209,16 +210,34 @@ export function useOnExperiencesDeletedSubscription() {
 
 ////////////////////////// END DELETE EXPERIENCES SECTION ////////////
 
+////////////////////////// START FULL EXPERIENCE SECTION ////////////////////
+
 export function useGetExperienceDetail(
   variables: GetDetailExperienceVariables,
 ) {
   return useQuery<GetDetailExperience, GetDetailExperienceVariables>(
-    GET_DETAIL_EXPERIENCE_QUERY,
+    GET_COMPLETE_EXPERIENCE_QUERY,
     {
       variables,
+      notifyOnNetworkStatusChange: true,
     },
   );
 }
+
+export function manuallyFetchDetailedExperience(
+  variables: GetDetailExperienceVariables,
+) {
+  const { client } = window.____ebnis;
+
+  return client.query<GetDetailExperience, GetDetailExperienceVariables>({
+    query: GET_COMPLETE_EXPERIENCE_QUERY,
+    variables,
+  });
+}
+
+export type DetailedExperienceQueryResult = ApolloQueryResult<GetDetailExperience>;
+
+////////////////////////// END COMPLETE EXPERIENCE SECTION ////////////////////
 
 export function manuallyFetchExperienceConnectionMini(
   fetchPolicy?: FetchPolicy,

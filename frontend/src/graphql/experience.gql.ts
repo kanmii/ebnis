@@ -516,8 +516,9 @@ export const ON_EXPERIENCES_DELETED_SUBSCRIPTION = gql`
   }
 `;
 
-////////////////////////// GET EXPERIENCE DETAIL //////////////////
-export const GET_DETAIL_EXPERIENCE_QUERY = gql`
+////////////////////////// GET COMPLETE EXPERIENCE QUERY //////////////////
+
+export const GET_COMPLETE_EXPERIENCE_QUERY = gql`
   query GetDetailExperience($id: ID!, $entriesPagination: PaginationInput!) {
     getExperience(id: $id) {
       ...ExperienceFragment

@@ -35,7 +35,7 @@ import {
 import { warningClassName, errorClassName } from "../utils/utils.dom";
 import { fillField } from "../tests.utils";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
-import { isConnected } from "../utils/connections";
+import { getIsConnected } from "../utils/connections";
 import { CreateExperiencesMutationResult } from "../utils/experience.gql.types";
 import { windowChangeUrl } from "../utils/global-window";
 import { AppPersistor } from "../utils/app-context";
@@ -47,7 +47,7 @@ import { E2EWindowObject } from "../utils/types";
 jest.mock("../components/NewExperience/new-experience.injectables");
 
 jest.mock("../utils/connections");
-const mockIsConnected = isConnected as jest.Mock;
+const mockIsConnected = getIsConnected as jest.Mock;
 
 jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;

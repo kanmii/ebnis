@@ -12,7 +12,7 @@ import {
 } from "../../graphql/apollo-types/ExperienceFragment";
 import {
   EXPERIENCE_FRAGMENT,
-  GET_DETAIL_EXPERIENCE_QUERY,
+  GET_COMPLETE_EXPERIENCE_QUERY,
 } from "../../graphql/experience.gql";
 import { insertExperienceInGetExperiencesMiniQuery } from "../../apollo/update-get-experiences-mini-query";
 import { writeUnsyncedExperience } from "../../apollo/unsynced-ledger";
@@ -117,7 +117,7 @@ const createOfflineExperienceResolver: LocalResolverFn<
   };
 
   cache.writeQuery<GetDetailExperience, GetDetailExperienceVariables>({
-    query: GET_DETAIL_EXPERIENCE_QUERY,
+    query: GET_COMPLETE_EXPERIENCE_QUERY,
     data: {
       getExperience: experience,
     },

@@ -1,43 +1,66 @@
-import React from "react";
+import React, { useReducer, useEffect } from "react";
 import Header from "../Header/header.component";
-import { Match, IndexProps } from "./detail-experience.utils";
-import { entriesPaginationVariables } from "../../graphql/entry.gql";
+import { IndexProps } from "./detail-experience.utils";
 import Loading from "../Loading/loading.component";
 import { DetailExperience } from "./detail-experience.component";
-import { parseStringError } from "../../utils/common-errors";
-import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
+import { useDeleteExperiencesMutation } from "./detail-experience.injectables";
 import {
-  useDeleteExperiencesMutation,
-  useGetExperienceDetail,
-} from "./detail-experience.injectables";
+  reducer,
+  initState,
+  effectFunctions,
+} from "./detail-experience.index-utils";
+import { useRunEffects } from "../../utils/use-run-effects";
+import { StateValue } from "../../utils/types";
 
 export function DetailExperienceIndex(props: IndexProps) {
-  const { experienceId } = (props.match as Match).params;
+  const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
+
+  const {
+    states,
+    effects: { general: generalEffects },
+    timeouts: { fetchExperience: fetchExperienceTimeout },
+  } = stateMachine;
+
   const [deleteExperiences] = useDeleteExperiencesMutation();
 
+  const effectArgs = { dispatch };
 
-  const { data, loading, error } = useGetExperienceDetail({
-    id: experienceId,
-    entriesPagination: entriesPaginationVariables.entriesPagination,
-  });
+  useRunEffects(generalEffects, effectFunctions, props, effectArgs);
 
-  const experience = (data && data.getExperience) as ExperienceFragment;
+  useEffect(() => {
+    if (fetchExperienceTimeout) {
+      return () => {
+        clearTimeout(fetchExperienceTimeout);
+      };
+    }
+
+    return undefined;
+  }, [fetchExperienceTimeout]);
+
+  function render() {
+    switch (states.value) {
+      case StateValue.loading:
+        return <Loading />;
+
+      case StateValue.errors:
+        return states.error;
+
+      case StateValue.data:
+        return (
+          <DetailExperience
+            {...props}
+            experience={states.data}
+            deleteExperiences={deleteExperiences}
+          />
+        );
+    }
+  }
 
   return (
     <>
       <Header />
 
-      {error ? (
-        parseStringError(error)
-      ) : loading ? (
-        <Loading />
-      ) : (
-        <DetailExperience
-          {...props}
-          experience={experience}
-          deleteExperiences={deleteExperiences}
-        />
-      )}
+      {render()}
     </>
   );
 }

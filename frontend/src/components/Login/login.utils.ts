@@ -12,7 +12,7 @@ import {
 } from "../../utils/common-errors";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { LoginMutationComponentProps } from "../../utils/user.gql.types";
-import { isConnected } from "../../utils/connections";
+import { getIsConnected } from "../../utils/connections";
 import { EbnisContextProps } from "../../utils/app-context";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { MY_URL } from "../../utils/urls";
@@ -118,7 +118,7 @@ const loginEffect: DefLoginEffect["func"] = async (
 
   const { dispatch } = effectArgs;
 
-  if (!isConnected()) {
+  if (!getIsConnected()) {
     dispatch({
       type: ActionType.ON_COMMON_ERROR,
       error: NO_CONNECTION_ERROR,

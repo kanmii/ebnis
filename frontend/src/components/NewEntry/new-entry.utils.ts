@@ -15,7 +15,7 @@ import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
 import { CreateOfflineEntryMutationComponentProps } from "./new-entry.resolvers";
 import { wrapReducer } from "../../logger";
-import { isConnected } from "../../utils/connections";
+import { getIsConnected } from "../../utils/connections";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { scrollIntoViewNonFieldErrorDomId } from "./new-entry.dom";
 import {
@@ -186,7 +186,7 @@ const createEntryEffect: DefCreateEntryEffect["func"] = (
     };
   }
 
-  if (isConnected()) {
+  if (getIsConnected()) {
     const { experience } = props;
     const experienceId = experience.id;
 

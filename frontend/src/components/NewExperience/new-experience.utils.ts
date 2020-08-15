@@ -26,7 +26,7 @@ import {
   CreateExperiencesMutationFn,
 } from "../../utils/experience.gql.types";
 import { entriesPaginationVariables } from "../../graphql/entry.gql";
-import { isConnected } from "../../utils/connections";
+import { getIsConnected } from "../../utils/connections";
 import {
   CreateExperiences_createExperiences_CreateExperienceErrors_errors,
   CreateExperiences_createExperiences_CreateExperienceErrors_errors_dataDefinitions,
@@ -153,7 +153,7 @@ const submissionEffect: DefSubmissionEffect["func"] = (
   props,
   effectArgs,
 ) => {
-  if (isConnected()) {
+  if (getIsConnected()) {
     const { createExperiences } = props;
     const { dispatch } = effectArgs;
 

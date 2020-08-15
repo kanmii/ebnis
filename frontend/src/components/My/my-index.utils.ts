@@ -9,13 +9,17 @@ import { parseStringError } from "../../utils/common-errors";
 import {
   StateValue,
   LoadingVal,
-  NoEffectVal,
   ErrorsVal,
   DataVal,
   HasEffectsVal,
   InitialVal,
 } from "../../utils/types";
 import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMiniFragment";
+import {
+  GenericGeneralEffect,
+  getGeneralEffects,
+  GenericEffectDefinition,
+} from "../../utils/effects";
 
 export enum ActionType {
   ON_DATA_RECEIVED = "@my-index/on-data-received",
@@ -80,6 +84,7 @@ function handleOnDataReceivedAction(
 
 async function handleDataReFetchRequestAction(proxy: DraftState) {
   const effects = getGeneralEffects(proxy);
+
   effects.push({
     key: "fetchExperiencesEffect",
     ownArgs: {},
@@ -124,17 +129,15 @@ export function initState(): StateMachine {
 
 type DraftState = Draft<StateMachine>;
 
-interface StateMachine {
-  readonly states:
-    | {
-        value: LoadingVal;
-      }
-    | ErrorState
-    | DataState;
-  readonly effects: {
-    readonly general: EffectState | { value: NoEffectVal };
-  };
-}
+type StateMachine = GenericGeneralEffect<EffectType> &
+  Readonly<{
+    states:
+      | {
+          value: LoadingVal;
+        }
+      | ErrorState
+      | DataState;
+  }>;
 
 interface ErrorState {
   value: ErrorsVal;
@@ -163,17 +166,12 @@ export interface EffectState {
   };
 }
 
-interface EffectDefinition<
+type Props = {};
+
+type EffectDefinition<
   Key extends keyof typeof effectFunctions,
   OwnArgs = {}
-> {
-  key: Key;
-  ownArgs: OwnArgs;
-  func?: (
-    ownArgs: OwnArgs,
-    args: EffectArgs,
-  ) => void | Promise<void | (() => void)> | (() => void);
-}
+> = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 type EffectsList = DefFetchExperiencesEffect[];
 
@@ -182,15 +180,9 @@ export interface EffectArgs {
 }
 export type MyIndexDispatchType = Dispatch<Action>;
 
-type DefFetchExperiencesEffect = EffectDefinition<
-  "fetchExperiencesEffect",
-  {
-    initial?: InitialVal;
-  }
->;
-
 const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
   _,
+  __,
   { dispatch },
 ) => {
   try {
@@ -210,29 +202,16 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
   }
 };
 
+type DefFetchExperiencesEffect = EffectDefinition<
+  "fetchExperiencesEffect",
+  {
+    initial?: InitialVal;
+  }
+>;
+
 export const effectFunctions = {
   fetchExperiencesEffect,
 };
-
-function getGeneralEffects(proxy: DraftState) {
-  const generalEffects = proxy.effects.general as EffectState;
-  generalEffects.value = StateValue.hasEffects;
-  let effects: EffectsList = [];
-
-  // istanbul ignore next: trivial
-  if (!generalEffects.hasEffects) {
-    generalEffects.hasEffects = {
-      context: {
-        effects,
-      },
-    };
-  } else {
-    // istanbul ignore next: trivial
-    effects = generalEffects.hasEffects.context.effects;
-  }
-
-  return effects;
-}
 
 type OnDataReceivedPayload =
   | {
@@ -243,3 +222,5 @@ type OnDataReceivedPayload =
       key: ErrorsVal;
       error: Error;
     };
+
+type EffectType = DefFetchExperiencesEffect;
