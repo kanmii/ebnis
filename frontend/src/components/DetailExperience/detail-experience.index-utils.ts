@@ -2,6 +2,7 @@ import { Reducer, Dispatch } from "react";
 import { wrapReducer } from "../../logger";
 import immer, { Draft } from "immer";
 import { manuallyFetchDetailedExperience } from "../../utils/experience.gql.types";
+import { entriesPaginationVariables } from "../../graphql/entry.gql";
 import {
   parseStringError,
   GENERIC_SERVER_ERROR,
@@ -18,7 +19,6 @@ import {
   getGeneralEffects,
   GenericEffectDefinition,
 } from "../../utils/effects";
-import { entriesPaginationVariables } from "../../graphql/entry.gql";
 import { IndexProps, Match } from "./detail-experience.utils";
 import { DetailedExperienceQueryResult } from "../../utils/experience.gql.types";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
@@ -155,14 +155,6 @@ async function handleDataReFetchRequestAction(proxy: DraftState) {
   });
 }
 
-function handleSetTimeoutAction(proxy: DraftState, payload: SetTimeoutPayload) {
-  const { timeouts } = proxy;
-
-  Object.entries(payload).forEach(([key, val]) => {
-    timeouts[key] = val;
-  });
-}
-
 function handleClearTimoutAction(
   proxy: DraftState,
   payload: ClearTimeoutPayload,
@@ -182,6 +174,14 @@ function handleClearTimoutAction(
       }
       break;
   }
+}
+
+function handleSetTimeoutAction(proxy: DraftState, payload: SetTimeoutPayload) {
+  const { timeouts } = proxy;
+
+  Object.entries(payload).forEach(([key, val]) => {
+    timeouts[key] = val;
+  });
 }
 
 function getExperienceId(props: IndexProps) {
@@ -245,8 +245,6 @@ type EffectDefinition<
   Key extends keyof typeof effectFunctions,
   OwnArgs = {}
 > = GenericEffectDefinition<EffectArgs, IndexProps, Key, OwnArgs>;
-
-type EffectsList = DefFetchDetailedExperienceEffect | DefClearTimeoutEffect;
 
 export interface EffectArgs {
   dispatch: CompleteExperienceIndexDispatchType;

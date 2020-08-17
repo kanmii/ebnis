@@ -62,6 +62,7 @@
 
 .new-entry-trigger {
   @extend %floating-circular;
+  z-index: 1;
 }
 
 .delete-experience-component {

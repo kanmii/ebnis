@@ -20,10 +20,10 @@ export interface EbnisContextProps extends E2EWindowObject {
 
 export type AppPersistor = CachePersistor<NormalizedCacheObject>;
 
-export const WithEmitterContext = createContext<WithEmitterContextProps>(
-  {} as WithEmitterContextProps,
-);
+export const WithSubscriptionContext = createContext<WithSubscriptionContextProps>({
+  connected: null,
+} as WithSubscriptionContextProps);
 
-interface WithEmitterContextProps {
-  connected: boolean;
+interface WithSubscriptionContextProps {
+  connected: boolean | null;
 }

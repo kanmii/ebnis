@@ -22,7 +22,8 @@ export const defineSocket = ({ uri, token: connToken }: DefineParams) => {
     socket.connect();
 
     socket.onOpen(() => {
-      storeConnectionStatus(socket.isConnected());
+      const isConnected = socket.isConnected();
+      storeConnectionStatus(isConnected);
     });
 
     socket.onError(() => {
@@ -41,7 +42,7 @@ export const defineSocket = ({ uri, token: connToken }: DefineParams) => {
   function dispatchDisconnected() {
     const isConnected = getIsConnected();
 
-    if (isConnected) {
+    if (isConnected !== false) {
       storeConnectionStatus(false);
     }
   }

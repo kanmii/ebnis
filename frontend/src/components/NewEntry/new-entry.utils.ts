@@ -27,6 +27,7 @@ import {
   StringyErrorPayload,
   parseStringError,
   FORM_CONTAINS_ERRORS_MESSAGE,
+  GENERIC_SERVER_ERROR,
 } from "../../utils/common-errors";
 import {
   CreateEntryErrorFragment,
@@ -169,8 +170,6 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
   );
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
-
-export const GENERIC_SERVER_ERROR = "Something went wrong - please try again.";
 
 const createEntryEffect: DefCreateEntryEffect["func"] = (
   { input },

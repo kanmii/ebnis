@@ -6,6 +6,7 @@ import React, {
   useEffect,
 } from "react";
 import "./styles.scss";
+import Header from "../Header/header.component";
 import {
   Props,
   initState,
@@ -16,6 +17,7 @@ import {
   StateMachine,
   DispatchType,
   ShowingOptionsMenuState,
+  DataState,
 } from "./detail-experience.utils";
 import { setUpRoutePage } from "../../utils/global-window";
 import { NewEntry } from "./detail-experience.lazy";
@@ -26,7 +28,7 @@ import {
 } from "../../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
-import { StateValue , ReactMouseEvent} from "../../utils/types";
+import { StateValue, ReactMouseAnchorEvent } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 import {
   newEntryCreatedNotificationCloseId,
@@ -38,25 +40,122 @@ import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
 import { getSyncEntriesErrorsLedger } from "../../apollo/unsynced-ledger";
 import { UnsyncableEntryError } from "../../utils/unsynced-ledger.types";
+import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
+import { useDeleteExperiencesMutation } from "./detail-experience.injectables";
 
 export function DetailExperience(props: Props) {
-  const { experience } = props;
+  const [stateMachine, dispatch] = useReducer(reducer, props, initState);
+  const [deleteExperiences] = useDeleteExperiencesMutation();
+
+  const {
+    states: {
+      newEntryActive,
+      deleteExperience,
+      showingOptionsMenu,
+      experience: experienceState,
+      entriesErrors,
+      newEntryCreated,
+    },
+    effects: { general: generalEffects },
+    timeouts: {
+      fetchExperience: fetchExperienceTimeout,
+      autoCloseNotification: autoCloseNotificationTimeout,
+    },
+  } = stateMachine;
+
+  useRunEffects(generalEffects, effectFunctions, props, {
+    dispatch,
+    deleteExperiences,
+    experience: (experienceState as DataState).data,
+  });
+
+  useEffect(() => {
+    if (fetchExperienceTimeout) {
+      return () => {
+        clearTimeout(fetchExperienceTimeout);
+      };
+    }
+
+    return undefined;
+  }, [fetchExperienceTimeout]);
+
+  useEffect(() => {
+    if (autoCloseNotificationTimeout) {
+      return () => {
+        clearTimeout(autoCloseNotificationTimeout);
+      };
+    }
+
+    return undefined;
+  }, [autoCloseNotificationTimeout]);
+
+  const onOpenNewEntry = useCallback((e: ReactMouseAnchorEvent) => {
+    e.preventDefault();
+
+    dispatch({
+      type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,
+    });
+  }, []);
+
+  function render() {
+    switch (experienceState.value) {
+      case StateValue.loading:
+        return <Loading />;
+
+      case StateValue.errors:
+        return experienceState.error;
+
+      case StateValue.data:
+        return (
+          <ExperienceComponent
+            {...props}
+            experience={experienceState.data}
+            newEntryActive={newEntryActive}
+            deleteExperience={deleteExperience}
+            showingOptionsMenu={showingOptionsMenu}
+            dispatch={dispatch}
+            onOpenNewEntry={onOpenNewEntry}
+            entriesErrors={entriesErrors}
+            newEntryCreated={newEntryCreated}
+          />
+        );
+    }
+  }
+
+  return (
+    <>
+      <Header />
+
+      <a className="new-entry-trigger" onClick={onOpenNewEntry} href="*">
+        <span>+</span>
+      </a>
+
+      {render()}
+    </>
+  );
+}
+
+// istanbul ignore next:
+export default DetailExperience;
+
+function ExperienceComponent(props: ExperienceProps) {
+  const {
+    experience,
+    dispatch,
+    showingOptionsMenu,
+    deleteExperience: deleteExperienceState,
+    newEntryActive: newEntryActiveState,
+    newEntryCreated,
+    entriesErrors,
+    onOpenNewEntry,
+  } = props;
+
   const syncEntriesErrors =
     getSyncEntriesErrorsLedger(experience.id) ||
     // istanbul ignore next:
     {};
-  const [stateMachine, dispatch] = useReducer(reducer, props, initState);
-  const entries = entryConnectionToNodes(experience.entries);
 
-  const {
-    states: {
-      newEntryActive: newEntryActiveState,
-      deleteExperience: deleteExperienceState,
-      showingOptionsMenu,
-    },
-    effects: { general: generalEffects },
-    context,
-  } = stateMachine;
+  const entries = entryConnectionToNodes(experience.entries);
 
   useLayoutEffect(() => {
     setUpRoutePage({
@@ -81,17 +180,8 @@ export function DetailExperience(props: Props) {
     return () => {
       document.documentElement.removeEventListener("click", onDocClicked);
     };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, [experience]);
-
-  useRunEffects(generalEffects, effectFunctions, props, { dispatch });
-
-  const onOpenNewEntry = useCallback((e) => {
-    e.preventDefault();
-
-    dispatch({
-      type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,
-    });
-  }, []);
 
   const dataDefinitionIdToNameMap = experience.dataDefinitions.reduce(
     (acc, d) => {
@@ -105,50 +195,46 @@ export function DetailExperience(props: Props) {
     dispatch({
       type: ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION,
     });
+    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
 
   const onCloseEntriesErrorsNotification = useCallback(() => {
     dispatch({
       type: ActionType.ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION,
     });
+    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
+    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
 
   const onDeclineDeleteExperience = useCallback(() => {
     dispatch({
       type: ActionType.DELETE_EXPERIENCE_CANCELLED,
     });
+    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
 
   const onConfirmDeleteExperience = useCallback(() => {
     dispatch({
       type: ActionType.DELETE_EXPERIENCE_CONFIRMED,
     });
+    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
 
-  const onDeleteExperienceRequest = useCallback((e: ReactMouseEvent) => {
+  const onDeleteExperienceRequest = useCallback((e: ReactMouseAnchorEvent) => {
     e.preventDefault();
 
     dispatch({
       type: ActionType.DELETE_EXPERIENCE_REQUEST,
     });
+    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
 
   const onToggleMenu = useCallback(() => {
     dispatch({
       type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
     });
+    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
-
-  const { autoCloseNotificationTimeoutId } = context;
-
-  useEffect(() => {
-    return () => {
-      // istanbul ignore else
-      if (autoCloseNotificationTimeoutId) {
-        clearTimeout(autoCloseNotificationTimeoutId);
-      }
-    };
-  }, [autoCloseNotificationTimeoutId]);
 
   return (
     <>
@@ -172,12 +258,12 @@ export function DetailExperience(props: Props) {
         )}
 
         <EntriesErrorsNotification
-          state={stateMachine.states.entriesErrors}
+          state={entriesErrors}
           onCloseEntriesErrorsNotification={onCloseEntriesErrorsNotification}
         />
 
         <NewEntryNotification
-          state={stateMachine.states.newEntryCreated}
+          state={newEntryCreated}
           onCloseNewEntryCreatedNotification={
             onCloseNewEntryCreatedNotification
           }
@@ -228,10 +314,6 @@ export function DetailExperience(props: Props) {
           </>
         )}
       </div>
-
-      <a className="new-entry-trigger" onClick={onOpenNewEntry} href="*">
-        <span>+</span>
-      </a>
     </>
   );
 }
@@ -504,6 +586,19 @@ interface DeleteExperienceProps {
 interface MenuProps {
   state: ShowingOptionsMenuState;
   onToggleMenu: () => void;
-  onDeleteExperienceRequest: (event: ReactMouseEvent) => void;
+  onDeleteExperienceRequest: (event: ReactMouseAnchorEvent) => void;
   className?: string;
 }
+
+type ExperienceProps = {
+  experience: ExperienceFragment;
+  dispatch: DispatchType;
+  onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
+} & Pick<
+  StateMachine["states"],
+  | "showingOptionsMenu"
+  | "entriesErrors"
+  | "newEntryActive"
+  | "deleteExperience"
+  | "newEntryCreated"
+>;

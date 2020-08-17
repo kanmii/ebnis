@@ -18,7 +18,6 @@ import {
 import {
   makeConnectionObject,
   resetConnectionObject,
-  storeConnectionStatus,
 } from "../utils/connections";
 import { makeObservable, makeBChannel } from "../utils/observable-manager";
 import possibleTypes from "../graphql/apollo-types/fragment-types.json";
@@ -43,7 +42,7 @@ export function buildClientCache(
   if (cache) {
     // e2e test is now serving our app
     if (appHydrated) {
-      storeConnectionStatus(true);
+      // storeConnectionStatus(true);
     }
     return globalVars;
   }
@@ -173,6 +172,7 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
 
   if (!window.Cypress) {
     makeObservable(window.____ebnis);
+
     makeBChannel(window.____ebnis);
     makeConnectionObject();
     return window.____ebnis;

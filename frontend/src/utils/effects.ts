@@ -1,6 +1,8 @@
 import { HasEffectsVal, NoEffectVal, StateValue } from "./types";
 
-export function getGeneralEffects<E, T extends GenericGeneralEffect<E>>(proxy: T) {
+export function getGeneralEffects<E, T extends GenericGeneralEffect<E>>(
+  proxy: T,
+) {
   const generalEffects = proxy.effects.general as GenericHasEffect<E>;
   generalEffects.value = StateValue.hasEffects;
   let effects: Array<E> = [];
@@ -22,9 +24,13 @@ export function getGeneralEffects<E, T extends GenericGeneralEffect<E>>(proxy: T
 
 export interface GenericGeneralEffect<E> {
   effects: {
-    general: GenericHasEffect<E> | { value: NoEffectVal };
+    general: GeneralEffectProperty<E>;
   };
 }
+
+export type GeneralEffectProperty<E> =
+  | GenericHasEffect<E>
+  | { value: NoEffectVal };
 
 export interface GenericHasEffect<EffectType> {
   value: HasEffectsVal;

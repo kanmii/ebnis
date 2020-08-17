@@ -1,4 +1,5 @@
 import { Reducer, Dispatch } from "react";
+import { ApolloError } from "@apollo/client";
 import { wrapReducer } from "../../logger";
 import { RouteChildrenProps, match } from "react-router-dom";
 import { DetailExperienceRouteMatch } from "../../utils/urls";
@@ -8,7 +9,15 @@ import { getUnsyncedExperience } from "../../apollo/unsynced-ledger";
 import immer, { Draft } from "immer";
 import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
-import { ActiveVal, InActiveVal, RequestedVal } from "../../utils/types";
+import {
+  ActiveVal,
+  InActiveVal,
+  RequestedVal,
+  LoadingVal,
+  ErrorsVal,
+  DataVal,
+  InitialVal,
+} from "../../utils/types";
 import {
   GenericGeneralEffect,
   getGeneralEffects,
@@ -42,6 +51,13 @@ import {
   putOrRemoveDeleteExperienceLedger,
 } from "../../apollo/delete-experience-cache";
 import { DeleteExperiencesComponentProps } from "../../utils/experience.gql.types";
+import { DetailedExperienceQueryResult } from "../../utils/experience.gql.types";
+import { manuallyFetchDetailedExperience } from "../../utils/experience.gql.types";
+import { entriesPaginationVariables } from "../../graphql/entry.gql";
+import {
+  parseStringError,
+  GENERIC_SERVER_ERROR,
+} from "../../utils/common-errors";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -54,6 +70,9 @@ export enum ActionType {
   DELETE_EXPERIENCE_CANCELLED = "@detailed-experience/delete-experience-cancelled",
   DELETE_EXPERIENCE_CONFIRMED = "@detailed-experience/delete-experience-confirmed",
   TOGGLE_SHOW_OPTIONS_MENU = "@detailed-experience/toggle-options-menu",
+  ON_DATA_RECEIVED = "@detailed-experience/on-data-received",
+  DATA_RE_FETCH_REQUEST = "@detailed-experience/data-re-fetch-request",
+  CLEAR_TIMEOUT = "@detailed-experience/clear-timeout",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -82,7 +101,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             break;
 
           case ActionType.SET_TIMEOUT:
-            handleSetTimeout(proxy, payload as SetTimeoutPayload);
+            handleSetTimeoutAction(proxy, payload as SetTimeoutPayload);
             break;
 
           case ActionType.ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION:
@@ -114,6 +133,18 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
               payload as ToggleOptionsMenuPayload,
             );
             break;
+
+          case ActionType.ON_DATA_RECEIVED:
+            handleOnDataReceivedAction(proxy, payload as OnDataReceivedPayload);
+            break;
+
+          case ActionType.DATA_RE_FETCH_REQUEST:
+            handleDataReFetchRequestAction(proxy);
+            break;
+
+          case ActionType.CLEAR_TIMEOUT:
+            handleClearTimoutAction(proxy, payload as ClearTimeoutPayload);
+            break;
         }
       });
     },
@@ -124,7 +155,6 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
 export function initState(props: Props): StateMachine {
   return {
-    context: {},
     effects: {
       general: {
         value: StateValue.hasEffects,
@@ -132,11 +162,7 @@ export function initState(props: Props): StateMachine {
           context: {
             effects: [
               {
-                key: "onOfflineExperienceSyncedEffect",
-                ownArgs: {},
-              },
-              {
-                key: "deleteExperienceRequestedEffect",
+                key: "fetchDetailedExperienceEffect",
                 ownArgs: {},
               },
             ],
@@ -163,7 +189,12 @@ export function initState(props: Props): StateMachine {
       showingOptionsMenu: {
         value: StateValue.inactive,
       },
+      experience: {
+        value: StateValue.loading,
+      },
     },
+
+    timeouts: {},
   };
 }
 
@@ -194,13 +225,6 @@ function handleOnNewEntryCreatedOrOfflineExperienceSynced(
   newEntryActive.value = StateValue.inactive;
   notification.value = StateValue.inactive;
 
-  const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
-
-  effects.push({
-    key: "scrollDocToTopEffect",
-    ownArgs: {},
-  });
-
   let unsyncableEntriesErrors = handleMaybeNewEntryCreatedHelper(
     proxy,
     payload,
@@ -211,6 +235,13 @@ function handleOnNewEntryCreatedOrOfflineExperienceSynced(
     payload,
     unsyncableEntriesErrors,
   );
+
+  const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
+
+  effects.push({
+    key: "scrollDocToTopEffect",
+    ownArgs: {},
+  });
 
   // istanbul ignore else:
   if (Object.keys(unsyncableEntriesErrors).length) {
@@ -233,17 +264,21 @@ function handleMaybeNewEntryCreatedHelper(
     return emptyReturn;
   }
 
-  const { states, context } = proxy;
+  const { states } = proxy;
   const { newEntryCreated } = states;
   const { updatedAt, clientId, id } = mayBeNewEntry;
 
   const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
-  effects.push({
-    key: "autoCloseNotificationEffect",
-    ownArgs: {
-      timeoutId: context.autoCloseNotificationTimeoutId,
+  effects.push(
+    {
+      key: "fetchDetailedExperienceEffect",
+      ownArgs: {},
     },
-  });
+    {
+      key: "autoCloseNotificationEffect",
+      ownArgs: {},
+    },
+  );
 
   const newEntryState = newEntryCreated as Draft<NewEntryCreatedNotification>;
   newEntryState.value = StateValue.active;
@@ -353,13 +388,15 @@ function handleOnCloseEntriesErrorsNotification(proxy: DraftStateMachine) {
   proxy.states.entriesErrors.value = StateValue.inactive;
 }
 
-function handleSetTimeout(
+function handleSetTimeoutAction(
   proxy: DraftStateMachine,
   payload: SetTimeoutPayload,
 ) {
-  const { context } = proxy;
-  const { id } = payload;
-  context.autoCloseNotificationTimeoutId = id;
+  const { timeouts } = proxy;
+
+  Object.entries(payload).forEach(([key, val]) => {
+    timeouts[key] = val;
+  });
 }
 
 function handleOnEditEntryAction(
@@ -449,6 +486,107 @@ function handleToggleShowOptionsMenuAction(
       : StateValue.inactive;
 }
 
+function handleOnDataReceivedAction(
+  proxy: DraftStateMachine,
+  payload: OnDataReceivedPayload,
+) {
+  const { timeouts, states } = proxy;
+
+  switch (payload.key) {
+    case StateValue.data:
+      {
+        const { data, loading, error } = payload.data;
+
+        if (data) {
+          const experience = data.getExperience;
+
+          if (experience) {
+            states.experience = {
+              value: StateValue.data,
+              data: experience,
+            };
+          } else {
+            states.experience = {
+              value: StateValue.errors,
+              error: GENERIC_SERVER_ERROR,
+            };
+          }
+        } else if (loading) {
+          states.experience = {
+            value: StateValue.loading,
+          };
+        } else {
+          states.experience = {
+            value: StateValue.errors,
+            error: parseStringError(error as ApolloError),
+          };
+        }
+      }
+      break;
+
+    case StateValue.errors:
+      states.experience = {
+        value: StateValue.errors,
+        error: parseStringError(payload.error),
+      };
+      break;
+  }
+
+  const effects = getGeneralEffects(proxy);
+
+  effects.push(
+    {
+      key: "clearTimeoutEffect",
+      ownArgs: {
+        timeoutId: timeouts.fetchExperience,
+      },
+    },
+
+    {
+      key: "onOfflineExperienceSyncedEffect",
+      ownArgs: {},
+    },
+    {
+      key: "deleteExperienceRequestedEffect",
+      ownArgs: {},
+    },
+  );
+}
+
+async function handleDataReFetchRequestAction(proxy: DraftStateMachine) {
+  const effects = getGeneralEffects(proxy);
+
+  effects.push({
+    key: "fetchDetailedExperienceEffect",
+    ownArgs: {},
+  });
+}
+
+function handleClearTimoutAction(
+  proxy: DraftStateMachine,
+  payload: ClearTimeoutPayload,
+) {
+  const { key, timedOut } = payload;
+  const { timeouts, states } = proxy;
+
+  switch (key) {
+    case "fetchExperience":
+      timeouts.fetchExperience = undefined;
+
+      if (timedOut) {
+        states.experience = {
+          value: StateValue.errors,
+          error: GENERIC_SERVER_ERROR,
+        };
+      }
+      break;
+  }
+}
+
+function getExperienceId(props: IndexProps) {
+  return (props.match as Match).params.experienceId;
+}
+
 ////////////////////////// END STATE UPDATE ////////////////////////////
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
@@ -459,46 +597,39 @@ const scrollDocToTopEffect: DefScrollDocToTopEffect["func"] = () => {
 type DefScrollDocToTopEffect = EffectDefinition<"scrollDocToTopEffect">;
 
 const autoCloseNotificationEffect: DefAutoCloseNotificationEffect["func"] = (
-  ownArgs,
   _,
+  __,
   effectArgs,
 ) => {
   const { dispatch } = effectArgs;
-  const { timeoutId } = ownArgs;
+  const timeout = 10 * 1000;
 
-  if (timeoutId) {
-    clearTimeout(timeoutId);
-  }
-
-  const id = setTimeout(() => {
+  const timeoutId = setTimeout(() => {
     dispatch({
       type: ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION,
     });
-  }, 10000);
+  }, timeout);
 
   dispatch({
     type: ActionType.SET_TIMEOUT,
-    id,
+    autoCloseNotification: timeoutId,
   });
 };
 
 type DefAutoCloseNotificationEffect = EffectDefinition<
-  "autoCloseNotificationEffect",
-  {
-    timeoutId?: NodeJS.Timeout;
-  }
+  "autoCloseNotificationEffect"
 >;
 
 const onOfflineExperienceSyncedEffect: DefOnOfflineExperienceSyncedEffect["func"] = (
   _,
-  props,
+  _props,
   effectArgs,
 ) => {
   const {
-    experience: { id, entries },
-  } = props;
+    dispatch,
 
-  const { dispatch } = effectArgs;
+    experience: { id, entries },
+  } = effectArgs;
 
   const ledger = getSyncingExperience(id);
 
@@ -556,8 +687,9 @@ type DefOnOfflineExperienceSyncedEffect = EffectDefinition<
 const putEntriesErrorsInLedgerEffect: DefPutEntriesErrorsInLedgerEffect["func"] = (
   ownArgs,
   props,
+  effectArgs,
 ) => {
-  putAndRemoveUnSyncableEntriesErrorsLedger(props.experience.id, ownArgs);
+  putAndRemoveUnSyncableEntriesErrorsLedger(effectArgs.experience.id, ownArgs);
 };
 
 type DefPutEntriesErrorsInLedgerEffect = EffectDefinition<
@@ -581,9 +713,11 @@ type DefOnEntrySyncedEffect = EffectDefinition<
 const cancelDeleteExperienceEffect: DefCancelDeleteExperienceEffect["func"] = (
   { key },
   props,
+  effectArgs,
 ) => {
   if (key) {
-    const { history, experience } = props;
+    const { history } = props;
+    const { experience } = effectArgs;
     const { id, title } = experience;
 
     putOrRemoveDeleteExperienceLedger({
@@ -604,9 +738,10 @@ type DefCancelDeleteExperienceEffect = EffectDefinition<
 const deleteExperienceRequestedEffect: DefDeleteExperienceRequestedEffect["func"] = (
   _,
   props,
-  { dispatch },
+  effectArgs,
 ) => {
-  const deleteExperienceLedger = getDeleteExperienceLedger(props.experience.id);
+  const { dispatch, experience } = effectArgs;
+  const deleteExperienceLedger = getDeleteExperienceLedger(experience.id);
 
   if (
     deleteExperienceLedger &&
@@ -628,12 +763,15 @@ type DefDeleteExperienceRequestedEffect = EffectDefinition<
 const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
   _,
   props,
+  effectArgs,
 ) => {
+  const { history } = props;
+
   const {
     deleteExperiences,
+
     experience: { id },
-    history,
-  } = props;
+  } = effectArgs;
 
   try {
     const response = await deleteExperiences({
@@ -675,6 +813,68 @@ const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
 
 type DefDeleteExperienceEffect = EffectDefinition<"deleteExperienceEffect">;
 
+const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = async (
+  _,
+  props,
+  { dispatch },
+) => {
+  const timeout = 15 * 1000;
+
+  const timeoutId = setTimeout(() => {
+    dispatch({
+      type: ActionType.CLEAR_TIMEOUT,
+      key: "fetchExperience",
+      timedOut: true,
+    });
+  }, timeout);
+
+  try {
+    const experienceId = getExperienceId(props);
+
+    dispatch({
+      type: ActionType.SET_TIMEOUT,
+      fetchExperience: timeoutId,
+    });
+
+    const data = await manuallyFetchDetailedExperience({
+      id: experienceId,
+      entriesPagination: entriesPaginationVariables.entriesPagination,
+    });
+
+    dispatch({
+      type: ActionType.ON_DATA_RECEIVED,
+      key: StateValue.data,
+      data,
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    dispatch({
+      type: ActionType.ON_DATA_RECEIVED,
+      key: StateValue.errors,
+      error,
+    });
+  }
+};
+
+type DefFetchDetailedExperienceEffect = EffectDefinition<
+  "fetchDetailedExperienceEffect",
+  {
+    initial?: InitialVal;
+  }
+>;
+
+const clearTimeoutEffect: DefClearTimeoutEffect["func"] = (ownArgs) => {
+  clearTimeout(ownArgs.timeoutId);
+};
+
+type DefClearTimeoutEffect = EffectDefinition<
+  "clearTimeoutEffect",
+  {
+    timeoutId: NodeJS.Timeout;
+  }
+>;
+
 export const effectFunctions = {
   scrollDocToTopEffect,
   autoCloseNotificationEffect,
@@ -684,6 +884,8 @@ export const effectFunctions = {
   cancelDeleteExperienceEffect,
   deleteExperienceRequestedEffect,
   deleteExperienceEffect,
+  fetchDetailedExperienceEffect,
+  clearTimeoutEffect,
 };
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
@@ -718,9 +920,6 @@ type DraftStateMachine = Draft<StateMachine>;
 
 export type StateMachine = GenericGeneralEffect<EffectType> &
   Readonly<{
-    context: StateContext;
-  }> &
-  Readonly<{
     states: Readonly<{
       newEntryActive: Readonly<
         | {
@@ -753,8 +952,31 @@ export type StateMachine = GenericGeneralEffect<EffectType> &
       deleteExperience: DeleteExperienceState;
 
       showingOptionsMenu: ShowingOptionsMenuState;
+
+      experience: LoadingState | ErrorState | DataState;
     }>;
+
+    timeouts: Timeouts;
   }>;
+
+type Timeouts = Readonly<{
+  fetchExperience?: NodeJS.Timeout;
+  autoCloseNotification?: NodeJS.Timeout;
+}>;
+
+type LoadingState = Readonly<{
+  value: LoadingVal;
+}>;
+
+type ErrorState = Readonly<{
+  value: ErrorsVal;
+  error: string;
+}>;
+
+export type DataState = Readonly<{
+  value: DataVal;
+  data: ExperienceFragment;
+}>;
 
 export type ShowingOptionsMenuState = Readonly<
   | {
@@ -808,10 +1030,6 @@ type NewEntryCreatedNotification = Readonly<{
   }>;
 }>;
 
-type StateContext = Readonly<{
-  autoCloseNotificationTimeoutId?: NodeJS.Timeout;
-}>;
-
 type NotificationActive = Readonly<{
   value: ActiveVal;
   active: Readonly<{
@@ -831,13 +1049,10 @@ export type IndexCallerProps = RouteChildrenProps<
 export type IndexProps = IndexCallerProps;
 
 export type CallerProps = {
-  experience: ExperienceFragment;
   delete?: boolean;
 };
 
-export type Props = IndexCallerProps &
-  CallerProps &
-  DeleteExperiencesComponentProps;
+export type Props = IndexCallerProps & CallerProps;
 
 export type Match = match<DetailExperienceRouteMatch>;
 
@@ -871,7 +1086,31 @@ type Action =
     }
   | ({
       type: ActionType.TOGGLE_SHOW_OPTIONS_MENU;
-    } & ToggleOptionsMenuPayload);
+    } & ToggleOptionsMenuPayload)
+  | ({
+      type: ActionType.ON_DATA_RECEIVED;
+    } & OnDataReceivedPayload)
+  | {
+      type: ActionType.DATA_RE_FETCH_REQUEST;
+    }
+  | ({
+      type: ActionType.CLEAR_TIMEOUT;
+    } & ClearTimeoutPayload);
+
+type ClearTimeoutPayload = {
+  key: keyof Timeouts;
+  timedOut?: true;
+};
+
+type OnDataReceivedPayload =
+  | {
+      key: DataVal;
+      data: DetailedExperienceQueryResult;
+    }
+  | {
+      key: ErrorsVal;
+      error: Error;
+    };
 
 interface ToggleOptionsMenuPayload {
   key?: "close" | "open";
@@ -890,9 +1129,9 @@ interface OnNewEntryCreatedOrOfflineExperienceSyncedPayload {
   mayBeEntriesErrors?: CreateEntryErrorFragment[] | null;
 }
 
-interface SetTimeoutPayload {
-  id?: NodeJS.Timeout;
-}
+type SetTimeoutPayload = {
+  [k in keyof Timeouts]: NodeJS.Timeout;
+};
 
 export type DispatchType = Dispatch<Action>;
 
@@ -900,16 +1139,17 @@ export interface DetailedExperienceChildDispatchProps {
   detailedExperienceDispatch: DispatchType;
 }
 
-export interface EffectArgs {
+export type EffectArgs = DeleteExperiencesComponentProps & {
   dispatch: DispatchType;
-}
+  experience: ExperienceFragment;
+};
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
   OwnArgs = {}
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
-type EffectType =
+export type EffectType =
   | DefScrollDocToTopEffect
   | DefAutoCloseNotificationEffect
   | DefOnOfflineExperienceSyncedEffect
@@ -917,4 +1157,6 @@ type EffectType =
   | DefOnEntrySyncedEffect
   | DefCancelDeleteExperienceEffect
   | DefDeleteExperienceRequestedEffect
-  | DefDeleteExperienceEffect;
+  | DefDeleteExperienceEffect
+  | DefFetchDetailedExperienceEffect
+  | DefClearTimeoutEffect;

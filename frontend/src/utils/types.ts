@@ -8,7 +8,10 @@ import { EmitActionType, BroadcastMessageType } from "./observable-manager";
 import { ChangeEvent } from "react";
 import { BroadcastChannel } from "broadcast-channel";
 
-export type ReactMouseEvent = React.MouseEvent<HTMLAnchorElement, MouseEvent>;
+export type ReactMouseAnchorEvent = React.MouseEvent<
+  HTMLAnchorElement | HTMLButtonElement,
+  MouseEvent
+>;
 
 export type EmitData = (params: EmitPayload) => void;
 
@@ -43,7 +46,7 @@ export interface E2EWindowObject extends ObservableUtils {
 }
 
 export interface ConnectionStatus {
-  isConnected: boolean;
+  isConnected: boolean | null;
   mode: "auto" | "manual";
 }
 

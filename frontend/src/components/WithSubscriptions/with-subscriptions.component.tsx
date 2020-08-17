@@ -2,7 +2,7 @@ import React, { useEffect, useReducer } from "react";
 import { EmitActionType } from "../../utils/observable-manager";
 import {
   cleanupObservableSubscription,
-  WithEmitterProvider,
+  WithSubscriptionProvider,
   useOnExperiencesDeletedSubscription,
 } from "./with-subscriptions.injectables";
 import { EmitActionConnectionChangedPayload } from "../../utils/types";
@@ -71,13 +71,13 @@ export function WithSubscriptions(props: Props) {
   });
 
   return (
-    <WithEmitterProvider
+    <WithSubscriptionProvider
       value={{
         connected: connectionStatus,
       }}
     >
       {children}
-    </WithEmitterProvider>
+    </WithSubscriptionProvider>
   );
 }
 

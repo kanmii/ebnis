@@ -4,7 +4,7 @@ import logo from "../../media/logo.png";
 import { MY_URL } from "../../utils/urls";
 import { Link, useLocation } from "react-router-dom";
 import makeClassNames from "classnames";
-import { WithEmitterContext } from "../../utils/app-context";
+import { WithSubscriptionContext } from "../../utils/app-context";
 import { domPrefix } from "./header.dom";
 
 export function Header(props: Props) {
@@ -35,10 +35,10 @@ export function Header(props: Props) {
 
 // istanbul ignore next:
 export default () => {
-  const { connected } = useContext(WithEmitterContext);
+  const { connected } = useContext(WithSubscriptionContext);
   return <Header connected={connected} />;
 };
 
 interface Props {
-  connected: boolean;
+  connected: boolean | null;
 }

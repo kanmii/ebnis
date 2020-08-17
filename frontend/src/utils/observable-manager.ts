@@ -7,16 +7,48 @@ export enum EmitActionType {
   random = "@emit-action/nothing",
 }
 
+let timeoutId: null | number = null;
+
 export function makeObservable(globals: E2EWindowObject) {
   globals.observable = new Observable<EmitPayload>((emitter) => {
     globals.emitter = emitter;
   });
 
   globals.emitData = function emitData(params: EmitPayload) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
     const { emitter } = globals;
 
     if (emitter) {
       emitter.next(params);
+      return;
+    }
+
+    let count = 1;
+
+    retry();
+
+    // try 3 more times to emit the message (hopefully emitter will be available by then)
+
+    function retry() {
+      if (count > 3) {
+        return;
+      }
+
+      ++count;
+
+      timeoutId = setTimeout(() => {
+        const { emitter } = globals;
+
+        if (emitter) {
+          emitter.next(params);
+          return;
+        }
+
+        retry();
+      });
     }
   };
 

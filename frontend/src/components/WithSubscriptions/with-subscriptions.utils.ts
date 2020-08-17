@@ -65,7 +65,7 @@ export function initState(): StateMachine {
       },
     },
     states: {
-      connected: false,
+      connected: null,
     },
   };
 }
@@ -136,7 +136,7 @@ type DraftState = Draft<StateMachine>;
 export type StateMachine = GenericGeneralEffect<EffectType> &
   Readonly<{
     states: Readonly<{
-      connected: boolean;
+      connected: boolean | null;
     }>;
   }>;
 
@@ -157,7 +157,7 @@ export type CallerProps = PropsWithChildren<{
   bc: BChannel;
 }>;
 
-export type Props = CallerProps
+export type Props = CallerProps;
 
 type DispatchType = Dispatch<Action>;
 
