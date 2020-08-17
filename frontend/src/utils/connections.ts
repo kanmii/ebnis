@@ -6,7 +6,10 @@ export function makeConnectionObject() {
   let connectionStatus = window.____ebnis.connectionStatus;
 
   if (!connectionStatus) {
-    connectionStatus = {} as ConnectionStatus;
+    connectionStatus = {
+      isConnected: null,
+    } as ConnectionStatus;
+
     window.____ebnis.connectionStatus = connectionStatus;
   }
 
