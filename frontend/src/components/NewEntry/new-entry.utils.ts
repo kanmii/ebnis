@@ -36,7 +36,7 @@ import {
 import {
   DetailedExperienceChildDispatchProps,
   ActionType as DetailedExperienceActionType,
-} from "../DetailExperience/detail-experience.utils";
+} from "../DetailExperience/utils";
 import {
   HasEffectsVal,
   ActiveVal,

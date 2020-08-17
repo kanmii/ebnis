@@ -18,7 +18,7 @@ import {
   DispatchType,
   ShowingOptionsMenuState,
   DataState,
-} from "./detail-experience.utils";
+} from "./utils";
 import { setUpRoutePage } from "../../utils/global-window";
 import { NewEntry } from "./detail-experience.lazy";
 import Loading from "../Loading/loading.component";

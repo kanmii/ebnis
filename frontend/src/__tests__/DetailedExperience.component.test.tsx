@@ -7,7 +7,7 @@ import {
   Props,
   ActionType,
   DetailedExperienceChildDispatchProps,
-} from "../components/DetailExperience/detail-experience.utils";
+} from "../components/DetailExperience/utils";
 import { EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
 import { scrollDocumentToTop } from "../components/DetailExperience/detail-experience.injectables";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
