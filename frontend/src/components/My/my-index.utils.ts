@@ -3,9 +3,12 @@ import { wrapReducer } from "../../logger";
 import immer, { Draft } from "immer";
 import { GetExperienceConnectionMini } from "../../graphql/apollo-types/GetExperienceConnectionMini";
 import { GetExperienceConnectionMini_getExperiences_edges } from "../../graphql/apollo-types/GetExperienceConnectionMini";
-import { ApolloQueryResult } from "@apollo/client";
+import { ApolloQueryResult, FetchPolicy } from "@apollo/client";
 import { manuallyFetchExperienceConnectionMini } from "../../utils/experience.gql.types";
-import { parseStringError } from "../../utils/common-errors";
+import {
+  parseStringError,
+  DATA_FETCHING_FAILED,
+} from "../../utils/common-errors";
 import {
   StateValue,
   LoadingVal,
@@ -20,6 +23,7 @@ import {
   getGeneralEffects,
   GenericEffectDefinition,
 } from "../../utils/effects";
+import { getIsConnected } from "../../utils/connections";
 
 export enum ActionType {
   ON_DATA_RECEIVED = "@my-index/on-data-received",
@@ -180,26 +184,73 @@ export interface EffectArgs {
 }
 export type MyIndexDispatchType = Dispatch<Action>;
 
-const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
+////////////////////////// EFFECTS SECTION ////////////////////////////
+
+let fetchExperiencesAttemptCount = 1;
+
+const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = (
   _,
   __,
   { dispatch },
 ) => {
-  try {
-    const data = await manuallyFetchExperienceConnectionMini("cache-first");
+  let timeoutId: null | NodeJS.Timeout = null;
+  fetchExperiencesAttemptCount = 1;
 
-    dispatch({
-      type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      data,
-    });
-  } catch (error) {
-    dispatch({
-      type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.errors,
-      error,
-    });
+  function fetchExperiencesAfter() {
+    const isConnected = getIsConnected();
+
+    // we are connected
+    if (isConnected) {
+      fetchExperiences("cache-first");
+      return;
+    }
+
+    // we are not connected
+    if (isConnected === false) {
+      fetchExperiences("cache-only");
+      return;
+    }
+
+    // we are still trying to connect
+    // isConnected === null
+    if (fetchExperiencesAttemptCount > 3) {
+      dispatch({
+        type: ActionType.ON_DATA_RECEIVED,
+        key: StateValue.errors,
+        error: DATA_FETCHING_FAILED,
+      });
+
+      return;
+    }
+
+    ++fetchExperiencesAttemptCount;
+
+    timeoutId = setTimeout(fetchExperiencesAfter, 5000);
   }
+
+  async function fetchExperiences(fetchPolicy: FetchPolicy) {
+    try {
+      const data = await manuallyFetchExperienceConnectionMini(fetchPolicy);
+
+      dispatch({
+        type: ActionType.ON_DATA_RECEIVED,
+        key: StateValue.data,
+        data,
+      });
+    } catch (error) {
+      dispatch({
+        type: ActionType.ON_DATA_RECEIVED,
+        key: StateValue.errors,
+        error,
+      });
+    }
+
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  fetchExperiencesAfter();
 };
 
 type DefFetchExperiencesEffect = EffectDefinition<
@@ -213,6 +264,8 @@ export const effectFunctions = {
   fetchExperiencesEffect,
 };
 
+////////////////////////// END EFFECTS SECTION ////////////////////////////
+
 type OnDataReceivedPayload =
   | {
       key: DataVal;
@@ -220,7 +273,7 @@ type OnDataReceivedPayload =
     }
   | {
       key: ErrorsVal;
-      error: Error;
+      error: Error | string;
     };
 
 type EffectType = DefFetchExperiencesEffect;

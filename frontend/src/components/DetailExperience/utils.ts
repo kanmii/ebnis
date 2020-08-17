@@ -1,5 +1,5 @@
 import { Reducer, Dispatch } from "react";
-import { ApolloError } from "@apollo/client";
+import { ApolloError, FetchPolicy } from "@apollo/client";
 import { wrapReducer } from "../../logger";
 import { RouteChildrenProps, match } from "react-router-dom";
 import { DetailExperienceRouteMatch } from "../../utils/urls";
@@ -57,7 +57,9 @@ import { entriesPaginationVariables } from "../../graphql/entry.gql";
 import {
   parseStringError,
   GENERIC_SERVER_ERROR,
+  DATA_FETCHING_FAILED,
 } from "../../utils/common-errors";
+import { getIsConnected } from "../../utils/connections";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -140,10 +142,6 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
           case ActionType.DATA_RE_FETCH_REQUEST:
             handleDataReFetchRequestAction(proxy);
-            break;
-
-          case ActionType.CLEAR_TIMEOUT:
-            handleClearTimoutAction(proxy, payload as ClearTimeoutPayload);
             break;
         }
       });
@@ -490,7 +488,8 @@ function handleOnDataReceivedAction(
   proxy: DraftStateMachine,
   payload: OnDataReceivedPayload,
 ) {
-  const { timeouts, states } = proxy;
+  const { states } = proxy;
+  const effects = getGeneralEffects(proxy);
 
   switch (payload.key) {
     case StateValue.data:
@@ -505,10 +504,21 @@ function handleOnDataReceivedAction(
               value: StateValue.data,
               data: experience,
             };
+
+            effects.push(
+              {
+                key: "onOfflineExperienceSyncedEffect",
+                ownArgs: {},
+              },
+              {
+                key: "deleteExperienceRequestedEffect",
+                ownArgs: {},
+              },
+            );
           } else {
             states.experience = {
               value: StateValue.errors,
-              error: GENERIC_SERVER_ERROR,
+              error: DATA_FETCHING_FAILED,
             };
           }
         } else if (loading) {
@@ -531,26 +541,6 @@ function handleOnDataReceivedAction(
       };
       break;
   }
-
-  const effects = getGeneralEffects(proxy);
-
-  effects.push(
-    {
-      key: "clearTimeoutEffect",
-      ownArgs: {
-        timeoutId: timeouts.fetchExperience,
-      },
-    },
-
-    {
-      key: "onOfflineExperienceSyncedEffect",
-      ownArgs: {},
-    },
-    {
-      key: "deleteExperienceRequestedEffect",
-      ownArgs: {},
-    },
-  );
 }
 
 async function handleDataReFetchRequestAction(proxy: DraftStateMachine) {
@@ -562,28 +552,7 @@ async function handleDataReFetchRequestAction(proxy: DraftStateMachine) {
   });
 }
 
-function handleClearTimoutAction(
-  proxy: DraftStateMachine,
-  payload: ClearTimeoutPayload,
-) {
-  const { key, timedOut } = payload;
-  const { timeouts, states } = proxy;
-
-  switch (key) {
-    case "fetchExperience":
-      timeouts.fetchExperience = undefined;
-
-      if (timedOut) {
-        states.experience = {
-          value: StateValue.errors,
-          error: GENERIC_SERVER_ERROR,
-        };
-      }
-      break;
-  }
-}
-
-function getExperienceId(props: IndexProps) {
+function getExperienceId(props: Props) {
   return (props.match as Match).params.experienceId;
 }
 
@@ -813,48 +782,83 @@ const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
 
 type DefDeleteExperienceEffect = EffectDefinition<"deleteExperienceEffect">;
 
-const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = async (
+let fetchExperienceAttemptsCount = 1;
+
+const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = (
   _,
   props,
   { dispatch },
 ) => {
-  const timeout = 15 * 1000;
+  const experienceId = getExperienceId(props);
+  let timeoutId: null | NodeJS.Timeout = null;
 
-  const timeoutId = setTimeout(() => {
-    dispatch({
-      type: ActionType.CLEAR_TIMEOUT,
-      key: "fetchExperience",
-      timedOut: true,
-    });
-  }, timeout);
+  async function fetchDetailedExperience(fetchPolicy: FetchPolicy) {
+    try {
+      const data = await manuallyFetchDetailedExperience(
+        {
+          id: experienceId,
+          entriesPagination: entriesPaginationVariables.entriesPagination,
+        },
+        fetchPolicy,
+      );
 
-  try {
-    const experienceId = getExperienceId(props);
+      dispatch({
+        type: ActionType.ON_DATA_RECEIVED,
+        key: StateValue.data,
+        data,
+      });
+    } catch (error) {
+      dispatch({
+        type: ActionType.ON_DATA_RECEIVED,
+        key: StateValue.errors,
+        error,
+      });
+    }
 
-    dispatch({
-      type: ActionType.SET_TIMEOUT,
-      fetchExperience: timeoutId,
-    });
-
-    const data = await manuallyFetchDetailedExperience({
-      id: experienceId,
-      entriesPagination: entriesPaginationVariables.entriesPagination,
-    });
-
-    dispatch({
-      type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      data,
-    });
-  } catch (error) {
-    clearTimeout(timeoutId);
-
-    dispatch({
-      type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.errors,
-      error,
-    });
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
+
+  fetchExperienceAttemptsCount = 1;
+
+  if (isOfflineId(experienceId)) {
+    fetchDetailedExperience("cache-only");
+    return;
+  }
+
+  function mayBeScheduleFetchDetailedExperience() {
+    const isConnected = getIsConnected();
+
+    // we are connected
+    if (isConnected) {
+      fetchDetailedExperience("cache-first");
+      return;
+    }
+
+    // we are not connected
+    if (isConnected === false) {
+      fetchDetailedExperience("cache-only");
+      return;
+    }
+
+    // we are still trying to connect
+    if (fetchExperienceAttemptsCount > 3) {
+      dispatch({
+        type: ActionType.ON_DATA_RECEIVED,
+        key: StateValue.errors,
+        error: DATA_FETCHING_FAILED,
+      });
+
+      return;
+    }
+
+    ++fetchExperienceAttemptsCount;
+
+    timeoutId = setTimeout(mayBeScheduleFetchDetailedExperience, 5000);
+  }
+
+  mayBeScheduleFetchDetailedExperience();
 };
 
 type DefFetchDetailedExperienceEffect = EffectDefinition<
@@ -960,7 +964,6 @@ export type StateMachine = GenericGeneralEffect<EffectType> &
   }>;
 
 type Timeouts = Readonly<{
-  fetchExperience?: NodeJS.Timeout;
   autoCloseNotification?: NodeJS.Timeout;
 }>;
 
@@ -1039,20 +1042,12 @@ type NotificationActive = Readonly<{
   }>;
 }>;
 
-export type IndexCallerProps = RouteChildrenProps<
+export type Props = RouteChildrenProps<
   DetailExperienceRouteMatch,
   {
     delete: boolean;
   }
 >;
-
-export type IndexProps = IndexCallerProps;
-
-export type CallerProps = {
-  delete?: boolean;
-};
-
-export type Props = IndexCallerProps & CallerProps;
 
 export type Match = match<DetailExperienceRouteMatch>;
 
@@ -1109,7 +1104,7 @@ type OnDataReceivedPayload =
     }
   | {
       key: ErrorsVal;
-      error: Error;
+      error: Error | string;
     };
 
 interface ToggleOptionsMenuPayload {

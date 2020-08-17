@@ -57,10 +57,7 @@ export function DetailExperience(props: Props) {
       newEntryCreated,
     },
     effects: { general: generalEffects },
-    timeouts: {
-      fetchExperience: fetchExperienceTimeout,
-      autoCloseNotification: autoCloseNotificationTimeout,
-    },
+    timeouts: { autoCloseNotification: autoCloseNotificationTimeout },
   } = stateMachine;
 
   useRunEffects(generalEffects, effectFunctions, props, {
@@ -68,16 +65,6 @@ export function DetailExperience(props: Props) {
     deleteExperiences,
     experience: (experienceState as DataState).data,
   });
-
-  useEffect(() => {
-    if (fetchExperienceTimeout) {
-      return () => {
-        clearTimeout(fetchExperienceTimeout);
-      };
-    }
-
-    return undefined;
-  }, [fetchExperienceTimeout]);
 
   useEffect(() => {
     if (autoCloseNotificationTimeout) {

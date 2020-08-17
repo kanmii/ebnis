@@ -226,16 +226,20 @@ export function useGetExperienceDetail(
 
 export function manuallyFetchDetailedExperience(
   variables: GetDetailExperienceVariables,
+  fetchPolicy?: FetchPolicy,
 ) {
   const { client } = window.____ebnis;
 
   return client.query<GetDetailExperience, GetDetailExperienceVariables>({
     query: GET_COMPLETE_EXPERIENCE_QUERY,
     variables,
+    fetchPolicy,
   });
 }
 
-export type DetailedExperienceQueryResult = ApolloQueryResult<GetDetailExperience>;
+export type DetailedExperienceQueryResult = ApolloQueryResult<
+  GetDetailExperience
+>;
 
 ////////////////////////// END COMPLETE EXPERIENCE SECTION ////////////////////
 
