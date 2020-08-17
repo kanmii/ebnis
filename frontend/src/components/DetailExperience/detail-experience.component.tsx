@@ -84,13 +84,30 @@ export function DetailExperience(props: Props) {
     });
   }, []);
 
+  const onRefetchExperience = useCallback(() => {
+    dispatch({
+      type: ActionType.RE_FETCH_EXPERIENCE,
+    });
+  }, []);
+
   function render() {
     switch (experienceState.value) {
       case StateValue.loading:
         return <Loading />;
 
       case StateValue.errors:
-        return experienceState.error;
+        return (
+          <div>
+            {experienceState.error}
+
+            <button
+              className="button is-link refetch-btn"
+              onClick={onRefetchExperience}
+            >
+              Refetch
+            </button>
+          </div>
+        );
 
       case StateValue.data:
         return (
@@ -113,9 +130,11 @@ export function DetailExperience(props: Props) {
     <>
       <Header />
 
-      <a className="new-entry-trigger" onClick={onOpenNewEntry} href="*">
-        <span>+</span>
-      </a>
+      {experienceState.value === StateValue.data && (
+        <a className="new-entry-trigger" onClick={onOpenNewEntry} href="*">
+          <span>+</span>
+        </a>
+      )}
 
       {render()}
     </>

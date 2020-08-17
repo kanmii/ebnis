@@ -56,7 +56,6 @@ import { manuallyFetchDetailedExperience } from "../../utils/experience.gql.type
 import { entriesPaginationVariables } from "../../graphql/entry.gql";
 import {
   parseStringError,
-  GENERIC_SERVER_ERROR,
   DATA_FETCHING_FAILED,
 } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";
@@ -73,8 +72,7 @@ export enum ActionType {
   DELETE_EXPERIENCE_CONFIRMED = "@detailed-experience/delete-experience-confirmed",
   TOGGLE_SHOW_OPTIONS_MENU = "@detailed-experience/toggle-options-menu",
   ON_DATA_RECEIVED = "@detailed-experience/on-data-received",
-  DATA_RE_FETCH_REQUEST = "@detailed-experience/data-re-fetch-request",
-  CLEAR_TIMEOUT = "@detailed-experience/clear-timeout",
+  RE_FETCH_EXPERIENCE = "@detailed-experience/re-fetch-experience",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -140,8 +138,8 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             handleOnDataReceivedAction(proxy, payload as OnDataReceivedPayload);
             break;
 
-          case ActionType.DATA_RE_FETCH_REQUEST:
-            handleDataReFetchRequestAction(proxy);
+          case ActionType.RE_FETCH_EXPERIENCE:
+            handleRefetchExperienceAction(proxy);
             break;
         }
       });
@@ -543,7 +541,7 @@ function handleOnDataReceivedAction(
   }
 }
 
-async function handleDataReFetchRequestAction(proxy: DraftStateMachine) {
+async function handleRefetchExperienceAction(proxy: DraftStateMachine) {
   const effects = getGeneralEffects(proxy);
 
   effects.push({
@@ -1086,16 +1084,8 @@ type Action =
       type: ActionType.ON_DATA_RECEIVED;
     } & OnDataReceivedPayload)
   | {
-      type: ActionType.DATA_RE_FETCH_REQUEST;
-    }
-  | ({
-      type: ActionType.CLEAR_TIMEOUT;
-    } & ClearTimeoutPayload);
-
-type ClearTimeoutPayload = {
-  key: keyof Timeouts;
-  timedOut?: true;
-};
+      type: ActionType.RE_FETCH_EXPERIENCE;
+    };
 
 type OnDataReceivedPayload =
   | {
