@@ -59,6 +59,7 @@ import {
   DATA_FETCHING_FAILED,
 } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";
+import { entryToEdge } from "../NewEntry/entry-to-edge";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -144,6 +145,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
         }
       });
     },
+
     // true,
   );
 
@@ -261,20 +263,20 @@ function handleMaybeNewEntryCreatedHelper(
   }
 
   const { states } = proxy;
-  const { newEntryCreated } = states;
+  const { newEntryCreated, experience: experienceState } = states;
+  const experienceDataState = experienceState as Draft<DataState>;
+  experienceDataState.value = StateValue.data;
+  const experience = experienceDataState.data;
+  const edges = experience.entries.edges as EntryConnectionFragment_edges[]
+  edges.unshift(entryToEdge(mayBeNewEntry));
+
   const { updatedAt, clientId, id } = mayBeNewEntry;
 
   const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
-  effects.push(
-    {
-      key: "fetchDetailedExperienceEffect",
-      ownArgs: {},
-    },
-    {
-      key: "autoCloseNotificationEffect",
-      ownArgs: {},
-    },
-  );
+  effects.push({
+    key: "autoCloseNotificationEffect",
+    ownArgs: {},
+  });
 
   const newEntryState = newEntryCreated as Draft<NewEntryCreatedNotification>;
   newEntryState.value = StateValue.active;

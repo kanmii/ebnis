@@ -102,7 +102,7 @@ export function putAndRemoveUnSyncableEntriesErrorsLedger(
   writeUnsyncedExperience(experienceId, unsyncedExperience);
 }
 
-export function getSyncEntriesErrorsLedger(
+export function getUnSyncEntriesErrorsLedger(
   experienceId: string,
 ): UnsyncableEntriesErrors | null {
   const unsyncedExperience = (getUnsyncedExperience(experienceId) ||

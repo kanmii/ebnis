@@ -38,7 +38,7 @@ import {
 } from "./detail-experience.dom";
 import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
-import { getSyncEntriesErrorsLedger } from "../../apollo/unsynced-ledger";
+import { getUnSyncEntriesErrorsLedger } from "../../apollo/unsynced-ledger";
 import { UnsyncableEntryError } from "../../utils/unsynced-ledger.types";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { useDeleteExperiencesMutation } from "./detail-experience.injectables";
@@ -156,8 +156,8 @@ function ExperienceComponent(props: ExperienceProps) {
     onOpenNewEntry,
   } = props;
 
-  const syncEntriesErrors =
-    getSyncEntriesErrorsLedger(experience.id) ||
+  const unsyncableEntriesErrors =
+    getUnSyncEntriesErrorsLedger(experience.id) ||
     // istanbul ignore next:
     {};
 
@@ -208,7 +208,6 @@ function ExperienceComponent(props: ExperienceProps) {
     dispatch({
       type: ActionType.ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION,
     });
-    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
     /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
 
@@ -311,7 +310,9 @@ function ExperienceComponent(props: ExperienceProps) {
                     key={entry.id}
                     entry={entry}
                     dataDefinitionIdToNameMap={dataDefinitionIdToNameMap}
-                    entriesErrors={syncEntriesErrors[entry.clientId as string]}
+                    unsyncableEntriesErrors={
+                      unsyncableEntriesErrors[entry.clientId as string]
+                    }
                     dispatch={dispatch}
                   />
                 );
@@ -325,7 +326,12 @@ function ExperienceComponent(props: ExperienceProps) {
 }
 
 function EntryComponent(props: EntryProps) {
-  const { entry, dataDefinitionIdToNameMap, entriesErrors, dispatch } = props;
+  const {
+    entry,
+    dataDefinitionIdToNameMap,
+    unsyncableEntriesErrors,
+    dispatch,
+  } = props;
   const { updatedAt, dataObjects: dObjects, id: entryId, clientId } = entry;
   const dataObjects = dObjects as DataObjectFragment[];
   const isOffline = isOfflineId(entryId);
@@ -353,7 +359,7 @@ function EntryComponent(props: EntryProps) {
 
         <div className="entry__updated-at">{formatDatetime(updatedAt)}</div>
 
-        {entriesErrors && (
+        {unsyncableEntriesErrors && (
           <div>
             <hr />
 
@@ -575,7 +581,7 @@ function Menu(props: MenuProps) {
 interface EntryProps {
   entry: EntryFragment;
   dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
-  entriesErrors: UnsyncableEntryError;
+  unsyncableEntriesErrors: UnsyncableEntryError;
   dispatch: DispatchType;
 }
 

@@ -39,7 +39,7 @@ module.exports = {
       open: "env-cmd -e e2eDev cypress open",
       run: "server-test ",
     },
-    typeCheck: {
+    tc: {
       default: "tsc --project .",
       cypress: "tsc --project ./cypress",
     },
@@ -47,7 +47,7 @@ module.exports = {
     gqlTypes: {
       default: "yarn start fetchGqlTypes",
     },
-    fetchGqlTypes: `node -e 'require("./package-scripts").fetchGqlTypes()'`,
+    fgql: `node -e 'require("./package-scripts").fetchGqlTypes()'`,
   },
   serviceWorker() {
     const { copyWorkboxLibraries, injectManifest } = require("workbox-build");
