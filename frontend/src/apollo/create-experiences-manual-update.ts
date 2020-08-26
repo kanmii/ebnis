@@ -5,10 +5,11 @@ import {
   ExperienceFragment_entries_edges,
 } from "../graphql/apollo-types/ExperienceFragment";
 import { readExperienceFragment } from "./read-experience-fragment";
-import { writeExperienceFragmentToCache } from "./write-experience-fragment";
-import { insertExperiencesInGetExperiencesMiniQuery } from "./update-get-experiences-mini-query";
+import { writeGetCompleteExperienceQueryToCache } from "./write-get-complete-experience-query";
+import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "./update-get-experiences-mini-query";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
+import { writeExperienceFragmentToCache } from "./write-experience-fragment";
 
 export function createExperiencesManualUpdate(
   dataProxy: DataProxy,
@@ -20,117 +21,155 @@ export function createExperiencesManualUpdate(
     return;
   }
 
-  const toBeInserted = validResponses.reduce((experiencesAcc, response) => {
-    // istanbul ignore next:
-    if (!response) {
-      return experiencesAcc;
-    }
-
-    if (response.__typename === "ExperienceSuccess") {
-      const { experience, entriesErrors } = response;
-
-      if (!entriesErrors) {
-        experiencesAcc.push(experience);
-        return experiencesAcc;
+  const toBeInsertedOrReplaced = validResponses.reduce(
+    (toBeInsertedOrReplacedAcc, response) => {
+      // istanbul ignore next:
+      if (!response) {
+        return toBeInsertedOrReplacedAcc;
       }
 
-      const offlineExperience = readExperienceFragment(
-        experience.clientId as string,
-      );
+      if (response.__typename === "ExperienceSuccess") {
+        const { experience: newlyCreatedExperience, entriesErrors } = response;
 
-      // fresh experience created directly online
-      if (!offlineExperience) {
-        experiencesAcc.push(experience);
-        return experiencesAcc;
-      }
+        const clientId = newlyCreatedExperience.clientId || "";
+        const offlineExperience = readExperienceFragment(clientId);
 
-      // experience created offline now synced
+        // fresh experience created directly online
+        if (!offlineExperience) {
+          toBeInsertedOrReplacedAcc.push([
+            newlyCreatedExperience.id,
+            newlyCreatedExperience,
+          ]);
 
-      const offlineEntriesEdges = offlineExperience.entries.edges;
-
-      if (!offlineEntriesEdges) {
-        experiencesAcc.push(experience);
-        return experiencesAcc;
-      }
-
-      const entriesErrorsIndices = entriesErrors.reduce((acc, e) => {
-        const {
-          meta: { index },
-        } = e;
-        if ("number" === typeof index) {
-          acc.push(index);
+          return toBeInsertedOrReplacedAcc;
         }
 
-        return acc;
-      }, [] as number[]);
+        if (!entriesErrors) {
+          toBeInsertedOrReplacedAcc.push([
+            newlyCreatedExperience.id,
+            newlyCreatedExperience,
+          ]);
 
-      const syncedAndUnsyncedEntriesEdges: ExperienceFragment_entries_edges[] = Array.from(
-        {
-          length: offlineEntriesEdges.length,
-        },
-      );
-
-      const syncedEdges = [
-        ...(experience.entries.edges || []),
-      ] as ExperienceFragment_entries_edges[];
-
-      let syncedIndex = 0;
-
-      const definitionsMap = experience.dataDefinitions.reduce(
-        (definitionsAcc, d) => {
-          const { id, clientId } = d;
-          definitionsAcc[clientId as string] = id;
-
-          return definitionsAcc;
-        },
-        {} as { [key: string]: string },
-      );
-
-      offlineEntriesEdges.forEach((e, index) => {
-        const edge = e as ExperienceFragment_entries_edges;
-
-        if (entriesErrorsIndices.includes(index)) {
-          const node = edge.node as EntryFragment;
-          const experienceId = experience.id;
-
-          const dataObjects = (node.dataObjects as DataObjectFragment[]).map(
-            (dataObject, index) => {
-              return {
-                ...dataObject,
-                definitionId: definitionsMap[dataObject.definitionId],
-              };
-            },
-          );
-
-          const entryEdge = {
-            ...edge,
-            node: {
-              ...node,
-              experienceId,
-              dataObjects,
-            },
-          };
-
-          syncedAndUnsyncedEntriesEdges[index] = entryEdge;
-        } else {
-          syncedAndUnsyncedEntriesEdges[index] = syncedEdges[syncedIndex++];
+          return toBeInsertedOrReplacedAcc;
         }
-      });
 
-      const updatedEntries = {
-        ...experience.entries,
-        edges: syncedAndUnsyncedEntriesEdges,
-      };
+        // experience created offline now synced
 
-      const updatedExperience = { ...experience, entries: updatedEntries };
-      experiencesAcc.push(updatedExperience);
-      writeExperienceFragmentToCache(updatedExperience);
-    }
+        const beforeSyncEntriesEdges = offlineExperience.entries.edges;
 
-    return experiencesAcc;
-  }, [] as ExperienceFragment[]);
+        if (!beforeSyncEntriesEdges) {
+          toBeInsertedOrReplacedAcc.push([
+            newlyCreatedExperience.id,
+            newlyCreatedExperience,
+          ]);
 
-  if (toBeInserted.length) {
-    insertExperiencesInGetExperiencesMiniQuery(dataProxy, toBeInserted);
+          return toBeInsertedOrReplacedAcc;
+        }
+
+        const entriesErrorsIndices = entriesErrors.reduce((acc, e) => {
+          const {
+            meta: { index },
+          } = e;
+          if ("number" === typeof index) {
+            acc.push(index);
+          }
+
+          return acc;
+        }, [] as number[]);
+
+        const syncedAndUnsyncedEntriesEdges: ExperienceFragment_entries_edges[] = Array.from(
+          {
+            length: beforeSyncEntriesEdges.length,
+          },
+        );
+
+        const syncedEdges = [
+          ...(newlyCreatedExperience.entries.edges || []),
+        ] as ExperienceFragment_entries_edges[];
+
+        let syncedIndex = 0;
+
+        const definitionClientIdToIdMap = newlyCreatedExperience.dataDefinitions.reduce(
+          (definitionsAcc, d) => {
+            const { id, clientId } = d;
+            definitionsAcc[clientId as string] = id;
+
+            return definitionsAcc;
+          },
+          {} as { [key: string]: string },
+        );
+
+        const experienceId = newlyCreatedExperience.id;
+        const noErrorOnSyncOfflineEntryEdges: ExperienceFragment_entries_edges[] = [];
+
+        beforeSyncEntriesEdges.forEach((e, index) => {
+          const edge = e as ExperienceFragment_entries_edges;
+
+          if (entriesErrorsIndices.includes(index)) {
+            const beforeSyncEntryNode = edge.node as EntryFragment;
+
+            const dataObjects = (beforeSyncEntryNode.dataObjects as DataObjectFragment[]).map(
+              (dataObject, index) => {
+                return {
+                  ...dataObject,
+                  definitionId:
+                    definitionClientIdToIdMap[dataObject.definitionId],
+                };
+              },
+            );
+
+            const entryEdge = {
+              ...edge,
+              node: {
+                ...beforeSyncEntryNode,
+                experienceId,
+                dataObjects,
+              },
+            };
+
+            syncedAndUnsyncedEntriesEdges[index] = entryEdge;
+          } else {
+            syncedAndUnsyncedEntriesEdges[index] = syncedEdges[syncedIndex++];
+            noErrorOnSyncOfflineEntryEdges.push(edge);
+          }
+        });
+
+        const updatedEntries = {
+          ...newlyCreatedExperience.entries,
+          edges: syncedAndUnsyncedEntriesEdges,
+        };
+
+        const updatedNewlyCreatedExperience = {
+          ...newlyCreatedExperience,
+          entries: updatedEntries,
+        };
+
+        const updatedOfflineExperience = {
+          ...offlineExperience,
+          entries: {
+            ...offlineExperience.entries,
+            edges: noErrorOnSyncOfflineEntryEdges,
+          },
+        };
+
+        toBeInsertedOrReplacedAcc.push([
+          clientId,
+          updatedNewlyCreatedExperience,
+        ]);
+
+        writeGetCompleteExperienceQueryToCache(updatedNewlyCreatedExperience);
+
+        writeExperienceFragmentToCache(updatedOfflineExperience);
+      }
+
+      return toBeInsertedOrReplacedAcc;
+    },
+    [] as [string, ExperienceFragment][],
+  );
+
+  if (toBeInsertedOrReplaced.length) {
+    insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(
+      toBeInsertedOrReplaced,
+    );
   }
 }

@@ -7,7 +7,7 @@ import {
 } from "../graphql/apollo-types/CreateExperiences";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
 import { writeExperienceFragmentToCache } from "../apollo/write-experience-fragment";
-import { insertExperienceInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
+import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
 import { writeUnsyncedExperience } from "../apollo/unsynced-ledger";
 import { isOfflineId } from "../utils/offlines";
 import { getExperiencesMiniQuery } from "../apollo/get-experiences-mini-query";
@@ -20,7 +20,7 @@ jest.mock("../apollo/unsynced-ledger");
 const mockWriteUnsyncedExperience = writeUnsyncedExperience as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
-const mockInsertExperienceInGetExperiencesMiniQuery = insertExperienceInGetExperiencesMiniQuery as jest.Mock;
+const mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = insertReplaceRemoveExperiencesInGetExperiencesMiniQuery as jest.Mock;
 
 jest.mock("../apollo/write-experience-fragment");
 const mockWriteExperienceFragmentToCache = writeExperienceFragmentToCache as jest.Mock;
@@ -34,7 +34,7 @@ const createOfflineExperienceResolver =
 
 it("creates offline experience/success", () => {
   expect(mockWriteExperienceFragmentToCache).not.toHaveBeenCalled();
-  expect(mockInsertExperienceInGetExperiencesMiniQuery).not.toHaveBeenCalled();
+  expect(mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery).not.toHaveBeenCalled();
   expect(mockWriteUnsyncedExperience).not.toHaveBeenCalled();
 
   mockGetExperiencesMiniQuery.mockReturnValue(null);
@@ -58,7 +58,7 @@ it("creates offline experience/success", () => {
   ) as CreateExperiences_createExperiences_ExperienceSuccess
 
   expect(mockWriteExperienceFragmentToCache).toHaveBeenCalled();
-  expect(mockInsertExperienceInGetExperiencesMiniQuery).toHaveBeenCalled();
+  expect(mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery).toHaveBeenCalled();
   expect(mockWriteUnsyncedExperience).toHaveBeenCalled();
   expect(isOfflineId(experience.id)).toBe(true);
 });

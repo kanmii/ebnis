@@ -45,7 +45,7 @@ import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMin
 import makeClassNames from "classnames";
 import { Link } from "react-router-dom";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
-import { getOnlineStatus } from "../DetailExperience/utils";
+import { getOnlineStatus } from "../DetailExperience/complete-experience-utils";
 import { InputChangeEvent } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 

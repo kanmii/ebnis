@@ -55,6 +55,10 @@ export function buildClientCache(
         keyFields: false,
       },
 
+      syncingExperiencesLedger: {
+        keyFields: false,
+      },
+
       Query: {
         fields: {
           deleteExperience: {
@@ -233,8 +237,6 @@ function getGlobalsFromCypress() {
 
   return globalVars;
 }
-
-type KeyOfE2EWindowObject = keyof E2EWindowObject;
 
 declare global {
   interface Window {

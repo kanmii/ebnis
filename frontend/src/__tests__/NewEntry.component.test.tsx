@@ -34,7 +34,7 @@ import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { E2EWindowObject } from "../utils/types";
 import { makeOfflineId } from "../utils/offlines";
 import { windowChangeUrl } from "../utils/global-window";
-import { removeUnsyncedExperience } from "../apollo/unsynced-ledger";
+import { removeUnsyncedExperienceLedger } from "../apollo/unsynced-ledger";
 import { putOrRemoveSyncingExperience } from "../apollo/syncing-experience-ledger";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 
@@ -85,7 +85,7 @@ jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
 
 jest.mock("../apollo/unsynced-ledger");
-const mockRemoveUnsyncedExperience = removeUnsyncedExperience as jest.Mock;
+const mockRemoveUnsyncedExperience = removeUnsyncedExperienceLedger as jest.Mock;
 
 jest.mock("../apollo/syncing-experience-ledger");
 const mockPutOrRemoveSyncingExperience = putOrRemoveSyncingExperience as jest.Mock;

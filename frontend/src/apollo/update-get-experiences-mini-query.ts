@@ -1,5 +1,3 @@
-import update from "immutability-helper";
-import { DataProxy, InMemoryCache } from "@apollo/client";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import {
   GetExperienceConnectionMini,
@@ -33,85 +31,6 @@ export function makeDefaultExperienceMiniConnection(): GetExperienceConnectionMi
     __typename: "ExperienceConnection",
     edges: [],
   };
-}
-
-export function insertExperienceInGetExperiencesMiniQuery(
-  experience: ExperienceFragment,
-  { force }: { force?: boolean } = {},
-) {
-  const queriedExperienceConnection = getExperiencesMiniQuery();
-
-  if (!queriedExperienceConnection && !force) {
-    return;
-  }
-
-  const { cache } = window.____ebnis;
-
-  const experienceConnection =
-    queriedExperienceConnection || makeDefaultExperienceMiniConnection();
-
-  const updated = update(experienceConnection, {
-    edges: {
-      $unshift: [
-        {
-          node: experience,
-          cursor: "",
-          __typename: "ExperienceEdge",
-        },
-      ],
-    },
-  });
-
-  // const updatedExperienceConnection = immer(experienceConnection, (proxy) => {
-  //   const edges = proxy.edges || [];
-  //   debugger
-
-  //   edges.unshift({
-  //     node: experience,
-  //     cursor: "",
-  //     __typename: "ExperienceEdge",
-  //   });
-
-  //   proxy.edges = edges;
-  // });
-
-  cache.writeQuery<
-    GetExperienceConnectionMini,
-    GetExperienceConnectionMiniVariables
-  >({
-    ...readOptions,
-    data: { getExperiences: updated },
-  });
-}
-
-export function insertExperiencesInGetExperiencesMiniQuery(
-  dataProxy: DataProxy,
-  experiences: (ExperienceMiniFragment | null)[],
-) {
-  const experienceConnection =
-    getExperiencesMiniQuery() || makeDefaultExperienceMiniConnection();
-
-  const updatedExperienceConnection = immer(experienceConnection, (proxy) => {
-    const edges = (proxy.edges || []) as ExperienceConnectionFragment_edges[];
-
-    proxy.edges = experiences
-      .map((e) => {
-        return {
-          node: e,
-          cursor: "",
-          __typename: "ExperienceEdge" as "ExperienceEdge",
-        } as ExperienceConnectionFragment_edges;
-      })
-      .concat(edges);
-  });
-
-  dataProxy.writeQuery<
-    GetExperienceConnectionMini,
-    GetExperienceConnectionMiniVariables
-  >({
-    ...readOptions,
-    data: { getExperiences: updatedExperienceConnection },
-  });
 }
 
 export function floatExperienceToTheTopInGetExperiencesMiniQuery(
@@ -197,39 +116,58 @@ export function floatExperiencesToTopInGetExperiencesMiniQuery(ids: {
 }
 
 /**
- * When null is supplied in the map, it means the experience will be removed
+ * When null is supplied in the array, it means the experience will be removed
  * from the query
  */
-export function replaceOrRemoveExperiencesInGetExperiencesMiniQuery(experiencesMap: {
-  [k: string]: ExperienceFragment | null;
-}) {
+export function insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(
+  experiencesList: [string, ExperienceFragment | null][],
+) {
   const { client } = window.____ebnis;
 
-  const experiences =
+  const experiencesMini =
     getExperiencesMiniQuery() || makeDefaultExperienceMiniConnection();
 
-  const updatedExperienceConnection = immer(experiences, (proxy) => {
-    const edges = (proxy.edges || []) as ExperienceConnectionFragment_edges[];
+  const updatedExperienceConnection = immer(experiencesMini, (proxy) => {
+    const previousEdges = (proxy.edges ||
+      []) as ExperienceConnectionFragment_edges[];
+
+    const previousEdgesMap = previousEdges.reduce(
+      (previousEdgesAcc, previousEdge) => {
+        const experience = previousEdge.node as ExperienceMiniFragment;
+        previousEdgesAcc[experience.id] = previousEdge;
+
+        return previousEdgesAcc;
+      },
+      {} as { [experienceId: string]: ExperienceConnectionFragment_edges },
+    );
+
     const newEdges: ExperienceConnectionFragment_edges[] = [];
 
-    for (let edge of edges) {
-      edge = edge as ExperienceConnectionFragment_edges;
-      const node = edge.node as ExperienceConnectionFragment_edges_node;
-      const replacementExperience = experiencesMap[node.id];
-
-      // value is null, so skip ==== delete.
-      if (replacementExperience === null) {
-        continue;
+    experiencesList.forEach(([experienceId, experienceMiniFragmentOrNull]) => {
+      if (experienceMiniFragmentOrNull === null) {
+        delete previousEdgesMap[experienceId];
+        return;
       }
 
-      if (replacementExperience) {
-        edge.node = replacementExperience;
+      const previousEdge = previousEdgesMap[experienceId];
+
+      if (previousEdge) {
+        previousEdge.node = experienceMiniFragmentOrNull;
+        newEdges.push(previousEdge);
+      } else {
+        const newEdge = {
+          node: experienceMiniFragmentOrNull,
+          cursor: "",
+          __typename: "ExperienceEdge" as "ExperienceEdge",
+        } as ExperienceConnectionFragment_edges;
+
+        newEdges.push(newEdge);
       }
 
-      newEdges.push(edge);
-    }
+      delete previousEdgesMap[experienceId];
+    });
 
-    proxy.edges = newEdges;
+    proxy.edges = newEdges.concat(Object.values(previousEdgesMap));
   });
 
   client.writeQuery<
@@ -247,16 +185,6 @@ export function purgeExperiencesFromCache(ids: string[]) {
   const data = dataProxy.data.data;
   const dataKeys = Object.keys(data);
 
-  const experiencesMiniQuery = getExperiencesMiniQuery();
-  const edgesLen =
-    (experiencesMiniQuery &&
-      experiencesMiniQuery.edges &&
-      experiencesMiniQuery.edges.length) ||
-    -1;
-
-  const miniQueryKeyPart = `$ROOT_QUERY.getExperiences({"input":{"pagination":{"first":20000}}}).edges.`;
-  const miniQueryKeys: string[] = [];
-
   dataKeys.forEach((key) => {
     for (const id of ids) {
       if (key.startsWith(id)) {
@@ -264,24 +192,7 @@ export function purgeExperiencesFromCache(ids: string[]) {
         break;
       }
     }
-
-    if (key.startsWith(miniQueryKeyPart)) {
-      miniQueryKeys.push(key);
-    }
   });
-
-  if (edgesLen > 0) {
-    const pattern = /\.(\d+)$/;
-
-    miniQueryKeys.forEach((key) => {
-      const patternExec = pattern.exec(key) as RegExpExecArray;
-
-      const index = +patternExec[1];
-      if (index >= edgesLen) {
-        delete data[key];
-      }
-    });
-  }
 
   dataProxy.broadcastWatches();
 }
@@ -314,7 +225,7 @@ export function purgeExperiencesFromCache1(ids: string[]) {
       const idFound = idsMap[id];
 
       if (idFound) {
-        purgeExperience(id, data, cache);
+        purgeExperience(id, data);
 
         // we are deleting this experience from this list
         continue;
@@ -338,11 +249,13 @@ export function purgeExperiencesFromCache1(ids: string[]) {
   dataProxy.broadcastWatches();
 }
 
-function purgeExperience(
-  experienceId: string,
-  data: any,
-  cache: InMemoryCache,
-) {
+export function purgeExperience(experienceId: string, data?: any) {
+  if (!data) {
+    const { cache } = window.____ebnis;
+    const dataProxy = cache as any;
+    data = dataProxy.data.data;
+  }
+
   const toDelete = `Experience:${experienceId}`;
 
   try {

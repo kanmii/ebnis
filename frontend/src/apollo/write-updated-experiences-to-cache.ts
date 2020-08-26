@@ -10,7 +10,7 @@ import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
 import {
   getUnsyncedExperience,
-  removeUnsyncedExperience,
+  removeUnsyncedExperienceLedger,
   writeUnsyncedExperience,
 } from "./unsynced-ledger";
 import { EntryConnectionFragment_edges } from "../graphql/apollo-types/EntryConnectionFragment";
@@ -88,7 +88,7 @@ export function writeUpdatedExperienceToCache(onDone?: () => void) {
               ]);
 
               if (!Object.keys(updatedUnsynced).length) {
-                removeUnsyncedExperience(experienceId);
+                removeUnsyncedExperienceLedger(experienceId);
               } else {
                 writeUnsyncedExperience(experienceId, updatedUnsynced);
               }

@@ -10,7 +10,7 @@ import { writeExperienceFragmentToCache } from "../apollo/write-experience-fragm
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import {
   getUnsyncedExperience,
-  removeUnsyncedExperience,
+  removeUnsyncedExperienceLedger,
   writeUnsyncedExperience,
 } from "../apollo/unsynced-ledger";
 import { UpdateExperienceFragment } from "../graphql/apollo-types/UpdateExperienceFragment";
@@ -20,7 +20,7 @@ import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 
 jest.mock("../apollo/unsynced-ledger");
 const mockGetUnsyncedExperience = getUnsyncedExperience as jest.Mock;
-const mockRemoveUnsyncedExperience = removeUnsyncedExperience as jest.Mock;
+const mockRemoveUnsyncedExperience = removeUnsyncedExperienceLedger as jest.Mock;
 const mockWriteUnsyncedExperience = writeUnsyncedExperience as jest.Mock;
 
 jest.mock("../apollo/write-experience-fragment");

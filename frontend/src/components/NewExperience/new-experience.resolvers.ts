@@ -14,7 +14,7 @@ import {
   EXPERIENCE_FRAGMENT,
   GET_COMPLETE_EXPERIENCE_QUERY,
 } from "../../graphql/experience.gql";
-import { insertExperienceInGetExperiencesMiniQuery } from "../../apollo/update-get-experiences-mini-query";
+import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "../../apollo/update-get-experiences-mini-query";
 import { writeUnsyncedExperience } from "../../apollo/unsynced-ledger";
 import {
   MutationFunction,
@@ -127,9 +127,9 @@ const createOfflineExperienceResolver: LocalResolverFn<
     },
   });
 
-  insertExperienceInGetExperiencesMiniQuery(experience, {
-    force: true,
-  });
+  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery([
+    [experienceId, experience],
+  ]);
 
   writeUnsyncedExperience(experienceId, true);
 

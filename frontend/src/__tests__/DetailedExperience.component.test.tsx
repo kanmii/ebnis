@@ -8,7 +8,7 @@ import {
   ActionType,
   DetailedExperienceChildDispatchProps,
   Match,
-} from "../components/DetailExperience/utils";
+} from "../components/DetailExperience/complete-experience-utils";
 import { EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
 import { scrollDocumentToTop } from "../components/DetailExperience/detail-experience.injectables";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
@@ -22,7 +22,7 @@ import { defaultExperience } from "../tests.utils";
 import { makeOfflineId } from "../utils/offlines";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
 import { getSyncingExperience } from "../apollo/syncing-experience-ledger";
-import { replaceOrRemoveExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
+import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
 import { E2EWindowObject } from "../utils/types";
 import { getUnSyncEntriesErrorsLedger } from "../apollo/unsynced-ledger";
 import { getDeleteExperienceLedger } from "../apollo/delete-experience-cache";
@@ -60,7 +60,7 @@ jest.mock("../apollo/syncing-experience-ledger");
 const mockGetSyncingExperience = getSyncingExperience as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
-const mockReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = replaceOrRemoveExperiencesInGetExperiencesMiniQuery as jest.Mock;
+const mockReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = insertReplaceRemoveExperiencesInGetExperiencesMiniQuery as jest.Mock;
 
 const mockNewEntryId = "aa";
 const mockActionType = ActionType;

@@ -35,7 +35,7 @@ import {
   notificationCloseId,
   fieldErrorSelector,
 } from "./new-entry.dom";
-import { ActionType as DetailExperienceActionType } from "../DetailExperience/utils";
+import { ActionType as DetailExperienceActionType } from "../DetailExperience/complete-experience-utils";
 import { StateValue } from "../../utils/types";
 import { errorClassName } from "../../utils/utils.dom";
 import { useRunEffects } from "../../utils/use-run-effects";
@@ -264,12 +264,13 @@ function Notification({
       <div>
         <strong>
           <p>
-            Following errors were received while trying to create the experience
+            Following errors were received while trying to create/sync the
+            Eintrag
           </p>
         </strong>
       </div>
       <hr />
-      <div>Experience:</div>
+      <div>Eintrag:</div>
       {errorNode}
     </div>
   ) : null;

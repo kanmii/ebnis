@@ -18,7 +18,7 @@ import {
   DispatchType,
   ShowingOptionsMenuState,
   DataState,
-} from "./utils";
+} from "./complete-experience-utils";
 import { setUpRoutePage } from "../../utils/global-window";
 import { NewEntry } from "./detail-experience.lazy";
 import Loading from "../Loading/loading.component";
@@ -39,9 +39,9 @@ import {
 import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
 import { getUnSyncEntriesErrorsLedger } from "../../apollo/unsynced-ledger";
-import { UnsyncableEntryError } from "../../utils/unsynced-ledger.types";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { useDeleteExperiencesMutation } from "./detail-experience.injectables";
+import { CreateEntryErrorFragment } from "../../graphql/apollo-types/CreateEntryErrorFragment";
 
 export function DetailExperience(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
@@ -329,12 +329,17 @@ function EntryComponent(props: EntryProps) {
   const {
     entry,
     dataDefinitionIdToNameMap,
-    unsyncableEntriesErrors,
     dispatch,
   } = props;
   const { updatedAt, dataObjects: dObjects, id: entryId, clientId } = entry;
   const dataObjects = dObjects as DataObjectFragment[];
   const isOffline = isOfflineId(entryId);
+
+
+  const unsyncableEntriesErrors =
+    (getUnSyncEntriesErrorsLedger(entry.experienceId) ||
+    // istanbul ignore next:
+    {})[entry.clientId as string]
 
   return (
     <div
@@ -344,26 +349,12 @@ function EntryComponent(props: EntryProps) {
       })}
     >
       <div className="media-content">
-        {dataObjects.map((d) => {
-          const { id, definitionId, data } = d;
-
-          return (
-            <div key={id} className="media data-object">
-              <div className="media-content">
-                <div>{dataDefinitionIdToNameMap[definitionId]}</div>
-                <div>{data}</div>
-              </div>
-            </div>
-          );
-        })}
-
-        <div className="entry__updated-at">{formatDatetime(updatedAt)}</div>
-
         {unsyncableEntriesErrors && (
           <div>
-            <hr />
-
-            <p className="subtitle is-6">Did not sync because of errors</p>
+            <div className="subtitle is-6 entry__unsynced-error">
+              <p>Entry has errors and can not be created/uploaded!</p>
+              <p style={{ marginTop: "10px" }}>Click 'edit button' to fix.</p>
+            </div>
 
             <div
               style={{
@@ -380,11 +371,26 @@ function EntryComponent(props: EntryProps) {
                   });
                 }}
               >
-                Edit
+                Beheben
               </button>
             </div>
           </div>
         )}
+
+        {dataObjects.map((d) => {
+          const { id, definitionId, data } = d;
+
+          return (
+            <div key={id} className="media data-object">
+              <div className="media-content">
+                <div>{dataDefinitionIdToNameMap[definitionId]}</div>
+                <div>{data}</div>
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="entry__updated-at">{formatDatetime(updatedAt)}</div>
       </div>
 
       <div className="media-right">x</div>
@@ -581,7 +587,7 @@ function Menu(props: MenuProps) {
 interface EntryProps {
   entry: EntryFragment;
   dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
-  unsyncableEntriesErrors: UnsyncableEntryError;
+  unsyncableEntriesErrors?: CreateEntryErrorFragment;
   dispatch: DispatchType;
 }
 

@@ -3,7 +3,7 @@
 const KEY = "44da79d-ec9d-425d-a7a3-757765d79f59";
 const PERIOD = 60 * 5 * 1000; // 5 minutes
 
-export function manageCachedMutations() {
+export function cleanCachedMutations() {
   const now = new Date().getTime();
   const timeString = localStorage.getItem(KEY);
 
@@ -19,20 +19,13 @@ export function manageCachedMutations() {
     const dataClass = cache.data;
     const data = dataClass.data;
 
-    for (const dataKey of Object.keys(data)) {
-      if (dataKey.includes("ROOT_MUTATION.") && !dataKey.includes("login")) {
-        delete data[dataKey];
-        continue;
-      }
+    delete data["DataObjectErrorMeta:null"];
 
-      if (dataKey === "ROOT_MUTATION") {
-        const rootMutation = data.ROOT_MUTATION;
+    const rootMutation = data.ROOT_MUTATION;
 
-        Object.keys(rootMutation).forEach((key) => {
-          if (!key.includes("login")) {
-            delete rootMutation[key];
-          }
-        });
+    for (const dataKey of Object.keys(rootMutation)) {
+      if (!dataKey.startsWith("login(")) {
+        delete rootMutation[dataKey];
       }
     }
 

@@ -30,6 +30,11 @@
     }
   }
 
+  .entry__unsynced-error {
+    color: $danger;
+    font-weight: bold;
+  }
+
   .top-options-menu {
     padding: 0 25px;
     height: 20px;

@@ -37,7 +37,7 @@ export function putOrRemoveSyncingExperience(
   id: string,
   data?: SyncingExperience,
 ) {
-  const ledger = getSyncingExperiencesLedger();
+  const ledger = { ...getSyncingExperiencesLedger() };
 
   if (data) {
     ledger[id] = data;
@@ -56,6 +56,10 @@ export function getSyncingExperience(id: string): SyncingExperience | null {
 export const syncingExperiencesLedgerPolicy: FieldPolicy<SyncingExperiencesLedger> = {
   read(existing) {
     return existing || {};
+  },
+
+  merge(existing, incoming) {
+    return incoming;
   },
 };
 

@@ -36,7 +36,7 @@ import {
 import {
   DetailedExperienceChildDispatchProps,
   ActionType as DetailedExperienceActionType,
-} from "../DetailExperience/utils";
+} from "../DetailExperience/complete-experience-utils";
 import {
   HasEffectsVal,
   ActiveVal,
@@ -69,7 +69,10 @@ import {
   CreateExperienceErrorsFragment_errors,
   CreateExperienceErrorsFragment_errors_dataDefinitions,
 } from "../../graphql/apollo-types/CreateExperienceErrorsFragment";
-import { removeUnsyncedExperience } from "../../apollo/unsynced-ledger";
+import {
+  removeUnsyncedExperienceLedger,
+  getUnSyncEntriesErrorsLedger,
+} from "../../apollo/unsynced-ledger";
 
 const NEW_LINE_REGEX = /\n/g;
 export const ISO_DATE_FORMAT = "yyyy-MM-dd";
@@ -190,7 +193,7 @@ const createEntryEffect: DefCreateEntryEffect["func"] = (
     const experienceId = experience.id;
 
     if (isOfflineId(experienceId)) {
-      syncOfflineExperienceEffect(input, props, effectArgs);
+      syncOfflineExperienceCreateEntryEffectHelper(input, props, effectArgs);
     } else {
       createOnlineEntryEffect(input, props, effectArgs);
     }
@@ -199,7 +202,7 @@ const createEntryEffect: DefCreateEntryEffect["func"] = (
   }
 };
 
-async function syncOfflineExperienceEffect(
+async function syncOfflineExperienceCreateEntryEffectHelper(
   input: CreateEntryInput,
   props: Props,
   effectArgs: EffectArgs,
@@ -261,7 +264,7 @@ async function syncOfflineExperienceEffect(
                 newEntryClientId: offlineEntry.clientId,
               } as SyncingExperience;
 
-              removeUnsyncedExperience(offlineExperienceId);
+              removeUnsyncedExperienceLedger(offlineExperienceId);
               putOrRemoveSyncingExperience(id, syncingData);
               await window.____ebnis.persistor.persist();
 
@@ -493,9 +496,42 @@ type DefScrollToViewEffect = EffectDefinition<
   }
 >;
 
+const getEntryErrorsEffect: DefGetEntryErrorsEffect["func"] = (
+  _,
+  props,
+  effectArgs,
+) => {
+  const {
+    experience: { id: experienceId },
+    clientId,
+  } = props;
+
+  const { dispatch } = effectArgs;
+
+  if (!clientId) {
+    return;
+  }
+
+  const ledger = getUnSyncEntriesErrorsLedger(experienceId);
+  const errors = ledger && ledger[clientId];
+
+  // istanbul ignore next
+  if (!errors) {
+    return;
+  }
+
+  dispatch({
+    type: ActionType.ON_CREATE_ENTRY_ERRORS,
+    ...errors,
+  });
+};
+
+type DefGetEntryErrorsEffect = EffectDefinition<"getEntryErrorsEffect">;
+
 export const effectFunctions = {
   createEntryEffect,
   scrollToViewEffect,
+  getEntryErrorsEffect,
 };
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
@@ -505,31 +541,32 @@ export const effectFunctions = {
 export function initState(props: Props): StateMachine {
   const { experience, clientId } = props;
 
-  const dataDefinitions = experience.dataDefinitions as ExperienceFragment_dataDefinitions[];
-
   const definitionIdToDataMap = mapDefinitionIdToDataHelper(
     experience,
     clientId,
   );
 
-  const formFields = dataDefinitions.reduce((acc, definition, index) => {
-    const { id } = definition;
-    let value = definitionIdToDataMap[id];
+  const formFields = (experience.dataDefinitions as ExperienceFragment_dataDefinitions[]).reduce(
+    (acc, definition, index) => {
+      const { id } = definition;
+      let value = definitionIdToDataMap[id];
 
-    if (value === undefined) {
-      value =
-        definition.type === DataTypes.DATE ||
-        definition.type === DataTypes.DATETIME
-          ? new Date()
-          : "";
-    }
+      if (value === undefined) {
+        value =
+          definition.type === DataTypes.DATE ||
+          definition.type === DataTypes.DATETIME
+            ? new Date()
+            : "";
+      }
 
-    acc[index] = {
-      context: { definition, value },
-    };
+      acc[index] = {
+        context: { definition, value },
+      };
 
-    return acc;
-  }, {} as FormFields);
+      return acc;
+    },
+    {} as FormFields,
+  );
 
   return {
     states: {
@@ -543,7 +580,17 @@ export function initState(props: Props): StateMachine {
     context: { experience },
     effects: {
       general: {
-        value: StateValue.noEffect,
+        value: StateValue.hasEffects,
+        hasEffects: {
+          context: {
+            effects: [
+              {
+                key: "getEntryErrorsEffect",
+                ownArgs: {},
+              },
+            ],
+          },
+        },
       },
     },
   };
@@ -608,7 +655,7 @@ function handleSubmissionAction(proxy: DraftState) {
     dataDefinitions as ExperienceFragment_dataDefinitions[],
   );
 
-  const effects = getRenderEffects(proxy);
+  const effects = getGeneralEffects(proxy);
 
   effects.push({
     key: "createEntryEffect",
@@ -672,26 +719,13 @@ function handleOnCommonErrorAction(
     ...commonErrorsState,
   };
 
-  const effects = getRenderEffects(proxy);
+  const effects = getGeneralEffects(proxy);
   effects.push({
     key: "scrollToViewEffect",
     ownArgs: {
       id: scrollIntoViewNonFieldErrorDomId,
     },
   });
-}
-
-function getRenderEffects(proxy: DraftState) {
-  const renderEffects = proxy.effects.general as GeneralEffect;
-  renderEffects.value = StateValue.hasEffects;
-  const effects: EffectsList = [];
-  renderEffects.hasEffects = {
-    context: {
-      effects: effects,
-    },
-  };
-
-  return effects;
 }
 
 function dataObjectsFromFormValues(
@@ -920,7 +954,11 @@ interface EffectContext {
   effectsArgsObj: Props;
 }
 
-type EffectType = DefScrollToViewEffect | DefCreateEntryEffect;
+type EffectType =
+  | DefScrollToViewEffect
+  | DefCreateEntryEffect
+  | DefGetEntryErrorsEffect;
+
 type EffectsList = EffectType[];
 
 export interface GeneralEffect {

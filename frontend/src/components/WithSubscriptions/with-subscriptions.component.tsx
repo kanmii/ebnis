@@ -6,7 +6,7 @@ import {
   useOnExperiencesDeletedSubscription,
 } from "./with-subscriptions.injectables";
 import { EmitActionConnectionChangedPayload } from "../../utils/types";
-import { manageCachedMutations } from "../../apollo/managed-cached-mutations";
+import { cleanCachedMutations } from "../../apollo/clean-cached-mutations";
 import {
   CallerProps,
   onMessage,
@@ -67,7 +67,7 @@ export function WithSubscriptions(props: Props) {
   }, []);
 
   useEffect(() => {
-    manageCachedMutations();
+    cleanCachedMutations();
   });
 
   return (

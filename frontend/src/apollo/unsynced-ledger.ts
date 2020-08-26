@@ -6,7 +6,6 @@ import {
   UnsyncedLedgerItem,
   UnsyncableEntriesErrors,
   UnsyncedModifiedExperience,
-  RemoveUnsyncableEntriesErrors,
 } from "../utils/unsynced-ledger.types";
 
 const UNSYNCED_LEDGER_QUERY = gql`
@@ -32,7 +31,7 @@ export function getUnsyncedExperience(id: string): UnsyncedLedgerItem | null {
   return unsyncedLedger[id] || null;
 }
 
-export function removeUnsyncedExperience(id: string) {
+export function removeUnsyncedExperienceLedger(id: string) {
   const unsyncedLedger = { ...getUnsyncedLedger() };
   delete unsyncedLedger[id];
   writeUnsyncedLedger(unsyncedLedger);
@@ -74,7 +73,7 @@ function getUnsyncedLedger() {
 
 export function putAndRemoveUnSyncableEntriesErrorsLedger(
   experienceId: string,
-  newLedgerItems: UnsyncableEntriesErrors | RemoveUnsyncableEntriesErrors = {},
+  newLedgerItems: UnsyncableEntriesErrors = {},
 ) {
   const unsyncedExperience = (getUnsyncedExperience(experienceId) ||
     {}) as UnsyncedModifiedExperience;
@@ -118,5 +117,9 @@ interface UnsyncedLedgerQueryResult {
 export const unsyncedLedgerPolicy: FieldPolicy<UnsyncedLedger> = {
   read(existing) {
     return existing || {};
+  },
+
+  merge(existing, incoming) {
+    return incoming;
   },
 };
