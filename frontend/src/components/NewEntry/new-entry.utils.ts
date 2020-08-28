@@ -175,16 +175,14 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 ////////////////////////// EFFECTS SECTION ////////////////////////////
 
 const createEntryEffect: DefCreateEntryEffect["func"] = (
-  { input },
+  { input, erstelltenNeuEintragKlientId },
   props,
   effectArgs,
 ) => {
-  const { clientId } = props;
-
-  if (clientId) {
+  if (erstelltenNeuEintragKlientId) {
     input = {
       ...input,
-      clientId,
+      clientId: erstelltenNeuEintragKlientId,
     };
   }
 
@@ -370,6 +368,7 @@ async function createOnlineEntryEffect(
     experience: { id: experienceId },
     updateExperiencesOnline,
     detailedExperienceDispatch,
+    bearbeitenEintrag,
   } = props;
 
   const { dispatch } = effectArgs;
@@ -406,6 +405,8 @@ async function createOnlineEntryEffect(
           type:
             DetailedExperienceActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
           mayBeNewEntry: entry0.entry,
+          // vielleicht ein ganz Offline-Eintrag gerade synchronisiert?
+          vielleichtBearbeitenEintrag: bearbeitenEintrag,
         });
 
         return;
@@ -475,7 +476,7 @@ async function createOfflineEntryEffect(
 
 interface CreateEntryEffectArgs {
   input: CreateEntryInput;
-  onDone?: () => void;
+  erstelltenNeuEintragKlientId?: string;
 }
 
 type DefCreateEntryEffect = EffectDefinition<
@@ -503,17 +504,19 @@ const getEntryErrorsEffect: DefGetEntryErrorsEffect["func"] = (
 ) => {
   const {
     experience: { id: experienceId },
-    clientId,
+    bearbeitenEintrag,
   } = props;
 
-  const { dispatch } = effectArgs;
+  const eintragId = bearbeitenEintrag && bearbeitenEintrag.id;
 
-  if (!clientId) {
+  if (!eintragId) {
     return;
   }
 
+  const { dispatch } = effectArgs;
+
   const ledger = getUnSyncEntriesErrorsLedger(experienceId);
-  const errors = ledger && ledger[clientId];
+  const errors = ledger && ledger[eintragId];
 
   // istanbul ignore next
   if (!errors) {
@@ -539,11 +542,11 @@ export const effectFunctions = {
 ////////////////////////// STATE UPDATE SECTION ////////////////////////////
 
 export function initState(props: Props): StateMachine {
-  const { experience, clientId } = props;
+  const { experience, bearbeitenEintrag } = props;
 
   const definitionIdToDataMap = mapDefinitionIdToDataHelper(
     experience,
-    clientId,
+    bearbeitenEintrag,
   );
 
   const formFields = (experience.dataDefinitions as ExperienceFragment_dataDefinitions[]).reduce(
@@ -577,7 +580,9 @@ export function initState(props: Props): StateMachine {
         fields: formFields,
       },
     },
-    context: { experience },
+
+    context: { experience, bearbeitenEintrag },
+
     effects: {
       general: {
         value: StateValue.hasEffects,
@@ -598,29 +603,17 @@ export function initState(props: Props): StateMachine {
 
 function mapDefinitionIdToDataHelper(
   experience: ExperienceFragment,
-  clientId?: string,
+  bearbeitenEintrag?: EntryFragment,
 ) {
   const result = {} as {
     [dataDefinitionId: string]: FormObjVal;
   };
 
-  if (!clientId) {
+  if (!bearbeitenEintrag) {
     return result;
   }
 
-  const edge = (experience.entries
-    .edges as EntryConnectionFragment_edges[]).find((e) => {
-    return (e.node as EntryFragment).clientId === clientId;
-  });
-
-  // istanbul ignore next:
-  if (!edge) {
-    return result;
-  }
-
-  const entryToEdit = edge.node as EntryFragment;
-
-  entryToEdit.dataObjects.forEach((d) => {
+  bearbeitenEintrag.dataObjects.forEach((d) => {
     const { definitionId, data } = d as DataObjectFragment;
     const json = JSON.parse(data);
     const [type, stringData] = Object.entries(json)[0];
@@ -640,7 +633,7 @@ function mapDefinitionIdToDataHelper(
 
 function handleSubmissionAction(proxy: DraftState) {
   const {
-    context: { experience },
+    context: { experience, bearbeitenEintrag },
     states,
   } = proxy;
 
@@ -657,6 +650,18 @@ function handleSubmissionAction(proxy: DraftState) {
 
   const effects = getGeneralEffects(proxy);
 
+  let erstelltenNeuEintragKlientId = "";
+
+  if (bearbeitenEintrag) {
+    const { id, clientId } = bearbeitenEintrag;
+
+    // das bedeutet ein vollständig Offline-Eintrag und ein nue Eintrag muss
+    // erstellten werden
+    if (id === clientId) {
+      erstelltenNeuEintragKlientId = id;
+    }
+  }
+
   effects.push({
     key: "createEntryEffect",
     ownArgs: {
@@ -664,6 +669,7 @@ function handleSubmissionAction(proxy: DraftState) {
         experienceId,
         dataObjects,
       },
+      erstelltenNeuEintragKlientId,
     },
   });
 }
@@ -842,7 +848,7 @@ function handleOnSyncOfflineExperienceErrors(
 
 export interface CallerProps extends DetailedExperienceChildDispatchProps {
   experience: ExperienceFragment;
-  clientId?: string;
+  bearbeitenEintrag?: EntryFragment;
 }
 
 export type Props = CallerProps &
@@ -888,9 +894,8 @@ type DraftState = Draft<StateMachine>;
 
 type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
   Readonly<{
-    context: {
-      experience: Readonly<ExperienceFragment>;
-    };
+    context: Zusammenhang;
+
     states: Readonly<{
       submission: Submission;
       form: Readonly<{
@@ -898,6 +903,11 @@ type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
       }>;
     }>;
   }>;
+
+type Zusammenhang = Readonly<{
+  experience: Readonly<ExperienceFragment>;
+  bearbeitenEintrag?: EntryFragment;
+}>;
 
 export type Submission = Readonly<
   | SubmissionErrors

@@ -42,7 +42,7 @@ afterEach(() => {
 });
 
 test("invalid result", () => {
-  writeUpdatedExperienceToCache()(dataProxy, {
+  writeUpdatedExperienceToCache(dataProxy, {
     data: {},
   } as any);
 
@@ -408,7 +408,7 @@ test("updated entries errors", () => {
 });
 
 function call(data: UpdateExperienceFragment) {
-  writeUpdatedExperienceToCache()(dataProxy, {
+  writeUpdatedExperienceToCache(dataProxy, {
     data: {
       updateExperiences: {
         __typename: "UpdateExperiencesSomeSuccess",

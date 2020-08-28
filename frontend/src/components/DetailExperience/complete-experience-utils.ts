@@ -60,7 +60,6 @@ export enum ActionType {
   ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION = "@detailed-experience/on-close-new-entry-created-notification",
   SET_TIMEOUT = "@detailed-experience/set-timeout",
   ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION = "@detailed-experience/on-close-entries-errors-notification",
-  ON_EDIT_ENTRY = "@detailed-experience/on-edit-entry",
   DELETE_EXPERIENCE_REQUEST = "@detailed-experience/delete-experience-request",
   DELETE_EXPERIENCE_CANCELLED = "@detailed-experience/delete-experience-cancelled",
   DELETE_EXPERIENCE_CONFIRMED = "@detailed-experience/delete-experience-confirmed",
@@ -103,10 +102,6 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
           case ActionType.ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION:
             handleOnCloseEntriesErrorsNotification(proxy);
-            break;
-
-          case ActionType.ON_EDIT_ENTRY:
-            handleOnEditEntryAction(proxy, payload as OnEditEntryPayload);
             break;
 
           case ActionType.DELETE_EXPERIENCE_REQUEST:
@@ -197,18 +192,18 @@ function handleToggleNewEntryActiveAction(
   payload: NewEntryActivePayload,
 ) {
   const { states } = proxy;
-  const { clientId } = payload;
+  const { bearbeitenEintrag } = payload;
 
   const {
     newEntryActive: { value },
   } = states;
 
-  if (clientId) {
+  if (bearbeitenEintrag) {
     const state = states.newEntryActive as Draft<NewEntryActive>;
     state.value = StateValue.active;
     state.active = {
       context: {
-        clientId,
+        bearbeitenEintrag,
       },
     };
 
@@ -263,7 +258,11 @@ function handleMaybeNewEntryCreatedHelper(
   proxy: DraftStateMachine,
   payload: OnNewEntryCreatedOrOfflineExperienceSyncedPayload,
 ) {
-  const { mayBeNewEntry, mayBeEntriesErrors } = payload;
+  const {
+    mayBeNewEntry,
+    mayBeEntriesErrors,
+    vielleichtBearbeitenEintrag,
+  } = payload;
 
   // istanbul ignore next:
   if (!mayBeNewEntry) {
@@ -287,8 +286,20 @@ function handleMaybeNewEntryCreatedHelper(
     experienceDataState.value = StateValue.data;
     const experience = experienceDataState.data;
     const edges = experience.entries.edges as EntryConnectionFragment_edges[];
-    edges.unshift(entryToEdge(mayBeNewEntry));
+    const neuEintragKante = entryToEdge(mayBeNewEntry);
 
+    // ein vollständig neu Eintrag
+    if (!vielleichtBearbeitenEintrag) {
+      edges.unshift(neuEintragKante);
+    } else {
+      // wir ersetzen die neu Eintrag mit dem derzeit Eintrag
+
+      experience.entries.edges = edges.map((kante) => {
+        return (kante.node as EntryFragment).id === mayBeNewEntry.clientId
+          ? neuEintragKante
+          : kante;
+      });
+    }
     const newEntryState = newEntryCreated as Draft<NewEntryCreatedNotification>;
     newEntryState.value = StateValue.active;
 
@@ -398,23 +409,6 @@ function handleSetTimeoutAction(
   Object.entries(payload).forEach(([key, val]) => {
     timeouts[key] = val;
   });
-}
-
-function handleOnEditEntryAction(
-  proxy: DraftStateMachine,
-  payload: OnEditEntryPayload,
-) {
-  const {
-    states: { newEntryActive },
-  } = proxy;
-
-  const state = newEntryActive as Draft<NewEntryActive>;
-  state.value = StateValue.active;
-  state.active = {
-    context: {
-      clientId: payload.entryClientId,
-    },
-  };
 }
 
 function handleDeleteExperienceRequestAction(
@@ -996,7 +990,7 @@ type NewEntryActive = Readonly<{
   value: ActiveVal;
   active: Readonly<{
     context: Readonly<{
-      clientId?: string;
+      bearbeitenEintrag?: EntryFragment;
     }>;
   }>;
 }>;
@@ -1038,9 +1032,9 @@ export type Props = RouteChildrenProps<
 export type Match = match<DetailExperienceRouteMatch>;
 
 type Action =
-  | {
+  | ({
       type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE;
-    }
+    } & NewEntryActivePayload)
   | ({
       type: ActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED;
     } & OnNewEntryCreatedOrOfflineExperienceSyncedPayload)
@@ -1053,9 +1047,6 @@ type Action =
   | {
       type: ActionType.ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION;
     }
-  | ({
-      type: ActionType.ON_EDIT_ENTRY;
-    } & OnEditEntryPayload)
   | ({
       type: ActionType.DELETE_EXPERIENCE_REQUEST;
     } & DeleteExperienceRequestPayload)
@@ -1076,7 +1067,7 @@ type Action =
     };
 
 type NewEntryActivePayload = {
-  clientId?: string;
+  bearbeitenEintrag?: EntryFragment;
 };
 
 type OnDataReceivedPayload =
@@ -1097,13 +1088,10 @@ interface DeleteExperienceRequestPayload {
   key?: RequestedVal;
 }
 
-interface OnEditEntryPayload {
-  entryClientId: string;
-}
-
 interface OnNewEntryCreatedOrOfflineExperienceSyncedPayload {
   mayBeNewEntry?: EntryFragment | null;
   mayBeEntriesErrors?: CreateEntryErrorFragment[] | null;
+  vielleichtBearbeitenEintrag?: EntryFragment;
 }
 
 type SetTimeoutPayload = {

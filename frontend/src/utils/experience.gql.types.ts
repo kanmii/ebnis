@@ -76,7 +76,7 @@ export async function updateExperiencesOnlineEffectHelperFunc({
         input,
       },
 
-      update: writeUpdatedExperienceToCache(onDone),
+      update: writeUpdatedExperienceToCache,
     });
 
     const validResponse =

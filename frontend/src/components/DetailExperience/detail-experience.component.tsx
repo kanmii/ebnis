@@ -257,7 +257,9 @@ function ExperienceComponent(props: ExperienceProps) {
             <NewEntry
               experience={experience}
               detailedExperienceDispatch={dispatch}
-              clientId={newEntryActiveState.active.context.clientId}
+              bearbeitenEintrag={
+                newEntryActiveState.active.context.bearbeitenEintrag
+              }
             />
           </Suspense>
         )}
@@ -326,20 +328,16 @@ function ExperienceComponent(props: ExperienceProps) {
 }
 
 function EntryComponent(props: EntryProps) {
-  const {
-    entry,
-    dataDefinitionIdToNameMap,
-    dispatch,
-  } = props;
-  const { updatedAt, dataObjects: dObjects, id: entryId, clientId } = entry;
+  const { entry, dataDefinitionIdToNameMap, dispatch } = props;
+  const { updatedAt, dataObjects: dObjects, id: entryId } = entry;
   const dataObjects = dObjects as DataObjectFragment[];
   const isOffline = isOfflineId(entryId);
 
-
-  const unsyncableEntriesErrors =
-    (getUnSyncEntriesErrorsLedger(entry.experienceId) ||
+  const unsyncableEntriesErrors = (getUnSyncEntriesErrorsLedger(
+    entry.experienceId,
+  ) ||
     // istanbul ignore next:
-    {})[entry.clientId as string]
+    {})[entry.clientId as string];
 
   return (
     <div
@@ -366,8 +364,8 @@ function EntryComponent(props: EntryProps) {
                 className="button is-small entry__edit"
                 onClick={() => {
                   dispatch({
-                    type: ActionType.ON_EDIT_ENTRY,
-                    entryClientId: clientId as string,
+                    type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,
+                    bearbeitenEintrag: entry,
                   });
                 }}
               >

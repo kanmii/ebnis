@@ -37,6 +37,7 @@ import { windowChangeUrl } from "../utils/global-window";
 import { removeUnsyncedExperienceLedger } from "../apollo/unsynced-ledger";
 import { putOrRemoveSyncingExperience } from "../apollo/syncing-experience-ledger";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
+import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 
 jest.mock("../utils/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
@@ -491,7 +492,9 @@ describe("component", () => {
 
     const { ui } = makeComp({
       props: {
-        clientId: "a",
+        bearbeitenEintrag: {
+          id: "a",
+        } as EntryFragment,
         experience: {
           ...defaultExperience,
           dataDefinitions: [
