@@ -31,12 +31,6 @@ export function getUnsyncedExperience(id: string): UnsyncedLedgerItem | null {
   return unsyncedLedger[id] || null;
 }
 
-export function removeUnsyncedExperienceLedger(id: string) {
-  const unsyncedLedger = { ...getUnsyncedLedger() };
-  delete unsyncedLedger[id];
-  writeUnsyncedLedger(unsyncedLedger);
-}
-
 export function removeUnsyncedExperiences(ids: string[]) {
   const unsyncedLedger = { ...getUnsyncedLedger() };
 

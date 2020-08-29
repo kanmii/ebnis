@@ -34,7 +34,7 @@ import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { E2EWindowObject } from "../utils/types";
 import { makeOfflineId } from "../utils/offlines";
 import { windowChangeUrl } from "../utils/global-window";
-import { removeUnsyncedExperienceLedger } from "../apollo/unsynced-ledger";
+import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
 import { putOrRemoveSyncingExperience } from "../apollo/syncing-experience-ledger";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
@@ -86,7 +86,7 @@ jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
 
 jest.mock("../apollo/unsynced-ledger");
-const mockRemoveUnsyncedExperience = removeUnsyncedExperienceLedger as jest.Mock;
+const mockRemoveUnsyncedExperience = removeUnsyncedExperiences as jest.Mock;
 
 jest.mock("../apollo/syncing-experience-ledger");
 const mockPutOrRemoveSyncingExperience = putOrRemoveSyncingExperience as jest.Mock;
@@ -796,7 +796,7 @@ describe("reducer", () => {
 
     await wait(() => true);
     expect(mockWindowChangeUrl).toHaveBeenCalled();
-    expect(mockRemoveUnsyncedExperience.mock.calls[0][0]).toBe(experienceId);
+    expect(mockRemoveUnsyncedExperience.mock.calls[0][0]).toEqual([experienceId]);
     expect(mockPutOrRemoveSyncingExperience.mock.calls[0][0]).toBe("aa");
     expect(mockPersistFn).toHaveBeenCalled();
     expect(mockDispatch).not.toHaveBeenCalled();

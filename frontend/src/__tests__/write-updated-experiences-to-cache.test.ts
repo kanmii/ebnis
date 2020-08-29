@@ -10,7 +10,7 @@ import { writeExperienceFragmentToCache } from "../apollo/write-experience-fragm
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import {
   getUnsyncedExperience,
-  removeUnsyncedExperienceLedger,
+  removeUnsyncedExperiences,
   writeUnsyncedExperience,
 } from "../apollo/unsynced-ledger";
 import { UpdateExperienceFragment } from "../graphql/apollo-types/UpdateExperienceFragment";
@@ -20,7 +20,7 @@ import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 
 jest.mock("../apollo/unsynced-ledger");
 const mockGetUnsyncedExperience = getUnsyncedExperience as jest.Mock;
-const mockRemoveUnsyncedExperience = removeUnsyncedExperienceLedger as jest.Mock;
+const mockRemoveUnsyncedExperience = removeUnsyncedExperiences as jest.Mock;
 const mockWriteUnsyncedExperience = writeUnsyncedExperience as jest.Mock;
 
 jest.mock("../apollo/write-experience-fragment");
@@ -68,7 +68,7 @@ test("ownFields success", () => {
     },
   } as UpdateExperienceFragment);
 
-  expect(mockRemoveUnsyncedExperience.mock.calls[0][0]).toBe("1");
+  expect(mockRemoveUnsyncedExperience.mock.calls[0][0]).toEqual(["1"]);
   expect(mockWriteExperienceFragmentToCache.mock.calls[0][0]).toEqual({
     title: "b",
   });

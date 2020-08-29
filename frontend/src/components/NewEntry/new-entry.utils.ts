@@ -70,7 +70,7 @@ import {
   CreateExperienceErrorsFragment_errors_dataDefinitions,
 } from "../../graphql/apollo-types/CreateExperienceErrorsFragment";
 import {
-  removeUnsyncedExperienceLedger,
+  removeUnsyncedExperiences,
   getUnSyncEntriesErrorsLedger,
 } from "../../apollo/unsynced-ledger";
 
@@ -262,7 +262,7 @@ async function syncOfflineExperienceCreateEntryEffectHelper(
                 newEntryClientId: offlineEntry.clientId,
               } as SyncingExperience;
 
-              removeUnsyncedExperienceLedger(offlineExperienceId);
+              removeUnsyncedExperiences([offlineExperienceId]);
               putOrRemoveSyncingExperience(id, syncingData);
               await window.____ebnis.persistor.persist();
 

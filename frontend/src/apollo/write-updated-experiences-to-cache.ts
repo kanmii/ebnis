@@ -10,7 +10,7 @@ import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
 import {
   getUnsyncedExperience,
-  removeUnsyncedExperienceLedger,
+  removeUnsyncedExperiences,
   writeUnsyncedExperience,
 } from "./unsynced-ledger";
 import { EntryConnectionFragment_edges } from "../graphql/apollo-types/EntryConnectionFragment";
@@ -51,43 +51,46 @@ export function writeUpdatedExperienceToCache(
 
         const [updatedExperience, updatedUnsyncedExperience] = immer<
           [ExperienceFragment, UnsyncedModifiedExperience]
-        >([experience, unsynced], ([experienceProxy, unsyncedExperienceProxy]) => {
-          ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
-            experienceProxy,
-            unsyncedExperienceProxy,
-            result,
-          );
+        >(
+          [experience, unsynced],
+          ([experienceProxy, unsyncedExperienceProxy]) => {
+            ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
+              experienceProxy,
+              unsyncedExperienceProxy,
+              result,
+            );
 
-          definitionsApplyUpdatesAndCleanUpUnsyncedData(
-            experienceProxy,
-            unsyncedExperienceProxy,
-            result,
-          );
+            definitionsApplyUpdatesAndCleanUpUnsyncedData(
+              experienceProxy,
+              unsyncedExperienceProxy,
+              result,
+            );
 
-          newEntriesApplyUpdatesAndCleanUpUnsyncedData(
-            experienceProxy,
-            unsyncedExperienceProxy,
-            result,
-          );
+            newEntriesApplyUpdatesAndCleanUpUnsyncedData(
+              experienceProxy,
+              unsyncedExperienceProxy,
+              result,
+            );
 
-          updatedEntriesApplyUpdatesAndCleanUpUnsyncedData(
-            experienceProxy,
-            unsyncedExperienceProxy,
-            result,
-          );
+            updatedEntriesApplyUpdatesAndCleanUpUnsyncedData(
+              experienceProxy,
+              unsyncedExperienceProxy,
+              result,
+            );
 
-          const entriesErrors = unsyncedExperienceProxy.entriesErrors;
+            const entriesErrors = unsyncedExperienceProxy.entriesErrors;
 
-          if (entriesErrors && !Object.keys(entriesErrors).length) {
-            delete unsyncedExperienceProxy.entriesErrors;
-          }
-        });
+            if (entriesErrors && !Object.keys(entriesErrors).length) {
+              delete unsyncedExperienceProxy.entriesErrors;
+            }
+          },
+        );
 
         updatedIds[updatedExperience.id] = 1;
         writeExperienceFragmentToCache(updatedExperience);
 
         if (!Object.keys(updatedUnsyncedExperience).length) {
-          removeUnsyncedExperienceLedger(experienceId);
+          removeUnsyncedExperiences([experienceId]);
         } else {
           writeUnsyncedExperience(experienceId, updatedUnsyncedExperience);
         }

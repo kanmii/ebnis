@@ -5,7 +5,10 @@ import { RouteChildrenProps, match } from "react-router-dom";
 import { DetailExperienceRouteMatch } from "../../utils/urls";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { isOfflineId } from "../../utils/offlines";
-import { getUnsyncedExperience } from "../../apollo/unsynced-ledger";
+import {
+  getUnsyncedExperience,
+  removeUnsyncedExperiences,
+} from "../../apollo/unsynced-ledger";
 import immer, { Draft } from "immer";
 import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
@@ -308,9 +311,6 @@ function handleMaybeNewEntryCreatedHelper(
         message: `New entry created on: ${formatDatetime(updatedAt)}`,
       },
     };
-  } else {
-    //  Wenn wir die neu erstellte EingabeFehler anzeige möchte.
-    //  handleToggleNewEntryActiveAction(proxy, { clientId: newEntryCreatedId });
   }
 
   const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
@@ -748,6 +748,11 @@ const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
       key: StateValue.deleted,
       title,
     });
+
+    removeUnsyncedExperiences([responseId]);
+
+    const { persistor } = window.____ebnis;
+    await persistor.persist();
 
     history.push(MY_URL);
   } catch (error) {}
