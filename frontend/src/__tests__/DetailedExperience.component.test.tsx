@@ -87,7 +87,10 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
           detailedExperienceDispatch({
             type:
               mockActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
-            mayBeNewEntry: mockNewlyCreatedEntry,
+            mayBeNewEntry: {
+              neuEintragDaten: mockNewlyCreatedEntry,
+              zustand: "synchronisiert",
+            },
             mayBeEntriesErrors: [
               {
                 meta: {

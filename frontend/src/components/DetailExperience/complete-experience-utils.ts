@@ -272,10 +272,18 @@ function handleMaybeNewEntryCreatedHelper(
     return;
   }
 
-  const { updatedAt, clientId: neuErstellteEintragKlientId } = mayBeNewEntry;
+  const { neuEintragDaten, zustand } = mayBeNewEntry;
+
+  const { updatedAt, clientId: neuErstellteEintragKlientId } = neuEintragDaten;
 
   const { states } = proxy;
   const { newEntryCreated, experience: experienceState } = states;
+
+  const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
+  effects.push({
+    key: "autoCloseNotificationEffect",
+    ownArgs: {},
+  });
 
   const neuErstellteEintragFehler =
     mayBeEntriesErrors &&
@@ -283,41 +291,37 @@ function handleMaybeNewEntryCreatedHelper(
       return error.meta.clientId === neuErstellteEintragKlientId;
     });
 
-  // istanbul ignore else
-  if (!neuErstellteEintragFehler) {
-    const experienceDataState = experienceState as Draft<DataState>;
-    experienceDataState.value = StateValue.data;
-    const experience = experienceDataState.data;
-    const edges = experience.entries.edges as EntryConnectionFragment_edges[];
-    const neuEintragKante = entryToEdge(mayBeNewEntry);
-
-    // ein vollständig neu Eintrag
-    if (!vielleichtBearbeitenEintrag) {
-      edges.unshift(neuEintragKante);
-    } else {
-      // wir ersetzen die neu Eintrag mit dem derzeit Eintrag
-
-      experience.entries.edges = edges.map((kante) => {
-        return (kante.node as EntryFragment).id === mayBeNewEntry.clientId
-          ? neuEintragKante
-          : kante;
-      });
-    }
-    const newEntryState = newEntryCreated as Draft<NewEntryCreatedNotification>;
-    newEntryState.value = StateValue.active;
-
-    newEntryState.active = {
-      context: {
-        message: `New entry created on: ${formatDatetime(updatedAt)}`,
-      },
-    };
+  if (neuErstellteEintragFehler) {
+    return;
   }
 
-  const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
-  effects.push({
-    key: "autoCloseNotificationEffect",
-    ownArgs: {},
-  });
+  const newEntryState = newEntryCreated as Draft<NewEntryCreatedNotification>;
+  newEntryState.value = StateValue.active;
+
+  newEntryState.active = {
+    context: {
+      message: `New entry created on: ${formatDatetime(updatedAt)}`,
+    },
+  };
+
+  const experienceDataState = experienceState as Draft<DataState>;
+  experienceDataState.value = StateValue.data;
+  const experience = experienceDataState.data;
+  const edges = experience.entries.edges as EntryConnectionFragment_edges[];
+  const neuEintragKante = entryToEdge(neuEintragDaten);
+
+  // ein vollständig neu Eintrag
+  if (!(vielleichtBearbeitenEintrag || zustand === "ganz-nue")) {
+    edges.unshift(neuEintragKante);
+  } else {
+    // wir ersetzen die neu Eintrag mit dem derzeit Eintrag
+
+    experience.entries.edges = edges.map((kante) => {
+      return (kante.node as EntryFragment).id === neuEintragDaten.clientId
+        ? neuEintragKante
+        : kante;
+    });
+  }
 }
 
 function handleMaybeEntriesErrorsHelper(
@@ -613,12 +617,9 @@ const onOfflineExperienceSyncedEffect: DefOnOfflineExperienceSyncedEffect["func"
 
   (entries.edges as EntryConnectionFragment_edges[]).forEach((edge) => {
     const node = edge.node as EntryFragment;
-    const { id: entryId, clientId } = node;
+    const { clientId } = node;
 
-    if (!isOfflineId(entryId)) {
-      return;
-    }
-
+    // das ein ganz Online-Eintrag zuerst erstelltet als Offline-Eintrag
     if (clientId === newEntryClientId) {
       mayBeNewEntry = node;
     }
@@ -630,7 +631,10 @@ const onOfflineExperienceSyncedEffect: DefOnOfflineExperienceSyncedEffect["func"
 
   dispatch({
     type: ActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
-    mayBeNewEntry,
+    mayBeNewEntry: {
+      neuEintragDaten: (mayBeNewEntry as unknown) as EntryFragment,
+      zustand: "ganz-nue",
+    },
     mayBeEntriesErrors: entriesErrors,
   });
 };
@@ -1094,7 +1098,10 @@ interface DeleteExperienceRequestPayload {
 }
 
 interface OnNewEntryCreatedOrOfflineExperienceSyncedPayload {
-  mayBeNewEntry?: EntryFragment | null;
+  mayBeNewEntry?: {
+    zustand: "ganz-nue" | "synchronisiert";
+    neuEintragDaten: EntryFragment;
+  };
   mayBeEntriesErrors?: CreateEntryErrorFragment[] | null;
   vielleichtBearbeitenEintrag?: EntryFragment;
 }

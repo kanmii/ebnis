@@ -190,6 +190,8 @@ const createEntryEffect: DefCreateEntryEffect["func"] = (
     const { experience } = props;
     const experienceId = experience.id;
 
+    // debugger;
+
     if (isOfflineId(experienceId)) {
       syncOfflineExperienceCreateEntryEffectHelper(input, props, effectArgs);
     } else {
@@ -214,8 +216,8 @@ async function syncOfflineExperienceCreateEntryEffectHelper(
       createOfflineEntry,
     } = props;
 
-    // first we create the entry as offline entry so that if sync fails, we have
-    // the entry stored and user can choose to fix problems
+    // first we create the entry as offline entry so that if sync of experience
+    // fails, we have the entry stored and user can choose to fix problems
     const response = await createOfflineEntry({
       variables: {
         experienceId,
@@ -404,7 +406,10 @@ async function createOnlineEntryEffect(
         detailedExperienceDispatch({
           type:
             DetailedExperienceActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
-          mayBeNewEntry: entry0.entry,
+          mayBeNewEntry: {
+            neuEintragDaten: entry0.entry,
+            zustand: "synchronisiert",
+          },
           // vielleicht ein ganz Offline-Eintrag gerade synchronisiert?
           vielleichtBearbeitenEintrag: bearbeitenEintrag,
         });
@@ -462,7 +467,10 @@ async function createOfflineEntryEffect(
     detailedExperienceDispatch({
       type:
         DetailedExperienceActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
-      mayBeNewEntry: validResponse.entry,
+      mayBeNewEntry: {
+        neuEintragDaten: validResponse.entry,
+        zustand: "synchronisiert",
+      },
     });
 
     await window.____ebnis.persistor.persist();
