@@ -33,7 +33,10 @@ import {
   getSyncingExperience,
   putOrRemoveSyncingExperience,
 } from "../../apollo/syncing-experience-ledger";
-import { purgeExperience } from "../../apollo/update-get-experiences-mini-query";
+import {
+  purgeExperience,
+  deleteCacheKeys,
+} from "../../apollo/update-get-experiences-mini-query";
 import { EntryConnectionFragment_edges } from "../../graphql/apollo-types/EntryConnectionFragment";
 import {
   CreateEntryErrorFragment,
@@ -56,6 +59,7 @@ import {
 } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";
 import { entryToEdge } from "../NewEntry/entry-to-edge";
+import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -314,12 +318,27 @@ function handleMaybeNewEntryCreatedHelper(
   if (!(vielleichtBearbeitenEintrag || zustand === "ganz-nue")) {
     edges.unshift(neuEintragKante);
   } else {
-    // wir ersetzen die neu Eintrag mit dem derzeit Eintrag
+    // wir ersetzen die neu Eintrag mit dem zuletzt Eintrag
+
+    const { clientId, dataObjects } = neuEintragDaten;
 
     experience.entries.edges = edges.map((kante) => {
-      return (kante.node as EntryFragment).id === neuEintragDaten.clientId
+      return (kante.node as EntryFragment).id === clientId
         ? neuEintragKante
         : kante;
+    });
+
+    // und die Offline-Einträge muss auf die Cache entfernen werden
+
+    effects.push({
+      key: "deleteCacheKeysEffect",
+      ownArgs: {
+        keys: [`Entry:${clientId}`].concat(
+          dataObjects.map((d) => {
+            return `DataObject:${(d as DataObjectFragment).clientId as string}`;
+          }),
+        ),
+      },
     });
   }
 }
@@ -867,6 +886,24 @@ type DefClearTimeoutEffect = EffectDefinition<
   }
 >;
 
+const deleteCacheKeysEffect: DefDeleteCacheKeysEffect["func"] = async ({
+  keys,
+}) => {
+  deleteCacheKeys({
+    wurzelSchlüssel: keys,
+  });
+
+  const { persistor } = window.____ebnis;
+  await persistor.persist();
+};
+
+type DefDeleteCacheKeysEffect = EffectDefinition<
+  "deleteCacheKeysEffect",
+  {
+    keys: string[];
+  }
+>;
+
 export const effectFunctions = {
   scrollDocToTopEffect,
   autoCloseNotificationEffect,
@@ -877,6 +914,7 @@ export const effectFunctions = {
   deleteExperienceEffect,
   fetchDetailedExperienceEffect,
   clearTimeoutEffect,
+  deleteCacheKeysEffect,
 };
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
@@ -1135,7 +1173,8 @@ export type EffectType =
   | DefDeleteExperienceRequestedEffect
   | DefDeleteExperienceEffect
   | DefFetchDetailedExperienceEffect
-  | DefClearTimeoutEffect;
+  | DefClearTimeoutEffect
+  | DefDeleteCacheKeysEffect;
 
 // [index/label, [errorKey, errorValue][]][]
 export type EintragFehlerAlsListe = [string | number, [string, string][]][];

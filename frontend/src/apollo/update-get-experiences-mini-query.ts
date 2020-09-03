@@ -300,3 +300,39 @@ function purgeEntries(entries: EntryConnectionFragment, data: any) {
     delete data[`Entry:${entryId}`];
   });
 }
+
+export function deleteCacheKeys({
+  wurzelSchlüssel,
+  abfrageSchlüssel,
+  veränderungSchlüssel,
+}: {
+  wurzelSchlüssel?: string[];
+  abfrageSchlüssel?: string[];
+  veränderungSchlüssel?: string[];
+}) {
+  const { cache } = window.____ebnis;
+  const dataProxy = cache as any;
+  const data = dataProxy.data.data;
+
+  if (wurzelSchlüssel) {
+    wurzelSchlüssel.forEach((schlüssel) => {
+      delete data[schlüssel];
+    });
+  }
+
+  if (abfrageSchlüssel) {
+    const abfrageDaten = data.ROOT_QUERY;
+
+    abfrageSchlüssel.forEach((schlüssel) => {
+      delete abfrageDaten[schlüssel];
+    });
+  }
+
+  if (veränderungSchlüssel) {
+    const veränderungDaten = data.ROOT_MUTATION;
+
+    veränderungSchlüssel.forEach((schlüssel) => {
+      delete veränderungDaten[schlüssel];
+    });
+  }
+}

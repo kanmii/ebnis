@@ -375,6 +375,24 @@ async function createOnlineEntryEffect(
 
   const { dispatch } = effectArgs;
 
+  if (bearbeitenEintrag) {
+    const datenGegenständen = bearbeitenEintrag.dataObjects.map((d, index) => {
+      const { clientId, updatedAt, insertedAt } = d as DataObjectFragment;
+
+      return {
+        ...input.dataObjects[index],
+        clientId,
+        updatedAt,
+        insertedAt,
+      };
+    });
+
+    input = {
+      ...input,
+      dataObjects: datenGegenständen,
+    };
+  }
+
   const inputs = [
     {
       experienceId,
