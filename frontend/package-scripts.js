@@ -44,9 +44,6 @@ module.exports = {
       cypress: "tsc --project ./cypress",
     },
     lint: "eslint . --ext .js,.jsx,.ts,.tsx",
-    gqlTypes: {
-      default: "yarn start fetchGqlTypes",
-    },
     fgql: `node -e 'require("./package-scripts").fetchGqlTypes()'`,
   },
   serviceWorker() {
