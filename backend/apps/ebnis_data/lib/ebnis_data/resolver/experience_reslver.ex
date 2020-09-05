@@ -3,6 +3,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
 
   alias EbnisData.Resolver
   alias EbnisData.Experience
+  alias EbnisData.Entry
 
   defp changeset_errors_to_map(errors) do
     errors
@@ -28,7 +29,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   def get_experiences(
-        %{input: args},
+        args,
         %{context: %{current_user: user}}
       ) do
     args
@@ -357,7 +358,10 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     end
   end
 
-  def create_experience_union(%{experience: _}, _) do
+  def create_experience_union(
+        %{experience: _},
+        _
+      ) do
     :experience_success
   end
 
@@ -385,23 +389,19 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     case attrs
          |> Map.put(:user_id, user_id)
          |> EbnisData.create_experience() do
-      {%{} = experience, []} ->
+      %Experience{} = experience ->
         %{experience: experience}
 
-      {%{id: experience_id} = experience, entries_changesets} ->
-        entries_changesets
-        |> Enum.with_index()
-        |> Enum.reduce(
-          [],
-          &map_create_entry_errors(&1, &2, experience_id)
-        )
-        |> case do
-          [] ->
-            %{experience: experience}
+      {%{id: experience_id} = experience, created_entries_and_error_changesets} ->
+        einträge_schlüssel_wert =
+          created_entries_and_error_changesets
+          |> Enum.with_index()
+          |> Enum.map(&map_create_entry_errors(&1, experience_id))
 
-          errors ->
-            %{experience: experience, entries_errors: Enum.reverse(errors)}
-        end
+        %{
+          experience: experience,
+          entries: einträge_schlüssel_wert
+        }
 
       {:error, %{} = changeset} ->
         %{
@@ -440,23 +440,23 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     |> data_definition_changeset_to_error_map(changeset.changes.data_definitions)
   end
 
-  defp map_create_entry_errors({nil, _}, acc, _) do
-    acc
+  defp map_create_entry_errors({%Entry{} = entry, _index}, _experience_id) do
+    %{entry: entry}
   end
 
-  defp map_create_entry_errors({changeset, index}, acc, experience_id) do
-    errors =
-      Map.put(
-        entry_changeset_errors_to_map(changeset),
-        :meta,
-        %{
-          experience_id: experience_id,
-          index: index,
-          client_id: changeset.changes[:client_id]
-        }
-      )
-
-    [errors | acc]
+  defp map_create_entry_errors({changeset_fehler, index}, experience_id) do
+    %{
+      errors:
+        Map.put(
+          entry_changeset_errors_to_map(changeset_fehler),
+          :meta,
+          %{
+            experience_id: experience_id,
+            index: index,
+            client_id: changeset_fehler.changes[:client_id]
+          }
+        )
+    }
   end
 
   defp data_definition_changeset_to_error_map(errors, changesets) do

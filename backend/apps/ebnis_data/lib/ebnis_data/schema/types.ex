@@ -53,7 +53,7 @@ defmodule EbnisData.Schema.Types do
   input_object :pagination_input do
     field(:first, :integer)
     field(:last, :integer)
-    field(:before, :integer)
-    field(:after, :integer)
+    field(:before, :string)
+    field(:after, :string)
   end
 end

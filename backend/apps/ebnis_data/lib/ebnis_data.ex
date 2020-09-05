@@ -107,7 +107,9 @@ defmodule EbnisData do
 
   defdelegate get_experience(id, user_id), to: ExperienceApi
   defdelegate get_experiences(args), to: ExperienceApi
+
   defdelegate create_experience(args), to: ExperienceApi
+
   defdelegate delete_experience(id, user_id), to: ExperienceApi
   defdelegate update_experience(update_args, user_id), to: ExperienceApi
 
@@ -117,8 +119,11 @@ defmodule EbnisData do
 
   defdelegate get_entry(id), to: EntryApi
 
-  defdelegate get_paginated_entries(experiences_ids_pagination_args_tuples, repo_opts),
-    to: EntryApi
+  defdelegate get_paginated_entries(
+                experiences_ids_pagination_args_tuples,
+                repo_opts
+              ),
+              to: EntryApi
 
   ################################ END ENTRY SECTION #################
 end

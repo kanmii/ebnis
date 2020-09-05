@@ -6,6 +6,7 @@ defmodule EbnisData.ExperienceApi do
 
   alias EbnisData.Repo
   alias EbnisData.Experience
+  alias EbnisData.Entry
   alias EbnisData.DataDefinition
   alias EbnisData.EntryApi
 
@@ -46,6 +47,8 @@ defmodule EbnisData.ExperienceApi do
       nil
   end
 
+  @pagination_keys [:first, :last, :before, :after]
+
   @spec get_experiences(
           args :: %{
             pagination: Absinthe.Relay.Connection.Options.t(),
@@ -56,8 +59,16 @@ defmodule EbnisData.ExperienceApi do
         ) ::
           {:ok, Absinthe.Relay.Connection.t()} | {:error, any}
   def get_experiences(args) do
-    case args[:pagination] do
-      nil ->
+    case Enum.any?(@pagination_keys, &Map.has_key?(args, &1)) do
+      true ->
+        args
+        |> query_with_data_definitions()
+        |> Absinthe.Relay.Connection.from_query(
+          &Repo.all(&1),
+          args
+        )
+
+      _ ->
         experiences =
           args
           |> query_with_data_definitions()
@@ -72,14 +83,6 @@ defmodule EbnisData.ExperienceApi do
         }
 
         {:ok, experience_connection}
-
-      pagination_args ->
-        args
-        |> query_with_data_definitions()
-        |> Absinthe.Relay.Connection.from_query(
-          &Repo.all(&1),
-          pagination_args
-        )
     end
   end
 
@@ -93,7 +96,7 @@ defmodule EbnisData.ExperienceApi do
     query =
       from(
         e in Experience,
-        order_by: [desc: e.updated_at],
+        order_by: [desc: e.updated_at, desc: e.id],
         preload: [data_definitions: ^definitions_query]
       )
 
@@ -118,74 +121,6 @@ defmodule EbnisData.ExperienceApi do
 
   defp query(queryable, _) do
     queryable
-  end
-
-  defp offline_entry_add_error(
-         entry,
-         {created_entries, with_errors}
-       ) do
-    changeset = %{
-      changes: entry,
-      valid?: false,
-      errors: [
-        experience_id: {"is not the same as experience client ID", []}
-      ]
-    }
-
-    {created_entries, [changeset | with_errors]}
-  end
-
-  defp update_data_objects_with_definition_ids(entry_attrs, definitions_map) do
-    Enum.reduce(
-      entry_attrs.data_objects,
-      {:ok, [], []},
-      fn data_attrs, acc ->
-        definition_client_id = data_attrs[:definition_id]
-
-        case definitions_map[definition_client_id] do
-          nil ->
-            map_fake_entry_data_object_changeset(
-              acc,
-              data_attrs,
-              [
-                definition_id:
-                  "data definition client ID '#{definition_client_id}' does not exist"
-              ],
-              false
-            )
-
-          definition_id ->
-            changes =
-              Map.put(
-                data_attrs,
-                :definition_id,
-                definition_id
-              )
-
-            map_fake_entry_data_object_changeset(acc, changes, [], true)
-        end
-      end
-    )
-    |> case do
-      {:ok, valids, _} ->
-        {:ok, %{entry_attrs | data_objects: Enum.reverse(valids)}}
-
-      {:error, _, changesets} ->
-        fake_changeset = %{
-          changes:
-            Map.put(
-              entry_attrs,
-              :data_objects,
-              Enum.reverse(changesets)
-            ),
-          errors: []
-        }
-
-        {
-          :error,
-          fake_changeset
-        }
-    end
   end
 
   defp map_fake_entry_data_object_changeset(
@@ -414,6 +349,10 @@ defmodule EbnisData.ExperienceApi do
       }
   end
 
+  @spec create_experience(attrs: %{}) ::
+          %Experience{}
+          | {%Experience{}, [%Entry{} | %Ecto.Changeset{}]}
+          | {:error, %Ecto.Changeset{}}
   def create_experience(attrs) do
     attrs =
       Map.update(
@@ -427,17 +366,21 @@ defmodule EbnisData.ExperienceApi do
          |> Experience.changeset(attrs)
          |> Repo.insert() do
       {:ok, %Experience{} = experience} ->
-        entries = attrs[:entries] || []
+        case attrs[:entries] do
+          nil ->
+            experience
 
-        {created_entries, entries_changesets} =
-          validate_create_entries(entries, experience, attrs[:client_id])
+          entries ->
+            created_entries_and_error_changesets =
+              validate_create_entries(
+                entries,
+                experience,
+                attrs[:client_id]
+              )
+              |> Enum.reverse()
 
-        experience_with_entries = %Experience{
-          experience
-          | entries: Enum.reverse(created_entries)
-        }
-
-        {experience_with_entries, Enum.reverse(entries_changesets)}
+            {experience, created_entries_and_error_changesets}
+        end
 
       {:error, changeset} ->
         {:error, changeset}
@@ -467,12 +410,12 @@ defmodule EbnisData.ExperienceApi do
       user_id: experience.user_id
     }
 
-    client_id_to_definition_id_map = make_client_id_to_definition_id_map(experience)
+    client_id_to_definition_id_map = karte_client_id_to_definition_id(experience)
 
     Enum.reduce(
       entries_attrs,
-      {[], []},
-      fn attrs, {created_entries, changesets} ->
+      [],
+      fn attrs, created_entries_and_error_changesets ->
         case %{
                attrs
                | data_objects:
@@ -488,17 +431,17 @@ defmodule EbnisData.ExperienceApi do
              |> Map.merge(associations)
              |> EntryApi.create_entry(experience) do
           {:error, changeset} ->
-            {created_entries, [changeset | changesets]}
+            [changeset | created_entries_and_error_changesets]
 
           entry ->
-            {[entry | created_entries], [nil | changesets]}
+            [entry | created_entries_and_error_changesets]
         end
       end
     )
   end
 
   defp validate_create_entries(entries, experience, experience_client_id) do
-    client_id_to_definition_id_map = make_client_id_to_definition_id_map(experience)
+    client_id_to_definition_id_map = karte_client_id_to_definition_id(experience)
 
     associations = %{
       experience_id: experience.id,
@@ -507,20 +450,20 @@ defmodule EbnisData.ExperienceApi do
 
     Enum.reduce(
       entries,
-      {[], []},
-      fn attrs, acc ->
-        case attrs[:experience_id] == experience_client_id do
+      [],
+      fn create_entry_attr, created_entries_and_error_changesets ->
+        case create_entry_attr[:experience_id] == experience_client_id do
           true ->
             create_offline_entry(
               experience,
-              attrs,
+              create_entry_attr,
               client_id_to_definition_id_map,
               associations,
-              acc
+              created_entries_and_error_changesets
             )
 
           _ ->
-            offline_entry_add_error(attrs, acc)
+            offline_entry_add_error(create_entry_attr, created_entries_and_error_changesets)
         end
       end
     )
@@ -531,7 +474,7 @@ defmodule EbnisData.ExperienceApi do
          attrs,
          client_id_to_definition_id_map,
          associations,
-         {created_entries, with_errors}
+         created_entries_and_error_changesets
        ) do
     with {:ok, validated_attrs} <-
            update_data_objects_with_definition_ids(
@@ -542,18 +485,83 @@ defmodule EbnisData.ExperienceApi do
            validated_attrs
            |> Map.merge(associations)
            |> EntryApi.create_entry(experience) do
-      {[entry | created_entries], [nil | with_errors]}
+      [entry | created_entries_and_error_changesets]
     else
       {:error, changeset} ->
-        {created_entries, [changeset | with_errors]}
+        [changeset | created_entries_and_error_changesets]
     end
   end
 
-  defp make_client_id_to_definition_id_map(experience) do
+  defp karte_client_id_to_definition_id(experience) do
     Enum.reduce(
       experience.data_definitions,
       %{},
       &Map.put(&2, &1.client_id, &1.id)
     )
+  end
+
+  defp update_data_objects_with_definition_ids(entry_attrs, definitions_map) do
+    Enum.reduce(
+      entry_attrs.data_objects,
+      {:ok, [], []},
+      fn data_attrs, acc ->
+        definition_client_id = data_attrs[:definition_id]
+
+        case definitions_map[definition_client_id] do
+          nil ->
+            map_fake_entry_data_object_changeset(
+              acc,
+              data_attrs,
+              [
+                definition_id:
+                  "data definition client ID '#{definition_client_id}' does not exist"
+              ],
+              false
+            )
+
+          definition_id ->
+            changes =
+              Map.put(
+                data_attrs,
+                :definition_id,
+                definition_id
+              )
+
+            map_fake_entry_data_object_changeset(acc, changes, [], true)
+        end
+      end
+    )
+    |> case do
+      {:ok, valids, _} ->
+        {:ok, %{entry_attrs | data_objects: Enum.reverse(valids)}}
+
+      {:error, _, changesets} ->
+        fake_changeset = %{
+          changes:
+            Map.put(
+              entry_attrs,
+              :data_objects,
+              Enum.reverse(changesets)
+            ),
+          errors: []
+        }
+
+        {
+          :error,
+          fake_changeset
+        }
+    end
+  end
+
+  defp offline_entry_add_error(entry, created_entries_and_error_changesets) do
+    changeset = %{
+      changes: entry,
+      valid?: false,
+      errors: [
+        experience_id: {"is not the same as experience client ID", []}
+      ]
+    }
+
+    [changeset | created_entries_and_error_changesets]
   end
 end

@@ -3,6 +3,7 @@ import {
   GetExperienceConnectionMini,
   GetExperienceConnectionMiniVariables,
   GetExperienceConnectionMini_getExperiences,
+  GetExperienceConnectionMini_getExperiences_edges,
 } from "../graphql/apollo-types/GetExperienceConnectionMini";
 import immer from "immer";
 import {
@@ -20,17 +21,35 @@ import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFr
 import { EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
+import { emptyPageInfo } from "../graphql/utils.gql";
+import { PageInfoFragment } from "../graphql/apollo-types/PageInfoFragment";
 
 export function makeDefaultExperienceMiniConnection(): GetExperienceConnectionMini_getExperiences {
   return {
-    pageInfo: {
-      __typename: "PageInfo",
-      hasNextPage: false,
-      hasPreviousPage: false,
-    },
+    pageInfo: emptyPageInfo,
     __typename: "ExperienceConnection",
     edges: [],
   };
+}
+
+export function writeGetExperiencesMiniQuery(data: {
+  edges: GetExperienceConnectionMini_getExperiences_edges[];
+  pageInfo: PageInfoFragment;
+}) {
+  const { cache } = window.____ebnis;
+
+  cache.writeQuery<
+    GetExperienceConnectionMini,
+    GetExperienceConnectionMiniVariables
+  >({
+    ...readOptions,
+    data: {
+      getExperiences: {
+        ...data,
+        __typename: "ExperienceConnection",
+      },
+    },
+  });
 }
 
 export function floatExperienceToTheTopInGetExperiencesMiniQuery(
@@ -122,7 +141,7 @@ export function floatExperiencesToTopInGetExperiencesMiniQuery(ids: {
 export function insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(
   experiencesList: [string, ExperienceFragment | null][],
 ) {
-  const { client } = window.____ebnis;
+  const { cache } = window.____ebnis;
 
   const experiencesMini =
     getExperiencesMiniQuery() || makeDefaultExperienceMiniConnection();
@@ -170,7 +189,7 @@ export function insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(
     proxy.edges = newEdges.concat(Object.values(previousEdgesMap));
   });
 
-  client.writeQuery<
+  cache.writeQuery<
     GetExperienceConnectionMini,
     GetExperienceConnectionMiniVariables
   >({

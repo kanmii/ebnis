@@ -3,8 +3,6 @@
 // @generated
 // This file was automatically generated and should not be edited.
 
-import { GetExperiencesInput } from "./globalTypes";
-
 // ====================================================
 // GraphQL query operation: GetExperienceConnectionMini
 // ====================================================
@@ -19,6 +17,14 @@ export interface GetExperienceConnectionMini_getExperiences_pageInfo {
    * When paginating backwards, are there more items?
    */
   hasPreviousPage: boolean;
+  /**
+   * When paginating backwards, the cursor to continue.
+   */
+  startCursor: string | null;
+  /**
+   * When paginating forwards, the cursor to continue.
+   */
+  endCursor: string | null;
 }
 
 export interface GetExperienceConnectionMini_getExperiences_edges_node {
@@ -65,5 +71,9 @@ export interface GetExperienceConnectionMini {
 }
 
 export interface GetExperienceConnectionMiniVariables {
-  input?: GetExperiencesInput | null;
+  after?: string | null;
+  before?: string | null;
+  first?: number | null;
+  last?: number | null;
+  ids?: (string | null)[] | null;
 }

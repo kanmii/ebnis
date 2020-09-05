@@ -61,7 +61,7 @@ type DeletedExperienceLedgerRequired = {
   howLongAgo: number;
 };
 
-type DeletedExperienceLedger = DeletedExperienceLedgerRequired &
+export type DeletedExperienceLedger = DeletedExperienceLedgerRequired &
   DeletedExperienceLedgerAction;
 
 type DeletedExperienceLedgerRequest = {

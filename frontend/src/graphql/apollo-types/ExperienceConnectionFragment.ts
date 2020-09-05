@@ -19,6 +19,14 @@ export interface ExperienceConnectionFragment_pageInfo {
    * When paginating backwards, are there more items?
    */
   hasPreviousPage: boolean;
+  /**
+   * When paginating backwards, the cursor to continue.
+   */
+  startCursor: string | null;
+  /**
+   * When paginating forwards, the cursor to continue.
+   */
+  endCursor: string | null;
 }
 
 export interface ExperienceConnectionFragment_edges_node_dataDefinitions {

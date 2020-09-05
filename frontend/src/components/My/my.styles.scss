@@ -134,3 +134,13 @@
 .new-experience-trigger {
   @extend %floating-circular;
 }
+
+.my-experiences {
+  &__prev-next {
+    text-align: center;
+  }
+
+  &__next, &__prev {
+    font-weight: bolder;
+  }
+}

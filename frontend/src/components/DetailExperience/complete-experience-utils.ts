@@ -16,10 +16,10 @@ import {
   ActiveVal,
   InActiveVal,
   RequestedVal,
-  LoadingVal,
   ErrorsVal,
   DataVal,
-  InitialVal,
+  LoadingState,
+  LoadingVal,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -50,9 +50,7 @@ import {
   putOrRemoveDeleteExperienceLedger,
 } from "../../apollo/delete-experience-cache";
 import { DeleteExperiencesComponentProps } from "../../utils/experience.gql.types";
-import { DetailedExperienceQueryResult } from "../../utils/experience.gql.types";
 import { manuallyFetchDetailedExperience } from "../../utils/experience.gql.types";
-import { entriesPaginationVariables } from "../../graphql/entry.gql";
 import {
   parseStringError,
   DATA_FETCHING_FAILED,
@@ -60,6 +58,10 @@ import {
 import { getIsConnected } from "../../utils/connections";
 import { entryToEdge } from "../NewEntry/entry-to-edge";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
+import { PaginationInput } from "../../graphql/apollo-types/globalTypes";
+import { readExperienceFragment } from "../../apollo/read-experience-fragment";
+import { PageInfoFragment } from "../../graphql/apollo-types/PageInfoFragment";
+import { sammelnZwischengespeicherteErfahrung } from "../../apollo/sammeln-zwischengespeicherte-erfahrung";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -167,27 +169,28 @@ export function initState(props: Props): StateMachine {
       },
     },
     states: {
-      newEntryActive: {
-        value: StateValue.inactive,
-      },
-      notification: {
-        value: StateValue.inactive,
-      },
-      newEntryCreated: {
-        value: StateValue.inactive,
-      },
-      entriesErrors: {
-        value: StateValue.inactive,
-      },
-      deleteExperience: {
-        value: StateValue.inactive,
-      },
-      showingOptionsMenu: {
-        value: StateValue.inactive,
-      },
-      experience: {
-        value: StateValue.loading,
-      },
+      value: StateValue.loading,
+      // newEntryActive: {
+      //   value: StateValue.inactive,
+      // },
+      // notification: {
+      //   value: StateValue.inactive,
+      // },
+      // newEntryCreated: {
+      //   value: StateValue.inactive,
+      // },
+      // entriesErrors: {
+      //   value: StateValue.inactive,
+      // },
+      // deleteExperience: {
+      //   value: StateValue.inactive,
+      // },
+      // showingOptionsMenu: {
+      //   value: StateValue.inactive,
+      // },
+      // experience: {
+      //   value: StateValue.loading,
+      // },
     },
 
     timeouts: {},
@@ -198,66 +201,75 @@ function handleToggleNewEntryActiveAction(
   proxy: DraftStateMachine,
   payload: NewEntryActivePayload,
 ) {
-  const { states } = proxy;
-  const { bearbeitenEintrag } = payload;
+  const { states: globalStates } = proxy;
 
-  const {
-    newEntryActive: { value },
-  } = states;
+  if (globalStates.value === StateValue.data) {
+    const { states } = globalStates.data;
+    const { bearbeitenEintrag } = payload;
 
-  if (bearbeitenEintrag) {
+    const {
+      newEntryActive: { value },
+    } = states;
+
+    if (bearbeitenEintrag) {
+      const state = states.newEntryActive as Draft<NewEntryActive>;
+      state.value = StateValue.active;
+      state.active = {
+        context: {
+          bearbeitenEintrag,
+        },
+      };
+
+      return;
+    }
+
+    if (value === StateValue.active) {
+      states.newEntryActive.value = StateValue.inactive;
+      return;
+    }
+
     const state = states.newEntryActive as Draft<NewEntryActive>;
     state.value = StateValue.active;
     state.active = {
-      context: {
-        bearbeitenEintrag,
-      },
+      context: {},
     };
-
-    return;
   }
-
-  if (value === StateValue.active) {
-    states.newEntryActive.value = StateValue.inactive;
-    return;
-  }
-
-  const state = states.newEntryActive as Draft<NewEntryActive>;
-  state.value = StateValue.active;
-  state.active = {
-    context: {},
-  };
 }
 
 function handleOnNewEntryCreatedOrOfflineExperienceSynced(
   proxy: DraftStateMachine,
   payload: OnNewEntryCreatedOrOfflineExperienceSyncedPayload,
 ) {
-  const { states } = proxy;
-  const { newEntryActive, notification } = states;
-  newEntryActive.value = StateValue.inactive;
-  notification.value = StateValue.inactive;
+  const { states: globalStates } = proxy;
 
-  handleMaybeNewEntryCreatedHelper(proxy, payload);
+  if (globalStates.value === StateValue.data) {
+    const states = globalStates.data.states;
 
-  const unsyncableEntriesErrors = handleMaybeEntriesErrorsHelper(
-    proxy,
-    payload,
-  );
+    const { newEntryActive, notification } = states;
+    newEntryActive.value = StateValue.inactive;
+    notification.value = StateValue.inactive;
 
-  const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
+    handleMaybeNewEntryCreatedHelper(proxy, payload);
 
-  effects.push({
-    key: "scrollDocToTopEffect",
-    ownArgs: {},
-  });
+    const unsyncableEntriesErrors = handleMaybeEntriesErrorsHelper(
+      proxy,
+      payload,
+    );
 
-  // istanbul ignore else:
-  if (Object.keys(unsyncableEntriesErrors).length) {
+    const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
+
     effects.push({
-      key: "putEntriesErrorsInLedgerEffect",
-      ownArgs: unsyncableEntriesErrors,
+      key: "scrollDocToTopEffect",
+      ownArgs: {},
     });
+
+    // istanbul ignore else:
+    if (Object.keys(unsyncableEntriesErrors).length) {
+      effects.push({
+        key: "putEntriesErrorsInLedgerEffect",
+        ownArgs: unsyncableEntriesErrors,
+      });
+    }
   }
 }
 
@@ -276,70 +288,79 @@ function handleMaybeNewEntryCreatedHelper(
     return;
   }
 
-  const { neuEintragDaten, zustand } = mayBeNewEntry;
+  const { states: globalStates } = proxy;
 
-  const { updatedAt, clientId: neuErstellteEintragKlientId } = neuEintragDaten;
+  if (globalStates.value === StateValue.data) {
+    const {
+      states,
+      context: { experience },
+    } = globalStates.data;
+    const { neuEintragDaten, zustand } = mayBeNewEntry;
 
-  const { states } = proxy;
-  const { newEntryCreated, experience: experienceState } = states;
+    const {
+      updatedAt,
+      clientId: neuErstellteEintragKlientId,
+    } = neuEintragDaten;
 
-  const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
-  effects.push({
-    key: "autoCloseNotificationEffect",
-    ownArgs: {},
-  });
+    const { newEntryCreated } = states;
 
-  const neuErstellteEintragFehler =
-    mayBeEntriesErrors &&
-    mayBeEntriesErrors.find((error) => {
-      return error.meta.clientId === neuErstellteEintragKlientId;
-    });
-
-  if (neuErstellteEintragFehler) {
-    return;
-  }
-
-  const newEntryState = newEntryCreated as Draft<NewEntryCreatedNotification>;
-  newEntryState.value = StateValue.active;
-
-  newEntryState.active = {
-    context: {
-      message: `New entry created on: ${formatDatetime(updatedAt)}`,
-    },
-  };
-
-  const experienceDataState = experienceState as Draft<DataState>;
-  experienceDataState.value = StateValue.data;
-  const experience = experienceDataState.data;
-  const edges = experience.entries.edges as EntryConnectionFragment_edges[];
-  const neuEintragKante = entryToEdge(neuEintragDaten);
-
-  // ein vollständig neu Eintrag
-  if (!(vielleichtBearbeitenEintrag || zustand === "ganz-nue")) {
-    edges.unshift(neuEintragKante);
-  } else {
-    // wir ersetzen die neu Eintrag mit dem zuletzt Eintrag
-
-    const { clientId, dataObjects } = neuEintragDaten;
-
-    experience.entries.edges = edges.map((kante) => {
-      return (kante.node as EntryFragment).id === clientId
-        ? neuEintragKante
-        : kante;
-    });
-
-    // und die Offline-Einträge muss auf die Cache entfernen werden
-
+    const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
     effects.push({
-      key: "deleteCacheKeysEffect",
-      ownArgs: {
-        keys: [`Entry:${clientId}`].concat(
-          dataObjects.map((d) => {
-            return `DataObject:${(d as DataObjectFragment).clientId as string}`;
-          }),
-        ),
-      },
+      key: "autoCloseNotificationEffect",
+      ownArgs: {},
     });
+
+    const neuErstellteEintragFehler =
+      mayBeEntriesErrors &&
+      mayBeEntriesErrors.find((error) => {
+        return error.meta.clientId === neuErstellteEintragKlientId;
+      });
+
+    if (neuErstellteEintragFehler) {
+      return;
+    }
+
+    const newEntryState = newEntryCreated as Draft<NewEntryCreatedNotification>;
+    newEntryState.value = StateValue.active;
+
+    newEntryState.active = {
+      context: {
+        message: `New entry created on: ${formatDatetime(updatedAt)}`,
+      },
+    };
+
+    const edges = experience.entries.edges as EntryConnectionFragment_edges[];
+    const neuEintragKante = entryToEdge(neuEintragDaten);
+
+    // ein vollständig neu Eintrag
+    if (!(vielleichtBearbeitenEintrag || zustand === "ganz-nue")) {
+      edges.unshift(neuEintragKante);
+    } else {
+      // wir ersetzen die neu Eintrag mit dem zuletzt Eintrag
+
+      const { clientId, dataObjects } = neuEintragDaten;
+
+      experience.entries.edges = edges.map((kante) => {
+        return (kante.node as EntryFragment).id === clientId
+          ? neuEintragKante
+          : kante;
+      });
+
+      // und die Offline-Einträge muss auf die Cache entfernen werden
+
+      effects.push({
+        key: "deleteCacheKeysEffect",
+        ownArgs: {
+          keys: [`Entry:${clientId}`].concat(
+            dataObjects.map((d) => {
+              return `DataObject:${
+                (d as DataObjectFragment).clientId as string
+              }`;
+            }),
+          ),
+        },
+      });
+    }
   }
 }
 
@@ -355,72 +376,87 @@ function handleMaybeEntriesErrorsHelper(
     return unsyncableEntriesErrors;
   }
 
-  const {
-    states: { entriesErrors },
-  } = proxy;
+  const { states: globalStates } = proxy;
 
-  const entriesErrorsState = entriesErrors as Draft<EntriesErrorsNotification>;
-  const errorValues = {} as EintragFehlerAlsListeKarte;
-
-  entriesErrorsState.value = StateValue.active;
-  entriesErrorsState.active = {
-    context: {
-      errors: errorValues,
-    },
-  };
-
-  mayBeEntriesErrors.forEach((entryError) => {
+  if (globalStates.value === StateValue.data) {
     const {
-      /* eslint-disable-next-line @typescript-eslint/no-unused-vars*/
-      __typename,
-      meta: { clientId },
-      dataObjects,
-      ...nichtGegenstandFehlern
-    } = entryError;
+      states: { entriesErrors },
+    } = globalStates.data;
 
-    const errors: EintragFehlerAlsListe = [];
+    const entriesErrorsState = entriesErrors as Draft<
+      EntriesErrorsNotification
+    >;
+    const errorValues = {} as EintragFehlerAlsListeKarte;
 
-    // istanbul ignore else:
-    if (dataObjects) {
-      dataObjects.forEach((d) => {
-        const {
-          /* eslint-disable-next-line @typescript-eslint/no-unused-vars*/
-          __typename,
-          meta: { index },
-          ...otherDataErrors
-        } = d as CreateEntryErrorFragment_dataObjects;
+    entriesErrorsState.value = StateValue.active;
+    entriesErrorsState.active = {
+      context: {
+        errors: errorValues,
+      },
+    };
 
-        const dataErrors: [string, string][] = [];
+    mayBeEntriesErrors.forEach((entryError) => {
+      const {
+        /* eslint-disable-next-line @typescript-eslint/no-unused-vars*/
+        __typename,
+        meta: { clientId },
+        dataObjects,
+        ...nichtGegenstandFehlern
+      } = entryError;
 
-        Object.entries(otherDataErrors).forEach(([k, v]) => {
-          if (v) {
-            dataErrors.push([k, v]);
-          }
+      const errors: EintragFehlerAlsListe = [];
+
+      // istanbul ignore else:
+      if (dataObjects) {
+        dataObjects.forEach((d) => {
+          const {
+            /* eslint-disable-next-line @typescript-eslint/no-unused-vars*/
+            __typename,
+            meta: { index },
+            ...otherDataErrors
+          } = d as CreateEntryErrorFragment_dataObjects;
+
+          const dataErrors: [string, string][] = [];
+
+          Object.entries(otherDataErrors).forEach(([k, v]) => {
+            if (v) {
+              dataErrors.push([k, v]);
+            }
+          });
+
+          errors.push([index + 1, dataErrors]);
         });
-
-        errors.push([index + 1, dataErrors]);
-      });
-    }
-
-    Object.entries(nichtGegenstandFehlern).forEach(([k, v]) => {
-      if (v) {
-        errors.push(["", [[k, v]]]);
       }
+
+      Object.entries(nichtGegenstandFehlern).forEach(([k, v]) => {
+        if (v) {
+          errors.push(["", [[k, v]]]);
+        }
+      });
+
+      unsyncableEntriesErrors[clientId as string] = entryError;
+      errorValues[clientId as string] = errors;
     });
-
-    unsyncableEntriesErrors[clientId as string] = entryError;
-    errorValues[clientId as string] = errors;
-  });
-
+  }
   return unsyncableEntriesErrors;
 }
 
 function handleOnCloseNewEntryCreatedNotification(proxy: DraftStateMachine) {
-  proxy.states.newEntryCreated.value = StateValue.inactive;
+  const { states: globalStates } = proxy;
+
+  if (globalStates.value === StateValue.data) {
+    const { states } = globalStates.data;
+    states.newEntryCreated.value = StateValue.inactive;
+  }
 }
 
 function handleOnCloseEntriesErrorsNotification(proxy: DraftStateMachine) {
-  proxy.states.entriesErrors.value = StateValue.inactive;
+  const { states: globalStates } = proxy;
+
+  if (globalStates.value === StateValue.data) {
+    const { states } = globalStates.data;
+    states.entriesErrors.value = StateValue.inactive;
+  }
 }
 
 function handleSetTimeoutAction(
@@ -438,39 +474,46 @@ function handleDeleteExperienceRequestAction(
   proxy: DraftStateMachine,
   payload: DeleteExperienceRequestPayload,
 ) {
-  const {
-    states: { deleteExperience },
-  } = proxy;
+  const { states: globalStates } = proxy;
 
-  deleteExperience.value = StateValue.active;
-  const deleteExperienceActive = deleteExperience as Draft<
-    DeleteExperienceActiveState
-  >;
+  if (globalStates.value === StateValue.data) {
+    const {
+      states: { deleteExperience },
+    } = globalStates.data;
 
-  deleteExperienceActive.active = {
-    context: {
-      key: payload.key,
-    },
-  };
+    deleteExperience.value = StateValue.active;
+    const deleteExperienceActive = deleteExperience as Draft<
+      DeleteExperienceActiveState
+    >;
+
+    deleteExperienceActive.active = {
+      context: {
+        key: payload.key,
+      },
+    };
+  }
 }
 
 function handleDeleteExperienceCancelledAction(proxy: DraftStateMachine) {
-  const {
-    states: { deleteExperience },
-  } = proxy;
+  const { states: globalStates } = proxy;
 
-  deleteExperience.value = StateValue.inactive;
+  if (globalStates.value === StateValue.data) {
+    const {
+      states: { deleteExperience },
+    } = globalStates.data;
+    deleteExperience.value = StateValue.inactive;
 
-  const deleteExperienceActive = deleteExperience as DeleteExperienceActiveState;
+    const deleteExperienceActive = deleteExperience as DeleteExperienceActiveState;
 
-  const effects = getGeneralEffects(proxy);
+    const effects = getGeneralEffects(proxy);
 
-  effects.push({
-    key: "cancelDeleteExperienceEffect",
-    ownArgs: {
-      key: deleteExperienceActive.active.context.key,
-    },
-  });
+    effects.push({
+      key: "cancelDeleteExperienceEffect",
+      ownArgs: {
+        key: deleteExperienceActive.active.context.key,
+      },
+    });
+  }
 }
 
 function handleDeleteExperienceConfirmedAction(proxy: DraftStateMachine) {
@@ -485,23 +528,27 @@ function handleToggleShowOptionsMenuAction(
   proxy: DraftStateMachine,
   payload: ToggleOptionsMenuPayload,
 ) {
-  const {
-    states: { showingOptionsMenu },
-  } = proxy;
+  const { states: globalStates } = proxy;
 
-  if (payload.key) {
-    // istanbul ignore else:
-    if (payload.key === "close") {
-      showingOptionsMenu.value = StateValue.inactive;
+  if (globalStates.value === StateValue.data) {
+    const {
+      states: { showingOptionsMenu },
+    } = globalStates.data;
+
+    if (payload.key) {
+      // istanbul ignore else:
+      if (payload.key === "close") {
+        showingOptionsMenu.value = StateValue.inactive;
+      }
+
+      return;
     }
 
-    return;
+    showingOptionsMenu.value =
+      showingOptionsMenu.value === StateValue.inactive
+        ? StateValue.active
+        : StateValue.inactive;
   }
-
-  showingOptionsMenu.value =
-    showingOptionsMenu.value === StateValue.inactive
-      ? StateValue.active
-      : StateValue.inactive;
 }
 
 function handleOnDataReceivedAction(
@@ -555,9 +602,12 @@ function handleOnDataReceivedAction(
       break;
 
     case StateValue.errors:
-      states.experience = {
-        value: StateValue.errors,
-        error: parseStringError(payload.error),
+      states.value = StateValue.errors;
+      const errorsState = states as Draft<ErrorState>;
+      errorsState.errors = {
+        context: {
+          error: parseStringError(payload.error),
+        },
       };
       break;
   }
@@ -579,6 +629,7 @@ function getExperienceId(props: Props) {
 ////////////////////////// END STATE UPDATE ////////////////////////////
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
+
 const scrollDocToTopEffect: DefScrollDocToTopEffect["func"] = () => {
   scrollDocumentToTop();
 };
@@ -786,19 +837,43 @@ type DefDeleteExperienceEffect = EffectDefinition<"deleteExperienceEffect">;
 let fetchExperienceAttemptsCount = 1;
 
 const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = (
-  _,
+  { paginationInput },
   props,
   { dispatch },
 ) => {
   const experienceId = getExperienceId(props);
-  let timeoutId: null | NodeJS.Timeout = null;
 
-  async function fetchDetailedExperience(fetchPolicy: FetchPolicy) {
+  let bestehendeZwischengespeicherteErgebnis = sammelnZwischengespeicherteErfahrung(
+    experienceId,
+  );
+
+  if (!paginationInput && bestehendeZwischengespeicherteErgebnis) {
+    dispatch({
+      type: ActionType.ON_DATA_RECEIVED,
+      key: StateValue.data,
+      data: bestehendeZwischengespeicherteErgebnis,
+    });
+
+    return;
+  }
+
+  let timeoutId: null | NodeJS.Timeout = null;
+  let fetchPolicy: FetchPolicy = "cache-only";
+  const timeouts = [2000, 2000, 3000, 5000];
+  const timeoutsLen = timeouts.length - 1;
+
+  async function fetchDetailedExperience() {
     try {
+      if (!paginationInput) {
+        paginationInput = {
+          first: 10,
+        };
+      }
+
       const data = await manuallyFetchDetailedExperience(
         {
           id: experienceId,
-          entriesPagination: entriesPaginationVariables.entriesPagination,
+          entriesPagination: paginationInput,
         },
         fetchPolicy,
       );
@@ -824,7 +899,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
   fetchExperienceAttemptsCount = 1;
 
   if (isOfflineId(experienceId)) {
-    fetchDetailedExperience("cache-only");
+    fetchDetailedExperience();
     return;
   }
 
@@ -836,21 +911,25 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
       const { isOffline, isPartOffline } = getOnlineStatus(experienceId);
 
       if (isOffline || isPartOffline) {
-        fetchDetailedExperience("cache-only");
+        fetchDetailedExperience();
       } else {
-        fetchDetailedExperience("cache-first");
+        fetchPolicy = "network-only";
+        fetchDetailedExperience();
       }
       return;
     }
 
-    // we are not connected
-    if (isConnected === false) {
-      fetchDetailedExperience("cache-only");
+    // we are not connected, oder das is nicht ein Seitennummerierung Anforderung
+    if (
+      isConnected === false ||
+      (bestehendeZwischengespeicherteErgebnis && !paginationInput)
+    ) {
+      fetchDetailedExperience();
       return;
     }
 
     // we are still trying to connect
-    if (fetchExperienceAttemptsCount > 3) {
+    if (fetchExperienceAttemptsCount > timeoutsLen) {
       dispatch({
         type: ActionType.ON_DATA_RECEIVED,
         key: StateValue.errors,
@@ -862,7 +941,10 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
 
     ++fetchExperienceAttemptsCount;
 
-    timeoutId = setTimeout(mayBeScheduleFetchDetailedExperience, 5000);
+    timeoutId = setTimeout(
+      mayBeScheduleFetchDetailedExperience,
+      timeouts[fetchExperienceAttemptsCount++],
+    );
   }
 
   mayBeScheduleFetchDetailedExperience();
@@ -871,7 +953,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
 type DefFetchDetailedExperienceEffect = EffectDefinition<
   "fetchDetailedExperienceEffect",
   {
-    initial?: InitialVal;
+    paginationInput?: PaginationInput;
   }
 >;
 
@@ -951,6 +1033,31 @@ type DraftStateMachine = Draft<StateMachine>;
 
 export type StateMachine = GenericGeneralEffect<EffectType> &
   Readonly<{
+    states: LoadingState | ErrorState | DataState;
+
+    timeouts: Timeouts;
+  }>;
+
+type Timeouts = Readonly<{
+  autoCloseNotification?: NodeJS.Timeout;
+}>;
+
+type ErrorState = Readonly<{
+  value: ErrorsVal;
+  errors: Readonly<{
+    context: Readonly<{
+      error: string;
+    }>;
+  }>;
+}>;
+
+export type DataState = Readonly<{
+  value: DataVal;
+  data: Readonly<{
+    context: Readonly<{
+      experience: ExperienceFragment;
+    }>;
+
     states: Readonly<{
       newEntryActive: Readonly<
         | {
@@ -983,29 +1090,8 @@ export type StateMachine = GenericGeneralEffect<EffectType> &
       deleteExperience: DeleteExperienceState;
 
       showingOptionsMenu: ShowingOptionsMenuState;
-
-      experience: LoadingState | ErrorState | DataState;
     }>;
-
-    timeouts: Timeouts;
   }>;
-
-type Timeouts = Readonly<{
-  autoCloseNotification?: NodeJS.Timeout;
-}>;
-
-type LoadingState = Readonly<{
-  value: LoadingVal;
-}>;
-
-type ErrorState = Readonly<{
-  value: ErrorsVal;
-  error: string;
-}>;
-
-export type DataState = Readonly<{
-  value: DataVal;
-  data: ExperienceFragment;
 }>;
 
 export type ShowingOptionsMenuState = Readonly<
@@ -1120,11 +1206,14 @@ type NewEntryActivePayload = {
 type OnDataReceivedPayload =
   | {
       key: DataVal;
-      data: DetailedExperienceQueryResult;
+      data: ExperienceFragment;
     }
   | {
       key: ErrorsVal;
       error: Error | string;
+    }
+  | {
+      key: LoadingVal;
     };
 
 interface ToggleOptionsMenuPayload {

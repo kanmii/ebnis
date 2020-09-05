@@ -46,7 +46,6 @@ function writeUnsyncedLedger(unsyncedLedger: UnsyncedLedger) {
   cache.writeQuery({
     query: UNSYNCED_LEDGER_QUERY,
     data: {
-      // unsyncedLedger: JSON.stringify(unsyncedLedger),
       unsyncedLedger,
     },
   });
@@ -61,7 +60,6 @@ function getUnsyncedLedger() {
 
   const unsyncedLedger = data && data.unsyncedLedger;
 
-  // return unsyncedLedger ? JSON.parse(unsyncedLedger) : {};
   return unsyncedLedger || {};
 }
 

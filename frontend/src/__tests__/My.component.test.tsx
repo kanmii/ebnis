@@ -8,6 +8,7 @@ import {
   initState,
   ActionType,
   MyChildDispatchProps,
+  ExperiencesData,
 } from "../components/My/my.utils";
 import {
   activateNewDomId,
@@ -143,7 +144,13 @@ describe("component", () => {
   it("with experiences", async () => {
     const { ui } = makeComp({
       props: {
-        experiences,
+        experiencesData: {
+          experiences,
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        } as ExperiencesData,
       },
     });
 
@@ -323,11 +330,24 @@ describe("reducer", () => {
 
 const MyP = My as ComponentType<Partial<Props>>;
 
+const pageInfo = {
+  hasPreviousPage: false,
+  hasNextPage: false,
+  __typename: "PageInfo",
+};
+
 function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
-  const experiences = props.experiences || [];
+  const experiencesData =
+    props.experiencesData ||
+    ({
+      experiences: [],
+      pageInfo,
+    } as ExperiencesData);
   const location = (props.location || {}) as any;
 
   return {
-    ui: <MyP {...props} experiences={experiences} location={location} />,
+    ui: (
+      <MyP {...props} experiencesData={experiencesData} location={location} />
+    ),
   };
 }

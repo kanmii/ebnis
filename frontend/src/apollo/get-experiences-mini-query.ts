@@ -3,14 +3,10 @@ import {
   GetExperienceConnectionMini,
   GetExperienceConnectionMiniVariables,
 } from "../graphql/apollo-types/GetExperienceConnectionMini";
-import {
-  GET_EXPERIENCES_CONNECTION_MINI_QUERY,
-  getExperienceConnectionMiniVariables,
-} from "../graphql/experience.gql";
+import { GET_EXPERIENCES_CONNECTION_MINI_QUERY } from "../graphql/experience.gql";
 
 export const readOptions = {
   query: GET_EXPERIENCES_CONNECTION_MINI_QUERY,
-  variables: getExperienceConnectionMiniVariables,
 };
 
 export function getExperiencesMiniQuery() {
@@ -21,7 +17,9 @@ export function getExperiencesMiniQuery() {
     const data = cache.readQuery<
       GetExperienceConnectionMini,
       GetExperienceConnectionMiniVariables
-    >(readOptions);
+    >({
+      query: GET_EXPERIENCES_CONNECTION_MINI_QUERY,
+    });
 
     getExperiences = data && data.getExperiences;
   } catch (error) {

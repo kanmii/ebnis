@@ -23,6 +23,10 @@ export function cleanCachedMutations() {
 
     const rootMutation = data.ROOT_MUTATION;
 
+    if (rootMutation) {
+      return;
+    }
+
     for (const dataKey of Object.keys(rootMutation)) {
       if (!dataKey.startsWith("login(")) {
         delete rootMutation[dataKey];

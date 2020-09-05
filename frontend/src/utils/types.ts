@@ -132,3 +132,7 @@ export const StateValue = {
   deleted: "deleted" as DeletedVal,
   requested: "requested" as RequestedVal,
 } as const;
+
+export type LoadingState = Readonly<{
+  value: LoadingVal;
+}>;

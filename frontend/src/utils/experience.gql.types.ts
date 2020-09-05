@@ -12,13 +12,10 @@ import {
   CREATE_EXPERIENCES_MUTATION,
   DELETE_EXPERIENCES_MUTATION,
   GET_EXPERIENCES_CONNECTION_MINI_QUERY,
-  getExperienceConnectionMiniVariables,
   ON_EXPERIENCES_DELETED_SUBSCRIPTION,
 } from "../graphql/experience.gql";
 import { UpdateExperienceFragment } from "../graphql/apollo-types/UpdateExperienceFragment";
-import {
-  UpdateExperienceInput, //
-} from "../graphql/apollo-types/globalTypes";
+import { UpdateExperienceInput } from "../graphql/apollo-types/globalTypes";
 import {
   CommonError, //
 } from "../utils/types";
@@ -48,6 +45,8 @@ import {
 } from "../graphql/apollo-types/GetExperienceConnectionMini";
 import { OnExperiencesDeletedSubscription } from "../graphql/apollo-types/OnExperiencesDeletedSubscription";
 import { getSessionId } from "./session-manager";
+import { PageInfoFragment } from "../graphql/apollo-types/PageInfoFragment";
+import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 
@@ -245,6 +244,7 @@ export type DetailedExperienceQueryResult = ApolloQueryResult<
 
 export function manuallyFetchExperienceConnectionMini(
   fetchPolicy?: FetchPolicy,
+  pagination: GetExperienceConnectionMiniVariables = {},
 ) {
   const { client } = window.____ebnis;
 
@@ -253,7 +253,18 @@ export function manuallyFetchExperienceConnectionMini(
     GetExperienceConnectionMiniVariables
   >({
     query: GET_EXPERIENCES_CONNECTION_MINI_QUERY,
-    variables: getExperienceConnectionMiniVariables,
+    variables: pagination,
     fetchPolicy: fetchPolicy || "network-only",
   });
 }
+
+export type KleinErfahrüngenAbfrageErgebnisse = ApolloQueryResult<
+  GetExperienceConnectionMini
+>;
+
+export const EXPERIENCES_MINI_FETCH_COUNT = 10;
+
+export type ExperiencesData = Readonly<{
+  experiences: ExperienceMiniFragment[];
+  pageInfo: PageInfoFragment;
+}>;

@@ -1,6 +1,4 @@
 defmodule EbnisData.Query.Experience do
-  @fragment_name "ExperienceFragment"
-
   @data_definition_fragment_name "DataDefinitionFragment"
 
   @data_definition_fragment """
@@ -12,38 +10,52 @@ defmodule EbnisData.Query.Experience do
     }
   """
 
-  @fragment """
-    fragment #{@fragment_name} on Experience {
+  @page_info """
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      endCursor
+      startCursor
+    }
+  """
+
+  @eintrag_scherbe_name "EntryFragment"
+
+  @eintrag_scherbe """
+    fragment #{@eintrag_scherbe_name} on Entry {
+      id
+      experienceId
+      clientId
+      insertedAt
+      updatedAt
+      dataObjects {
+        definitionId
+        id
+      }
+    }
+  """
+
+  @erfahrung_scherbe_name "ExperienceFragment"
+
+  @erfahrung_sherbe """
+    fragment #{@erfahrung_scherbe_name} on Experience {
       id
       title
       description
       clientId
       insertedAt
       updatedAt
-      entries (pagination: {first: 100}) {
-        edges {
-          node {
-            id
-            experienceId
-            clientId
-            dataObjects {
-              definitionId
-              id
-            }
-          }
-        }
-
-        pageInfo {
-          hasNextPage
-          hasPreviousPage
-        }
-      }
       dataDefinitions {
         ...#{@data_definition_fragment_name}
+      }
+
+      entries(pagination: $entriesPagination) {
+        ...#{@eintrag_scherbe_name}
       }
     }
 
     #{@data_definition_fragment}
+    #{@eintrag_scherbe}
   """
 
   @create_entry_error_fragment_name "CreateEntryErrorFragment"
@@ -74,33 +86,40 @@ defmodule EbnisData.Query.Experience do
     """
       query GetExperience($id: ID!) {
         getExperience(id: $id) {
-            ...#{@fragment_name}
+            ...#{@erfahrung_scherbe_name}
         }
       }
 
-      #{@fragment}
+      #{@erfahrung_sherbe}
     """
   end
 
+  def pagination_args do
+    {
+      "$first: Int, $last: Int, $before: String, $after: String",
+      "first: $first, last: $last, before: $before, after: $after"
+    }
+  end
+
   def gets do
+    {variables, values} = pagination_args()
+
     """
-      query GetExperiences($input: GetExperiencesInput) {
-        getExperiences(input: $input) {
-          pageInfo {
-            hasNextPage
-            hasPreviousPage
-          }
+      query GetExperiences($ids: [ID], #{variables}) {
+        getExperiences(ids: $ids, #{values}) {
+          #{@page_info}
 
           edges {
             node {
-              ...#{@fragment_name}
+              id
+              title
+              insertedAt
+              updatedAt
             }
           }
 
         }
       }
-
-      #{@fragment}
     """
   end
 
@@ -108,11 +127,9 @@ defmodule EbnisData.Query.Experience do
     """
       mutation DeleteExperience($id: ID!) {
         deleteExperience(id: $id) {
-          ...#{@fragment_name}
+          id
         }
       }
-
-      #{@fragment}
     """
   end
 
@@ -121,12 +138,15 @@ defmodule EbnisData.Query.Experience do
       mutation UpdateExperiencesOnline($input: [UpdateExperienceInput!]!) {
         updateExperiences(input: $input) {
           __typename
+
           ... on UpdateExperiencesAllFail {
             error
           }
+
           ... on UpdateExperiencesSomeSuccess {
             experiences {
               __typename
+
               ... on UpdateExperienceErrors {
                 errors {
                   experienceId
@@ -151,6 +171,7 @@ defmodule EbnisData.Query.Experience do
                       }
                     }
                   }
+
                   updatedDefinitions {
                     __typename
                     ... on DefinitionErrors {
@@ -168,83 +189,70 @@ defmodule EbnisData.Query.Experience do
                       }
                     }
                   }
-                  updatedEntries {
-                    __typename
-                    ... on UpdateEntryErrors {
-                      errors {
-                        entryId
-                        error
-                      }
+                }
+
+                entries {
+                  __typename
+                  ... on UpdateEntryErrors {
+                    errors {
+                      entryId
+                      error
                     }
-                    ... on UpdateEntrySomeSuccess {
-                      entry {
-                        entryId
-                        updatedAt
-                        dataObjects {
-                          __typename
-                          ... on DataObjectErrors {
-                            errors {
-                              meta {
-                                id
-                              }
-                              definition
-                              definitionId
-                              clientId
-                              error
-                              data
-                            }
-                          }
-                          ... on DataObjectSuccess {
-                            dataObject {
+                  }
+                  ... on UpdateEntrySomeSuccess {
+                    entry {
+                      entryId
+                      updatedAt
+                      dataObjects {
+                        __typename
+                        ... on DataObjectErrors {
+                          errors {
+                            meta {
                               id
-                              data
-                              definitionId
-                              clientId
-                              insertedAt
-                              updatedAt
                             }
+                            definition
+                            definitionId
+                            clientId
+                            error
+                            data
+                          }
+                        }
+                        ... on DataObjectSuccess {
+                          dataObject {
+                            id
+                            data
+                            definitionId
+                            clientId
+                            insertedAt
+                            updatedAt
                           }
                         }
                       }
                     }
                   }
-                  newEntries {
-                    __typename
-                    ... on CreateEntryErrors {
-                      errors {
-                        ...#{@create_entry_error_fragment_name}
-                      }
-                    }
-                    ... on CreateEntrySuccess {
-                      entry {
-                        id
-                        clientId
-                        experienceId
-                        updatedAt
-                        insertedAt
-                        dataObjects {
-                          id
-                          clientId
-                          data
-                          definitionId
-                          insertedAt
-                          updatedAt
-                        }
-                      }
+
+                  ... on CreateEntryErrors {
+                    errors {
+                      ...#{@create_entry_error_fragment_name}
                     }
                   }
-                  deletedEntries {
-                    __typename
-                    ... on EntrySuccess {
-                      entry {
-                        id
-                      }
+
+                  ... on CreateEntrySuccess {
+                    entry {
+                      ...#{@eintrag_scherbe_name}
                     }
-                    ... on DeleteEntryErrors {
-                      errors {
-                        id
-                        error
-                      }
+                  }
+
+                  ... on DeleteEntrySuccess {
+                    entry {
+                      id
+                    }
+                  }
+
+                  ... on DeleteEntryErrors {
+                    errors {
+                      id
+                      error
                     }
                   }
                 }
@@ -255,6 +263,7 @@ defmodule EbnisData.Query.Experience do
       }
       #{@data_definition_fragment}
       #{@create_entry_error_fragment}
+      #{@eintrag_scherbe}
     """
   end
 
@@ -262,12 +271,34 @@ defmodule EbnisData.Query.Experience do
     """
       mutation CreateExperiences($input: [CreateExperienceInput!]!) {
         createExperiences(input: $input) {
+          __typename
           ... on ExperienceSuccess {
             experience {
-              ...#{@fragment_name}
+              id
+              clientId
+              title
+              insertedAt
+              updatedAt
+              dataDefinitions {
+                id
+                clientId
+                name
+              }
             }
-            entriesErrors {
-              ...#{@create_entry_error_fragment_name}
+
+            entries {
+              __typename
+              ... on CreateEntrySuccess {
+                entry {
+                  ...#{@eintrag_scherbe_name}
+                }
+              }
+
+              ... on CreateEntryErrors {
+                errors {
+                  ...#{@create_entry_error_fragment_name}
+                }
+              }
             }
           }
           ... on CreateExperienceErrors {
@@ -289,7 +320,8 @@ defmodule EbnisData.Query.Experience do
           }
         }
       }
-      #{@fragment}
+
+      #{@eintrag_scherbe}
       #{@create_entry_error_fragment}
     """
   end
@@ -321,26 +353,21 @@ defmodule EbnisData.Query.Experience do
     """
   end
 
-  def delete_entry do
+  def sammeln_einträge do
+    {variables, values} = pagination_args()
+
     """
-      mutation D($id: ID!) {
-        deleteEntry(id: $id) {
-          id
-          experienceId
-          clientId
-          insertedAt
-          updatedAt
-          modOffline
-          dataObjects {
-            id
-            definitionId
-            data
-            clientId
-            insertedAt
-            updatedAt
+      query SammelnEinträge($experienceId: ID, #{variables}) {
+        sammelnEinträge(experienceId: $experienceId, #{values}) {
+          edges {
+            ...#{@eintrag_scherbe_name}
           }
+
+          #{@page_info}
         }
       }
+
+      #{@eintrag_scherbe}
     """
   end
 end

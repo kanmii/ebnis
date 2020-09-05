@@ -4,6 +4,7 @@ import React, {
   useCallback,
   Suspense,
   memo,
+  useContext,
 } from "react";
 import {
   MY_TITLE,
@@ -21,11 +22,13 @@ import {
   descriptionControlClassName,
   dropdownTriggerClassName,
   dropdownIsActiveClassName,
+  fetchExperiencesErrorsDomId,
+  fetchErrorRetryDomId,
 } from "./my.dom";
 import { setUpRoutePage } from "../../utils/global-window";
 import "./my.styles.scss";
 import Loading from "../Loading/loading.component";
-import { StateValue } from "../../utils/types";
+import { StateValue, ReactMouseAnchorEvent } from "../../utils/types";
 import {
   reducer,
   initState,
@@ -39,6 +42,7 @@ import {
   makeDefaultSearchActive,
   DeletedExperienceState,
   effectFunctions,
+  DataState,
 } from "./my.utils";
 import { NewExperience } from "./my.lazy";
 import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMiniFragment";
@@ -48,23 +52,27 @@ import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { getOnlineStatus } from "../DetailExperience/complete-experience-utils";
 import { InputChangeEvent } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
+import { PageInfoFragment } from "../../graphql/apollo-types/PageInfoFragment";
+import errorImage from "../../media/error-96.png";
+import Header from "../Header/header.component";
+import { unstable_batchedUpdates } from "react-dom";
+import { WithSubscriptionContext } from "../../utils/app-context";
 
 export function My(props: Props) {
-  const { experiences } = props;
-  const noExperiences = experiences.length === 0;
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
   const {
-    states: {
-      newExperienceActivated,
-      experiences: descriptionsActive,
-      search,
-      deletedExperience: deleteExperienceState,
-    },
+    states,
     effects: { general: generalEffects },
   } = stateMachine;
 
   useRunEffects(generalEffects, effectFunctions, props, { dispatch });
+
+  const onReFetch = useCallback(() => {
+    dispatch({
+      type: ActionType.DATA_RE_FETCH_REQUEST,
+    });
+  }, []);
 
   useLayoutEffect(() => {
     setUpRoutePage({
@@ -72,12 +80,14 @@ export function My(props: Props) {
     });
 
     function onDocClicked() {
-      dispatch({
-        type: ActionType.CLOSE_ALL_OPTIONS_MENU,
-      });
+      unstable_batchedUpdates(() => {
+        dispatch({
+          type: ActionType.CLOSE_ALL_OPTIONS_MENU,
+        });
 
-      dispatch({
-        type: ActionType.CLEAR_SEARCH,
+        dispatch({
+          type: ActionType.CLEAR_SEARCH,
+        });
       });
     }
 
@@ -101,6 +111,53 @@ export function My(props: Props) {
       type: ActionType.CLOSE_DELETE_EXPERIENCE_NOTIFICATION,
     });
   }, []);
+
+  return (
+    <>
+      <Header />
+
+      {states.value === StateValue.errors ? (
+        <FetchExperiencesFail error={states.error} onReFetch={onReFetch} />
+      ) : states.value === StateValue.loading ? (
+        <Loading />
+      ) : (
+        <MyExperiences
+          states={states.data}
+          dispatch={dispatch}
+          onCloseDeleteExperienceNotification={
+            onCloseDeleteExperienceNotification
+          }
+          onNewExperienceActivated={onNewExperienceActivated}
+        />
+      )}
+    </>
+  );
+}
+
+export default My;
+
+function MyExperiences(
+  props: {
+    states: DataState["data"];
+    dispatch: DispatchType;
+  } & CallBacks,
+) {
+  const {
+    states: {
+      states: {
+        newExperienceActivated,
+        experiences: descriptionsActive,
+        search,
+        deletedExperience: deleteExperienceState,
+      },
+      context: { experiences, pageInfo },
+    },
+    dispatch,
+    onNewExperienceActivated,
+    onCloseDeleteExperienceNotification,
+  } = props;
+
+  const noExperiences = experiences.length === 0;
 
   return (
     <>
@@ -142,6 +199,7 @@ export function My(props: Props) {
               dispatch={dispatch}
               experiences={experiences}
               experiencesStates={descriptionsActive}
+              pageInfo={pageInfo}
             />
           </>
         )}
@@ -161,7 +219,19 @@ export function My(props: Props) {
 
 const ExperiencesComponent = memo(
   (props: ExperiencesComponentProps) => {
-    const { dispatch, experiences, experiencesStates } = props;
+    const {
+      dispatch,
+      experiences,
+      experiencesStates,
+      pageInfo: { hasNextPage },
+    } = props;
+
+    const nächsteSeiteAbrufen = useCallback(() => {
+      dispatch({
+        type: ActionType.FETCH_NEXT_EXPERIENCES_PAGE,
+      });
+      /* eslint-disable-next-line react-hooks/exhaustive-deps*/
+    }, []);
 
     return (
       <div className="experiences-container" id={experiencesDomId}>
@@ -183,6 +253,11 @@ const ExperiencesComponent = memo(
             />
           );
         })}
+
+        <SeitennummerierungKomponente
+          nächsteSeiteVorhanden={hasNextPage}
+          nächsteSeiteAbrufen={nächsteSeiteAbrufen}
+        />
       </div>
     );
   },
@@ -204,6 +279,7 @@ const ExperienceComponent = React.memo(
 
     const onToggleShowMenuOptions = useCallback((e) => {
       e.preventDefault();
+
       dispatch({
         type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
         id,
@@ -223,6 +299,7 @@ const ExperienceComponent = React.memo(
 
     const onDeleteExperience = useCallback((e) => {
       e.preventDefault();
+
       dispatch({
         type: ActionType.DELETE_EXPERIENCE_REQUEST,
         id,
@@ -232,6 +309,7 @@ const ExperienceComponent = React.memo(
 
     return (
       <article
+        id={id}
         className={makeClassNames({
           "experience box media": true,
           [experienceDangerClassName]: isOffline,
@@ -330,6 +408,32 @@ const ExperienceComponent = React.memo(
     );
   },
 );
+
+function SeitennummerierungKomponente(props: {
+  nächsteSeiteVorhanden: boolean;
+  nächsteSeiteAbrufen: () => void;
+}) {
+  const { connected } = useContext(WithSubscriptionContext);
+
+  if (!connected) {
+    return null;
+  }
+
+  const { nächsteSeiteVorhanden, nächsteSeiteAbrufen } = props;
+
+  return (
+    <div className="my-experiences__prev-next">
+      {nächsteSeiteVorhanden && (
+        <button
+          className="button my-experiences__next"
+          onClick={nächsteSeiteAbrufen}
+        >
+          Next
+        </button>
+      )}
+    </div>
+  );
+}
 
 const SearchComponent = (props: SearchProps) => {
   const { state, dispatch } = props;
@@ -432,10 +536,39 @@ function DeletedExperienceNotification(
   );
 }
 
+function FetchExperiencesFail(props: { error: string; onReFetch: () => void }) {
+  const { error, onReFetch } = props;
+  return (
+    <div className="card my__fetch-errors" id={fetchExperiencesErrorsDomId}>
+      <div className="card-image">
+        <figure className="image is-96x96 my__fetch-errors-image">
+          <img src={errorImage} alt="error loading experiences" />
+        </figure>
+      </div>
+
+      <div className="my__fetch-errors-content card-content notification is-light is-danger">
+        <div className="content">
+          <p>{error}</p>
+        </div>
+
+        <button
+          className="button is-medium"
+          type="button"
+          id={fetchErrorRetryDomId}
+          onClick={onReFetch}
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface ExperiencesComponentProps {
   experiences: ExperienceMiniFragment[];
   experiencesStates: ExperiencesMap;
   dispatch: DispatchType;
+  pageInfo: PageInfoFragment;
 }
 
 interface ExperienceProps {
@@ -453,3 +586,8 @@ interface DeleteExperienceNotificationProps {
   onCloseDeleteExperienceNotification: () => void;
   state: DeletedExperienceState;
 }
+
+type CallBacks = {
+  onNewExperienceActivated: (e: ReactMouseAnchorEvent) => void;
+  onCloseDeleteExperienceNotification: () => void;
+};

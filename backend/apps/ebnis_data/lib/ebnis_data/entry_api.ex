@@ -187,24 +187,6 @@ defmodule EbnisData.EntryApi do
     Changeset.put_change(changeset, :data_objects, [])
   end
 
-  defp get_paginated_query({experience_id, pagination_args}, opts) do
-    pagination = pagination_args[:pagination] || %{first: 100}
-
-    {
-      :ok,
-      offset,
-      limit
-    } = Connection.offset_and_limit_for_query(pagination, opts)
-
-    query =
-      Entry
-      |> where([e], e.experience_id == ^experience_id)
-      |> limit(^(limit + 1))
-      |> offset(^offset)
-
-    {query, {limit, offset}}
-  end
-
   @spec get_paginated_entries(
           [{integer() | binary(), map()}],
           list()
@@ -213,53 +195,66 @@ defmodule EbnisData.EntryApi do
         experiences_ids_pagination_args,
         repo_opts
       ) do
-    [{experience_id, _} = head | tail] = experiences_ids_pagination_args
-    {query, limit_offset} = get_paginated_query(head, [])
-    tracker = Map.new([{experience_id, limit_offset}])
+    [
+      {experience_id, pagination_args} = _head | tail
+    ] = experiences_ids_pagination_args
 
-    {query, trackers} =
-      Enum.reduce(
-        tail,
-        {query, tracker},
-        fn {experience_id, _} = args, {query, trackers} ->
-          {next_query, limit_offset} = get_paginated_query(args, [])
-          trackers = Map.put(trackers, experience_id, limit_offset)
-          {union_all(query, ^next_query), trackers}
-        end
+    pagination = pagination_args[:pagination] || %{first: 100}
+
+    {
+      :ok,
+      offset,
+      limit
+    } = Connection.offset_and_limit_for_query(pagination, [])
+
+    experience_ids = [experience_id | Enum.map(tail, fn {id, _} -> id end)]
+
+    query =
+      from(ent in Entry,
+        as: :ents,
+        join: ex in assoc(ent, :experience),
+        as: :exs,
+        where: ex.id in ^experience_ids,
+        inner_lateral_join:
+          top_two in subquery(
+            from(ent1 in Entry,
+              where: [experience_id: parent_as(:exs).id],
+              limit: ^(limit + 1),
+              offset: ^offset,
+              order_by: [desc: ent1.inserted_at, asc: ent1.id]
+            )
+          ),
+        on: top_two.id == ent.id,
+        join: d0 in assoc(ent, :data_objects),
+        preload: [data_objects: d0]
       )
 
     query
     |> Repo.all(repo_opts)
     |> case do
       [] ->
-        Enum.map(experiences_ids_pagination_args, fn _ -> @empty_relay_connection end)
+        Enum.map(experience_ids, fn _ -> @empty_relay_connection end)
 
       entries ->
-        entries_map =
+        experience_id_to_entry_map =
           entries
-          |> put_data_objects_in_entries()
           |> Enum.group_by(& &1.experience_id)
 
         Enum.map(
-          experiences_ids_pagination_args,
-          fn {experience_id, _} ->
-            case entries_map[experience_id] do
+          experience_ids,
+          fn experience_id ->
+            case experience_id_to_entry_map[experience_id] do
               nil ->
                 @empty_relay_connection
 
-              records ->
-                {limit, offset} = trackers[experience_id]
-
+              entries_for_experience ->
                 {:ok, connection} =
                   Connection.from_slice(
-                    records
-                    |> Enum.take(limit)
-                    |> Enum.sort_by(
-                      & &1.updated_at,
-                      &(DateTime.compare(&1, &2) == :gt)
-                    ),
+                    entries_for_experience
+                    |> Enum.take(limit),
                     offset,
-                    []
+                    has_previous_page: offset > 0,
+                    has_next_page: length(entries_for_experience) > limit
                   )
 
                 connection
@@ -267,36 +262,6 @@ defmodule EbnisData.EntryApi do
           end
         )
     end
-  end
-
-  defp put_data_objects_in_entries(entries) do
-    # entries_ids reversed
-    {entries_ids, entries_map} =
-      Enum.reduce(entries, {[], %{}}, fn entry, {list, map} ->
-        id = entry.id
-        {[id | list], Map.put(map, id, entry)}
-      end)
-
-    data_objects_map =
-      from(
-        d in DataObject,
-        where: d.entry_id in ^entries_ids,
-        order_by: [asc: d.id]
-      )
-      |> Repo.all()
-      |> Enum.group_by(& &1.entry_id)
-
-    # entries_ids in correct order
-    Enum.reduce(entries_ids, [], fn entry_id, acc ->
-      entry = entries_map[entry_id]
-
-      updated_entry = %Entry{
-        entry
-        | data_objects: data_objects_map[entry_id]
-      }
-
-      [updated_entry | acc]
-    end)
   end
 
   def get_entry(id) do

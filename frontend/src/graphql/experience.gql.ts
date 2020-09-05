@@ -4,7 +4,6 @@ import {
   DATA_OBJECT_FRAGMENT,
   ENTRY_CONNECTION_FRAGMENT,
 } from "./entry.gql";
-import { GetExperienceConnectionMiniVariables } from "./apollo-types/GetExperienceConnectionMini";
 
 export const DEFINITION_FRAGMENT = gql`
   fragment DataDefinitionFragment on DataDefinition {
@@ -52,7 +51,7 @@ export const EXPERIENCE_FRAGMENT = gql`
       ...DataDefinitionFragment
     }
 
-    entries(pagination: $entriesPagination) {
+    entries(pagination: $entriesPagination) @connection(key: "entries") {
       ...EntryConnectionFragment
     }
   }
@@ -64,11 +63,19 @@ export const EXPERIENCE_FRAGMENT = gql`
 
 export const FRAGMENT_NAME_experienceFragment = "ExperienceFragment";
 
+const PAGE_INFO_FRAGMENT = gql`
+  fragment PageInfoFragment on PageInfo {
+    hasNextPage
+    hasPreviousPage
+    startCursor
+    endCursor
+  }
+`;
+
 export const EXPERIENCE_CONNECTION_FRAGMENT = gql`
   fragment ExperienceConnectionFragment on ExperienceConnection {
     pageInfo {
-      hasNextPage
-      hasPreviousPage
+      ...PageInfoFragment
     }
 
     edges {
@@ -80,6 +87,7 @@ export const EXPERIENCE_CONNECTION_FRAGMENT = gql`
   }
 
   ${EXPERIENCE_FRAGMENT}
+  ${PAGE_INFO_FRAGMENT}
 `;
 
 export const EXPERIENCE_CONNECTION_PRE_FETCH_FRAGMENT = gql`
@@ -469,11 +477,22 @@ export const DELETE_EXPERIENCES_MUTATION = gql`
 // this query will be kept around after we ran it and all experiences list will
 // refer to it.
 export const GET_EXPERIENCES_CONNECTION_MINI_QUERY = gql`
-  query GetExperienceConnectionMini($input: GetExperiencesInput) {
-    getExperiences(input: $input) {
+  query GetExperienceConnectionMini(
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+    $ids: [ID]
+  ) {
+    getExperiences(
+      ids: $ids
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) @connection(key: "getExperiences") {
       pageInfo {
-        hasNextPage
-        hasPreviousPage
+        ...PageInfoFragment
       }
 
       edges {
@@ -486,21 +505,22 @@ export const GET_EXPERIENCES_CONNECTION_MINI_QUERY = gql`
   }
 
   ${EXPERIENCE_MINI_FRAGMENT}
+  ${PAGE_INFO_FRAGMENT}
 `;
 
 // this query will be deleted after we ran it.
-export const PRE_FETCH_EXPERIENCES_QUERY = gql`
-  query PreFetchExperiences(
-    $input: GetExperiencesInput!
-    $entriesPagination: PaginationInput!
-  ) {
-    getExperiences(input: $input) {
-      ...ExperienceConnectionPreFetchFragment
-    }
-  }
+// export const PRE_FETCH_EXPERIENCES_QUERY = gql`
+//   query PreFetchExperiences(
+//     $input: GetExperiencesInput!
+//     $entriesPagination: PaginationInput!
+//   ) {
+//     getExperiences(input: $input) {
+//       ...ExperienceConnectionPreFetchFragment
+//     }
+//   }
 
-  ${EXPERIENCE_CONNECTION_PRE_FETCH_FRAGMENT}
-`;
+//   ${EXPERIENCE_CONNECTION_PRE_FETCH_FRAGMENT}
+// `;
 
 export const ON_EXPERIENCES_DELETED_SUBSCRIPTION = gql`
   subscription OnExperiencesDeletedSubscription($clientSession: String!) {
@@ -527,12 +547,5 @@ export const GET_COMPLETE_EXPERIENCE_QUERY = gql`
 
   ${EXPERIENCE_FRAGMENT}
 `;
-////////////////////////// END GET EXPERIENCE DETAIL //////////////////
 
-export const getExperienceConnectionMiniVariables: GetExperienceConnectionMiniVariables = {
-  input: {
-    pagination: {
-      first: 20000,
-    },
-  },
-};
+////////////////////////// END GET EXPERIENCE DETAIL //////////////////

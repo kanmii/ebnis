@@ -60,11 +60,6 @@ export interface CreateExperienceInput {
   updatedAt?: any | null;
 }
 
-export interface GetExperiencesInput {
-  ids?: (string | null)[] | null;
-  pagination?: PaginationInput | null;
-}
-
 /**
  * Variables for login in User
  */

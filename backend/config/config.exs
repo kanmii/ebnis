@@ -87,6 +87,11 @@ config :phoenix, :json_library, Jason
 
 config :pbkdf2_elixir, :rounds, 1
 
+if Mix.env() == :dev do
+  config :mix_test_watch,
+    clear: true
+end
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

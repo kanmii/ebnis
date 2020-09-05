@@ -8,10 +8,7 @@ defmodule EbnisData.Factory.Experience do
 
   def insert(attrs, data_types_list \\ nil) do
     attrs = params(attrs, data_types_list)
-
-    {experience, _} = EbnisData.create_experience(attrs)
-
-    experience
+    EbnisData.create_experience(attrs)
   end
 
   def params() do
