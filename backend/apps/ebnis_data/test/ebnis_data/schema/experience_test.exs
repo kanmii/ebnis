@@ -620,7 +620,149 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert is_binary(error)
     end
 
-    test "own fields success" do
+    test "scheitern: erfahrung nicht gefunden" do
+      bogus_id = @bogus_id
+      user = RegFactory.insert()
+
+      experience_not_found_variable = %{
+        "experienceId" => bogus_id
+      }
+
+      variables = %{
+        "input" => [
+          experience_not_found_variable
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "errors" => %{
+                           "experienceId" => ^bogus_id,
+                           "error" => experience_not_found_error
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(experience_not_found_error)
+    end
+
+    test "erhebt Ausnahme" do
+      user = RegFactory.insert()
+      raises_id = "1"
+
+      raises_variable = %{
+        "experienceId" => raises_id
+      }
+
+      variables = %{
+        "input" => [
+          raises_variable
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "errors" => %{
+                           "experienceId" => ^raises_id,
+                           "error" => raises_error
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(raises_error)
+    end
+
+    test "scheitern: einege Felder fehler" do
+      user = RegFactory.insert()
+
+      %{
+        id: update_own_fields_success_experience_id
+        # description: update_own_fields_success_description,
+        # title: own_fields_success_title,
+        # data_definitions: definitions
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer",
+            "integer"
+          ]
+        )
+
+      own_fields_error_variable = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "ownFields" => %{
+          # title must be at least 2 chars long
+          "title" => "a"
+        }
+      }
+
+      variables = %{
+        "input" => [
+          own_fields_error_variable
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^update_own_fields_success_experience_id,
+                           "ownFields" => %{
+                             "errors" => %{
+                               "title" => own_fields_error_title
+                             }
+                           }
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(own_fields_error_title)
     end
   end
 
