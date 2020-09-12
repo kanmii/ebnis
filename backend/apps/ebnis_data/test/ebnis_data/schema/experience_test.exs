@@ -661,7 +661,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert is_binary(experience_not_found_error)
     end
 
-    test "erhebt Ausnahme" do
+    test "erfahrfung erhebt Ausnahme" do
       user = RegFactory.insert()
       raises_id = "1"
 
@@ -708,11 +708,9 @@ defmodule EbnisData.Schema.ExperienceTest do
       %{
         id: experience_id
       } =
-        experience =
         Factory.insert(
           %{user_id: user.id},
           [
-            "integer",
             "integer"
           ]
         )
@@ -760,6 +758,73 @@ defmodule EbnisData.Schema.ExperienceTest do
                )
 
       assert is_binary(title_error)
+    end
+
+    test "scheitern: Definition nicht gefunden" do
+      bogus_id = @bogus_id
+      user = RegFactory.insert()
+
+      %{
+        id: update_own_fields_success_experience_id,
+        description: update_own_fields_success_description,
+        title: own_fields_success_title,
+        data_definitions: definitions
+      } =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      definitions_variables = %{
+        "experienceId" => update_own_fields_success_experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => bogus_id,
+            "name" => "aa"
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^update_own_fields_success_experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "errors" => %{
+                                 "id" => ^bogus_id,
+                                 "error" => definition_not_found_error
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(definition_not_found_error)
     end
   end
 
