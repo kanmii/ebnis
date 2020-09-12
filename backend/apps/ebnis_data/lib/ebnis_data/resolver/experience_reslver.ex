@@ -101,16 +101,32 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         experience_id = params.experience_id
 
         case EbnisData.update_experience(params, user.id) do
-          %{} = updated_experience ->
-            %{
-              experience:
-                Enum.reduce(
-                  updated_experience,
-                  %{
-                    experience_id: experience_id
-                  },
-                  &process_updated_experience/2
+          {:ok, erfahrung_komponenten, einträge_komponenten} ->
+            with_experience_id = %{
+              experience_id: experience_id
+            }
+
+            bearbeitet_erfahrung =
+              Enum.reduce(
+                erfahrung_komponenten,
+                with_experience_id,
+                &process_updated_experience/2
+              )
+
+            einträge =
+              Enum.reduce(
+                einträge_komponenten,
+                %{},
+                &verarbeiten_bearbeiten_erfahrung_einträge(
+                  &1,
+                  &2,
+                  experience_id
                 )
+              )
+
+            %{
+              experience: bearbeitet_erfahrung,
+              entries: einträge
             }
 
           {:error, error} ->
@@ -141,28 +157,6 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   defp process_updated_experience(
-         {:new_entries, may_be_new_entries},
-         acc
-       ) do
-    Map.put(
-      acc,
-      :new_entries,
-      process_new_entries(may_be_new_entries, acc.experience_id)
-    )
-  end
-
-  defp process_updated_experience(
-         {:updated_entries, may_be_updated_entries},
-         acc
-       ) do
-    Map.put(
-      acc,
-      :updated_entries,
-      process_updated_entries(may_be_updated_entries)
-    )
-  end
-
-  defp process_updated_experience(
          {:updated_definitions, may_be_updated_definitions},
          acc
        ) do
@@ -187,7 +181,48 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     )
   end
 
-  defp process_updated_experience({:deleted_entries, may_be_deleted_entries}, acc) do
+  defp process_updated_experience({k, v}, acc) do
+    Map.put(acc, k, v)
+  end
+
+  defp verarbeiten_bearbeiten_erfahrung_einträge(
+         {
+           :neue_einträge,
+           may_be_new_entries
+         },
+         acc,
+         experience_id
+       ) do
+    Map.put(
+      acc,
+      :new_entries,
+      process_new_entries(may_be_new_entries, experience_id)
+    )
+  end
+
+  defp verarbeiten_bearbeiten_erfahrung_einträge(
+         {
+           :bearbeitet_einträge,
+           may_be_updated_entries
+         },
+         acc,
+         _
+       ) do
+    Map.put(
+      acc,
+      :updated_entries,
+      process_updated_entries(may_be_updated_entries)
+    )
+  end
+
+  defp verarbeiten_bearbeiten_erfahrung_einträge(
+         {
+           :gelöscht_einträge,
+           may_be_deleted_entries
+         },
+         acc,
+         _
+       ) do
     results =
       may_be_deleted_entries
       |> Enum.map(fn
@@ -203,11 +238,11 @@ defmodule EbnisData.Resolver.ExperienceResolver do
           }
       end)
 
-    Map.put(acc, :deleted_entries, results)
-  end
-
-  defp process_updated_experience({k, v}, acc) do
-    Map.put(acc, k, v)
+    Map.put(
+      acc,
+      :deleted_entries,
+      results
+    )
   end
 
   defp process_updated_definitions(may_be_updated_definitions) do
@@ -559,27 +594,27 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     :data_object_errors
   end
 
-  def update_entry_union(%{errors: _}, _) do
+  def updated_entries_union(%{errors: _}, _) do
     :update_entry_errors
   end
 
-  def update_entry_union(%{entry: _}, _) do
+  def updated_entries_union(_, _) do
     :update_entry_some_success
   end
 
-  def create_entry_union(%{entry: _}, _) do
-    :create_entry_success
-  end
-
-  def create_entry_union(_, _) do
+  def create_entries_union(%{errors: _}, _) do
     :create_entry_errors
   end
 
-  def delete_entry_union(%{entry: _}, _) do
+  def create_entries_union(_, _) do
+    :create_entry_success
+  end
+
+  def delete_entries_union(%{entry: _}, _) do
     :entry_success
   end
 
-  def delete_entry_union(_, _) do
+  def delete_entries_union(_, _) do
     :delete_entry_errors
   end
 

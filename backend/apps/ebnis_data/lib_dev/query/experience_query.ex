@@ -192,69 +192,78 @@ defmodule EbnisData.Query.Experience do
                 }
 
                 entries {
-                  __typename
-                  ... on UpdateEntryErrors {
-                    errors {
-                      entryId
-                      error
+                  updatedEntries {
+                    __typename
+                    ... on UpdateEntryErrors {
+                      errors {
+                        entryId
+                        error
+                      }
                     }
-                  }
-                  ... on UpdateEntrySomeSuccess {
-                    entry {
-                      entryId
-                      updatedAt
-                      dataObjects {
-                        __typename
-                        ... on DataObjectErrors {
-                          errors {
-                            meta {
-                              id
+                    ... on UpdateEntrySomeSuccess {
+                      entry {
+                        entryId
+                        updatedAt
+                        dataObjects {
+                          __typename
+                          ... on DataObjectErrors {
+                            errors {
+                              meta {
+                                id
+                              }
+                              definition
+                              definitionId
+                              clientId
+                              error
+                              data
                             }
-                            definition
-                            definitionId
-                            clientId
-                            error
-                            data
                           }
-                        }
-                        ... on DataObjectSuccess {
-                          dataObject {
-                            id
-                            data
-                            definitionId
-                            clientId
-                            insertedAt
-                            updatedAt
+                          ... on DataObjectSuccess {
+                            dataObject {
+                              id
+                              data
+                              definitionId
+                              clientId
+                              insertedAt
+                              updatedAt
+                            }
                           }
                         }
                       }
                     }
                   }
 
-                  ... on CreateEntryErrors {
-                    errors {
-                      ...#{@create_entry_error_fragment_name}
+                  createdEntries {
+                    __typename
+                    ... on CreateEntryErrors {
+                      errors {
+                        ...#{@create_entry_error_fragment_name}
+                      }
+                    }
+
+                    ... on CreateEntrySuccess {
+                      entry {
+                        ...#{@eintrag_scherbe_name}
+                      }
                     }
                   }
 
-                  ... on CreateEntrySuccess {
-                    entry {
-                      ...#{@eintrag_scherbe_name}
+                  deletedEntries {
+                    __typename
+                    ... on DeleteEntrySuccess {
+                      entry {
+                        id
+                      }
+                    }
+
+                    ... on DeleteEntryErrors {
+                      errors {
+                        id
+                        error
+                      }
                     }
                   }
 
-                  ... on DeleteEntrySuccess {
-                    entry {
-                      id
-                    }
-                  }
-
-                  ... on DeleteEntryErrors {
-                    errors {
-                      id
-                      error
-                    }
-                  }
                 }
               }
             }

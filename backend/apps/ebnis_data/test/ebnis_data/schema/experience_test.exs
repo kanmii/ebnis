@@ -760,7 +760,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert is_binary(title_error)
     end
 
-    test "erfolg: Erfahrungs Titel" do
+    test "erfolg: Erfahrungs Titel bearbeiten" do
       user = RegFactory.insert()
 
       %{
@@ -1227,6 +1227,77 @@ defmodule EbnisData.Schema.ExperienceTest do
                )
 
       assert is_binary(definition_name_taken_error)
+    end
+
+    test "scheitern: Eintrag nicht gefunden" do
+      bogus_id = @bogus_id
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id
+      } =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      entry_not_found_variable = %{
+        "experienceId" => experience_id,
+        "updateEntries" => [
+          %{
+            "entryId" => bogus_id,
+            "dataObjects" => [
+              %{
+                "id" => "1",
+                "data" => ~s({"integer":1})
+              }
+            ]
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          entry_not_found_variable
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => _
+                         },
+                         "entries" => %{
+                           "updatedEntries" => [
+                             %{
+                               "errors" => %{
+                                 "entryId" => ^bogus_id,
+                                 "error" => entry_not_found_error
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(entry_not_found_error)
     end
   end
 

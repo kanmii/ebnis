@@ -197,11 +197,17 @@ defmodule EbnisData.ExperienceApi do
     |> Repo.all()
     |> case do
       [experience] ->
-        Enum.reduce(
-          update_params,
-          %{},
-          &update_experience_p(&2, &1, experience)
-        )
+        bearbeitet_erfahrung_komponenten = %{}
+        einträge_komponenten = []
+
+        {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1} =
+          Enum.reduce(
+            update_params,
+            {bearbeitet_erfahrung_komponenten, einträge_komponenten},
+            &update_experience_p(&2, &1, experience)
+          )
+
+        {:ok, bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
 
       _ ->
         {:error, "experience not found"}
@@ -223,89 +229,136 @@ defmodule EbnisData.ExperienceApi do
       {:error, "experience not found"}
   end
 
-  defp update_experience_p(acc, {:add_entries, inputs}, experience) do
-    Map.merge(
-      acc,
-      %{
-        updated_at: experience.updated_at,
-        new_entries:
-          Enum.map(
-            inputs,
-            &EntryApi.create_entry(&1, experience)
-          )
-      }
-    )
+  defp update_experience_p(
+         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
+         {:add_entries, inputs},
+         experience
+       ) do
+    bearbeitet_erfahrung_komponenten_1 =
+      Map.merge(
+        bearbeitet_erfahrung_komponenten,
+        %{
+          updated_at: experience.updated_at
+        }
+      )
+
+    neue_einträge = Enum.map(inputs, &EntryApi.create_entry(&1, experience))
+
+    einträge_komponenten_1 = [
+      {:neue_einträge, neue_einträge}
+      | einträge_komponenten
+    ]
+
+    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
   end
 
-  defp update_experience_p(acc, {:update_entries, inputs}, experience) do
-    Map.merge(
-      acc,
-      %{
-        updated_at: experience.updated_at,
-        updated_entries:
-          Enum.map(
-            inputs,
-            &EntryApi.update_entry(&1, experience)
-          )
-      }
-    )
+  defp update_experience_p(
+         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
+         {:update_entries, inputs},
+         experience
+       ) do
+    bearbeitet_erfahrung_komponenten_1 =
+      Map.merge(
+        bearbeitet_erfahrung_komponenten,
+        %{
+          updated_at: experience.updated_at
+        }
+      )
+
+    bearbeitet_einträge =
+      Enum.map(
+        inputs,
+        &EntryApi.update_entry(&1, experience)
+      )
+
+    einträge_komponenten_1 = [
+      {:bearbeitet_einträge, bearbeitet_einträge}
+      | einträge_komponenten
+    ]
+
+    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
   end
 
-  defp update_experience_p(acc, {:update_definitions, inputs}, experience) do
-    Map.merge(
-      acc,
-      %{
-        updated_at: experience.updated_at,
-        updated_definitions:
-          Enum.map(
-            inputs,
-            &update_experiences_update_definition/1
-          )
-      }
-    )
+  defp update_experience_p(
+         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
+         {:delete_entries, ids},
+         experience
+       ) do
+    bearbeitet_erfahrung_komponenten_1 =
+      Map.merge(
+        bearbeitet_erfahrung_komponenten,
+        %{updated_at: experience.updated_at}
+      )
+
+    gelöscht_einträge =
+      Enum.map(
+        ids,
+        &EntryApi.delete_entry(&1)
+      )
+
+    einträge_komponenten_1 = [
+      {:gelöscht_einträge, gelöscht_einträge}
+      | einträge_komponenten
+    ]
+
+    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
   end
 
-  defp update_experience_p(acc, {:own_fields, attrs}, experience) do
-    experience
-    |> Experience.changeset(attrs)
-    |> Repo.update()
-    |> case do
-      {:ok, updated_experience} ->
-        Map.merge(
-          acc,
-          %{
-            updated_at: updated_experience.updated_at,
-            own_fields:
-              Map.take(
-                updated_experience,
-                [:title, :description]
-              )
-          }
-        )
+  defp update_experience_p(
+         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
+         {:update_definitions, inputs},
+         experience
+       ) do
+    bearbeitet_erfahrung_komponenten_1 =
+      Map.merge(
+        bearbeitet_erfahrung_komponenten,
+        %{
+          updated_at: experience.updated_at,
+          updated_definitions:
+            Enum.map(
+              inputs,
+              &update_experiences_update_definition/1
+            )
+        }
+      )
 
-      {:error, changeset} ->
-        Map.merge(
-          acc,
-          %{
-            updated_at: experience.updated_at,
-            own_fields: {:error, changeset}
-          }
-        )
-    end
+    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten}
   end
 
-  defp update_experience_p(acc, {:delete_entries, ids}, experience) do
-    Map.merge(
-      acc,
-      %{
-        updated_at: experience.updated_at,
-        deleted_entries:
-          Enum.map(
-            ids,
-            &EntryApi.delete_entry(&1)
+  defp update_experience_p(
+         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
+         {:own_fields, attrs},
+         experience
+       ) do
+    bearbeitet_erfahrung_komponenten_1 =
+      experience
+      |> Experience.changeset(attrs)
+      |> Repo.update()
+      |> case do
+        {:ok, updated_experience} ->
+          Map.merge(
+            bearbeitet_erfahrung_komponenten,
+            %{
+              updated_at: updated_experience.updated_at,
+              own_fields:
+                Map.take(
+                  updated_experience,
+                  [:title, :description]
+                )
+            }
           )
-      }
-    )
+
+        {:error, changeset} ->
+          Map.merge(
+            bearbeitet_erfahrung_komponenten,
+            %{
+              updated_at: experience.updated_at,
+              own_fields: {:error, changeset}
+            }
+          )
+      end
+
+    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten}
   end
 
   defp update_experiences_update_definition(input) do

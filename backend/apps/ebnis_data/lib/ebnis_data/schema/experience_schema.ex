@@ -155,7 +155,7 @@ defmodule EbnisData.Schema.Experience do
       :create_entry_success
     ])
 
-    resolve_type(&ExperienceResolver.create_entry_union/2)
+    resolve_type(&ExperienceResolver.create_entries_union/2)
   end
 
   # object :create_experience_success do
@@ -565,25 +565,50 @@ defmodule EbnisData.Schema.Experience do
     field(:errors, non_null(:create_entry_error))
   end
 
-  union :update_experience_entries do
+  union :updated_entries_union do
     types([
       :update_entry_errors,
-      :update_entry_some_success,
-      :create_entry_errors,
-      :create_entry_success,
+      :update_entry_some_success
+    ])
+
+    resolve_type(&ExperienceResolver.updated_entries_union/2)
+  end
+
+  union :delete_entries_union do
+    types([
       :delete_entry_success,
       :delete_entry_errors
     ])
 
-    resolve_type(&ExperienceResolver.update_experience_union/2)
-    # resolve_type(&ExperienceResolver.update_entry_union/2)
-    # resolve_type(&ExperienceResolver.create_entry_union/2)
-    # resolve_type(&ExperienceResolver.delete_entry_union/2)
+    resolve_type(&ExperienceResolver.delete_entries_union/2)
+  end
+
+  object :update_experience_entries_komponenten do
+    field(
+      :updated_entries,
+      :updated_entries_union
+      |> non_null()
+      |> list_of()
+    )
+
+    field(
+      :created_entries,
+      :create_entries_union
+      |> non_null()
+      |> list_of()
+    )
+
+    field(
+      :deleted_entries,
+      :delete_entries_union
+      |> non_null()
+      |> list_of()
+    )
   end
 
   object :update_experience_some_success do
     field(:experience, non_null(:update_experience))
-    field(:entries, :update_experience_entries)
+    field(:entries, :update_experience_entries_komponenten)
   end
 
   object :update_experience_error do
