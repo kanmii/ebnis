@@ -1552,6 +1552,119 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       assert is_binary(not_found_error)
     end
+
+    test "erfolg: Daten Gegenstand bearbeiten - aber mit Fehler" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer",
+            "integer"
+          ]
+        )
+
+      %{
+        id: entry_id,
+        data_objects: data_objects
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      [
+        %{
+          id: data0_id,
+          data: data0_data,
+          updated_at: data0_updated_at
+        },
+        %{
+          id: data1_id
+        }
+      ] = data_objects
+
+      updated_at0 = "1980-01-21T05:27:17Z"
+      refute data0_data["integer"] == 1
+      refute updated_at0 == DateTime.to_iso8601(data0_updated_at)
+
+      data_updated_success_variable = %{
+        "experienceId" => experience_id,
+        "updateEntries" => [
+          %{
+            "entryId" => entry_id,
+            "dataObjects" => [
+              %{
+                "id" => data0_id,
+                "data" => ~s({"integer":1}),
+                "updatedAt" => updated_at0
+              },
+              %{
+                "id" => data1_id,
+                "data" => ~s({"integer":0.1})
+              }
+            ]
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          data_updated_success_variable
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "entries" => %{
+                           "updatedEntries" => [
+                             %{
+                               "entry" => %{
+                                 "entryId" => ^entry_id,
+                                 "dataObjects" => [
+                                   %{
+                                     "dataObject" => %{
+                                       "id" => ^data0_id,
+                                       "updatedAt" => ^updated_at0,
+                                       "data" => ~s({"integer":1})
+                                     }
+                                   },
+                                   %{
+                                     "errors" => %{
+                                       "meta" => %{
+                                         "id" => ^data1_id
+                                       },
+                                       "data" => data_wrong_error
+                                     }
+                                   }
+                                 ]
+                               }
+                             }
+                           ]
+                         },
+                         "experience" => %{
+                           "experienceId" => ^experience_id
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(data_wrong_error)
+    end
   end
 
   defp context(user), do: %{current_user: user}
