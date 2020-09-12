@@ -8,7 +8,7 @@ defmodule EbnisData.Schema.ExperienceTest do
   alias EbnisData.Factory.Experience, as: Factory
   alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
   alias EbnisData.Query.Experience, as: Query
-  alias EbnisData.Factory.Entry, as: EntryFactory
+  # alias EbnisData.Factory.Entry, as: EntryFactory
 
   @moduletag capture_log: true
   @bogus_id Ecto.ULID.generate()
@@ -765,10 +765,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       user = RegFactory.insert()
 
       %{
-        id: update_own_fields_success_experience_id,
-        description: update_own_fields_success_description,
-        title: own_fields_success_title,
-        data_definitions: definitions
+        id: experience_id
       } =
         Factory.insert(
           %{user_id: user.id},
@@ -778,7 +775,7 @@ defmodule EbnisData.Schema.ExperienceTest do
         )
 
       definitions_variables = %{
-        "experienceId" => update_own_fields_success_experience_id,
+        "experienceId" => experience_id,
         "updateDefinitions" => [
           %{
             "id" => bogus_id,
@@ -801,7 +798,7 @@ defmodule EbnisData.Schema.ExperienceTest do
                      "experiences" => [
                        %{
                          "experience" => %{
-                           "experienceId" => ^update_own_fields_success_experience_id,
+                           "experienceId" => ^experience_id,
                            "updatedDefinitions" => [
                              %{
                                "errors" => %{
@@ -826,15 +823,238 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       assert is_binary(definition_not_found_error)
     end
+
+    test "scheitern: Definition erhebt Ausnahme" do
+      user = RegFactory.insert()
+      raises_id = "1"
+
+      %{
+        id: experience_id
+      } =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => raises_id,
+            "name" => "aa"
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      log =
+        capture_log(fn ->
+          assert {
+                   :ok,
+                   %{
+                     data: %{
+                       "updateExperiences" => %{
+                         "experiences" => [
+                           %{
+                             "experience" => %{
+                               "experienceId" => ^experience_id,
+                               "updatedDefinitions" => [
+                                 %{
+                                   "errors" => %{
+                                     "id" => ^raises_id,
+                                     "error" => raises_error
+                                   }
+                                 }
+                               ]
+                             }
+                           }
+                         ]
+                       }
+                     }
+                   }
+                 } =
+                   Absinthe.run(
+                     Query.update_experiences(),
+                     Schema,
+                     variables: variables,
+                     context: context(user)
+                   )
+
+          assert is_binary(raises_error)
+        end)
+
+      assert log =~ "STACK"
+    end
+
+    test "scheitern: Definition Name zu klein" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        data_definitions: [%{id: definition0_id} = _definition]
+      } =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => definition0_id,
+            # name must be at least 2 chars long
+            "name" => "a"
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "errors" => %{
+                                 "id" => ^definition0_id,
+                                 "name" => definition_name_too_short_error
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(definition_name_too_short_error)
+    end
+
+    test "scheitern / erfolg: Definition Name shon nehmen" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id,
+            name: definition0_name
+          },
+          %{
+            name: definition1_name
+          }
+        ]
+      } =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer",
+            "integer"
+          ]
+        )
+
+      refute definition0_name == definition1_name
+
+      definition0_name_updated = definition0_name <> "1"
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => definition0_id,
+            # name already taken
+            "name" => definition1_name
+          },
+          %{
+            "id" => definition0_id,
+            # success
+            "name" => definition0_name_updated
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "errors" => %{
+                                 "id" => ^definition0_id,
+                                 "name" => definition_name_taken_error
+                               }
+                             },
+                             %{
+                               "definition" => %{
+                                 "id" => ^definition0_id,
+                                 "name" => ^definition0_name_updated
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(definition_name_taken_error)
+    end
   end
 
   defp context(user), do: %{current_user: user}
 
-  defp client_session_context(context_val, val \\ "s") do
-    Map.put(context_val, :client_session, val)
-  end
+  # defp client_session_context(context_val, val \\ "s") do
+  #   Map.put(context_val, :client_session, val)
+  # end
 
-  defp client_token_context(context_val, val \\ "t") do
-    Map.put(context_val, :client_token, val)
-  end
+  # defp client_token_context(context_val, val \\ "t") do
+  #   Map.put(context_val, :client_token, val)
+  # end
 end
