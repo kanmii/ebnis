@@ -824,7 +824,7 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       %{
         id: experience_id,
-        description: description,
+        description: description
       } =
         Factory.insert(
           %{
@@ -863,6 +863,68 @@ defmodule EbnisData.Schema.ExperienceTest do
                            "ownFields" => %{
                              "data" => %{
                                "description" => nil
+                             }
+                           }
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    test "erfolg: Erfahrungs Beschreibung bearbeiten" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        description: description
+      } =
+        Factory.insert(
+          %{
+            user_id: user.id,
+            description: nil
+          },
+          [
+            "integer"
+          ]
+        )
+
+      refute is_binary(description)
+      bearbetet_beschreibung = "bg"
+
+      own_fields_success_variable = %{
+        "experienceId" => experience_id,
+        "ownFields" => %{
+          "description" => bearbetet_beschreibung
+        }
+      }
+
+      variables = %{
+        "input" => [
+          own_fields_success_variable
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "ownFields" => %{
+                             "data" => %{
+                               "description" => ^bearbetet_beschreibung
                              }
                            }
                          }
