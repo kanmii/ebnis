@@ -1466,6 +1466,92 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       assert log =~ "STACK"
     end
+
+    test "scheitern: Daten Gegenstand bearbeiten - nicht gefunden" do
+      bogus_id = @bogus_id
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      %{
+        id: entry_id
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      entry_data_object_not_found_variable = %{
+        "experienceId" => experience_id,
+        "updateEntries" => [
+          %{
+            "entryId" => entry_id,
+            "dataObjects" => [
+              %{
+                "id" => bogus_id,
+                "data" => ~s({"integer":1})
+              }
+            ]
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          entry_data_object_not_found_variable
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "entries" => %{
+                           "updatedEntries" => [
+                             %{
+                               "entry" => %{
+                                 "entryId" => ^entry_id,
+                                 "updatedAt" => _,
+                                 "dataObjects" => [
+                                   %{
+                                     "errors" => %{
+                                       "meta" => %{
+                                         "id" => ^bogus_id
+                                       },
+                                       "error" => not_found_error
+                                     }
+                                   }
+                                 ]
+                               }
+                             }
+                           ]
+                         },
+                         "experience" => %{
+                           "experienceId" => experience_id
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(not_found_error)
+    end
   end
 
   defp context(user), do: %{current_user: user}
