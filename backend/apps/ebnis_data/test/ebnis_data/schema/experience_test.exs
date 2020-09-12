@@ -8,7 +8,7 @@ defmodule EbnisData.Schema.ExperienceTest do
   alias EbnisData.Factory.Experience, as: Factory
   alias EbnisData.Factory.DataDefinition, as: DataDefinitionFactory
   alias EbnisData.Query.Experience, as: Query
-  # alias EbnisData.Factory.Entry, as: EntryFactory
+  alias EbnisData.Factory.Entry, as: EntryFactory
 
   @moduletag capture_log: true
   @bogus_id Ecto.ULID.generate()
@@ -1298,6 +1298,173 @@ defmodule EbnisData.Schema.ExperienceTest do
                )
 
       assert is_binary(entry_not_found_error)
+    end
+
+    test "scheitern: Eintrag bearbeiten - erhebt Ausnahme" do
+      user = RegFactory.insert()
+      raises_id = "1"
+
+      %{
+        id: experience_id
+      } =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      entry_raises_variable = %{
+        "experienceId" => experience_id,
+        "updateEntries" => [
+          %{
+            "entryId" => raises_id,
+            "dataObjects" => [
+              %{
+                "id" => "1",
+                "data" => ~s({"integer":1})
+              }
+            ]
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          entry_raises_variable
+        ]
+      }
+
+      log =
+        capture_log(fn ->
+          assert {
+                   :ok,
+                   %{
+                     data: %{
+                       "updateExperiences" => %{
+                         "experiences" => [
+                           %{
+                             "entries" => %{
+                               "updatedEntries" => [
+                                 %{
+                                   "errors" => %{
+                                     "entryId" => ^raises_id,
+                                     "error" => raises_error
+                                   }
+                                 }
+                               ]
+                             },
+                             "experience" => %{
+                               "experienceId" => _
+                             }
+                           }
+                         ]
+                       }
+                     }
+                   }
+                 } =
+                   Absinthe.run(
+                     Query.update_experiences(),
+                     Schema,
+                     variables: variables,
+                     context: context(user)
+                   )
+
+          assert is_binary(raises_error)
+        end)
+
+      assert log =~ "STACK"
+    end
+
+    test "scheitern: Daten Gegenstand bearbeiten - erhebt Ausnahme" do
+      raises_id = "1"
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      %{
+        id: entry_id
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      raises_variable = %{
+        "experienceId" => experience_id,
+        "updateEntries" => [
+          %{
+            "entryId" => entry_id,
+            "dataObjects" => [
+              %{
+                "id" => raises_id,
+                "data" => ~s({"integer":1})
+              }
+            ]
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          raises_variable
+        ]
+      }
+
+      log =
+        capture_log(fn ->
+          assert {
+                   :ok,
+                   %{
+                     data: %{
+                       "updateExperiences" => %{
+                         "experiences" => [
+                           %{
+                             "experience" => %{
+                               "experienceId" => ^experience_id
+                             },
+                             "entries" => %{
+                               "updatedEntries" => [
+                                 %{
+                                   "entry" => %{
+                                     "entryId" => ^entry_id,
+                                     "updatedAt" => _,
+                                     "dataObjects" => [
+                                       %{
+                                         "errors" => %{
+                                           "meta" => %{
+                                             "id" => ^raises_id
+                                           },
+                                           "error" => raises_error
+                                         }
+                                       }
+                                     ]
+                                   }
+                                 }
+                               ]
+                             }
+                           }
+                         ]
+                       }
+                     }
+                   }
+                 } =
+                   Absinthe.run(
+                     Query.update_experiences(),
+                     Schema,
+                     variables: variables,
+                     context: context(user)
+                   )
+
+          assert is_binary(raises_error)
+        end)
+
+      assert log =~ "STACK"
     end
   end
 
