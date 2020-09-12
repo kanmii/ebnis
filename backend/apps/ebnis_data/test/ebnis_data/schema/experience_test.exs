@@ -702,7 +702,7 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert is_binary(raises_error)
     end
 
-    test "scheitern: eigene Felder fehler" do
+    test "scheitern: eigene Felder fehler: Erfahrungs Titel zu klein" do
       user = RegFactory.insert()
 
       %{
@@ -758,6 +758,65 @@ defmodule EbnisData.Schema.ExperienceTest do
                )
 
       assert is_binary(title_error)
+    end
+
+    test "erfolg: Erfahrungs Titel" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience,
+        title: own_fields_success_title
+      } =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      updated_title = "aa"
+      refute own_fields_success_title == updated_title
+
+      own_fields_variables = %{
+        "experienceId" => experience,
+        "ownFields" => %{
+          "title" => updated_title
+        }
+      }
+
+      variables = %{
+        "input" => [
+          own_fields_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience,
+                           "ownFields" => %{
+                             "data" => %{
+                               "title" => ^updated_title
+                             }
+                           }
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
     end
 
     test "scheitern: Definition nicht gefunden" do
