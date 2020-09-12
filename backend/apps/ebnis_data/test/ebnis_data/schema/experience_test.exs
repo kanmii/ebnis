@@ -702,14 +702,11 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert is_binary(raises_error)
     end
 
-    test "scheitern: einege Felder fehler" do
+    test "scheitern: eigene Felder fehler" do
       user = RegFactory.insert()
 
       %{
-        id: update_own_fields_success_experience_id
-        # description: update_own_fields_success_description,
-        # title: own_fields_success_title,
-        # data_definitions: definitions
+        id: experience_id
       } =
         experience =
         Factory.insert(
@@ -721,7 +718,7 @@ defmodule EbnisData.Schema.ExperienceTest do
         )
 
       own_fields_error_variable = %{
-        "experienceId" => update_own_fields_success_experience_id,
+        "experienceId" => experience_id,
         "ownFields" => %{
           # title must be at least 2 chars long
           "title" => "a"
@@ -742,10 +739,10 @@ defmodule EbnisData.Schema.ExperienceTest do
                      "experiences" => [
                        %{
                          "experience" => %{
-                           "experienceId" => ^update_own_fields_success_experience_id,
+                           "experienceId" => ^experience_id,
                            "ownFields" => %{
                              "errors" => %{
-                               "title" => own_fields_error_title
+                               "title" => title_error
                              }
                            }
                          }
@@ -762,7 +759,7 @@ defmodule EbnisData.Schema.ExperienceTest do
                  context: context(user)
                )
 
-      assert is_binary(own_fields_error_title)
+      assert is_binary(title_error)
     end
   end
 
