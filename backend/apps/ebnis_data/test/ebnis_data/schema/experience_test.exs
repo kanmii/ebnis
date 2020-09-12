@@ -819,6 +819,67 @@ defmodule EbnisData.Schema.ExperienceTest do
                )
     end
 
+    test "erfolg: Erfahrungs Beschreibung löschen" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        description: description,
+      } =
+        Factory.insert(
+          %{
+            user_id: user.id,
+            description: "df"
+          },
+          [
+            "integer"
+          ]
+        )
+
+      assert is_binary(description)
+
+      own_fields_success_variable = %{
+        "experienceId" => experience_id,
+        "ownFields" => %{
+          "description" => nil
+        }
+      }
+
+      variables = %{
+        "input" => [
+          own_fields_success_variable
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "ownFields" => %{
+                             "data" => %{
+                               "description" => nil
+                             }
+                           }
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
     test "scheitern: Definition nicht gefunden" do
       bogus_id = @bogus_id
       user = RegFactory.insert()

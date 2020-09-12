@@ -23,18 +23,22 @@ defmodule EbnisData.Factory.Experience do
         attrs
       end
 
-    all(data_types_list)
+    all(attrs, data_types_list)
     |> Map.merge(attrs)
   end
 
-  defp description do
+  defp make_description(%{description: description_attr}) do
+    description_attr
+  end
+
+  defp make_description(_) do
     case Enum.random(1..2) do
       1 -> nil
       2 -> "D" <> Sequence.next("")
     end
   end
 
-  defp all(data_types_list) do
+  defp all(attrs, data_types_list) do
     %{
       title: "E" <> Sequence.next(""),
       data_definitions:
@@ -46,7 +50,7 @@ defmodule EbnisData.Factory.Experience do
           data_types_list ->
             Enum.map(data_types_list, &DataDefinitionFactory.params(type: &1))
         end,
-      description: description()
+      description: make_description(attrs)
     }
   end
 
