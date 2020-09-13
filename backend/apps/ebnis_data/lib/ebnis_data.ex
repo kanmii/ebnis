@@ -106,12 +106,16 @@ defmodule EbnisData do
   ################################## EXPERIENCES #############################
 
   defdelegate get_experience(id, user_id), to: ExperienceApi
+
   defdelegate get_experiences(args), to: ExperienceApi
 
   defdelegate create_experience(args), to: ExperienceApi
 
   defdelegate delete_experience(id, user_id), to: ExperienceApi
+
   defdelegate update_experience(update_args, user_id), to: ExperienceApi
+
+  defdelegate prefetch_experiences(args, user_id), to: ExperienceApi
 
   #########################  END  EXPERIENCES ###############################
 

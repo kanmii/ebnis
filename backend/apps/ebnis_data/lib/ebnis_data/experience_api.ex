@@ -636,4 +636,34 @@ defmodule EbnisData.ExperienceApi do
 
     [changeset | created_entries_and_error_changesets]
   end
+
+  def prefetch_experiences(%{ids: ids} = args, user_id) do
+    from(
+      exp in Experience,
+      where: exp.user_id == ^user_id,
+      where: exp.id in ^ids
+    )
+    |> Repo.all()
+    |> case do
+      [] ->
+        %{
+          experiences: [],
+          entries: []
+        }
+    end
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @get_experience_exception_header,
+          "\n\targs: #{inspect(args)}",
+          Ebnis.stacktrace_prefix(),
+          :error
+          |> Exception.format(error, __STACKTRACE__)
+          |> Ebnis.prettify_with_new_line()
+        ]
+      end)
+
+      {:error, @bad_request}
+  end
 end

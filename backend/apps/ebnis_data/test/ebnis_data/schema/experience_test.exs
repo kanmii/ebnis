@@ -2674,6 +2674,34 @@ defmodule EbnisData.Schema.ExperienceTest do
                  }
                )
     end
+
+    # @tag :skip
+    test "erhebt Ausnahme" do
+      log_message =
+        capture_log(fn ->
+          assert {:ok,
+                  %{
+                    errors: [
+                      %{
+                        message: _
+                      }
+                    ]
+                  }} =
+                   Absinthe.run(
+                     Query.vorholen_erfahrungen(),
+                     Schema,
+                     variables: %{
+                       "ids" => ["0"]
+                     },
+                     context:
+                       context(%{
+                         id: @bogus_id
+                       })
+                   )
+        end)
+
+      assert log_message =~ "STACK"
+    end
   end
 
   defp context(user), do: %{current_user: user}
