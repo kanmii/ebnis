@@ -1928,13 +1928,171 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
   end
 
+  describe "löschen erfahrungen" do
+    # @tag :skip
+    test "unauthorized" do
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "deleteExperiences" => %{
+                     "error" => error
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.delete_experiences(),
+                 Schema,
+                 variables: %{
+                   "input" => ["1"]
+                 }
+               )
+
+      assert is_binary(error)
+    end
+
+    # @tag :skip
+    test "erhebt Ausnahme" do
+      raises_id = "1"
+      user = RegFactory.insert()
+
+      variables = %{
+        "input" => [
+          raises_id
+        ]
+      }
+
+      log =
+        capture_log(fn ->
+          assert {
+                   :ok,
+                   %{
+                     data: %{
+                       "deleteExperiences" => %{
+                         "experiences" => [
+                           %{
+                             "errors" => %{
+                               "id" => ^raises_id,
+                               "error" => raises_error
+                             }
+                           }
+                         ]
+                       }
+                     }
+                   }
+                 } =
+                   Absinthe.run(
+                     Query.delete_experiences(),
+                     Schema,
+                     variables: variables,
+                     context:
+                       user
+                       |> context()
+                       |> client_session_context()
+                       |> client_token_context()
+                   )
+
+          assert is_binary(raises_error)
+        end)
+
+      assert log =~ "STACK"
+    end
+
+    test "erfahrung nitch gefunden" do
+      bogus_id = @bogus_id
+      user = RegFactory.insert()
+
+      variables = %{
+        "input" => [
+          bogus_id
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "deleteExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "errors" => %{
+                           "id" => ^bogus_id,
+                           "error" => not_found_error
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.delete_experiences(),
+                 Schema,
+                 variables: variables,
+                 context:
+                   user
+                   |> context()
+                   |> client_session_context()
+                   |> client_token_context()
+               )
+
+      assert is_binary(not_found_error)
+    end
+
+    test "erfolg" do
+      user = RegFactory.insert()
+
+      %{id: experience_id} =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      variables = %{
+        "input" => [
+          experience_id
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "deleteExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "id" => ^experience_id
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.delete_experiences(),
+                 Schema,
+                 variables: variables,
+                 context:
+                   user
+                   |> context()
+                   |> client_session_context()
+                   |> client_token_context()
+               )
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 
-  # defp client_session_context(context_val, val \\ "s") do
-  #   Map.put(context_val, :client_session, val)
-  # end
+  defp client_session_context(context_val, val \\ "s") do
+    Map.put(context_val, :client_session, val)
+  end
 
-  # defp client_token_context(context_val, val \\ "t") do
-  #   Map.put(context_val, :client_token, val)
-  # end
+  defp client_token_context(context_val, val \\ "t") do
+    Map.put(context_val, :client_token, val)
+  end
 end
