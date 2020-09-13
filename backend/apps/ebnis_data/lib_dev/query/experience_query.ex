@@ -31,6 +31,8 @@ defmodule EbnisData.Query.Experience do
       dataObjects {
         definitionId
         id
+        data
+        clientId
       }
     }
   """

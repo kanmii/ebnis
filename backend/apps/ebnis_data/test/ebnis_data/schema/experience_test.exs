@@ -1748,6 +1748,110 @@ defmodule EbnisData.Schema.ExperienceTest do
                  context: context(user)
                )
     end
+
+    test "erstellen eintrag: eine erfolg, eine scheitet klient ID nicht einzigartig" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id
+          }
+        ]
+      } =
+        _experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      create_entry_client_id_not_unique = %{
+        "experienceId" => experience_id,
+        "addEntries" => [
+          %{
+            "clientId" => "a",
+            "dataObjects" => [
+              %{
+                "definitionId" => definition0_id,
+                "data" => ~s({"integer":1}),
+                "clientId" => "x"
+              }
+            ]
+          },
+          %{
+            # schon genohmmen
+            "clientId" => "a",
+            "dataObjects" => [
+              %{
+                "definitionId" => definition0_id,
+                "data" => ~s({"integer":3})
+              }
+            ]
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          create_entry_client_id_not_unique
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "entries" => %{
+                           "newEntries" => [
+                             %{
+                               "entry" => %{
+                                 "id" => _,
+                                 "experienceId" => ^experience_id,
+                                 "clientId" => "a",
+                                 "dataObjects" => [
+                                   %{
+                                     "definitionId" => definition0_id,
+                                     "data" => ~s({"integer":1}),
+                                     "clientId" => "x"
+                                   }
+                                 ]
+                               }
+                             },
+                             %{
+                               "errors" => %{
+                                 "clientId" => client_id_not_unique_error,
+                                 "meta" => %{
+                                   "clientId" => "a",
+                                   "index" => 1
+                                 }
+                               }
+                             }
+                           ]
+                         },
+                         "experience" => %{
+                           "experienceId" => ^experience_id
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(client_id_not_unique_error)
+    end
   end
 
   defp context(user), do: %{current_user: user}
