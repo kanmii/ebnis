@@ -665,6 +665,14 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     |> Map.put(:user_id, user.id)
     |> EbnisData.get_entries()
     |> case do
+      {:ok, connection} ->
+        {
+          :ok,
+          %{
+            entries: connection
+          }
+        }
+
       {:error, error} ->
         {
           :ok,
@@ -675,9 +683,6 @@ defmodule EbnisData.Resolver.ExperienceResolver do
             }
           }
         }
-
-      connection ->
-        connection
     end
   end
 

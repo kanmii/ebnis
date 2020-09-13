@@ -2461,6 +2461,44 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       assert log_message == ""
     end
+
+    # @tag :skip
+    test "kein eintrag" do
+      user = RegFactory.insert()
+
+      %{id: experience_id} =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      assert {:ok,
+              %{
+                data: %{
+                  "getEntries" => %{
+                    "entries" => %{
+                      "edges" => [],
+                      "pageInfo" => %{}
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.sammeln_einträge(),
+                 Schema,
+                 variables: %{
+                   "input" => %{
+                     "experienceId" => experience_id,
+                     "pagination" => %{
+                       "first" => 1
+                     }
+                   }
+                 },
+                 context: context(user)
+               )
+    end
   end
 
   defp context(user), do: %{current_user: user}

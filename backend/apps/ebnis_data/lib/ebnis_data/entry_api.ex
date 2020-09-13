@@ -490,9 +490,11 @@ defmodule EbnisData.EntryApi do
       [_] ->
         from(
           ent in Entry,
-          join: ex in assoc(ent, :experience_id),
+          join: ex in assoc(ent, :experience),
           where: ent.experience_id == ^experience_id,
-          where: ex.user_id == ^args.user_id
+          where: ex.user_id == ^args.user_id,
+          join: dd in assoc(ent, :data_objects),
+          preload: [data_objects: dd]
         )
         |> Absinthe.Relay.Connection.from_query(
           &Repo.all(&1),
