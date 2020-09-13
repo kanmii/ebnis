@@ -2086,6 +2086,275 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
   end
 
+  describe "sammeln viele erfahrungen" do
+    # @tag :skip
+    test "fails for unauthorized user" do
+      assert {
+               :ok,
+               %{
+                 errors: [
+                   %{
+                     message: _
+                   }
+                 ]
+               }
+             } =
+               Absinthe.run(
+                 Query.gets(),
+                 Schema
+               )
+    end
+
+    # @tag :skip
+    test "succeeds with pagination only" do
+      user = RegFactory.insert()
+      _experience4 = %{id: experienceId4} = Factory.insert(user_id: user.id)
+
+      experience1 = Factory.insert(user_id: user.id)
+      experience2 = Factory.insert(user_id: user.id)
+      experience3 = Factory.insert(user_id: user.id)
+
+      assert {:ok,
+              %{
+                data: %{
+                  "getExperiences" => %{
+                    "edges" => edges,
+                    "pageInfo" => %{
+                      "hasNextPage" => true,
+                      "hasPreviousPage" => false,
+                      "startCursor" => _,
+                      "endCursor" => endCursor
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.gets(),
+                 Schema,
+                 variables: %{
+                   "first" => 3
+                 },
+                 context: context(user)
+               )
+
+      assert edges
+             |> Enum.flat_map(fn edge ->
+               node = edge["node"]
+
+               data_definitions_ids =
+                 node["dataDefinitions"]
+                 |> Enum.map(& &1["id"])
+
+               Enum.concat([
+                 [
+                   node["id"]
+                 ],
+                 data_definitions_ids
+               ])
+             end)
+             |> Enum.sort() ==
+               [
+                 [
+                   experience1.id,
+                   experience2.id,
+                   experience3.id
+                 ],
+                 Enum.map(experience1.data_definitions, & &1.id),
+                 Enum.map(experience2.data_definitions, & &1.id),
+                 Enum.map(experience3.data_definitions, & &1.id)
+               ]
+               |> Enum.concat()
+               |> Enum.sort()
+
+      # next edges
+      assert {:ok,
+              %{
+                data: %{
+                  "getExperiences" => %{
+                    "edges" => [
+                      %{
+                        "node" => %{
+                          "id" => ^experienceId4
+                        }
+                      }
+                    ],
+                    "pageInfo" => %{
+                      "hasNextPage" => false,
+                      "hasPreviousPage" => true,
+                      "startCursor" => cursor1,
+                      "endCursor" => cursor2
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.gets(),
+                 Schema,
+                 variables: %{
+                   "first" => 3,
+                   "after" => endCursor
+                 },
+                 context: context(user)
+               )
+
+      assert cursor1 == cursor2
+
+      assert {:ok,
+              %{
+                data: %{
+                  "getExperiences" => %{
+                    "edges" => edges,
+                    "pageInfo" => %{
+                      "hasNextPage" => true,
+                      "hasPreviousPage" => false,
+                      "startCursor" => _,
+                      "endCursor" => ^endCursor
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.gets(),
+                 Schema,
+                 variables: %{
+                   "last" => 3,
+                   "before" => cursor1
+                 },
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "returns []: no experience exists" do
+      user = RegFactory.insert()
+
+      variables = %{
+        "input" => %{
+          "pagination" => %{
+            "first" => 2
+          }
+        }
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "getExperiences" => %{
+                    "edges" => [],
+                    "pageInfo" => %{
+                      "hasNextPage" => false,
+                      "hasPreviousPage" => false
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.gets(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+  end
+
+  describe "eine erfahrung kriegen" do
+    # @tag :skip
+    test "fails: unauthenticated" do
+      variables = %{
+        "id" => "0"
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.get(),
+                 Schema,
+                 variables: variables
+               )
+    end
+
+    # @tag :skip
+    test "fails: experience does not exist" do
+      user = RegFactory.insert()
+
+      variables = %{
+        "id" => @bogus_id
+      }
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.get(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "fails: wrong user" do
+      user = RegFactory.insert()
+      %{id: id} = Factory.insert(user_id: user.id)
+
+      variables = %{
+        "id" => id
+      }
+
+      bogus_user = %{id: @bogus_id}
+
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: "Experience definition not found"
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.get(),
+                 Schema,
+                 variables: variables,
+                 context: context(bogus_user)
+               )
+    end
+
+    # @tag :skip
+    test "gelingen: eine erfahrung" do
+      user = RegFactory.insert()
+      experience = Factory.insert(user_id: user.id)
+      experience_id = experience.id
+
+      assert {:ok,
+              %{
+                data: %{
+                  "getExperience" => %{
+                    "id" => ^experience_id
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.get(),
+                 Schema,
+                 variables: %{
+                   "id" => experience_id
+                 },
+                 context: context(user)
+               )
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 
   defp client_session_context(context_val, val \\ "s") do

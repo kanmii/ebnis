@@ -1,8 +1,6 @@
 defmodule EbnisData.Query.Experience do
-  @data_definition_fragment_name "DataDefinitionFragment"
-
   @data_definition_fragment """
-    fragment #{@data_definition_fragment_name} on DataDefinition {
+    {
       id
       name
       type
@@ -37,27 +35,16 @@ defmodule EbnisData.Query.Experience do
     }
   """
 
-  @erfahrung_scherbe_name "ExperienceFragment"
-
-  @erfahrung_sherbe """
-    fragment #{@erfahrung_scherbe_name} on Experience {
+  @erfahrung_scherbe """
+    {
       id
       title
       description
       clientId
       insertedAt
       updatedAt
-      dataDefinitions {
-        ...#{@data_definition_fragment_name}
-      }
-
-      entries(pagination: $entriesPagination) {
-        ...#{@eintrag_scherbe_name}
-      }
+      dataDefinitions #{@data_definition_fragment}
     }
-
-    #{@data_definition_fragment}
-    #{@eintrag_scherbe}
   """
 
   @create_entry_error_fragment_name "CreateEntryErrorFragment"
@@ -87,12 +74,9 @@ defmodule EbnisData.Query.Experience do
   def get do
     """
       query GetExperience($id: ID!) {
-        getExperience(id: $id) {
-            ...#{@erfahrung_scherbe_name}
-        }
-      }
+        getExperience(id: $id) #{@erfahrung_scherbe}
 
-      #{@erfahrung_sherbe}
+      }
     """
   end
 
@@ -117,6 +101,8 @@ defmodule EbnisData.Query.Experience do
               title
               insertedAt
               updatedAt
+
+              dataDefinitions #{@data_definition_fragment}
             }
           }
 
@@ -181,9 +167,7 @@ defmodule EbnisData.Query.Experience do
                     }
 
                     ... on DefinitionSuccess {
-                      definition {
-                        ...#{@data_definition_fragment_name}
-                      }
+                      definition #{@data_definition_fragment}
                     }
                   }
                 }
@@ -264,7 +248,6 @@ defmodule EbnisData.Query.Experience do
           }
         }
       }
-      #{@data_definition_fragment}
       #{@create_entry_error_fragment}
       #{@eintrag_scherbe}
     """
