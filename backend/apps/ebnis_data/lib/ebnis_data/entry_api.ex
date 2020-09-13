@@ -207,7 +207,15 @@ defmodule EbnisData.EntryApi do
       limit
     } = Connection.offset_and_limit_for_query(pagination, [])
 
-    experience_ids = [experience_id | Enum.map(tail, fn {id, _} -> id end)]
+    experience_ids = [
+      experience_id
+      | Enum.map(
+          tail,
+          fn {id, _} ->
+            id
+          end
+        )
+    ]
 
     query =
       from(ent in Entry,
@@ -216,7 +224,7 @@ defmodule EbnisData.EntryApi do
         as: :exs,
         where: ex.id in ^experience_ids,
         inner_lateral_join:
-          top_two in subquery(
+          paginated_entries in subquery(
             from(ent1 in Entry,
               where: [experience_id: parent_as(:exs).id],
               limit: ^(limit + 1),
@@ -224,7 +232,7 @@ defmodule EbnisData.EntryApi do
               order_by: [desc: ent1.inserted_at, asc: ent1.id]
             )
           ),
-        on: top_two.id == ent.id,
+        on: paginated_entries.id == ent.id,
         join: d0 in assoc(ent, :data_objects),
         preload: [data_objects: d0]
       )

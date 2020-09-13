@@ -654,4 +654,8 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   def on_experiences_deleted(_, _, _) do
     {:error, "unsuccessful"}
   end
+
+  def get_entries(_, _) do
+    Resolver.unauthorized()
+  end
 end

@@ -48,11 +48,11 @@ defmodule EbnisData.Schema do
         Experience,
         _query,
         :entries,
-        experiences_ids_pagination_args_tuples,
+        experiences_ids_pagination_args,
         repo_opts
       ) do
     EbnisData.get_paginated_entries(
-      experiences_ids_pagination_args_tuples,
+      experiences_ids_pagination_args,
       repo_opts
     )
   end

@@ -921,7 +921,7 @@ defmodule EbnisData.Schema.Experience do
         Die Erfahrung ID
       """
       arg(:id, non_null(:id))
-      resolve(&ExperienceResolver.get_experiences/2)
+      resolve(&ExperienceResolver.get_entries/2)
     end
   end
 

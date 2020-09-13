@@ -2355,6 +2355,27 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
   end
 
+  describe "sammeln einträge" do
+    # @tag :skip
+    test "scheitet: unauthenticated" do
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.sammeln_einträge(),
+                 Schema,
+                 variables: %{
+                   "experienceId" => "0"
+                 }
+               )
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 
   defp client_session_context(context_val, val \\ "s") do
