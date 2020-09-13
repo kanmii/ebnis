@@ -49,11 +49,14 @@ defmodule EbnisData.Schema.Types do
     :error
   end
 
-  ####################### input types #####################################
+  ####################### INPUT TYPES #####################################
+
   input_object :pagination_input do
     field(:first, :integer)
     field(:last, :integer)
     field(:before, :string)
     field(:after, :string)
   end
+
+  ####################### END INPUT TYPES ###################################
 end

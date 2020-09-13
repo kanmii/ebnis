@@ -376,9 +376,68 @@ defmodule EbnisData.Schema.Experience do
     field(:errors, non_null(:definition_error))
   end
 
-  union :update_definition do
-    types([:definition_success, :definition_errors])
-    resolve_type(&ExperienceResolver.update_definition_union/2)
+  object :entry_success do
+    field(:entry, non_null(:entry))
+  end
+
+  object :delete_entry_error do
+    field(:id, non_null(:id))
+
+    @desc ~S"""
+      This will mostly be 'not found error'
+    """
+    field(:error, non_null(:string))
+  end
+
+  object :delete_entry_errors do
+    field(:errors, non_null(:delete_entry_error))
+  end
+
+  object :create_entry_error_meta do
+    field(:experience_id, non_null(:id))
+    field(:index, non_null(:integer))
+    field(:client_id, :id)
+  end
+
+  object :create_entry_error do
+    field(:meta, non_null(:create_entry_error_meta))
+
+    @desc ~S"""
+      Did we fail because there are errors in the data object object?
+    """
+    field(:data_objects, list_of(:data_object_error))
+
+    @desc ~S"""
+      An offline entry of offline experience must have its experience ID same as
+      experience.clientId.
+    """
+    field(:experience_id, :string)
+
+    @desc ~S"""
+      May be we failed because entry.clientId is already taken by another
+      entry belonging to the experience.
+    """
+    field(:client_id, :string)
+
+    @desc ~S"""
+      A catch-all field for when we are unable to create an entry
+    """
+    field(:error, :string)
+  end
+
+  object :create_entry_errors do
+    field(:errors, non_null(:create_entry_error))
+  end
+
+  ################## UPDATE EXPERIENCES OBJECTS SECTION ###########
+
+  union :delete_entries_union do
+    types([
+      :delete_entry_success,
+      :delete_entry_errors
+    ])
+
+    resolve_type(&ExperienceResolver.delete_entries_union/2)
   end
 
   object :experience_own_fields do
@@ -401,25 +460,6 @@ defmodule EbnisData.Schema.Experience do
   union :update_experience_own_fields_union do
     types([:experience_own_fields_success, :update_experience_own_fields_errors])
     resolve_type(&ExperienceResolver.update_experience_own_fields_union/2)
-  end
-
-  object :entry_success do
-    field(:entry, non_null(:entry))
-  end
-
-  ################## UPDATE EXPERIENCES OBJECTS SECTION ###########
-
-  object :delete_entry_error do
-    field(:id, non_null(:id))
-
-    @desc ~S"""
-      This will mostly be 'not found error'
-    """
-    field(:error, non_null(:string))
-  end
-
-  object :delete_entry_errors do
-    field(:errors, non_null(:delete_entry_error))
   end
 
   object :update_experience do
@@ -529,42 +569,6 @@ defmodule EbnisData.Schema.Experience do
     field(:entry, non_null(:update_entry))
   end
 
-  object :create_entry_error_meta do
-    field(:experience_id, non_null(:id))
-    field(:index, non_null(:integer))
-    field(:client_id, :id)
-  end
-
-  object :create_entry_error do
-    field(:meta, non_null(:create_entry_error_meta))
-
-    @desc ~S"""
-      Did we fail because there are errors in the data object object?
-    """
-    field(:data_objects, list_of(:data_object_error))
-
-    @desc ~S"""
-      An offline entry of offline experience must have its experience ID same as
-      experience.clientId.
-    """
-    field(:experience_id, :string)
-
-    @desc ~S"""
-      May be we failed because entry.clientId is already taken by another
-      entry belonging to the experience.
-    """
-    field(:client_id, :string)
-
-    @desc ~S"""
-      A catch-all field for when we are unable to create an entry
-    """
-    field(:error, :string)
-  end
-
-  object :create_entry_errors do
-    field(:errors, non_null(:create_entry_error))
-  end
-
   union :updated_entries_union do
     types([
       :update_entry_errors,
@@ -574,13 +578,9 @@ defmodule EbnisData.Schema.Experience do
     resolve_type(&ExperienceResolver.updated_entries_union/2)
   end
 
-  union :delete_entries_union do
-    types([
-      :delete_entry_success,
-      :delete_entry_errors
-    ])
-
-    resolve_type(&ExperienceResolver.delete_entries_union/2)
+  union :update_definition do
+    types([:definition_success, :definition_errors])
+    resolve_type(&ExperienceResolver.update_definition_union/2)
   end
 
   object :update_experience_entries_komponenten do
@@ -611,7 +611,10 @@ defmodule EbnisData.Schema.Experience do
     field(:entries, :update_experience_entries_komponenten)
   end
 
-  object :update_experience_error do
+  @desc ~S"""
+    Fehler während erfahrung bearbeiten / kriegen
+  """
+  object :experience_error do
     field(:experience_id, non_null(:id))
 
     @desc ~S"""
@@ -621,7 +624,7 @@ defmodule EbnisData.Schema.Experience do
   end
 
   object :update_experience_errors do
-    field(:errors, non_null(:update_experience_error))
+    field(:errors, non_null(:experience_error))
   end
 
   union :update_experience_union do
@@ -726,7 +729,7 @@ defmodule EbnisData.Schema.Experience do
 
   ################## END UPDATE EXPERIENCES OBJECTS SECTION ###########
 
-  ################## delete experiences objects section ###########
+  ################## DELETE EXPERIENCES OBJECTS SECTION ###########
 
   object :on_experiences_deleted do
     field(:client_session, non_null(:string))
@@ -779,11 +782,60 @@ defmodule EbnisData.Schema.Experience do
   end
 
   union :delete_experiences do
-    types([:delete_experiences_some_success, :delete_experiences_all_fail])
+    types([
+      :delete_experiences_some_success,
+      :delete_experiences_all_fail
+    ])
+
     resolve_type(&ExperienceResolver.delete_experiences_union/2)
   end
 
-  ################# end delete experiences objects section #######
+  ################# END DELETE EXPERIENCES OBJECTS SECTION #######
+
+  ###################### FANG AN SAMMELN EINTRÄGE ###############################
+
+  object :get_entries_success do
+    field(
+      :entries,
+      :entry_connection
+      |> non_null()
+    )
+  end
+
+  object :get_entries_errors do
+    field(
+      :errors,
+      :experience_error
+      |> non_null()
+    )
+  end
+
+  union :get_entries_union do
+    types([
+      :get_entries_errors,
+      :get_entries_success
+    ])
+
+    resolve_type(&ExperienceResolver.get_entries_union/2)
+  end
+
+  input_object :get_entries_input do
+    @desc ~S"""
+      Erfahrung ID
+    """
+    field(
+      :experience_id,
+      non_null(:id)
+    )
+
+    field(
+      :pagination,
+      :pagination_input
+      |> non_null()
+    )
+  end
+
+  ################# AUFHÖREN SAMMELN EINTRÄGE #####################
 
   ######################### END REGULAR OBJECTS ###########################
 
@@ -916,11 +968,16 @@ defmodule EbnisData.Schema.Experience do
       Get entries belonging to an experience.
       The entries returned may be paginated
     """
-    connection field(:get_entries, node_type: :entry) do
+    field :get_entries, :get_entries_union do
       @desc ~S"""
         Die Erfahrung ID
       """
-      arg(:id, non_null(:id))
+      arg(
+        :input,
+        :get_entries_input
+        |> non_null()
+      )
+
       resolve(&ExperienceResolver.get_entries/2)
     end
   end

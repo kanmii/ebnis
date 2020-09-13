@@ -87,11 +87,7 @@ defmodule EbnisData.ExperienceApi do
   end
 
   defp query_with_data_definitions(args) do
-    definitions_query =
-      from(
-        d in DataDefinition,
-        order_by: [asc: d.id]
-      )
+    definitions_query = query_data_definitions(args)
 
     query =
       from(
@@ -104,6 +100,29 @@ defmodule EbnisData.ExperienceApi do
       args,
       query,
       &query(&2, &1)
+    )
+  end
+
+  defp query_data_definitions(%{id: experience_id}) do
+    from(
+      d in DataDefinition,
+      where: d.experience_id == ^experience_id,
+      order_by: [asc: d.id]
+    )
+  end
+
+  defp query_data_definitions(%{ids: experience_ids}) do
+    from(
+      d in DataDefinition,
+      where: d.experience_id in ^experience_ids,
+      order_by: [asc: d.id]
+    )
+  end
+
+  defp query_data_definitions(_) do
+    from(
+      d in DataDefinition,
+      order_by: [asc: d.id]
     )
   end
 

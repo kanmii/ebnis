@@ -62,7 +62,7 @@ export interface UpdateExperienceSomeSuccessFragment_experience_updatedDefinitio
   __typename: "DataDefinition";
   id: string;
   /**
-   * Name of field e.g start, end, meal 
+   * Name of field e.g start, end, meal
    */
   name: string;
   /**

@@ -17,10 +17,8 @@ defmodule EbnisData.Query.Experience do
     }
   """
 
-  @eintrag_scherbe_name "EntryFragment"
-
   @eintrag_scherbe """
-    fragment #{@eintrag_scherbe_name} on Entry {
+    {
       id
       experienceId
       clientId
@@ -47,10 +45,8 @@ defmodule EbnisData.Query.Experience do
     }
   """
 
-  @create_entry_error_fragment_name "CreateEntryErrorFragment"
-
   @create_entry_error_fragment """
-    fragment #{@create_entry_error_fragment_name} on CreateEntryError {
+    {
       meta {
         experienceId
         index
@@ -215,15 +211,13 @@ defmodule EbnisData.Query.Experience do
 
                   newEntries {
                     ... on CreateEntryErrors {
-                      errors {
-                        ...#{@create_entry_error_fragment_name}
-                      }
+                      errors #{@create_entry_error_fragment}
+
                     }
 
                     ... on CreateEntrySuccess {
-                      entry {
-                        ...#{@eintrag_scherbe_name}
-                      }
+                      entry #{@eintrag_scherbe}
+
                     }
                   }
 
@@ -248,8 +242,6 @@ defmodule EbnisData.Query.Experience do
           }
         }
       }
-      #{@create_entry_error_fragment}
-      #{@eintrag_scherbe}
     """
   end
 
@@ -275,15 +267,13 @@ defmodule EbnisData.Query.Experience do
             entries {
               __typename
               ... on CreateEntrySuccess {
-                entry {
-                  ...#{@eintrag_scherbe_name}
-                }
+                entry #{@eintrag_scherbe}
+
               }
 
               ... on CreateEntryErrors {
-                errors {
-                  ...#{@create_entry_error_fragment_name}
-                }
+                errors #{@create_entry_error_fragment}
+
               }
             }
           }
@@ -306,9 +296,6 @@ defmodule EbnisData.Query.Experience do
           }
         }
       }
-
-      #{@eintrag_scherbe}
-      #{@create_entry_error_fragment}
     """
   end
 
@@ -340,20 +327,26 @@ defmodule EbnisData.Query.Experience do
   end
 
   def sammeln_einträge do
-    {variables, values} = pagination_args()
-
     """
-      query SammelnEinträge($experienceId: ID, #{variables}) {
-        sammelnEinträge(experienceId: $experienceId, #{values}) {
-          edges {
-            ...#{@eintrag_scherbe_name}
+      query GetEntries($input: GetEntriesInput!) {
+        getEntries(input: $input) {
+          ... on GetEntriesSuccess {
+            entries {
+              edges {
+                node #{@eintrag_scherbe}
+              }
+              #{@page_info}
+            }
           }
 
-          #{@page_info}
+          ... on GetEntriesErrors {
+            errors {
+              experienceId
+              error
+            }
+          }
         }
       }
-
-      #{@eintrag_scherbe}
     """
   end
 end

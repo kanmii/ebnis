@@ -2370,9 +2370,55 @@ defmodule EbnisData.Schema.ExperienceTest do
                  Query.sammeln_einträge(),
                  Schema,
                  variables: %{
-                   "experienceId" => "0"
+                   "input" => %{
+                     "experienceId" => "0",
+                     "pagination" => %{
+                       "first" => 2
+                     }
+                   }
                  }
                )
+    end
+
+    # @tag :skip
+    test "erhebt Ausnahme" do
+      raises_id = "1"
+
+      user = %{
+        id: @bogus_id
+      }
+
+      log_message =
+        capture_log(fn ->
+          assert {:ok,
+                  %{
+                    data: %{
+                      "getEntries" => %{
+                        "errors" => %{
+                          "experienceId" => ^raises_id,
+                          "error" => raises_error
+                        }
+                      }
+                    }
+                  }} =
+                   Absinthe.run(
+                     Query.sammeln_einträge(),
+                     Schema,
+                     variables: %{
+                       "input" => %{
+                         "experienceId" => raises_id,
+                         "pagination" => %{
+                           "first" => 2
+                         }
+                       }
+                     },
+                     context: context(user)
+                   )
+
+          assert is_binary(raises_error)
+        end)
+
+      assert log_message =~ "STACK"
     end
   end
 

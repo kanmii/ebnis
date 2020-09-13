@@ -655,7 +655,41 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     {:error, "unsuccessful"}
   end
 
+  def get_entries(
+        %{
+          input: args
+        },
+        %{context: %{current_user: user}}
+      ) do
+    args
+    |> Map.put(:user_id, user.id)
+    |> EbnisData.get_entries()
+    |> case do
+      {:error, error} ->
+        {
+          :ok,
+          %{
+            errors: %{
+              error: error,
+              experience_id: args[:experience_id] || ""
+            }
+          }
+        }
+
+      connection ->
+        connection
+    end
+  end
+
   def get_entries(_, _) do
     Resolver.unauthorized()
+  end
+
+  def get_entries_union(%{errors: _}, _) do
+    :get_entries_errors
+  end
+
+  def get_entries_union(_, _) do
+    :get_entries_success
   end
 end

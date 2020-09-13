@@ -4,6 +4,7 @@ defmodule EbnisData.EntryApi do
 
   alias EbnisData.Repo
   alias EbnisData.Entry
+  alias EbnisData.Experience
   alias EbnisData.DataObject
   alias Ecto.Changeset
   alias Ecto.Multi
@@ -15,7 +16,6 @@ defmodule EbnisData.EntryApi do
 
   @stacktrace "\n\n----------STACKTRACE---------------\n\n"
 
-  @error_not_found "entry not found"
   @data_object_not_found {
     :error,
     "Data object not found.\nMay be it was created offline."
@@ -27,6 +27,8 @@ defmodule EbnisData.EntryApi do
 
   @entry_not_found "entry not found"
 
+  @experience_not_found_error "experience not found"
+
   @empty_relay_connection %{
     edges: [],
     page_info: %{
@@ -36,6 +38,8 @@ defmodule EbnisData.EntryApi do
       has_next_page: false
     }
   }
+
+  @get_entries_exception_header "\n\nException while getting entries with:"
 
   defp validate_data_objects_with_definitions(data_definitions, data_list) do
     definitions_id_to_type_map =
@@ -229,7 +233,7 @@ defmodule EbnisData.EntryApi do
               where: [experience_id: parent_as(:exs).id],
               limit: ^(limit + 1),
               offset: ^offset,
-              order_by: [desc: ent1.inserted_at, asc: ent1.id]
+              order_by: [desc: ent1.inserted_at, desc: ent1.id]
             )
           ),
         on: paginated_entries.id == ent.id,
@@ -288,7 +292,7 @@ defmodule EbnisData.EntryApi do
   def delete_entry(id) do
     case get_entry(id) do
       nil ->
-        {id, @error_not_found}
+        {id, @entry_not_found}
 
       entry ->
         Repo.delete(entry)
@@ -306,7 +310,7 @@ defmodule EbnisData.EntryApi do
         ]
       end)
 
-      {id, @error_not_found}
+      {id, @entry_not_found}
   end
 
   defp update_data_object(params) do
@@ -471,5 +475,46 @@ defmodule EbnisData.EntryApi do
           fake_changeset_with_data_objects(data_objects_changesets, attrs)
         }
     end
+  end
+
+  def get_entries(args) do
+    experience_id = args.experience_id
+    pagination_args = args.pagination
+
+    from(
+      exp in Experience,
+      where: exp.id == ^experience_id
+    )
+    |> Repo.all()
+    |> case do
+      [_] ->
+        from(
+          ent in Entry,
+          join: ex in assoc(ent, :experience_id),
+          where: ent.experience_id == ^experience_id,
+          where: ex.user_id == ^args.user_id
+        )
+        |> Absinthe.Relay.Connection.from_query(
+          &Repo.all(&1),
+          pagination_args
+        )
+
+      _ ->
+        {:error, @experience_not_found_error}
+    end
+  rescue
+    error ->
+      Logger.error(fn ->
+        [
+          @get_entries_exception_header,
+          "\n\targs: #{inspect(Map.delete(args, :user_id))}",
+          Ebnis.stacktrace_prefix(),
+          :error
+          |> Exception.format(error, __STACKTRACE__)
+          |> Ebnis.prettify_with_new_line()
+        ]
+      end)
+
+      {:error, @experience_not_found_error}
   end
 end
