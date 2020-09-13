@@ -2499,6 +2499,160 @@ defmodule EbnisData.Schema.ExperienceTest do
                  context: context(user)
                )
     end
+
+    # @tag :skip
+    test "seitennummeriergung" do
+      user = RegFactory.insert()
+
+      %{id: experience_id} =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      [
+        %{
+          id: entry1_id,
+          data_objects: [
+            %{
+              id: data_object1_id
+            }
+          ]
+        },
+        %{
+          id: entry2_id
+        },
+        %{
+          id: entry3_id
+        }
+      ] =
+        1..3
+        |> Enum.map(fn _ ->
+          EntryFactory.insert(%{}, experience)
+        end)
+
+      assert {:ok,
+              %{
+                data: %{
+                  "getEntries" => %{
+                    "entries" => %{
+                      "edges" => edges,
+                      "pageInfo" => %{
+                        "hasPreviousPage" => false,
+                        "hasNextPage" => true,
+                        "endCursor" => end_cursor
+                      }
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.sammeln_einträge(),
+                 Schema,
+                 variables: %{
+                   "input" => %{
+                     "experienceId" => experience_id,
+                     "pagination" => %{
+                       "first" => 2
+                     }
+                   }
+                 },
+                 context: context(user)
+               )
+
+      assert Enum.map(
+               edges,
+               fn edge ->
+                 edge["node"]["id"]
+               end
+             ) == [
+               entry3_id,
+               entry2_id
+             ]
+
+      assert {:ok,
+              %{
+                data: %{
+                  "getEntries" => %{
+                    "entries" => %{
+                      "edges" => [
+                        %{
+                          "node" => %{
+                            "id" => ^entry1_id,
+                            "dataObjects" => [
+                              %{
+                                "id" => ^data_object1_id
+                              }
+                            ]
+                          }
+                        }
+                      ],
+                      "pageInfo" => %{
+                        "hasPreviousPage" => true,
+                        "hasNextPage" => false,
+                        "startCursor" => start_cursor
+                      }
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.sammeln_einträge(),
+                 Schema,
+                 variables: %{
+                   "input" => %{
+                     "experienceId" => experience_id,
+                     "pagination" => %{
+                       "first" => 2,
+                       "after" => end_cursor
+                     }
+                   }
+                 },
+                 context: context(user)
+               )
+
+      assert {:ok,
+              %{
+                data: %{
+                  "getEntries" => %{
+                    "entries" => %{
+                      "edges" => edges,
+                      "pageInfo" => %{
+                        "hasPreviousPage" => false,
+                        "hasNextPage" => true
+                      }
+                    }
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.sammeln_einträge(),
+                 Schema,
+                 variables: %{
+                   "input" => %{
+                     "experienceId" => experience_id,
+                     "pagination" => %{
+                       "last" => 2,
+                       "before" => start_cursor
+                     }
+                   }
+                 },
+                 context: context(user)
+               )
+
+      assert Enum.map(
+               edges,
+               fn edge ->
+                 edge["node"]["id"]
+               end
+             ) == [
+               entry3_id,
+               entry2_id
+             ]
+    end
   end
 
   defp context(user), do: %{current_user: user}
