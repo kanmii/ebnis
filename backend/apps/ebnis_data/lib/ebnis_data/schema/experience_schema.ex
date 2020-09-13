@@ -592,7 +592,7 @@ defmodule EbnisData.Schema.Experience do
     )
 
     field(
-      :created_entries,
+      :new_entries,
       :create_entries_union
       |> non_null()
       |> list_of()

@@ -137,16 +137,12 @@ defmodule EbnisData.Query.Experience do
     """
       mutation UpdateExperiencesOnline($input: [UpdateExperienceInput!]!) {
         updateExperiences(input: $input) {
-          __typename
-
           ... on UpdateExperiencesAllFail {
             error
           }
 
           ... on UpdateExperiencesSomeSuccess {
             experiences {
-              __typename
-
               ... on UpdateExperienceErrors {
                 errors {
                   experienceId
@@ -158,7 +154,6 @@ defmodule EbnisData.Query.Experience do
                   experienceId
                   updatedAt
                   ownFields {
-                    __typename
                     ... on UpdateExperienceOwnFieldsErrors {
                       errors {
                         title
@@ -193,7 +188,6 @@ defmodule EbnisData.Query.Experience do
 
                 entries {
                   updatedEntries {
-                    __typename
                     ... on UpdateEntryErrors {
                       errors {
                         entryId
@@ -233,8 +227,7 @@ defmodule EbnisData.Query.Experience do
                     }
                   }
 
-                  createdEntries {
-                    __typename
+                  newEntries {
                     ... on CreateEntryErrors {
                       errors {
                         ...#{@create_entry_error_fragment_name}
@@ -249,7 +242,6 @@ defmodule EbnisData.Query.Experience do
                   }
 
                   deletedEntries {
-                    __typename
                     ... on DeleteEntrySuccess {
                       entry {
                         id

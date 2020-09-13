@@ -1665,6 +1665,89 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       assert is_binary(data_wrong_error)
     end
+
+    test "erstellen eintrag: scheitet (Daten ist falsch)" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id
+          }
+        ]
+      } =
+        _experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      create_entry_invalid_data = %{
+        "experienceId" => experience_id,
+        "addEntries" => [
+          %{
+            "dataObjects" => [
+              %{
+                "definitionId" => definition0_id,
+                "data" => ~s({"integer":0.1})
+              }
+            ]
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          create_entry_invalid_data
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "entries" => %{
+                           "newEntries" => [
+                             %{
+                               "errors" => %{
+                                 "dataObjects" => [
+                                   %{
+                                     "data" => "is invalid",
+                                     "meta" => %{
+                                       "index" => 0
+                                     }
+                                   }
+                                 ],
+                                 "meta" => %{
+                                   "index" => 0
+                                 }
+                               }
+                             }
+                           ]
+                         },
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedAt" => _
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
   end
 
   defp context(user), do: %{current_user: user}
