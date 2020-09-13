@@ -2420,6 +2420,47 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       assert log_message =~ "STACK"
     end
+
+    # @tag :skip
+    test "erfahrung nicht gefunden" do
+      bogus_id = @bogus_id
+
+      user = %{
+        id: bogus_id
+      }
+
+      log_message =
+        capture_log(fn ->
+          assert {:ok,
+                  %{
+                    data: %{
+                      "getEntries" => %{
+                        "errors" => %{
+                          "experienceId" => ^bogus_id,
+                          "error" => not_found_error
+                        }
+                      }
+                    }
+                  }} =
+                   Absinthe.run(
+                     Query.sammeln_einträge(),
+                     Schema,
+                     variables: %{
+                       "input" => %{
+                         "experienceId" => bogus_id,
+                         "pagination" => %{
+                           "first" => 2
+                         }
+                       }
+                     },
+                     context: context(user)
+                   )
+
+          assert is_binary(not_found_error)
+        end)
+
+      assert log_message == ""
+    end
   end
 
   defp context(user), do: %{current_user: user}
