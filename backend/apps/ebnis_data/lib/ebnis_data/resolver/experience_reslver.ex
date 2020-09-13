@@ -697,4 +697,8 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   def get_entries_union(_, _) do
     :get_entries_success
   end
+
+  def prefetch_experiences(_, _) do
+    Resolver.unauthorized()
+  end
 end

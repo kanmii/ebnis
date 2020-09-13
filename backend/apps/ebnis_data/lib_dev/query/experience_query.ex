@@ -349,4 +349,22 @@ defmodule EbnisData.Query.Experience do
       }
     """
   end
+
+  def vorholen_erfahrungen do
+    """
+      query PrefetchExperiences($ids: [ID!]!, $entriesPagination: PaginationInput) {
+        prefetchExperiences(ids: $ids, entriesPagination: $entriesPagination) {
+          experiences {
+            #{@erfahrung_scherbe}
+          }
+          entries {
+            edges {
+              node #{@eintrag_scherbe}
+            }
+            #{@page_info}
+          }
+        }
+      }
+    """
+  end
 end

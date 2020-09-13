@@ -839,6 +839,25 @@ defmodule EbnisData.Schema.Experience do
 
   ######################### END REGULAR OBJECTS ###########################
 
+  ################## BEGIN BEVOR HOLEN ERFAHRUNGEN #########################
+
+  object :prefetch_experiences do
+    field(
+      :experiences,
+      :experience
+      |> list_of()
+      |> non_null()
+    )
+
+    field(
+      :entries,
+      :entry_connection
+      |> list_of()
+    )
+  end
+
+  ################## AUFHÖRT BEGIN BEVOR HOLEN ERFAHRUNGEN #####################
+
   ############################ START INPUT OBJECTS SECTION ####################
 
   input_object :get_experiences_input do
@@ -979,6 +998,27 @@ defmodule EbnisData.Schema.Experience do
       )
 
       resolve(&ExperienceResolver.get_entries/2)
+    end
+
+    @desc ~S"""
+    Wenn der Klient erstmal die Erfahrungen bestellt mit wenige Besitztümer,
+    und muss später mehr Besitztümer bestellen
+    """
+    field :prefetch_experiences, :prefetch_experiences do
+      arg(
+        :ids,
+        :id
+        |> non_null()
+        |> list_of()
+        |> non_null()
+      )
+
+      arg(
+        :entry_pagination,
+        :pagination_input
+      )
+
+      resolve(&ExperienceResolver.prefetch_experiences/2)
     end
   end
 

@@ -2655,6 +2655,27 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
   end
 
+  describe "vorholen erfahrungen" do
+    # @tag :skip
+    test "unauthorized" do
+      assert {:ok,
+              %{
+                errors: [
+                  %{
+                    message: _
+                  }
+                ]
+              }} =
+               Absinthe.run(
+                 Query.vorholen_erfahrungen(),
+                 Schema,
+                 variables: %{
+                   "ids" => ["0"]
+                 }
+               )
+    end
+  end
+
   defp context(user), do: %{current_user: user}
 
   defp client_session_context(context_val, val \\ "s") do
