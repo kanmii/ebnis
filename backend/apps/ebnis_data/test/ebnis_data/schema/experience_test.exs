@@ -1852,6 +1852,80 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       assert is_binary(client_id_not_unique_error)
     end
+
+    test "löschen eintrag: eine erfolg, eine eintrag nicht gefunden" do
+      bogus_id = @bogus_id
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      %{
+        id: entry_id
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      delete_entries_variables = %{
+        "experienceId" => experience_id,
+        "deleteEntries" => [
+          bogus_id,
+          entry_id
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          delete_entries_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "entries" => %{
+                           "deletedEntries" => [
+                             %{
+                               "errors" => %{
+                                 "id" => ^bogus_id,
+                                 "error" => deleted_entry_not_found_error
+                               }
+                             },
+                             %{
+                               "entry" => %{
+                                 "id" => ^entry_id
+                               }
+                             }
+                           ]
+                         },
+                         "experience" => %{
+                           "experienceId" => ^experience_id
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert is_binary(deleted_entry_not_found_error)
+    end
   end
 
   defp context(user), do: %{current_user: user}

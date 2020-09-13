@@ -611,7 +611,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   end
 
   def delete_entries_union(%{entry: _}, _) do
-    :entry_success
+    :delete_entry_success
   end
 
   def delete_entries_union(_, _) do
