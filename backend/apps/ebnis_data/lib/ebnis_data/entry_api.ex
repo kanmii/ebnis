@@ -237,6 +237,7 @@ defmodule EbnisData.EntryApi do
             )
           ),
         on: paginated_entries.id == ent.id,
+        order_by: [desc: ent.inserted_at, desc: ent.id],
         join: d0 in assoc(ent, :data_objects),
         preload: [data_objects: d0]
       )

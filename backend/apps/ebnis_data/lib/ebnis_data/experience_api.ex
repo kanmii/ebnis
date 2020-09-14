@@ -641,7 +641,9 @@ defmodule EbnisData.ExperienceApi do
     from(
       exp in Experience,
       where: exp.user_id == ^user_id,
-      where: exp.id in ^ids
+      where: exp.id in ^ids,
+      join: dd in assoc(exp, :data_definitions),
+      preload: [data_definitions: dd]
     )
     |> Repo.all()
     |> case do
@@ -649,6 +651,30 @@ defmodule EbnisData.ExperienceApi do
         %{
           experiences: [],
           entries: []
+        }
+
+      experiences ->
+        pagination_args =
+          case args[:entry_pagination] do
+            nil ->
+              %{}
+
+            pagination ->
+              %{
+                pagination: pagination
+              }
+          end
+
+        %{
+          experiences: experiences,
+          entries:
+            EntryApi.get_paginated_entries(
+              Enum.map(
+                ids,
+                &{&1, pagination_args}
+              ),
+              []
+            )
         }
     end
   rescue

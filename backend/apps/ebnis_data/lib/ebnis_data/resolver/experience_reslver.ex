@@ -706,8 +706,8 @@ defmodule EbnisData.Resolver.ExperienceResolver do
       ) do
     EbnisData.prefetch_experiences(args, user.id)
     |> case do
-      %{} ->
-        Resolver.unauthorized()
+      %{} = data ->
+        {:ok, data}
 
       errors ->
         errors

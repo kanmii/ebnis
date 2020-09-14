@@ -2676,7 +2676,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "erhebt Ausnahme" do
+    test "erhebt Ausnahme für Erfahrung" do
       log_message =
         capture_log(fn ->
           assert {:ok,
@@ -2701,6 +2701,181 @@ defmodule EbnisData.Schema.ExperienceTest do
         end)
 
       assert log_message =~ "STACK"
+    end
+
+    # @tag :skip
+    test "leer Dinge" do
+      assert {:ok,
+              %{
+                data: %{
+                  "prefetchExperiences" => %{
+                    "experiences" => [],
+                    "entries" => []
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.vorholen_erfahrungen(),
+                 Schema,
+                 variables: %{
+                   "ids" => [@bogus_id]
+                 },
+                 context:
+                   context(%{
+                     id: @bogus_id
+                   })
+               )
+    end
+
+    # @tag :skip
+    test "erfahrungen und einträge, keine seitennummeriergung" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      %{
+        id: entry_id,
+        data_objects: [
+          %{
+            id: data_object0_id
+          }
+        ]
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      assert {:ok,
+              %{
+                data: %{
+                  "prefetchExperiences" => %{
+                    "entries" => [
+                      %{
+                        "edges" => [
+                          %{
+                            "node" => %{
+                              "id" => ^entry_id,
+                              "experienceId" => ^experience_id,
+                              "dataObjects" => [
+                                %{
+                                  "id" => ^data_object0_id
+                                }
+                              ]
+                            }
+                          }
+                        ],
+                        "pageInfo" => %{}
+                      }
+                    ],
+                    "experiences" => [
+                      %{
+                        "id" => ^experience_id,
+                        "dataDefinitions" => [
+                          %{
+                            "id" => _
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.vorholen_erfahrungen(),
+                 Schema,
+                 variables: %{
+                   "ids" => [experience_id]
+                 },
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "erfahrungen und einträge, mit seitennummeriergung" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      [
+        _,
+        %{
+          id: entry_id,
+          data_objects: [
+            %{
+              id: data_object0_id
+            }
+          ]
+        }
+      ] =
+        1..2
+        |> Enum.map(fn _ ->
+          EntryFactory.insert(%{}, experience)
+        end)
+
+      assert {:ok,
+              %{
+                data: %{
+                  "prefetchExperiences" => %{
+                    "entries" => [
+                      %{
+                        "edges" => [
+                          %{
+                            "node" => %{
+                              "id" => ^entry_id,
+                              "experienceId" => ^experience_id,
+                              "dataObjects" => [
+                                %{
+                                  "id" => ^data_object0_id
+                                }
+                              ]
+                            }
+                          }
+                        ],
+                        "pageInfo" => %{
+                          "hasPreviousPage" => false,
+                          "hasNextPage" => true
+                        }
+                      }
+                    ],
+                    "experiences" => [
+                      %{
+                        "id" => ^experience_id,
+                        "dataDefinitions" => [
+                          %{
+                            "id" => _
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }} =
+               Absinthe.run(
+                 Query.vorholen_erfahrungen(),
+                 Schema,
+                 variables: %{
+                   "ids" => [experience_id],
+                   "entryPagination" => %{
+                     "first" => 1
+                   }
+                 },
+                 context: context(user)
+               )
     end
   end
 
