@@ -158,7 +158,6 @@ defmodule EbnisData.Schema.Experience do
     resolve_type(&ExperienceResolver.create_entries_union/2)
   end
 
-  # object :create_experience_success do
   object :experience_success do
     field(:experience, non_null(:experience))
 
@@ -819,22 +818,6 @@ defmodule EbnisData.Schema.Experience do
     resolve_type(&ExperienceResolver.get_entries_union/2)
   end
 
-  input_object :get_entries_input do
-    @desc ~S"""
-      Erfahrung ID
-    """
-    field(
-      :experience_id,
-      non_null(:id)
-    )
-
-    field(
-      :pagination,
-      :pagination_input
-      |> non_null()
-    )
-  end
-
   ################# AUFHÖREN SAMMELN EINTRÄGE #####################
 
   ######################### END REGULAR OBJECTS ###########################
@@ -992,8 +975,13 @@ defmodule EbnisData.Schema.Experience do
         Die Erfahrung ID
       """
       arg(
-        :input,
-        :get_entries_input
+        :experience_id,
+        non_null(:id)
+      )
+
+      arg(
+        :pagination,
+        :pagination_input
         |> non_null()
       )
 

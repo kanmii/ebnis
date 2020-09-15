@@ -328,8 +328,8 @@ defmodule EbnisData.Query.Experience do
 
   def sammeln_einträge do
     """
-      query GetEntries($input: GetEntriesInput!) {
-        getEntries(input: $input) {
+      query GetEntries($experienceId: ID!, $pagination: PaginationInput!) {
+        getEntries(experienceId: $experienceId, pagination: $pagination) {
           ... on GetEntriesSuccess {
             entries {
               edges {

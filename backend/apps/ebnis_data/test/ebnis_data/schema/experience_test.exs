@@ -2370,11 +2370,9 @@ defmodule EbnisData.Schema.ExperienceTest do
                  Query.sammeln_einträge(),
                  Schema,
                  variables: %{
-                   "input" => %{
-                     "experienceId" => "0",
-                     "pagination" => %{
-                       "first" => 2
-                     }
+                   "experienceId" => "0",
+                   "pagination" => %{
+                     "first" => 2
                    }
                  }
                )
@@ -2405,11 +2403,9 @@ defmodule EbnisData.Schema.ExperienceTest do
                      Query.sammeln_einträge(),
                      Schema,
                      variables: %{
-                       "input" => %{
-                         "experienceId" => raises_id,
-                         "pagination" => %{
-                           "first" => 2
-                         }
+                       "experienceId" => raises_id,
+                       "pagination" => %{
+                         "first" => 2
                        }
                      },
                      context: context(user)
@@ -2446,11 +2442,9 @@ defmodule EbnisData.Schema.ExperienceTest do
                      Query.sammeln_einträge(),
                      Schema,
                      variables: %{
-                       "input" => %{
-                         "experienceId" => bogus_id,
-                         "pagination" => %{
-                           "first" => 2
-                         }
+                       "experienceId" => bogus_id,
+                       "pagination" => %{
+                         "first" => 2
                        }
                      },
                      context: context(user)
@@ -2489,11 +2483,9 @@ defmodule EbnisData.Schema.ExperienceTest do
                  Query.sammeln_einträge(),
                  Schema,
                  variables: %{
-                   "input" => %{
-                     "experienceId" => experience_id,
-                     "pagination" => %{
-                       "first" => 1
-                     }
+                   "experienceId" => experience_id,
+                   "pagination" => %{
+                     "first" => 1
                    }
                  },
                  context: context(user)
@@ -2553,11 +2545,9 @@ defmodule EbnisData.Schema.ExperienceTest do
                  Query.sammeln_einträge(),
                  Schema,
                  variables: %{
-                   "input" => %{
-                     "experienceId" => experience_id,
-                     "pagination" => %{
-                       "first" => 2
-                     }
+                   "experienceId" => experience_id,
+                   "pagination" => %{
+                     "first" => 2
                    }
                  },
                  context: context(user)
@@ -2603,12 +2593,10 @@ defmodule EbnisData.Schema.ExperienceTest do
                  Query.sammeln_einträge(),
                  Schema,
                  variables: %{
-                   "input" => %{
-                     "experienceId" => experience_id,
-                     "pagination" => %{
-                       "first" => 2,
-                       "after" => end_cursor
-                     }
+                   "experienceId" => experience_id,
+                   "pagination" => %{
+                     "first" => 2,
+                     "after" => end_cursor
                    }
                  },
                  context: context(user)
@@ -2632,12 +2620,10 @@ defmodule EbnisData.Schema.ExperienceTest do
                  Query.sammeln_einträge(),
                  Schema,
                  variables: %{
-                   "input" => %{
-                     "experienceId" => experience_id,
-                     "pagination" => %{
-                       "last" => 2,
-                       "before" => start_cursor
-                     }
+                   "experienceId" => experience_id,
+                   "pagination" => %{
+                     "last" => 2,
+                     "before" => start_cursor
                    }
                  },
                  context: context(user)

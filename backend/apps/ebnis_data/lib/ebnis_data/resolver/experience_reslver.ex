@@ -657,8 +657,9 @@ defmodule EbnisData.Resolver.ExperienceResolver do
 
   def get_entries(
         %{
-          input: args
-        },
+          experience_id: _,
+          pagination: _
+        } = args,
         %{context: %{current_user: user}}
       ) do
     args
