@@ -25,7 +25,6 @@ import {
   CreateExperiencesComponentProps,
   CreateExperiencesMutationFn,
 } from "../../utils/experience.gql.types";
-import { entriesPaginationVariables } from "../../graphql/entry.gql";
 import { getIsConnected } from "../../utils/connections";
 import {
   CreateExperiences_createExperiences_CreateExperienceErrors_errors,
@@ -56,8 +55,6 @@ import {
   CreateExperienceErrorsFragment_errors,
 } from "../../graphql/apollo-types/CreateExperienceErrorsFragment";
 import { CreateExperienceSuccessFragment } from "../../graphql/apollo-types/CreateExperienceSuccessFragment";
-import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
-import { CreateEntryErrorFragment } from "../../graphql/apollo-types/CreateEntryErrorFragment";
 
 export const fieldTypeKeys = Object.values(DataTypes);
 
@@ -163,7 +160,7 @@ const submissionEffect: DefSubmissionEffect["func"] = (
           await window.____ebnis.persistor.persist();
 
           windowChangeUrl(
-            makeDetailedExperienceRoute(data.experience.id),
+            makeDetailedExperienceRoute(data.data.experience.id),
             ChangeUrlType.goTo,
           );
           break;
@@ -200,7 +197,6 @@ function ceateExperienceInputMutationFunctionVariable(
 ) {
   return {
     input: [input],
-    ...entriesPaginationVariables,
   };
 }
 
@@ -259,8 +255,7 @@ type CreateExperienceOnlineEvents =
     }
   | {
       key: CreateExperienceSuccessFragment["__typename"];
-      experience: ExperienceFragment;
-      entriesErrors: CreateEntryErrorFragment[] | null;
+      data: CreateExperienceSuccessFragment;
     }
   | {
       key: "exception";
@@ -301,12 +296,9 @@ export async function createExperienceOnlineEffect(
         errors,
       });
     } else {
-      const { experience, entriesErrors } = response;
-
       onEvent({
         key: "ExperienceSuccess",
-        experience,
-        entriesErrors,
+        data: response,
       });
     }
   } catch (error) {

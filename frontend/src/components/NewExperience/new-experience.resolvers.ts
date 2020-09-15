@@ -39,7 +39,7 @@ import {
   GetDetailExperience,
   GetDetailExperienceVariables,
 } from "../../graphql/apollo-types/GetDetailExperience";
-import { entriesPaginationVariables } from "../../graphql/entry.gql";
+import { emptyGetEntries } from "../../graphql/utils.gql";
 
 const createOfflineExperienceResolver: LocalResolverFn<
   CreateExperiencesVariables,
@@ -105,25 +105,19 @@ const createOfflineExperienceResolver: LocalResolverFn<
     description: description as string,
     title,
     dataDefinitions,
-    entries: {
-      __typename: "EntryConnection",
-      edges: [],
-      pageInfo: {
-        __typename: "PageInfo",
-        hasNextPage: false,
-        hasPreviousPage: false,
-      },
-    },
   };
 
   cache.writeQuery<GetDetailExperience, GetDetailExperienceVariables>({
     query: GET_COMPLETE_EXPERIENCE_QUERY,
     data: {
       getExperience: experience,
+      getEntries: emptyGetEntries,
     },
     variables: {
-      id: experienceId,
-      entriesPagination: entriesPaginationVariables.entriesPagination,
+      experienceId,
+      pagination: {
+        first: 10,
+      },
     },
   });
 

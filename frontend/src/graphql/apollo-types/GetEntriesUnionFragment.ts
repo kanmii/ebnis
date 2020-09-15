@@ -4,10 +4,10 @@
 // This file was automatically generated and should not be edited.
 
 // ====================================================
-// GraphQL fragment: EntryConnectionFragment
+// GraphQL fragment: GetEntriesUnionFragment
 // ====================================================
 
-export interface EntryConnectionFragment_pageInfo {
+export interface GetEntriesUnionFragment_GetEntriesSuccess_entries_pageInfo {
   __typename: "PageInfo";
   /**
    * When paginating forwards, are there more items?
@@ -27,7 +27,7 @@ export interface EntryConnectionFragment_pageInfo {
   endCursor: string | null;
 }
 
-export interface EntryConnectionFragment_edges_node_dataObjects {
+export interface GetEntriesUnionFragment_GetEntriesSuccess_entries_edges_node_dataObjects {
   __typename: "DataObject";
   id: string;
   data: any;
@@ -40,7 +40,7 @@ export interface EntryConnectionFragment_edges_node_dataObjects {
   updatedAt: any;
 }
 
-export interface EntryConnectionFragment_edges_node {
+export interface GetEntriesUnionFragment_GetEntriesSuccess_entries_edges_node {
   __typename: "Entry";
   /**
    * Entry ID
@@ -62,17 +62,38 @@ export interface EntryConnectionFragment_edges_node {
   /**
    * The list of data belonging to this entry.
    */
-  dataObjects: (EntryConnectionFragment_edges_node_dataObjects | null)[];
+  dataObjects: (GetEntriesUnionFragment_GetEntriesSuccess_entries_edges_node_dataObjects | null)[];
 }
 
-export interface EntryConnectionFragment_edges {
+export interface GetEntriesUnionFragment_GetEntriesSuccess_entries_edges {
   __typename: "EntryEdge";
   cursor: string | null;
-  node: EntryConnectionFragment_edges_node | null;
+  node: GetEntriesUnionFragment_GetEntriesSuccess_entries_edges_node | null;
 }
 
-export interface EntryConnectionFragment {
+export interface GetEntriesUnionFragment_GetEntriesSuccess_entries {
   __typename: "EntryConnection";
-  pageInfo: EntryConnectionFragment_pageInfo;
-  edges: (EntryConnectionFragment_edges | null)[] | null;
+  pageInfo: GetEntriesUnionFragment_GetEntriesSuccess_entries_pageInfo;
+  edges: (GetEntriesUnionFragment_GetEntriesSuccess_entries_edges | null)[] | null;
 }
+
+export interface GetEntriesUnionFragment_GetEntriesSuccess {
+  __typename: "GetEntriesSuccess";
+  entries: GetEntriesUnionFragment_GetEntriesSuccess_entries;
+}
+
+export interface GetEntriesUnionFragment_GetEntriesErrors_errors {
+  __typename: "ExperienceError";
+  experienceId: string;
+  /**
+   * This will mostly be experience not found error
+   */
+  error: string;
+}
+
+export interface GetEntriesUnionFragment_GetEntriesErrors {
+  __typename: "GetEntriesErrors";
+  errors: GetEntriesUnionFragment_GetEntriesErrors_errors;
+}
+
+export type GetEntriesUnionFragment = GetEntriesUnionFragment_GetEntriesSuccess | GetEntriesUnionFragment_GetEntriesErrors;

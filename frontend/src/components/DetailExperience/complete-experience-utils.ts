@@ -37,7 +37,6 @@ import {
   purgeExperience,
   deleteCacheKeys,
 } from "../../apollo/update-get-experiences-mini-query";
-import { EntryConnectionFragment_edges } from "../../graphql/apollo-types/EntryConnectionFragment";
 import {
   CreateEntryErrorFragment,
   CreateEntryErrorFragment_dataObjects,
@@ -49,19 +48,25 @@ import {
   getDeleteExperienceLedger,
   putOrRemoveDeleteExperienceLedger,
 } from "../../apollo/delete-experience-cache";
-import { DeleteExperiencesComponentProps } from "../../utils/experience.gql.types";
+import {
+  DeleteExperiencesComponentProps,
+  DetailedExperienceQueryResult,
+} from "../../utils/experience.gql.types";
 import { manuallyFetchDetailedExperience } from "../../utils/experience.gql.types";
 import {
   parseStringError,
   DATA_FETCHING_FAILED,
 } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";
-import { entryToEdge } from "../NewEntry/entry-to-edge";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
 import { PaginationInput } from "../../graphql/apollo-types/globalTypes";
-import { readExperienceFragment } from "../../apollo/read-experience-fragment";
-import { PageInfoFragment } from "../../graphql/apollo-types/PageInfoFragment";
 import { sammelnZwischengespeicherteErfahrung } from "../../apollo/sammeln-zwischengespeicherte-erfahrung";
+import { PageInfoFragment } from "../../graphql/apollo-types/PageInfoFragment";
+import { GetEntriesUnionFragment } from "../../graphql/apollo-types/GetEntriesUnionFragment";
+import {
+  EntryConnectionFragment_edges,
+  EntryConnectionFragment,
+} from "../../graphql/apollo-types/EntryConnectionFragment";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -291,10 +296,8 @@ function handleMaybeNewEntryCreatedHelper(
   const { states: globalStates } = proxy;
 
   if (globalStates.value === StateValue.data) {
-    const {
-      states,
-      context: { experience },
-    } = globalStates.data;
+    const { states, context } = globalStates.data;
+    const { entries } = context;
     const { neuEintragDaten, zustand } = mayBeNewEntry;
 
     const {
@@ -329,21 +332,16 @@ function handleMaybeNewEntryCreatedHelper(
       },
     };
 
-    const edges = experience.entries.edges as EntryConnectionFragment_edges[];
-    const neuEintragKante = entryToEdge(neuEintragDaten);
-
-    // ein vollständig neu Eintrag
+    // ein völlig neu Eintrag
     if (!(vielleichtBearbeitenEintrag || zustand === "ganz-nue")) {
-      edges.unshift(neuEintragKante);
+      entries.unshift(neuEintragDaten);
     } else {
       // wir ersetzen die neu Eintrag mit dem zuletzt Eintrag
 
       const { clientId, dataObjects } = neuEintragDaten;
 
-      experience.entries.edges = edges.map((kante) => {
-        return (kante.node as EntryFragment).id === clientId
-          ? neuEintragKante
-          : kante;
+      context.entries = entries.map((kante) => {
+        return kante.id === clientId ? neuEintragDaten : kante;
       });
 
       // und die Offline-Einträge muss auf die Cache entfernen werden
@@ -564,13 +562,25 @@ function handleOnDataReceivedAction(
         const { data, loading, error } = payload.data;
 
         if (data) {
+          const dataState = states as Draft<DataState>;
+          dataState.value = StateValue.data;
+
+          const dataStateData =
+            dataState.data || ({} as Draft<DataState["data"]>);
+
+          dataState.data = dataStateData;
+
+          const context =
+            dataStateData.context ||
+            ({} as Draft<DataState["data"]["context"]>);
+
+          dataStateData.context = context;
+
           const experience = data.getExperience;
+          processEntriesData(context, data.getEntries);
 
           if (experience) {
-            states.experience = {
-              value: StateValue.data,
-              data: experience,
-            };
+            context.experience = experience;
 
             effects.push(
               {
@@ -583,19 +593,27 @@ function handleOnDataReceivedAction(
               },
             );
           } else {
-            states.experience = {
+            proxy.states = {
               value: StateValue.errors,
-              error: DATA_FETCHING_FAILED,
+              errors: {
+                context: {
+                  error: DATA_FETCHING_FAILED,
+                },
+              },
             };
           }
         } else if (loading) {
-          states.experience = {
+          proxy.states = {
             value: StateValue.loading,
           };
         } else {
-          states.experience = {
+          proxy.states = {
             value: StateValue.errors,
-            error: parseStringError(error as ApolloError),
+            errors: {
+              context: {
+                error: parseStringError(error as ApolloError),
+              },
+            },
           };
         }
       }
@@ -624,6 +642,38 @@ async function handleRefetchExperienceAction(proxy: DraftStateMachine) {
 
 function getExperienceId(props: Props) {
   return (props.match as Match).params.experienceId;
+}
+
+function processEntriesData(
+  context: Draft<DataStateContext>,
+  entriesData: GetEntriesUnionFragment | null,
+) {
+  if (!entriesData) {
+    return;
+  }
+
+  switch (entriesData.__typename) {
+    case "GetEntriesSuccess":
+      processEntriesSuccess(context, entriesData.entries);
+
+      break;
+
+    default:
+      break;
+  }
+}
+
+function processEntriesSuccess(
+  context: Draft<DataStateContext>,
+  connection: EntryConnectionFragment,
+) {
+  const { edges, pageInfo } = connection;
+
+  context.entries = (edges as EntryConnectionFragment_edges[]).map((edge) => {
+    return (edge as EntryConnectionFragment_edges).node as EntryFragment;
+  });
+
+  context.pageInfo = pageInfo;
 }
 
 ////////////////////////// END STATE UPDATE ////////////////////////////
@@ -667,8 +717,10 @@ const onOfflineExperienceSyncedEffect: DefOnOfflineExperienceSyncedEffect["func"
 ) => {
   const {
     dispatch,
-
-    experience: { id: experienceId, entries },
+    stateContext: {
+      experience: { id: experienceId },
+      entries,
+    },
   } = effectArgs;
 
   const ledger = getSyncingExperience(experienceId);
@@ -685,8 +737,7 @@ const onOfflineExperienceSyncedEffect: DefOnOfflineExperienceSyncedEffect["func"
 
   let mayBeNewEntry: undefined | EntryFragment = undefined;
 
-  (entries.edges as EntryConnectionFragment_edges[]).forEach((edge) => {
-    const node = edge.node as EntryFragment;
+  entries.forEach((node) => {
     const { clientId } = node;
 
     // das ein ganz Online-Eintrag zuerst erstelltet als Offline-Eintrag
@@ -718,7 +769,10 @@ const putEntriesErrorsInLedgerEffect: DefPutEntriesErrorsInLedgerEffect["func"] 
   props,
   effectArgs,
 ) => {
-  putAndRemoveUnSyncableEntriesErrorsLedger(effectArgs.experience.id, ownArgs);
+  putAndRemoveUnSyncableEntriesErrorsLedger(
+    effectArgs.stateContext.experience.id,
+    ownArgs,
+  );
 };
 
 type DefPutEntriesErrorsInLedgerEffect = EffectDefinition<
@@ -733,7 +787,9 @@ const cancelDeleteExperienceEffect: DefCancelDeleteExperienceEffect["func"] = (
 ) => {
   if (key) {
     const { history } = props;
-    const { experience } = effectArgs;
+    const {
+      stateContext: { experience },
+    } = effectArgs;
     const { id, title } = experience;
 
     putOrRemoveDeleteExperienceLedger({
@@ -756,7 +812,10 @@ const deleteExperienceRequestedEffect: DefDeleteExperienceRequestedEffect["func"
   props,
   effectArgs,
 ) => {
-  const { dispatch, experience } = effectArgs;
+  const {
+    dispatch,
+    stateContext: { experience },
+  } = effectArgs;
   const deleteExperienceLedger = getDeleteExperienceLedger(experience.id);
 
   if (
@@ -785,8 +844,9 @@ const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
 
   const {
     deleteExperiences,
-
-    experience: { id },
+    stateContext: {
+      experience: { id },
+    },
   } = effectArgs;
 
   try {
@@ -872,8 +932,8 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
 
       const data = await manuallyFetchDetailedExperience(
         {
-          id: experienceId,
-          entriesPagination: paginationInput,
+          experienceId,
+          pagination: paginationInput,
         },
         fetchPolicy,
       );
@@ -1051,13 +1111,16 @@ type ErrorState = Readonly<{
   }>;
 }>;
 
+export type DataStateContext = Readonly<{
+  experience: ExperienceFragment;
+  entries: EntryFragment[];
+  pageInfo: PageInfoFragment;
+}>;
+
 export type DataState = Readonly<{
   value: DataVal;
   data: Readonly<{
-    context: Readonly<{
-      experience: ExperienceFragment;
-    }>;
-
+    context: DataStateContext;
     states: Readonly<{
       newEntryActive: Readonly<
         | {
@@ -1206,7 +1269,7 @@ type NewEntryActivePayload = {
 type OnDataReceivedPayload =
   | {
       key: DataVal;
-      data: ExperienceFragment;
+      data: DetailedExperienceQueryResult;
     }
   | {
       key: ErrorsVal;
@@ -1245,7 +1308,7 @@ export interface DetailedExperienceChildDispatchProps {
 
 export type EffectArgs = DeleteExperiencesComponentProps & {
   dispatch: DispatchType;
-  experience: ExperienceFragment;
+  stateContext: DataStateContext;
 };
 
 type EffectDefinition<

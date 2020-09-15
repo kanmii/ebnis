@@ -14,18 +14,14 @@ import {
   ActionType,
   formatDatetime,
   effectFunctions,
-  StateMachine,
   DispatchType,
   ShowingOptionsMenuState,
   DataState,
+  DataStateContext,
 } from "./complete-experience-utils";
 import { setUpRoutePage } from "../../utils/global-window";
 import { NewEntry } from "./detail-experience.lazy";
 import Loading from "../Loading/loading.component";
-import {
-  EntryConnectionFragment,
-  EntryConnectionFragment_edges,
-} from "../../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
 import { StateValue, ReactMouseAnchorEvent } from "../../utils/types";
@@ -39,7 +35,6 @@ import {
 import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
 import { getUnSyncEntriesErrorsLedger } from "../../apollo/unsynced-ledger";
-import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { useDeleteExperiencesMutation } from "./detail-experience.injectables";
 import { CreateEntryErrorFragment } from "../../graphql/apollo-types/CreateEntryErrorFragment";
 
@@ -48,22 +43,17 @@ export function DetailExperience(props: Props) {
   const [deleteExperiences] = useDeleteExperiencesMutation();
 
   const {
-    states: {
-      newEntryActive,
-      deleteExperience,
-      showingOptionsMenu,
-      experience: experienceState,
-      entriesErrors,
-      newEntryCreated,
-    },
+    states,
     effects: { general: generalEffects },
     timeouts: { autoCloseNotification: autoCloseNotificationTimeout },
   } = stateMachine;
 
+  const dataState = states as DataState;
+
   useRunEffects(generalEffects, effectFunctions, props, {
     dispatch,
     deleteExperiences,
-    experience: (experienceState as DataState).data,
+    stateContext: dataState.data && dataState.data.context,
   });
 
   useEffect(() => {
@@ -91,14 +81,14 @@ export function DetailExperience(props: Props) {
   }, []);
 
   function render() {
-    switch (experienceState.value) {
+    switch (states.value) {
       case StateValue.loading:
         return <Loading />;
 
       case StateValue.errors:
         return (
           <div>
-            {experienceState.error}
+            {states.errors.context.error}
 
             <button
               className="button is-link refetch-btn"
@@ -109,11 +99,22 @@ export function DetailExperience(props: Props) {
           </div>
         );
 
-      case StateValue.data:
+      case StateValue.data: {
+        const {
+          states: {
+            newEntryActive,
+            deleteExperience,
+            showingOptionsMenu,
+            entriesErrors,
+            newEntryCreated,
+          },
+          context,
+        } = states.data;
+
         return (
           <ExperienceComponent
             {...props}
-            experience={experienceState.data}
+            stateContext={context}
             newEntryActive={newEntryActive}
             deleteExperience={deleteExperience}
             showingOptionsMenu={showingOptionsMenu}
@@ -123,6 +124,7 @@ export function DetailExperience(props: Props) {
             newEntryCreated={newEntryCreated}
           />
         );
+      }
     }
   }
 
@@ -130,7 +132,7 @@ export function DetailExperience(props: Props) {
     <>
       <Header />
 
-      {experienceState.value === StateValue.data && (
+      {states.value === StateValue.data && (
         <a className="new-entry-trigger" onClick={onOpenNewEntry} href="*">
           <span>+</span>
         </a>
@@ -146,7 +148,7 @@ export default DetailExperience;
 
 function ExperienceComponent(props: ExperienceProps) {
   const {
-    experience,
+    stateContext: { experience, entries },
     dispatch,
     showingOptionsMenu,
     deleteExperience: deleteExperienceState,
@@ -160,8 +162,6 @@ function ExperienceComponent(props: ExperienceProps) {
     getUnSyncEntriesErrorsLedger(experience.id) ||
     // istanbul ignore next:
     {};
-
-  const entries = entryConnectionToNodes(experience.entries);
 
   useLayoutEffect(() => {
     setUpRoutePage({
@@ -396,15 +396,8 @@ function EntryComponent(props: EntryProps) {
   );
 }
 
-function entryConnectionToNodes(entries: EntryConnectionFragment) {
-  return (entries.edges as EntryConnectionFragment_edges[]).map((e) => {
-    const edge = e as EntryConnectionFragment_edges;
-    return edge.node as EntryFragment;
-  });
-}
-
 function EntriesErrorsNotification(props: {
-  state: StateMachine["states"]["entriesErrors"];
+  state: DataState["data"]["states"]["entriesErrors"];
   onCloseEntriesErrorsNotification: () => void;
 }) {
   const { state, onCloseEntriesErrorsNotification } = props;
@@ -459,7 +452,7 @@ function EntriesErrorsNotification(props: {
 }
 
 function NewEntryNotification(props: {
-  state: StateMachine["states"]["newEntryCreated"];
+  state: DataState["data"]["states"]["newEntryCreated"];
   onCloseNewEntryCreatedNotification: () => void;
 }) {
   const { state, onCloseNewEntryCreatedNotification } = props;
@@ -607,11 +600,11 @@ interface MenuProps {
 }
 
 type ExperienceProps = {
-  experience: ExperienceFragment;
+  stateContext: DataStateContext;
   dispatch: DispatchType;
   onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
 } & Pick<
-  StateMachine["states"],
+  DataState["data"]["states"],
   | "showingOptionsMenu"
   | "entriesErrors"
   | "newEntryActive"

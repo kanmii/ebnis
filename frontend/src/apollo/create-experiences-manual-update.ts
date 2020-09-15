@@ -1,15 +1,14 @@
 import { DataProxy } from "@apollo/client";
 import { CreateExperiencesMutationResult } from "../utils/experience.gql.types";
-import {
-  ExperienceFragment,
-  ExperienceFragment_entries_edges,
-} from "../graphql/apollo-types/ExperienceFragment";
+import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { readExperienceFragment } from "./read-experience-fragment";
-import { writeGetCompleteExperienceQueryToCache } from "./write-get-complete-experience-query";
+import { writeGetExperienceQueryToCache } from "./write-get-complete-experience-query";
 import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "./update-get-experiences-mini-query";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
-import { writeExperienceFragmentToCache } from "./write-experience-fragment";
+import { EntryConnectionFragment_edges } from "../graphql/apollo-types/EntryConnectionFragment";
+import { entryToEdge } from "../components/NewEntry/entry-to-edge";
+import { getEntriesQuerySuccess } from "./get-entries-query";
 
 export function createExperiencesManualUpdate(
   dataProxy: DataProxy,
@@ -29,7 +28,10 @@ export function createExperiencesManualUpdate(
       }
 
       if (response.__typename === "ExperienceSuccess") {
-        const { experience: newlyCreatedExperience, entriesErrors } = response;
+        const {
+          experience: newlyCreatedExperience,
+          entries: entriesResult,
+        } = response;
 
         const clientId = newlyCreatedExperience.clientId || "";
         const offlineExperience = readExperienceFragment(clientId);
@@ -44,7 +46,7 @@ export function createExperiencesManualUpdate(
           return toBeInsertedOrReplacedAcc;
         }
 
-        if (!entriesErrors) {
+        if (!entriesResult) {
           toBeInsertedOrReplacedAcc.push([
             newlyCreatedExperience.id,
             newlyCreatedExperience,
@@ -55,9 +57,30 @@ export function createExperiencesManualUpdate(
 
         // experience created offline now synced
 
-        const beforeSyncEntriesEdges = offlineExperience.entries.edges;
+        const [
+          newlyCreatedEntriesEdges,
+          entriesErrorsIndices,
+        ] = entriesResult.reduce(
+          ([edges, indices], result) => {
+            if (result.__typename === "CreateEntrySuccess") {
+              edges.push(entryToEdge(result.entry));
+            } else {
+              const {
+                meta: { index },
+              } = result.errors;
 
-        if (!beforeSyncEntriesEdges) {
+              indices.push(index);
+            }
+
+            return [edges, indices];
+          },
+          [[], []] as [EntryConnectionFragment_edges[], number[]],
+        );
+
+        const beforeSyncEntriesEdges = getEntriesQuerySuccess(clientId)
+          .edges as EntryConnectionFragment_edges[];
+
+        if (!beforeSyncEntriesEdges.length) {
           toBeInsertedOrReplacedAcc.push([
             newlyCreatedExperience.id,
             newlyCreatedExperience,
@@ -66,26 +89,11 @@ export function createExperiencesManualUpdate(
           return toBeInsertedOrReplacedAcc;
         }
 
-        const entriesErrorsIndices = entriesErrors.reduce((acc, e) => {
-          const {
-            meta: { index },
-          } = e;
-          if ("number" === typeof index) {
-            acc.push(index);
-          }
-
-          return acc;
-        }, [] as number[]);
-
-        const syncedAndUnsyncedEntriesEdges: ExperienceFragment_entries_edges[] = Array.from(
+        const syncedAndUnsyncedEntriesEdges: EntryConnectionFragment_edges[] = Array.from(
           {
             length: beforeSyncEntriesEdges.length,
           },
         );
-
-        const syncedEdges = [
-          ...(newlyCreatedExperience.entries.edges || []),
-        ] as ExperienceFragment_entries_edges[];
 
         let syncedIndex = 0;
 
@@ -100,11 +108,8 @@ export function createExperiencesManualUpdate(
         );
 
         const experienceId = newlyCreatedExperience.id;
-        const noErrorOnSyncOfflineEntryEdges: ExperienceFragment_entries_edges[] = [];
 
-        beforeSyncEntriesEdges.forEach((e, index) => {
-          const edge = e as ExperienceFragment_entries_edges;
-
+        beforeSyncEntriesEdges.forEach((edge, index) => {
           if (entriesErrorsIndices.includes(index)) {
             const beforeSyncEntryNode = edge.node as EntryFragment;
 
@@ -129,37 +134,14 @@ export function createExperiencesManualUpdate(
 
             syncedAndUnsyncedEntriesEdges[index] = entryEdge;
           } else {
-            syncedAndUnsyncedEntriesEdges[index] = syncedEdges[syncedIndex++];
-            noErrorOnSyncOfflineEntryEdges.push(edge);
+            syncedAndUnsyncedEntriesEdges[index] =
+              newlyCreatedEntriesEdges[syncedIndex++];
           }
         });
 
-        const updatedEntries = {
-          ...newlyCreatedExperience.entries,
-          edges: syncedAndUnsyncedEntriesEdges,
-        };
+        toBeInsertedOrReplacedAcc.push([clientId, newlyCreatedExperience]);
 
-        const updatedNewlyCreatedExperience = {
-          ...newlyCreatedExperience,
-          entries: updatedEntries,
-        };
-
-        const updatedOfflineExperience = {
-          ...offlineExperience,
-          entries: {
-            ...offlineExperience.entries,
-            edges: noErrorOnSyncOfflineEntryEdges,
-          },
-        };
-
-        toBeInsertedOrReplacedAcc.push([
-          clientId,
-          updatedNewlyCreatedExperience,
-        ]);
-
-        writeGetCompleteExperienceQueryToCache(updatedNewlyCreatedExperience);
-
-        writeExperienceFragmentToCache(updatedOfflineExperience);
+        writeGetExperienceQueryToCache(newlyCreatedExperience);
       }
 
       return toBeInsertedOrReplacedAcc;

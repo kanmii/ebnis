@@ -4,6 +4,7 @@ import {
   GetDetailExperienceVariables,
 } from "../graphql/apollo-types/GetDetailExperience";
 import { GET_COMPLETE_EXPERIENCE_QUERY } from "../graphql/experience.gql";
+import { DetailedExperienceQueryResult } from "../utils/experience.gql.types";
 
 export function sammelnZwischengespeicherteErfahrung(erfahrungId: string) {
   const { cache } = window.____ebnis;
@@ -16,8 +17,8 @@ export function sammelnZwischengespeicherteErfahrung(erfahrungId: string) {
       query: GET_COMPLETE_EXPERIENCE_QUERY,
     });
 
-    return (data && data.getExperience) || undefined;
+    return { data } as DetailedExperienceQueryResult;
   } catch (error) {
-    return undefined;
+    return {} as DetailedExperienceQueryResult
   }
 }

@@ -4,11 +4,11 @@
 // This file was automatically generated and should not be edited.
 
 // ====================================================
-// GraphQL fragment: UpdateExperienceErrorFragment
+// GraphQL fragment: ExperienceErrorFragment
 // ====================================================
 
-export interface UpdateExperienceErrorFragment {
-  __typename: "UpdateExperienceError";
+export interface ExperienceErrorFragment {
+  __typename: "ExperienceError";
   experienceId: string;
   /**
    * This will mostly be experience not found error

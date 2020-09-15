@@ -3,16 +3,20 @@ import { ApolloClient } from "@apollo/client";
 import { newEntryResolvers } from "./new-entry.resolvers";
 import immer from "immer";
 import {
-  ExperienceFragment,
-  ExperienceFragment_entries,
-  ExperienceFragment_entries_edges_node,
-  ExperienceFragment_entries_edges,
-} from "../../graphql/apollo-types/ExperienceFragment";
-import { readExperienceFragment } from "../../apollo/read-experience-fragment";
+  EntryConnectionFragment_edges_node,
+  EntryConnectionFragment_edges,
+} from "../../graphql/apollo-types/EntryConnectionFragment";
 import { entryToEdge } from "./entry-to-edge";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
-import { writeExperienceFragmentToCache } from "../../apollo/write-experience-fragment";
 import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../../apollo/update-get-experiences-mini-query";
+import {
+  getEntriesQuerySuccess,
+  writeGetEntriesQuery,
+} from "../../apollo/get-entries-query";
+import { GetEntriesUnionFragment } from "../../graphql/apollo-types/GetEntriesUnionFragment";
+import { readExperienceFragment } from "../../apollo/read-experience-fragment";
+import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
+import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/apollo-types/GetEntries";
 
 // istanbul ignore next:
 export function addResolvers(client: ApolloClient<{}>) {
@@ -28,48 +32,47 @@ export function addResolvers(client: ApolloClient<{}>) {
  * Upsert the entry into the experience and updates the Get full experience
  * query
  */
-export function upsertExperienceWithEntry(
+export function upsertNewEntry(
+  experienceId: string,
   entry: EntryFragment,
-  experienceOrId: string | ExperienceFragment,
   onDone?: () => void,
-) {
-  let experience = experienceOrId as ExperienceFragment | null;
+): UpsertNewEntryReturnVal | undefined {
+  const experience = readExperienceFragment(experienceId);
 
-  if (typeof experienceOrId === "string") {
-    experience = readExperienceFragment(experienceOrId);
-
-    // istanbul ignore next:
-    if (!experience) {
-      return;
-    }
+  if (!experience) {
+    return;
   }
 
-  const updatedExperience = immer(experience as ExperienceFragment, (proxy) => {
-    const entries = proxy.entries as ExperienceFragment_entries;
-    const edges = entries.edges || [];
+  const entriesQuery = getEntriesQuerySuccess(experienceId);
 
-    const existingEntry = edges.find((e) => {
-      const { id } = (e as ExperienceFragment_entries_edges)
-        .node as EntryFragment;
+  const [updatedGetEntriesQuery, updatedExperience] = immer(
+    [entriesQuery, experience],
+    ([proxy, _]) => {
+      const edges = proxy.edges as EntryConnectionFragment_edges[];
 
-      return id === entry.id || id === entry.clientId;
-    });
+      const existingEntry = edges.find((e) => {
+        const { id } = (e as EntryConnectionFragment_edges)
+          .node as EntryFragment;
 
-    if (existingEntry) {
-      // update
-      existingEntry.node = entry;
-    } else {
-      // insert
-      edges.unshift(
-        entryToEdge(entry as ExperienceFragment_entries_edges_node),
-      );
-    }
+        return id === entry.id || id === entry.clientId;
+      });
 
-    entries.edges = edges;
-    proxy.entries = entries;
-  });
+      if (existingEntry) {
+        // update
+        existingEntry.node = entry;
+      } else {
+        // insert
+        edges.unshift(entryToEdge(entry as EntryConnectionFragment_edges_node));
+      }
+    },
+  );
 
-  writeExperienceFragmentToCache(updatedExperience);
+  const entriesUnionFragment: GetEntriesUnionFragment = {
+    entries: updatedGetEntriesQuery,
+    __typename: "GetEntriesSuccess",
+  };
+
+  writeGetEntriesQuery(experienceId, entriesUnionFragment);
 
   floatExperienceToTheTopInGetExperiencesMiniQuery(updatedExperience);
 
@@ -77,7 +80,15 @@ export function upsertExperienceWithEntry(
     onDone();
   }
 
-  return updatedExperience;
+  return {
+    experience: updatedExperience,
+    updatedGetEntriesQuery,
+  };
 }
 
 export type UpsertExperienceInCacheMode = "online" | "offline";
+
+export type UpsertNewEntryReturnVal = {
+  experience: ExperienceFragment;
+  updatedGetEntriesQuery: GetEntries_getEntries_GetEntriesSuccess_entries;
+};

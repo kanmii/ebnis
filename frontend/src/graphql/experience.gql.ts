@@ -4,6 +4,7 @@ import {
   DATA_OBJECT_FRAGMENT,
   ENTRY_CONNECTION_FRAGMENT,
 } from "./entry.gql";
+import { PAGE_INFO_FRAGMENT } from "./utils.gql";
 
 export const DEFINITION_FRAGMENT = gql`
   fragment DataDefinitionFragment on DataDefinition {
@@ -33,14 +34,9 @@ export const EXPERIENCE_REST_FRAGMENT = gql`
     dataDefinitions {
       ...DataDefinitionFragment
     }
-
-    entries(pagination: $entriesPagination) {
-      ...EntryConnectionFragment
-    }
   }
 
   ${DEFINITION_FRAGMENT}
-  ${ENTRY_CONNECTION_FRAGMENT}
 `;
 
 export const EXPERIENCE_FRAGMENT = gql`
@@ -50,27 +46,14 @@ export const EXPERIENCE_FRAGMENT = gql`
     dataDefinitions {
       ...DataDefinitionFragment
     }
-
-    entries(pagination: $entriesPagination) @connection(key: "entries") {
-      ...EntryConnectionFragment
-    }
   }
 
   ${EXPERIENCE_MINI_FRAGMENT}
   ${DEFINITION_FRAGMENT}
-  ${ENTRY_CONNECTION_FRAGMENT}
 `;
 
 export const FRAGMENT_NAME_experienceFragment = "ExperienceFragment";
 
-const PAGE_INFO_FRAGMENT = gql`
-  fragment PageInfoFragment on PageInfo {
-    hasNextPage
-    hasPreviousPage
-    startCursor
-    endCursor
-  }
-`;
 
 export const EXPERIENCE_CONNECTION_FRAGMENT = gql`
   fragment ExperienceConnectionFragment on ExperienceConnection {
@@ -90,8 +73,8 @@ export const EXPERIENCE_CONNECTION_FRAGMENT = gql`
   ${PAGE_INFO_FRAGMENT}
 `;
 
-export const EXPERIENCE_CONNECTION_PRE_FETCH_FRAGMENT = gql`
-  fragment ExperienceConnectionPreFetchFragment on ExperienceConnection {
+export const PRE_FETCH_EXPERIENCE_FRAGMENT = gql`
+  fragment PreFetchExperienceFragment on ExperienceConnection {
     edges {
       cursor
       node {
@@ -103,27 +86,14 @@ export const EXPERIENCE_CONNECTION_PRE_FETCH_FRAGMENT = gql`
   ${EXPERIENCE_REST_FRAGMENT}
 `;
 
-export const EXPERIENCE_NO_ENTRY_FRAGMENT = gql`
-  fragment ExperienceNoEntryFragment on Experience {
-    ...ExperienceMiniFragment
-
-    dataDefinitions {
-      ...DataDefinitionFragment
-    }
-  }
-
-  ${EXPERIENCE_MINI_FRAGMENT}
-  ${DEFINITION_FRAGMENT}
-`;
-
-////////////////////////// UPDATE EXPERIENCES SECTION ////////////////////
-
-const UPDATE_EXPERIENCE_ERROR_FRAGMENT = gql`
-  fragment UpdateExperienceErrorFragment on UpdateExperienceError {
+const EXPERIENCE_ERROR_FRAGMENT = gql`
+  fragment ExperienceErrorFragment on ExperienceError {
     experienceId
     error
   }
 `;
+
+////////////////////////// UPDATE EXPERIENCES SECTION ////////////////////
 
 const DEFINITION_ERROR_FRAGMENT = gql`
   fragment DefinitionErrorFragment on DefinitionError {
@@ -286,7 +256,7 @@ const UPDATE_ENTRY_FRAGMENT = gql`
 `;
 
 export const UPDATE_ENTRY_UNION_FRAGMENT = gql`
-  fragment UpdateEntryUnionFragment on UpdateEntryUnion {
+  fragment UpdatedEntriesUnionFragment on UpdatedEntriesUnion {
     __typename
     ... on UpdateEntryErrors {
       errors {
@@ -313,38 +283,9 @@ const UPDATE_EXPERIENCE_FRAGMENT = gql`
     updatedDefinitions {
       ...UpdateDefinitionUnionFragment
     }
-    updatedEntries {
-      ...UpdateEntryUnionFragment
-    }
-    newEntries {
-      __typename
-      ... on CreateEntryErrors {
-        ...CreateEntryErrorsFragment
-      }
-      ... on CreateEntrySuccess {
-        ...CreateEntrySuccessFragment
-      }
-    }
-    deletedEntries {
-      __typename
-      ... on EntrySuccess {
-        entry {
-          ...EntryFragment
-        }
-      }
-      ... on DeleteEntryErrors {
-        errors {
-          id
-          error
-        }
-      }
-    }
   }
   ${UPDATE_EXPERIENCE_OWN_FIELDS_UNION_FRAGMENT}
   ${UPDATE_DEFINITION_UNION_FRAGMENT}
-  ${UPDATE_ENTRY_UNION_FRAGMENT}
-  ${CREATE_ENTRY_SUCCESS_FRAGMENT}
-  ${CREATE_ENTRY_ERRORS_FRAGMENT}
   ${ENTRY_FRAGMENT}
 `;
 
@@ -353,8 +294,39 @@ const UPDATE_EXPERIENCE_SOME_SUCCESS_FRAGMENT = gql`
     experience {
       ...UpdateExperienceFragment
     }
+    entries {
+      updatedEntries {
+        ...UpdatedEntriesUnionFragment
+      }
+      newEntries {
+        __typename
+        ... on CreateEntryErrors {
+          ...CreateEntryErrorsFragment
+        }
+        ... on CreateEntrySuccess {
+          ...CreateEntrySuccessFragment
+        }
+      }
+      deletedEntries {
+        __typename
+        ... on DeleteEntrySuccess {
+          entry {
+            ...EntryFragment
+          }
+        }
+        ... on DeleteEntryErrors {
+          errors {
+            id
+            error
+          }
+        }
+      }
+    }
   }
   ${UPDATE_EXPERIENCE_FRAGMENT}
+  ${UPDATE_ENTRY_UNION_FRAGMENT}
+  ${CREATE_ENTRY_SUCCESS_FRAGMENT}
+  ${CREATE_ENTRY_ERRORS_FRAGMENT}
 `;
 
 export const UPDATE_EXPERIENCES_ONLINE_MUTATION = gql`
@@ -369,7 +341,7 @@ export const UPDATE_EXPERIENCES_ONLINE_MUTATION = gql`
           __typename
           ... on UpdateExperienceErrors {
             errors {
-              ...UpdateExperienceErrorFragment
+              ...ExperienceErrorFragment
             }
           }
           ... on UpdateExperienceSomeSuccess {
@@ -379,21 +351,36 @@ export const UPDATE_EXPERIENCES_ONLINE_MUTATION = gql`
       }
     }
   }
-  ${UPDATE_EXPERIENCE_ERROR_FRAGMENT}
+  ${EXPERIENCE_ERROR_FRAGMENT}
   ${UPDATE_EXPERIENCE_SOME_SUCCESS_FRAGMENT}
 `;
 
 ////////////////////////// END UPDATE EXPERIENCES SECTION //////////////////
+
+////////////////////////// START CREATE EXPERIENCES SECTION ////////////////
 
 const CREATE_EXPERIENCE_SUCCESS_FRAGMENT = gql`
   fragment CreateExperienceSuccessFragment on ExperienceSuccess {
     experience {
       ...ExperienceFragment
     }
-    entriesErrors {
-      ...CreateEntryErrorFragment
+    entries {
+      __typename
+      ... on CreateEntrySuccess {
+        entry {
+          ...EntryFragment
+        }
+      }
+
+      ... on CreateEntryErrors {
+        errors {
+          ...CreateEntryErrorFragment
+        }
+      }
     }
   }
+  ${EXPERIENCE_FRAGMENT}
+  ${ENTRY_FRAGMENT}
   ${CREATE_ENTRY_ERROR_FRAGMENT}
 `;
 
@@ -418,10 +405,7 @@ const CREATE_EXPERIENCE_ERRORS_FRAGMENT = gql`
 `;
 
 export const CREATE_EXPERIENCES_MUTATION = gql`
-  mutation CreateExperiences(
-    $input: [CreateExperienceInput!]!
-    $entriesPagination: PaginationInput!
-  ) {
+  mutation CreateExperiences($input: [CreateExperienceInput!]!) {
     createExperiences(input: $input) {
       __typename
       ... on ExperienceSuccess {
@@ -434,8 +418,11 @@ export const CREATE_EXPERIENCES_MUTATION = gql`
   }
   ${CREATE_EXPERIENCE_SUCCESS_FRAGMENT}
   ${CREATE_EXPERIENCE_ERRORS_FRAGMENT}
-  ${EXPERIENCE_FRAGMENT}
 `;
+
+////////////////////////// END CREATE EXPERIENCES SECTION ////////////////
+
+////////////////////////// START DELETE EXPERIENCES SECTION /////////////
 
 const DELETE_EXPERIENCE_ERROR = gql`
   fragment DeleteExperienceErrorFragment on DeleteExperienceError {
@@ -474,6 +461,24 @@ export const DELETE_EXPERIENCES_MUTATION = gql`
   ${DELETE_EXPERIENCE_ERROR}
 `;
 
+export const ON_EXPERIENCES_DELETED_SUBSCRIPTION = gql`
+  subscription OnExperiencesDeletedSubscription($clientSession: String!) {
+    onExperiencesDeleted(clientSession: $clientSession) {
+      experiences {
+        id
+        title
+      }
+
+      clientSession
+      clientToken
+    }
+  }
+`;
+
+////////////////////////// END DELETE EXPERIENCES SECTION /////////////
+
+////////////////////////// START GET MINIMAL EXPERIENCES QUERY ///////////////
+
 // this query will be kept around after we ran it and all experiences list will
 // refer to it.
 export const GET_EXPERIENCES_CONNECTION_MINI_QUERY = gql`
@@ -508,6 +513,8 @@ export const GET_EXPERIENCES_CONNECTION_MINI_QUERY = gql`
   ${PAGE_INFO_FRAGMENT}
 `;
 
+////////////////////////// END GET MINIMAL EXPERIENCES QUERY /////////////////
+
 // this query will be deleted after we ran it.
 // export const PRE_FETCH_EXPERIENCES_QUERY = gql`
 //   query PreFetchExperiences(
@@ -515,37 +522,69 @@ export const GET_EXPERIENCES_CONNECTION_MINI_QUERY = gql`
 //     $entriesPagination: PaginationInput!
 //   ) {
 //     getExperiences(input: $input) {
-//       ...ExperienceConnectionPreFetchFragment
+//       ...PreFetchExperienceFragment
 //     }
 //   }
 
-//   ${EXPERIENCE_CONNECTION_PRE_FETCH_FRAGMENT}
+//   ${PRE_FETCH_EXPERIENCE_FRAGMENT}
 // `;
-
-export const ON_EXPERIENCES_DELETED_SUBSCRIPTION = gql`
-  subscription OnExperiencesDeletedSubscription($clientSession: String!) {
-    onExperiencesDeleted(clientSession: $clientSession) {
-      experiences {
-        id
-        title
-      }
-
-      clientSession
-      clientToken
-    }
-  }
-`;
 
 ////////////////////////// GET COMPLETE EXPERIENCE QUERY //////////////////
 
+const GET_ENTRIES_UNION_FRAGMENT = gql`
+  fragment GetEntriesUnionFragment on GetEntriesUnion {
+    ... on GetEntriesSuccess {
+      entries {
+        ...EntryConnectionFragment
+      }
+    }
+
+    ... on GetEntriesErrors {
+      errors {
+        experienceId
+        error
+      }
+    }
+  }
+
+  ${ENTRY_CONNECTION_FRAGMENT}
+`;
+
 export const GET_COMPLETE_EXPERIENCE_QUERY = gql`
-  query GetDetailExperience($id: ID!, $entriesPagination: PaginationInput!) {
+  query GetDetailExperience($experienceId: ID!, $pagination: PaginationInput!) {
+    getExperience(id: $experienceId) {
+      ...ExperienceFragment
+    }
+
+    getEntries(experienceId: $experienceId, pagination: $pagination)
+      @connection(key: "getEntries", filter: ["experienceId"]) {
+      ...GetEntriesUnionFragment
+    }
+  }
+
+  ${EXPERIENCE_FRAGMENT}
+  ${GET_ENTRIES_UNION_FRAGMENT}
+`;
+
+export const GET_EXPERIENCE_QUERY = gql`
+  query GetExperience($id: ID!) {
     getExperience(id: $id) {
       ...ExperienceFragment
     }
   }
 
   ${EXPERIENCE_FRAGMENT}
+`;
+
+export const GET_ENTRIES_QUERY = gql`
+  query GetEntries($experienceId: ID!, $pagination: PaginationInput!) {
+    getEntries(experienceId: $experienceId, pagination: $pagination)
+      @connection(key: "getEntries", filter: ["experienceId"]) {
+      ...GetEntriesUnionFragment
+    }
+  }
+
+  ${GET_ENTRIES_UNION_FRAGMENT}
 `;
 
 ////////////////////////// END GET EXPERIENCE DETAIL //////////////////

@@ -14,7 +14,6 @@ import {
   GET_EXPERIENCES_CONNECTION_MINI_QUERY,
   ON_EXPERIENCES_DELETED_SUBSCRIPTION,
 } from "../graphql/experience.gql";
-import { UpdateExperienceFragment } from "../graphql/apollo-types/UpdateExperienceFragment";
 import { UpdateExperienceInput } from "../graphql/apollo-types/globalTypes";
 import {
   CommonError, //
@@ -47,6 +46,7 @@ import { OnExperiencesDeletedSubscription } from "../graphql/apollo-types/OnExpe
 import { getSessionId } from "./session-manager";
 import { PageInfoFragment } from "../graphql/apollo-types/PageInfoFragment";
 import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
+import {UpdateExperienceSomeSuccessFragment} from "../graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 
@@ -57,7 +57,7 @@ export function useUpdateExperiencesOnlineMutation(): UseUpdateExperiencesOnline
 interface UpdateExperiencesOnlineEffectHelperFunc {
   input: UpdateExperienceInput[];
   updateExperiencesOnline: UpdateExperiencesOnlineMutationFn;
-  onUpdateSuccess: (arg: UpdateExperienceFragment) => void;
+  onUpdateSuccess: (arg: UpdateExperienceSomeSuccessFragment) => void;
   onError: (error?: CommonError) => void;
   onDone?: () => void;
 }
@@ -94,8 +94,7 @@ export async function updateExperiencesOnlineEffectHelperFunc({
       if (updateResult.__typename === "UpdateExperienceErrors") {
         onError(updateResult.errors.error);
       } else {
-        const { experience } = updateResult;
-        onUpdateSuccess(experience);
+        onUpdateSuccess(updateResult);
       }
     }
   } catch (errors) {

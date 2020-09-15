@@ -23,6 +23,7 @@ import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 import { emptyPageInfo } from "../graphql/utils.gql";
 import { PageInfoFragment } from "../graphql/apollo-types/PageInfoFragment";
+import { getEntriesQuerySuccess } from "./get-entries-query";
 
 export function makeDefaultExperienceMiniConnection(): GetExperienceConnectionMini_getExperiences {
   return {
@@ -281,7 +282,7 @@ export function purgeExperience(experienceId: string, data?: any) {
     const experience = readExperienceFragment(experienceId);
 
     if (experience) {
-      const { dataDefinitions, entries } = experience;
+      const { dataDefinitions } = experience;
 
       if (dataDefinitions) {
         dataDefinitions.forEach((d) => {
@@ -289,6 +290,8 @@ export function purgeExperience(experienceId: string, data?: any) {
           delete data[`DataDefinition:${id}`];
         });
       }
+
+      const entries = getEntriesQuerySuccess(experienceId);
 
       if (entries) {
         purgeEntries(entries, data);

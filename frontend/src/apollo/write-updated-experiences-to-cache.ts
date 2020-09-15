@@ -16,6 +16,13 @@ import {
 import { EntryConnectionFragment_edges } from "../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { entryToEdge } from "../components/NewEntry/entry-to-edge";
+import { UpdateExperienceSomeSuccessFragment_entries } from "../graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
+import {
+  getEntriesQuerySuccess,
+  writeGetEntriesQuery,
+  toGetEntriesSuccessQuery,
+} from "./get-entries-query";
+import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "../graphql/apollo-types/GetEntriesUnionFragment";
 
 export function writeUpdatedExperienceToCache(
   dataProxy: DataProxy,
@@ -37,8 +44,11 @@ export function writeUpdatedExperienceToCache(
     for (const updateResult of updateExperiences.experiences) {
       // istanbul ignore else
       if (updateResult.__typename === "UpdateExperienceSomeSuccess") {
-        const result = updateResult.experience;
-        const { experienceId } = updateResult.experience;
+        const {
+          experience: experienceResult,
+          entries: entriesResult,
+        } = updateResult;
+        const { experienceId } = experienceResult;
         const experience = readExperienceFragment(experienceId);
 
         // istanbul ignore next
@@ -46,36 +56,52 @@ export function writeUpdatedExperienceToCache(
           continue;
         }
 
+        const getEntriesQuery: GetEntriesUnionFragment_GetEntriesSuccess_entries = getEntriesQuerySuccess(
+          experienceId,
+        );
+
         const unsynced = (getUnsyncedExperience(experienceId) ||
           {}) as UnsyncedModifiedExperience;
 
-        const [updatedExperience, updatedUnsyncedExperience] = immer<
-          [ExperienceFragment, UnsyncedModifiedExperience]
+        const [
+          updatedExperience,
+          updatedUnsyncedExperience,
+          updatedGetEntriesQuery,
+        ] = immer<
+          [
+            ExperienceFragment,
+            UnsyncedModifiedExperience,
+            GetEntriesUnionFragment_GetEntriesSuccess_entries,
+          ]
         >(
-          [experience, unsynced],
-          ([experienceProxy, unsyncedExperienceProxy]) => {
+          [experience, unsynced, getEntriesQuery],
+          ([
+            experienceProxy,
+            unsyncedExperienceProxy,
+            getEntriesQueryProxy,
+          ]) => {
             ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
               experienceProxy,
               unsyncedExperienceProxy,
-              result,
+              experienceResult,
             );
 
             definitionsApplyUpdatesAndCleanUpUnsyncedData(
               experienceProxy,
               unsyncedExperienceProxy,
-              result,
+              experienceResult,
             );
 
-            newEntriesApplyUpdatesAndCleanUpUnsyncedData(
-              experienceProxy,
+            applyNewEntriesUpdateAndCleanUpUnsyncedData(
+              getEntriesQueryProxy,
               unsyncedExperienceProxy,
-              result,
+              entriesResult,
             );
 
-            updatedEntriesApplyUpdatesAndCleanUpUnsyncedData(
-              experienceProxy,
+            applyUpdatedEntriesAndCleanUpUnsyncedData(
+              getEntriesQueryProxy,
               unsyncedExperienceProxy,
-              result,
+              entriesResult,
             );
 
             const entriesErrors = unsyncedExperienceProxy.entriesErrors;
@@ -89,6 +115,11 @@ export function writeUpdatedExperienceToCache(
         updatedIds[updatedExperience.id] = 1;
         writeExperienceFragmentToCache(updatedExperience);
 
+        writeGetEntriesQuery(
+          experienceId,
+          toGetEntriesSuccessQuery(updatedGetEntriesQuery),
+        );
+
         if (!Object.keys(updatedUnsyncedExperience).length) {
           removeUnsyncedExperiences([experienceId]);
         } else {
@@ -100,7 +131,7 @@ export function writeUpdatedExperienceToCache(
 }
 
 function ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
-  proxy: DraftState,
+  proxy: ExperienceDraft,
   unsynced: DraftUnsyncedModifiedExperience,
   { ownFields }: UpdateExperienceFragment,
 ) {
@@ -118,7 +149,7 @@ function ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
 }
 
 function definitionsApplyUpdatesAndCleanUpUnsyncedData(
-  proxy: DraftState,
+  proxy: ExperienceDraft,
   unsynced: DraftUnsyncedModifiedExperience,
   { updatedDefinitions }: UpdateExperienceFragment,
 ) {
@@ -154,11 +185,13 @@ function definitionsApplyUpdatesAndCleanUpUnsyncedData(
   }
 }
 
-function updatedEntriesApplyUpdatesAndCleanUpUnsyncedData(
-  proxy: DraftState,
+function applyUpdatedEntriesAndCleanUpUnsyncedData(
+  proxy: GetEntriesQueryDraft,
   unsynced: DraftUnsyncedModifiedExperience,
-  { updatedEntries }: UpdateExperienceFragment,
+  result: UpdateExperienceSomeSuccessFragment_entries | null,
 ) {
+  const updatedEntries = result && result.updatedEntries;
+
   if (!updatedEntries) {
     return;
   }
@@ -199,7 +232,7 @@ function updatedEntriesApplyUpdatesAndCleanUpUnsyncedData(
         // we have got an update entry error - so we write it to cache. The
         // challenge is that we'd like to use a singe error schema for both
         // new and modifiedEntry errors
-        const x = update.errors;
+        // const x = update.errors;
       }
 
       return entryIdToDataObjectMapAcc;
@@ -212,7 +245,7 @@ function updatedEntriesApplyUpdatesAndCleanUpUnsyncedData(
       delete unsynced.modifiedEntries;
     }
 
-    (proxy.entries.edges as EntryConnectionFragment_edges[]).forEach((e) => {
+    (proxy.edges as EntryConnectionFragment_edges[]).forEach((e) => {
       const edge = e as EntryConnectionFragment_edges;
       const node = edge.node as EntryFragment;
       const { id: entryId } = node;
@@ -230,11 +263,13 @@ function updatedEntriesApplyUpdatesAndCleanUpUnsyncedData(
   }
 }
 
-function newEntriesApplyUpdatesAndCleanUpUnsyncedData(
-  proxy: DraftState,
+function applyNewEntriesUpdateAndCleanUpUnsyncedData(
+  proxy: GetEntriesQueryDraft,
   unsynced: DraftUnsyncedModifiedExperience,
-  { newEntries }: UpdateExperienceFragment,
+  result: UpdateExperienceSomeSuccessFragment_entries | null,
 ) {
+  const newEntries = result && result.newEntries;
+
   if (!newEntries) {
     return;
   }
@@ -278,7 +313,7 @@ function newEntriesApplyUpdatesAndCleanUpUnsyncedData(
   const isOfflineEntrySynced = Object.keys(offlineSyncedEntries).length !== 0;
 
   if (hasUpdates) {
-    const edges = proxy.entries.edges as EntryConnectionFragment_edges[];
+    const edges = proxy.edges as EntryConnectionFragment_edges[];
 
     if (isOfflineEntrySynced) {
       edges.forEach((edge) => {
@@ -291,13 +326,16 @@ function newEntriesApplyUpdatesAndCleanUpUnsyncedData(
       });
     }
 
-    proxy.entries.edges = brandNewEntries
+    proxy.edges = brandNewEntries
       .map((entry) => entryToEdge(entry))
       .concat(edges);
   }
 }
 
-type DraftState = Draft<ExperienceFragment>;
+type ExperienceDraft = Draft<ExperienceFragment>;
+type GetEntriesQueryDraft = Draft<
+  GetEntriesUnionFragment_GetEntriesSuccess_entries
+>;
 type DraftUnsyncedModifiedExperience = Draft<UnsyncedModifiedExperience>;
 
 interface IdToDataObjectMap {

@@ -2,6 +2,7 @@
 import { fireEvent } from "@testing-library/react";
 import { DataTypes } from "./graphql/apollo-types/globalTypes";
 import { ExperienceFragment } from "./graphql/apollo-types/ExperienceFragment";
+import { GetEntries_getEntries_GetEntriesSuccess_entries } from "./graphql/apollo-types/GetEntries";
 
 export function fillField(element: Element, value: string) {
   fireEvent.change(element, {
@@ -18,8 +19,8 @@ export const defaultExperience = {
       type: DataTypes.INTEGER,
     },
   ],
-  entries: {
-    edges: [] as any,
-  },
 } as ExperienceFragment;
 
+export const defaultGetEntriesQuery = {
+  edges: [] as any,
+} as GetEntries_getEntries_GetEntriesSuccess_entries;

@@ -6,10 +6,10 @@
 import { DataTypes } from "./globalTypes";
 
 // ====================================================
-// GraphQL fragment: ExperienceNoEntryFragment
+// GraphQL fragment: PreFetchExperienceFragment
 // ====================================================
 
-export interface ExperienceNoEntryFragment_dataDefinitions {
+export interface PreFetchExperienceFragment_edges_node_dataDefinitions {
   __typename: "DataDefinition";
   id: string;
   /**
@@ -29,28 +29,25 @@ export interface ExperienceNoEntryFragment_dataDefinitions {
   clientId: string | null;
 }
 
-export interface ExperienceNoEntryFragment {
+export interface PreFetchExperienceFragment_edges_node {
   __typename: "Experience";
   /**
    * The title of the experience
    */
   id: string;
-  title: string;
-  /**
-   * The description of the experience
-   */
-  description: string | null;
-  /**
-   * The client ID. For experiences created on the client while server is
-   * offline and to be saved , the client ID uniquely identifies such and can
-   * be used to enforce uniqueness at the DB level. Not providing client_id
-   * assumes a fresh experience.
-   */
-  clientId: string | null;
-  insertedAt: any;
-  updatedAt: any;
   /**
    * The field definitions used for the experience entries
    */
-  dataDefinitions: ExperienceNoEntryFragment_dataDefinitions[];
+  dataDefinitions: PreFetchExperienceFragment_edges_node_dataDefinitions[];
+}
+
+export interface PreFetchExperienceFragment_edges {
+  __typename: "ExperienceEdge";
+  cursor: string | null;
+  node: PreFetchExperienceFragment_edges_node | null;
+}
+
+export interface PreFetchExperienceFragment {
+  __typename: "ExperienceConnection";
+  edges: (PreFetchExperienceFragment_edges | null)[] | null;
 }

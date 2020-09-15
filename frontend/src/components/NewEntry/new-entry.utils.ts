@@ -73,6 +73,7 @@ import {
   removeUnsyncedExperiences,
   getUnSyncEntriesErrorsLedger,
 } from "../../apollo/unsynced-ledger";
+import { getEntriesQuerySuccess } from "../../apollo/get-entries-query";
 
 const NEW_LINE_REGEX = /\n/g;
 export const ISO_DATE_FORMAT = "yyyy-MM-dd";
@@ -254,9 +255,18 @@ async function syncOfflineExperienceCreateEntryEffectHelper(
         switch (data.key) {
           case "ExperienceSuccess":
             {
-              const { experience, entriesErrors } = data;
+              const { experience, entries } = data.data;
               const { id } = experience;
               const { id: offlineExperienceId } = offlineExperience;
+
+              const entriesErrors =
+                entries &&
+                entries.reduce((acc, ent) => {
+                  if (ent.__typename === "CreateEntryErrors") {
+                    acc.push(ent.errors);
+                  }
+                  return acc;
+                }, [] as CreateEntryErrorFragment[]);
 
               const syncingData = {
                 offlineExperienceId,
@@ -269,7 +279,7 @@ async function syncOfflineExperienceCreateEntryEffectHelper(
               await window.____ebnis.persistor.persist();
 
               windowChangeUrl(
-                makeDetailedExperienceRoute(data.experience.id),
+                makeDetailedExperienceRoute(id),
                 ChangeUrlType.replace,
               );
             }
@@ -307,25 +317,27 @@ async function syncOfflineExperienceCreateEntryEffectHelper(
 }
 
 function experienceToCreateInput(experience: ExperienceFragment) {
+  const { id: experienceId, description, title, dataDefinitions } = experience;
+
   const createExperienceInput = {
-    clientId: experience.id,
-    description: experience.description,
-    title: experience.title,
+    clientId: experienceId,
+    description: description,
+    title: title,
     insertedAt: experience.insertedAt,
     updatedAt: experience.updatedAt,
-    dataDefinitions: (experience.dataDefinitions as DataDefinitionFragment[]).map(
-      (d) => {
-        const input = {
-          clientId: d.id,
-          name: d.name,
-          type: d.type,
-        } as CreateDataDefinition;
-        return input;
-      },
-    ),
+    dataDefinitions: (dataDefinitions as DataDefinitionFragment[]).map((d) => {
+      const input = {
+        clientId: d.id,
+        name: d.name,
+        type: d.type,
+      } as CreateDataDefinition;
+      return input;
+    }),
   } as CreateExperienceInput;
 
-  const createEntriesInput = entriesConnectionToCreateInput(experience.entries);
+  const createEntriesInput = entriesConnectionToCreateInput(
+    getEntriesQuerySuccess(experienceId),
+  );
 
   // istanbul ignore else:
   if (createEntriesInput.length) {
@@ -403,8 +415,8 @@ async function createOnlineEntryEffect(
   updateExperiencesOnlineEffectHelperFunc({
     input: inputs,
     updateExperiencesOnline,
-    onUpdateSuccess: async (experience) => {
-      const { newEntries } = experience;
+    onUpdateSuccess: async ({ entries }) => {
+      const newEntries = entries && entries.newEntries;
 
       if (newEntries && newEntries.length) {
         const entry0 = newEntries[0];

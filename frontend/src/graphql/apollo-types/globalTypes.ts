@@ -69,8 +69,8 @@ export interface LoginInput {
 }
 
 export interface PaginationInput {
-  after?: number | null;
-  before?: number | null;
+  after?: string | null;
+  before?: string | null;
   first?: number | null;
   last?: number | null;
 }

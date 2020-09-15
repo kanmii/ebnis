@@ -29,68 +29,6 @@ export interface CreateExperienceSuccessFragment_experience_dataDefinitions {
   clientId: string | null;
 }
 
-export interface CreateExperienceSuccessFragment_experience_entries_pageInfo {
-  __typename: "PageInfo";
-  /**
-   * When paginating forwards, are there more items?
-   */
-  hasNextPage: boolean;
-  /**
-   * When paginating backwards, are there more items?
-   */
-  hasPreviousPage: boolean;
-}
-
-export interface CreateExperienceSuccessFragment_experience_entries_edges_node_dataObjects {
-  __typename: "DataObject";
-  id: string;
-  data: any;
-  definitionId: string;
-  /**
-   * Client ID indicates that data object was created offline
-   */
-  clientId: string | null;
-  insertedAt: any;
-  updatedAt: any;
-}
-
-export interface CreateExperienceSuccessFragment_experience_entries_edges_node {
-  __typename: "Entry";
-  /**
-   * Entry ID
-   */
-  id: string;
-  /**
-   * The ID of experience to which this entry belongs.
-   */
-  experienceId: string;
-  /**
-   * The client ID which indicates that an entry has been created while server
-   * is offline and is to be saved. The client ID uniquely
-   * identifies this entry and will be used to prevent conflict while saving entry
-   * created offline and must thus be non null in this situation.
-   */
-  clientId: string | null;
-  insertedAt: any;
-  updatedAt: any;
-  /**
-   * The list of data belonging to this entry.
-   */
-  dataObjects: (CreateExperienceSuccessFragment_experience_entries_edges_node_dataObjects | null)[];
-}
-
-export interface CreateExperienceSuccessFragment_experience_entries_edges {
-  __typename: "EntryEdge";
-  cursor: string | null;
-  node: CreateExperienceSuccessFragment_experience_entries_edges_node | null;
-}
-
-export interface CreateExperienceSuccessFragment_experience_entries {
-  __typename: "EntryConnection";
-  pageInfo: CreateExperienceSuccessFragment_experience_entries_pageInfo;
-  edges: (CreateExperienceSuccessFragment_experience_entries_edges | null)[] | null;
-}
-
 export interface CreateExperienceSuccessFragment_experience {
   __typename: "Experience";
   /**
@@ -115,29 +53,68 @@ export interface CreateExperienceSuccessFragment_experience {
    * The field definitions used for the experience entries
    */
   dataDefinitions: CreateExperienceSuccessFragment_experience_dataDefinitions[];
-  /**
-   * The entries of the experience - can be paginated
-   */
-  entries: CreateExperienceSuccessFragment_experience_entries;
 }
 
-export interface CreateExperienceSuccessFragment_entriesErrors_meta {
+export interface CreateExperienceSuccessFragment_entries_CreateEntrySuccess_entry_dataObjects {
+  __typename: "DataObject";
+  id: string;
+  data: any;
+  definitionId: string;
+  /**
+   * Client ID indicates that data object was created offline
+   */
+  clientId: string | null;
+  insertedAt: any;
+  updatedAt: any;
+}
+
+export interface CreateExperienceSuccessFragment_entries_CreateEntrySuccess_entry {
+  __typename: "Entry";
+  /**
+   * Entry ID
+   */
+  id: string;
+  /**
+   * The ID of experience to which this entry belongs.
+   */
+  experienceId: string;
+  /**
+   * The client ID which indicates that an entry has been created while server
+   * is offline and is to be saved. The client ID uniquely
+   * identifies this entry and will be used to prevent conflict while saving entry
+   * created offline and must thus be non null in this situation.
+   */
+  clientId: string | null;
+  insertedAt: any;
+  updatedAt: any;
+  /**
+   * The list of data belonging to this entry.
+   */
+  dataObjects: (CreateExperienceSuccessFragment_entries_CreateEntrySuccess_entry_dataObjects | null)[];
+}
+
+export interface CreateExperienceSuccessFragment_entries_CreateEntrySuccess {
+  __typename: "CreateEntrySuccess";
+  entry: CreateExperienceSuccessFragment_entries_CreateEntrySuccess_entry;
+}
+
+export interface CreateExperienceSuccessFragment_entries_CreateEntryErrors_errors_meta {
   __typename: "CreateEntryErrorMeta";
   experienceId: string;
   index: number;
   clientId: string | null;
 }
 
-export interface CreateExperienceSuccessFragment_entriesErrors_dataObjects_meta {
+export interface CreateExperienceSuccessFragment_entries_CreateEntryErrors_errors_dataObjects_meta {
   __typename: "DataObjectErrorMeta";
   index: number;
   id: string | null;
   clientId: string | null;
 }
 
-export interface CreateExperienceSuccessFragment_entriesErrors_dataObjects {
+export interface CreateExperienceSuccessFragment_entries_CreateEntryErrors_errors_dataObjects {
   __typename: "DataObjectError";
-  meta: CreateExperienceSuccessFragment_entriesErrors_dataObjects_meta;
+  meta: CreateExperienceSuccessFragment_entries_CreateEntryErrors_errors_dataObjects_meta;
   definition: string | null;
   definitionId: string | null;
   clientId: string | null;
@@ -147,9 +124,9 @@ export interface CreateExperienceSuccessFragment_entriesErrors_dataObjects {
   data: string | null;
 }
 
-export interface CreateExperienceSuccessFragment_entriesErrors {
+export interface CreateExperienceSuccessFragment_entries_CreateEntryErrors_errors {
   __typename: "CreateEntryError";
-  meta: CreateExperienceSuccessFragment_entriesErrors_meta;
+  meta: CreateExperienceSuccessFragment_entries_CreateEntryErrors_errors_meta;
   /**
    * A catch-all field for when we are unable to create an entry
    */
@@ -167,11 +144,18 @@ export interface CreateExperienceSuccessFragment_entriesErrors {
   /**
    * Did we fail because there are errors in the data object object?
    */
-  dataObjects: (CreateExperienceSuccessFragment_entriesErrors_dataObjects | null)[] | null;
+  dataObjects: (CreateExperienceSuccessFragment_entries_CreateEntryErrors_errors_dataObjects | null)[] | null;
 }
+
+export interface CreateExperienceSuccessFragment_entries_CreateEntryErrors {
+  __typename: "CreateEntryErrors";
+  errors: CreateExperienceSuccessFragment_entries_CreateEntryErrors_errors;
+}
+
+export type CreateExperienceSuccessFragment_entries = CreateExperienceSuccessFragment_entries_CreateEntrySuccess | CreateExperienceSuccessFragment_entries_CreateEntryErrors;
 
 export interface CreateExperienceSuccessFragment {
   __typename: "ExperienceSuccess";
   experience: CreateExperienceSuccessFragment_experience;
-  entriesErrors: CreateExperienceSuccessFragment_entriesErrors[] | null;
+  entries: CreateExperienceSuccessFragment_entries[] | null;
 }

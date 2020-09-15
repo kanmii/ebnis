@@ -5,7 +5,7 @@ import {
   CreateOfflineEntryMutationVariables,
   CreateOfflineEntryMutationValid,
 } from "../components/NewEntry/new-entry.resolvers";
-import { upsertExperienceWithEntry } from "../components/NewEntry/new-entry.injectables";
+import { upsertNewEntry } from "../components/NewEntry/new-entry.injectables";
 import { isOfflineId, makeOfflineId } from "../utils/offlines";
 import {
   getUnsyncedExperience,
@@ -14,7 +14,7 @@ import {
 import { readExperienceFragment } from "../apollo/read-experience-fragment";
 
 jest.mock("../components/NewEntry/new-entry.injectables");
-const mockUpsertExperienceWithEntry = upsertExperienceWithEntry as jest.Mock;
+const mockUpsertExperienceWithEntry = upsertNewEntry as jest.Mock;
 
 jest.mock("../apollo/unsynced-ledger");
 const mockGetUnsyncedExperience = getUnsyncedExperience as jest.Mock;

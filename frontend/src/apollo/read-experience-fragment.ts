@@ -1,7 +1,6 @@
 /* istanbul ignore file */
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { EXPERIENCE_FRAGMENT } from "../graphql/experience.gql";
-import { entriesPaginationVariables } from "../graphql/entry.gql";
 import { makeApolloCacheRef } from "./resolvers";
 
 export function readExperienceFragment(experienceId: string) {
@@ -11,7 +10,6 @@ export function readExperienceFragment(experienceId: string) {
     id: makeApolloCacheRef("Experience", experienceId),
     fragment: EXPERIENCE_FRAGMENT,
     fragmentName: "ExperienceFragment",
-    variables: entriesPaginationVariables,
   };
 
   const experience = cache.readFragment<ExperienceFragment>(options);

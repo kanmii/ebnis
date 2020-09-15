@@ -1,10 +1,5 @@
 import gql from "graphql-tag";
-
-export const entriesPaginationVariables = {
-  entriesPagination: {
-    first: 20000,
-  },
-};
+import { PAGE_INFO_FRAGMENT } from "./utils.gql";
 
 export const DATA_OBJECT_FRAGMENT = gql`
   fragment DataObjectFragment on DataObject {
@@ -35,8 +30,7 @@ export const ENTRY_FRAGMENT = gql`
 export const ENTRY_CONNECTION_FRAGMENT = gql`
   fragment EntryConnectionFragment on EntryConnection {
     pageInfo {
-      hasNextPage
-      hasPreviousPage
+      ...PageInfoFragment
     }
 
     edges {
@@ -48,4 +42,5 @@ export const ENTRY_CONNECTION_FRAGMENT = gql`
   }
 
   ${ENTRY_FRAGMENT}
+  ${PAGE_INFO_FRAGMENT}
 `;

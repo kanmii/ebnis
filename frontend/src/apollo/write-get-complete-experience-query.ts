@@ -1,27 +1,27 @@
 /* istanbul ignore file */
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
-import { GET_COMPLETE_EXPERIENCE_QUERY } from "../graphql/experience.gql";
-import { entriesPaginationVariables } from "../graphql/entry.gql";
+import {
+  GET_EXPERIENCE_QUERY,
+} from "../graphql/experience.gql";
 import { E2EWindowObject } from "../utils/types";
 import {
-  GetDetailExperience,
-  GetDetailExperienceVariables,
-} from "../graphql/apollo-types/GetDetailExperience";
+  GetExperience,
+  GetExperienceVariables,
+} from "../graphql/apollo-types/GetExperience";
 
-export function writeGetCompleteExperienceQueryToCache(
+export function writeGetExperienceQueryToCache(
   experience: ExperienceFragment,
 ) {
   const { cache } = window.____ebnis;
   const { id } = experience;
 
-  cache.writeQuery<GetDetailExperience, GetDetailExperienceVariables>({
-    query: GET_COMPLETE_EXPERIENCE_QUERY,
+  cache.writeQuery<GetExperience, GetExperienceVariables>({
+    query: GET_EXPERIENCE_QUERY,
     data: {
       getExperience: experience,
     },
     variables: {
       id,
-      ...entriesPaginationVariables,
     },
   });
 }

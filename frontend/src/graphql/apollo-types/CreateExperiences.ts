@@ -3,7 +3,7 @@
 // @generated
 // This file was automatically generated and should not be edited.
 
-import { CreateExperienceInput, PaginationInput, DataTypes } from "./globalTypes";
+import { CreateExperienceInput, DataTypes } from "./globalTypes";
 
 // ====================================================
 // GraphQL mutation operation: CreateExperiences
@@ -27,68 +27,6 @@ export interface CreateExperiences_createExperiences_ExperienceSuccess_experienc
    * field and will be validated as such.
    */
   clientId: string | null;
-}
-
-export interface CreateExperiences_createExperiences_ExperienceSuccess_experience_entries_pageInfo {
-  __typename: "PageInfo";
-  /**
-   * When paginating forwards, are there more items?
-   */
-  hasNextPage: boolean;
-  /**
-   * When paginating backwards, are there more items?
-   */
-  hasPreviousPage: boolean;
-}
-
-export interface CreateExperiences_createExperiences_ExperienceSuccess_experience_entries_edges_node_dataObjects {
-  __typename: "DataObject";
-  id: string;
-  data: any;
-  definitionId: string;
-  /**
-   * Client ID indicates that data object was created offline
-   */
-  clientId: string | null;
-  insertedAt: any;
-  updatedAt: any;
-}
-
-export interface CreateExperiences_createExperiences_ExperienceSuccess_experience_entries_edges_node {
-  __typename: "Entry";
-  /**
-   * Entry ID
-   */
-  id: string;
-  /**
-   * The ID of experience to which this entry belongs.
-   */
-  experienceId: string;
-  /**
-   * The client ID which indicates that an entry has been created while server
-   * is offline and is to be saved. The client ID uniquely
-   * identifies this entry and will be used to prevent conflict while saving entry
-   * created offline and must thus be non null in this situation.
-   */
-  clientId: string | null;
-  insertedAt: any;
-  updatedAt: any;
-  /**
-   * The list of data belonging to this entry.
-   */
-  dataObjects: (CreateExperiences_createExperiences_ExperienceSuccess_experience_entries_edges_node_dataObjects | null)[];
-}
-
-export interface CreateExperiences_createExperiences_ExperienceSuccess_experience_entries_edges {
-  __typename: "EntryEdge";
-  cursor: string | null;
-  node: CreateExperiences_createExperiences_ExperienceSuccess_experience_entries_edges_node | null;
-}
-
-export interface CreateExperiences_createExperiences_ExperienceSuccess_experience_entries {
-  __typename: "EntryConnection";
-  pageInfo: CreateExperiences_createExperiences_ExperienceSuccess_experience_entries_pageInfo;
-  edges: (CreateExperiences_createExperiences_ExperienceSuccess_experience_entries_edges | null)[] | null;
 }
 
 export interface CreateExperiences_createExperiences_ExperienceSuccess_experience {
@@ -115,29 +53,68 @@ export interface CreateExperiences_createExperiences_ExperienceSuccess_experienc
    * The field definitions used for the experience entries
    */
   dataDefinitions: CreateExperiences_createExperiences_ExperienceSuccess_experience_dataDefinitions[];
-  /**
-   * The entries of the experience - can be paginated
-   */
-  entries: CreateExperiences_createExperiences_ExperienceSuccess_experience_entries;
 }
 
-export interface CreateExperiences_createExperiences_ExperienceSuccess_entriesErrors_meta {
+export interface CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntrySuccess_entry_dataObjects {
+  __typename: "DataObject";
+  id: string;
+  data: any;
+  definitionId: string;
+  /**
+   * Client ID indicates that data object was created offline
+   */
+  clientId: string | null;
+  insertedAt: any;
+  updatedAt: any;
+}
+
+export interface CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntrySuccess_entry {
+  __typename: "Entry";
+  /**
+   * Entry ID
+   */
+  id: string;
+  /**
+   * The ID of experience to which this entry belongs.
+   */
+  experienceId: string;
+  /**
+   * The client ID which indicates that an entry has been created while server
+   * is offline and is to be saved. The client ID uniquely
+   * identifies this entry and will be used to prevent conflict while saving entry
+   * created offline and must thus be non null in this situation.
+   */
+  clientId: string | null;
+  insertedAt: any;
+  updatedAt: any;
+  /**
+   * The list of data belonging to this entry.
+   */
+  dataObjects: (CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntrySuccess_entry_dataObjects | null)[];
+}
+
+export interface CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntrySuccess {
+  __typename: "CreateEntrySuccess";
+  entry: CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntrySuccess_entry;
+}
+
+export interface CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntryErrors_errors_meta {
   __typename: "CreateEntryErrorMeta";
   experienceId: string;
   index: number;
   clientId: string | null;
 }
 
-export interface CreateExperiences_createExperiences_ExperienceSuccess_entriesErrors_dataObjects_meta {
+export interface CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntryErrors_errors_dataObjects_meta {
   __typename: "DataObjectErrorMeta";
   index: number;
   id: string | null;
   clientId: string | null;
 }
 
-export interface CreateExperiences_createExperiences_ExperienceSuccess_entriesErrors_dataObjects {
+export interface CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntryErrors_errors_dataObjects {
   __typename: "DataObjectError";
-  meta: CreateExperiences_createExperiences_ExperienceSuccess_entriesErrors_dataObjects_meta;
+  meta: CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntryErrors_errors_dataObjects_meta;
   definition: string | null;
   definitionId: string | null;
   clientId: string | null;
@@ -147,9 +124,9 @@ export interface CreateExperiences_createExperiences_ExperienceSuccess_entriesEr
   data: string | null;
 }
 
-export interface CreateExperiences_createExperiences_ExperienceSuccess_entriesErrors {
+export interface CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntryErrors_errors {
   __typename: "CreateEntryError";
-  meta: CreateExperiences_createExperiences_ExperienceSuccess_entriesErrors_meta;
+  meta: CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntryErrors_errors_meta;
   /**
    * A catch-all field for when we are unable to create an entry
    */
@@ -167,13 +144,20 @@ export interface CreateExperiences_createExperiences_ExperienceSuccess_entriesEr
   /**
    * Did we fail because there are errors in the data object object?
    */
-  dataObjects: (CreateExperiences_createExperiences_ExperienceSuccess_entriesErrors_dataObjects | null)[] | null;
+  dataObjects: (CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntryErrors_errors_dataObjects | null)[] | null;
 }
+
+export interface CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntryErrors {
+  __typename: "CreateEntryErrors";
+  errors: CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntryErrors_errors;
+}
+
+export type CreateExperiences_createExperiences_ExperienceSuccess_entries = CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntrySuccess | CreateExperiences_createExperiences_ExperienceSuccess_entries_CreateEntryErrors;
 
 export interface CreateExperiences_createExperiences_ExperienceSuccess {
   __typename: "ExperienceSuccess";
   experience: CreateExperiences_createExperiences_ExperienceSuccess_experience;
-  entriesErrors: CreateExperiences_createExperiences_ExperienceSuccess_entriesErrors[] | null;
+  entries: CreateExperiences_createExperiences_ExperienceSuccess_entries[] | null;
 }
 
 export interface CreateExperiences_createExperiences_CreateExperienceErrors_errors_meta {
@@ -228,5 +212,4 @@ export interface CreateExperiences {
 
 export interface CreateExperiencesVariables {
   input: CreateExperienceInput[];
-  entriesPagination: PaginationInput;
 }

@@ -6,10 +6,10 @@
 import { DataTypes } from "./globalTypes";
 
 // ====================================================
-// GraphQL fragment: ExperienceFragment
+// GraphQL query operation: GetExperience
 // ====================================================
 
-export interface ExperienceFragment_dataDefinitions {
+export interface GetExperience_getExperience_dataDefinitions {
   __typename: "DataDefinition";
   id: string;
   /**
@@ -29,7 +29,7 @@ export interface ExperienceFragment_dataDefinitions {
   clientId: string | null;
 }
 
-export interface ExperienceFragment {
+export interface GetExperience_getExperience {
   __typename: "Experience";
   /**
    * The title of the experience
@@ -52,5 +52,16 @@ export interface ExperienceFragment {
   /**
    * The field definitions used for the experience entries
    */
-  dataDefinitions: ExperienceFragment_dataDefinitions[];
+  dataDefinitions: GetExperience_getExperience_dataDefinitions[];
+}
+
+export interface GetExperience {
+  /**
+   * Get an experience
+   */
+  getExperience: GetExperience_getExperience | null;
+}
+
+export interface GetExperienceVariables {
+  id: string;
 }

@@ -1,11 +1,11 @@
 import {
-  ExperienceFragment_entries_edges_node,
-  ExperienceFragment_entries_edges,
-} from "../../graphql/apollo-types/ExperienceFragment";
+  EntryConnectionFragment_edges_node,
+  EntryConnectionFragment_edges,
+} from "../../graphql/apollo-types/EntryConnectionFragment";
 
 export function entryToEdge(
-  entry: ExperienceFragment_entries_edges_node,
-): ExperienceFragment_entries_edges {
+  entry: EntryConnectionFragment_edges_node,
+): EntryConnectionFragment_edges {
   return {
     node: entry,
     cursor: "",
