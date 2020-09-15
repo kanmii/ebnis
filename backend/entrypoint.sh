@@ -14,7 +14,7 @@ else
   node_name="${DEV_NODE_NAME:-$MIX_ENV}"
   cookie="${DEV_COOKIE:-"ebnis-cookie"}"
 
-  /usr/local/bin/wait-until "mix ecto.create"
+  /usr/local/bin/wait-until "mix do deps.get, compile && mix ecto.create"
   mix ecto.migrate
 
   # we need the node name so we can attach ao remote iex console thus:
