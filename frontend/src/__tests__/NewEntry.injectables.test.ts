@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { upsertNewEntry } from "../components/NewEntry/new-entry.injectables";
-import { readExperienceFragment } from "../apollo/read-experience-fragment";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
-import { writeExperienceFragmentToCache } from "../apollo/write-experience-fragment";
 import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
 import { entryToEdge } from "../components/NewEntry/entry-to-edge";
-import { getEntriesQuerySuccess } from "../apollo/get-entries-query";
+import {
+  getEntriesQuerySuccess,
+  readExperienceFragment,
+  writeExperienceFragmentToCache,
+} from "../apollo/get-detailed-experience-query";
 
 jest.mock("../apollo/write-experience-fragment");
 const mockWriteExperienceFragmentToCache = writeExperienceFragmentToCache as jest.Mock;

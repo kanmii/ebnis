@@ -60,7 +60,7 @@ import {
 import { getIsConnected } from "../../utils/connections";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
 import { PaginationInput } from "../../graphql/apollo-types/globalTypes";
-import { sammelnZwischengespeicherteErfahrung } from "../../apollo/sammeln-zwischengespeicherte-erfahrung";
+import { sammelnZwischengespeicherteErfahrung } from "../../apollo/get-detailed-experience-query";
 import { PageInfoFragment } from "../../graphql/apollo-types/PageInfoFragment";
 import { GetEntriesUnionFragment } from "../../graphql/apollo-types/GetEntriesUnionFragment";
 import {
@@ -175,27 +175,6 @@ export function initState(props: Props): StateMachine {
     },
     states: {
       value: StateValue.loading,
-      // newEntryActive: {
-      //   value: StateValue.inactive,
-      // },
-      // notification: {
-      //   value: StateValue.inactive,
-      // },
-      // newEntryCreated: {
-      //   value: StateValue.inactive,
-      // },
-      // entriesErrors: {
-      //   value: StateValue.inactive,
-      // },
-      // deleteExperience: {
-      //   value: StateValue.inactive,
-      // },
-      // showingOptionsMenu: {
-      //   value: StateValue.inactive,
-      // },
-      // experience: {
-      //   value: StateValue.loading,
-      // },
     },
 
     timeouts: {},
@@ -581,6 +560,27 @@ function handleOnDataReceivedAction(
 
           if (experience) {
             context.experience = experience;
+
+            dataStateData.states = {
+              newEntryActive: {
+                value: StateValue.inactive,
+              },
+              notification: {
+                value: StateValue.inactive,
+              },
+              newEntryCreated: {
+                value: StateValue.inactive,
+              },
+              entriesErrors: {
+                value: StateValue.inactive,
+              },
+              deleteExperience: {
+                value: StateValue.inactive,
+              },
+              showingOptionsMenu: {
+                value: StateValue.inactive,
+              },
+            };
 
             effects.push(
               {

@@ -8,7 +8,7 @@ import {
   initState,
   ActionType,
   MyChildDispatchProps,
-  ExperiencesData,
+  DataState,
 } from "../components/My/my.utils";
 import {
   activateNewDomId,
@@ -27,8 +27,8 @@ import {
   dropdownIsActiveClassName,
 } from "../components/My/my.dom";
 import { act } from "react-dom/test-utils";
-import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
-import { makeOfflineId } from "../utils/offlines";
+// import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
+// import { makeOfflineId } from "../utils/offlines";
 import { fillField } from "../tests.utils";
 import { StateValue } from "../utils/types";
 
@@ -55,7 +55,7 @@ jest.mock("../components/My/my.lazy", () => ({
 
 const onlineId = "1";
 const mockPartOnlineId = "2";
-const offlineId = makeOfflineId(3);
+// const offlineId = makeOfflineId(3);
 
 jest.mock("../apollo/unsynced-ledger", () => ({
   getUnsyncedExperience: (id: string) => {
@@ -124,35 +124,25 @@ describe("component", () => {
     expect(document.getElementById(mockNewExperienceId)).not.toBeNull();
   });
 
-  const experiences = [
-    {
-      id: onlineId,
-      title: "aa",
-      description: "aa",
-    },
-    {
-      id: mockPartOnlineId,
-      title: "bb",
-    },
-    {
-      id: offlineId,
-      title: "cc",
-      description: "cc",
-    },
-  ] as ExperienceMiniFragment[];
+  // const experiences = [
+  //   {
+  //     id: onlineId,
+  //     title: "aa",
+  //     description: "aa",
+  //   },
+  //   {
+  //     id: mockPartOnlineId,
+  //     title: "bb",
+  //   },
+  //   {
+  //     id: offlineId,
+  //     title: "cc",
+  //     description: "cc",
+  //   },
+  // ] as ExperienceMiniFragment[];
 
   it("with experiences", async () => {
-    const { ui } = makeComp({
-      props: {
-        experiencesData: {
-          experiences,
-          pageInfo: {
-            hasNextPage: false,
-            hasPreviousPage: false,
-          },
-        } as ExperiencesData,
-      },
-    });
+    const { ui } = makeComp();
 
     render(ui);
 
@@ -310,19 +300,23 @@ describe("component", () => {
 
 describe("reducer", () => {
   test("deactivate new experience", () => {
-    let state = initState(({ experiences: [] } as unknown) as Props);
+    let state = initState();
 
     state = reducer(state, {
       type: ActionType.ACTIVATE_NEW_EXPERIENCE,
     });
 
-    expect(state.states.newExperienceActivated.value).toBe(StateValue.active);
+    let dataState = (state.states as DataState).data.states;
+
+    expect(dataState.newExperienceActivated.value).toBe(StateValue.active);
 
     state = reducer(state, {
       type: ActionType.DEACTIVATE_NEW_EXPERIENCE,
     });
 
-    expect(state.states.newExperienceActivated.value).toBe(StateValue.inactive);
+    dataState = (state.states as DataState).data.states;
+
+    expect(dataState.newExperienceActivated.value).toBe(StateValue.inactive);
   });
 });
 
@@ -330,24 +324,16 @@ describe("reducer", () => {
 
 const MyP = My as ComponentType<Partial<Props>>;
 
-const pageInfo = {
-  hasPreviousPage: false,
-  hasNextPage: false,
-  __typename: "PageInfo",
-};
+// const pageInfo = {
+//   hasPreviousPage: false,
+//   hasNextPage: false,
+//   __typename: "PageInfo",
+// };
 
 function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
-  const experiencesData =
-    props.experiencesData ||
-    ({
-      experiences: [],
-      pageInfo,
-    } as ExperiencesData);
   const location = (props.location || {}) as any;
 
   return {
-    ui: (
-      <MyP {...props} experiencesData={experiencesData} location={location} />
-    ),
+    ui: <MyP {...props} location={location} />,
   };
 }

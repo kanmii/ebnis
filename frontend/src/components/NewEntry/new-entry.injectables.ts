@@ -12,9 +12,9 @@ import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../../apollo/u
 import {
   getEntriesQuerySuccess,
   writeGetEntriesQuery,
-} from "../../apollo/get-entries-query";
+  readExperienceFragment,
+} from "../../apollo/get-detailed-experience-query";
 import { GetEntriesUnionFragment } from "../../graphql/apollo-types/GetEntriesUnionFragment";
-import { readExperienceFragment } from "../../apollo/read-experience-fragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/apollo-types/GetEntries";
 

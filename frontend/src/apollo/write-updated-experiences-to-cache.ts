@@ -1,10 +1,8 @@
 import { DataProxy } from "@apollo/client";
 import immer, { Draft } from "immer";
 import { UpdateExperiencesOnlineMutationResult } from "../utils/experience.gql.types";
-import { readExperienceFragment } from "./read-experience-fragment";
 import { UpdateExperienceFragment } from "../graphql/apollo-types/UpdateExperienceFragment";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
-import { writeExperienceFragmentToCache } from "./write-experience-fragment";
 import { UnsyncedModifiedExperience } from "../utils/unsynced-ledger.types";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
@@ -21,7 +19,9 @@ import {
   getEntriesQuerySuccess,
   writeGetEntriesQuery,
   toGetEntriesSuccessQuery,
-} from "./get-entries-query";
+  writeExperienceFragmentToCache,
+  readExperienceFragment,
+} from "./get-detailed-experience-query";
 import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "../graphql/apollo-types/GetEntriesUnionFragment";
 
 export function writeUpdatedExperienceToCache(

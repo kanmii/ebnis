@@ -16,14 +16,17 @@ import {
   readOptions,
   makeGetExperienceApolloCacheKey,
 } from "./get-experiences-mini-query";
-import { readExperienceFragment } from "./read-experience-fragment";
 import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
 import { EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 import { emptyPageInfo } from "../graphql/utils.gql";
 import { PageInfoFragment } from "../graphql/apollo-types/PageInfoFragment";
-import { getEntriesQuerySuccess } from "./get-entries-query";
+import {
+  getEntriesQuerySuccess,
+  readExperienceFragment,
+  erzeugenSammelnEinträgenAbfrage,
+} from "./get-detailed-experience-query";
 
 export function makeDefaultExperienceMiniConnection(): GetExperienceConnectionMini_getExperiences {
   return {
@@ -295,6 +298,7 @@ export function purgeExperience(experienceId: string, data?: any) {
 
       if (entries) {
         purgeEntries(entries, data);
+        delete data.ROOT_QUERY[erzeugenSammelnEinträgenAbfrage(experienceId)];
       }
     }
   } catch (error) {}

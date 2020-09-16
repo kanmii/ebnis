@@ -16,7 +16,10 @@ import {
 } from "../../utils/offlines";
 import { CreateDataObject } from "../../graphql/apollo-types/globalTypes";
 import gql from "graphql-tag";
-import { upsertNewEntry, UpsertNewEntryReturnVal } from "./new-entry.injectables";
+import {
+  upsertNewEntry,
+  UpsertNewEntryReturnVal,
+} from "./new-entry.injectables";
 import { ENTRY_FRAGMENT } from "../../graphql/entry.gql";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
@@ -25,8 +28,10 @@ import {
   writeUnsyncedExperience,
 } from "../../apollo/unsynced-ledger";
 import { UnsyncedModifiedExperience } from "../../utils/unsynced-ledger.types";
-import { readExperienceFragment } from "../../apollo/read-experience-fragment";
-import { getEntriesQuerySuccess } from "../../apollo/get-entries-query";
+import {
+  getEntriesQuerySuccess,
+  readExperienceFragment,
+} from "../../apollo/get-detailed-experience-query";
 import { EntryConnectionFragment_edges } from "../../graphql/apollo-types/EntryConnectionFragment";
 
 export const CREATE_OFFLINE_ENTRY_MUTATION = gql`
@@ -101,7 +106,10 @@ const createOfflineEntryMutationResolver: LocalResolverFn<
     updatedAt: timestamps,
   };
 
-  const updates = upsertNewEntry(experience.id, entry) as UpsertNewEntryReturnVal
+  const updates = upsertNewEntry(
+    experience.id,
+    entry,
+  ) as UpsertNewEntryReturnVal;
 
   updateUnsynced(experienceId);
 

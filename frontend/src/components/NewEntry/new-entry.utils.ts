@@ -73,7 +73,7 @@ import {
   removeUnsyncedExperiences,
   getUnSyncEntriesErrorsLedger,
 } from "../../apollo/unsynced-ledger";
-import { getEntriesQuerySuccess } from "../../apollo/get-entries-query";
+import { getEntriesQuerySuccess } from "../../apollo/get-detailed-experience-query";
 
 const NEW_LINE_REGEX = /\n/g;
 export const ISO_DATE_FORMAT = "yyyy-MM-dd";

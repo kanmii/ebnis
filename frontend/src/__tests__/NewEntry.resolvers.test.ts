@@ -11,7 +11,7 @@ import {
   getUnsyncedExperience,
   writeUnsyncedExperience,
 } from "../apollo/unsynced-ledger";
-import { readExperienceFragment } from "../apollo/read-experience-fragment";
+import { readExperienceFragment } from "../apollo/get-detailed-experience-query";
 
 jest.mock("../components/NewEntry/new-entry.injectables");
 const mockUpsertExperienceWithEntry = upsertNewEntry as jest.Mock;

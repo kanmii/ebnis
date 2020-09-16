@@ -5,18 +5,28 @@ import {
   // StateValue,
 } from "../apollo/write-updated-experiences-to-cache";
 import { E2EWindowObject } from "../utils/types";
-import { readExperienceFragment } from "../apollo/read-experience-fragment";
-import { writeExperienceFragmentToCache } from "../apollo/write-experience-fragment";
+import {
+  writeExperienceFragmentToCache,
+  readExperienceFragment,
+  getEntriesQuerySuccess,
+  writeGetEntriesQuery,
+} from "../apollo/get-detailed-experience-query";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import {
   getUnsyncedExperience,
   removeUnsyncedExperiences,
   writeUnsyncedExperience,
 } from "../apollo/unsynced-ledger";
-import { UpdateExperienceFragment } from "../graphql/apollo-types/UpdateExperienceFragment";
 import { UnsyncedModifiedExperience } from "../utils/unsynced-ledger.types";
 import { entryToEdge } from "../components/NewEntry/entry-to-edge";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
+import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "../graphql/apollo-types/GetEntriesUnionFragment";
+import { UpdateExperienceSomeSuccessFragment } from "../graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
+import { EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
+
+const mockWriteGetEntriesQuery = writeGetEntriesQuery as jest.Mock;
+
+const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
 
 jest.mock("../apollo/unsynced-ledger");
 const mockGetUnsyncedExperience = getUnsyncedExperience as jest.Mock;
@@ -60,13 +70,15 @@ test("ownFields success", () => {
   });
 
   call({
-    ownFields: {
-      __typename: "ExperienceOwnFieldsSuccess",
-      data: {
-        title: "b",
+    experience: {
+      ownFields: {
+        __typename: "ExperienceOwnFieldsSuccess",
+        data: {
+          title: "b",
+        },
       },
     },
-  } as UpdateExperienceFragment);
+  } as UpdateExperienceSomeSuccessFragment);
 
   expect(mockRemoveUnsyncedExperience.mock.calls[0][0]).toEqual(["1"]);
   expect(mockWriteExperienceFragmentToCache.mock.calls[0][0]).toEqual({
@@ -86,10 +98,12 @@ test("ownFields failed", () => {
   });
 
   call({
-    ownFields: {
-      __typename: "UpdateExperienceOwnFieldsErrors",
+    experience: {
+      ownFields: {
+        __typename: "UpdateExperienceOwnFieldsErrors",
+      },
     },
-  } as UpdateExperienceFragment);
+  } as UpdateExperienceSomeSuccessFragment);
 
   expect(mockWriteUnsyncedExperience.mock.calls[0]).toEqual([
     "1",
@@ -123,16 +137,18 @@ test("data definitions success", () => {
   } as UnsyncedModifiedExperience);
 
   call({
-    updatedDefinitions: [
-      {
-        __typename: "DefinitionSuccess",
-        definition: {
-          id: "a",
-          name: "n1",
+    experience: {
+      updatedDefinitions: [
+        {
+          __typename: "DefinitionSuccess",
+          definition: {
+            id: "a",
+            name: "n1",
+          },
         },
-      },
-    ],
-  } as UpdateExperienceFragment);
+      ],
+    },
+  } as UpdateExperienceSomeSuccessFragment);
 
   expect(mockRemoveUnsyncedExperience).toHaveBeenCalled();
 
@@ -163,12 +179,14 @@ test("data definitions failed", () => {
   } as UnsyncedModifiedExperience);
 
   call({
-    updatedDefinitions: [
-      {
-        __typename: "DefinitionErrors",
-      },
-    ],
-  } as UpdateExperienceFragment);
+    experience: {
+      updatedDefinitions: [
+        {
+          __typename: "DefinitionErrors",
+        },
+      ],
+    },
+  } as UpdateExperienceSomeSuccessFragment);
 
   expect(mockWriteUnsyncedExperience.mock.calls[0][1]).toEqual({
     definitions: {},
@@ -184,46 +202,46 @@ test("data definitions failed", () => {
 });
 
 test("new entries success", () => {
-  mockReadExperienceFragment.mockReturnValue({
-    entries: {
-      edges: [] as any,
-    },
-  } as ExperienceFragment);
+  mockReadExperienceFragment.mockReturnValue({});
+
+  mockGetEntriesQuerySuccess.mockResolvedValue({
+    edges: [] as any,
+  } as GetEntriesUnionFragment_GetEntriesSuccess_entries);
 
   call({
-    newEntries: [
-      {
-        __typename: "CreateEntrySuccess",
-        entry: {
-          id: "a",
-        },
-      },
-    ],
-  } as UpdateExperienceFragment);
-
-  expect(mockWriteExperienceFragmentToCache.mock.calls[0][0]).toEqual({
     entries: {
-      edges: [
-        entryToEdge({
-          id: "a",
-        } as EntryFragment),
-      ],
-    },
-  } as ExperienceFragment);
-});
-
-it("synced entries success", () => {
-  mockReadExperienceFragment.mockReturnValue({
-    entries: {
-      edges: [
+      newEntries: [
         {
-          node: {
+          __typename: "CreateEntrySuccess",
+          entry: {
             id: "a",
           },
         },
       ],
     },
-  } as ExperienceFragment);
+  } as UpdateExperienceSomeSuccessFragment);
+
+  expect(mockWriteGetEntriesQuery.mock.calls[0][1].entries).toEqual({
+    edges: [
+      entryToEdge({
+        id: "a",
+      } as EntryFragment),
+    ],
+  } as EntryConnectionFragment);
+});
+
+it("synced entries success", () => {
+  mockReadExperienceFragment.mockReturnValue({} as ExperienceFragment);
+
+  mockGetEntriesQuerySuccess({
+    edges: [
+      {
+        node: {
+          id: "a",
+        },
+      },
+    ],
+  });
 
   mockGetUnsyncedExperience.mockReturnValue({
     newEntries: true,
@@ -231,34 +249,34 @@ it("synced entries success", () => {
   } as UnsyncedModifiedExperience);
 
   call({
-    newEntries: [
-      {
-        __typename: "CreateEntrySuccess",
-        entry: {
-          id: "b", // changed from cached
-          clientId: "a",
+    entries: {
+      newEntries: [
+        {
+          __typename: "CreateEntrySuccess",
+          entry: {
+            id: "b", // changed from cached
+            clientId: "a",
+          },
         },
-      },
-    ],
-  } as UpdateExperienceFragment);
+      ],
+    },
+  } as UpdateExperienceSomeSuccessFragment);
 
   expect(mockRemoveUnsyncedExperience).not.toHaveBeenCalled();
   expect(mockWriteUnsyncedExperience.mock.calls[0][1]).toEqual({
     definitions: {},
   });
 
-  expect(mockWriteExperienceFragmentToCache.mock.calls[0][0]).toEqual({
-    entries: {
-      edges: [
-        {
-          node: {
-            id: "b",
-            clientId: "a",
-          },
+  expect(mockWriteGetEntriesQuery.mock.calls[0][1].entries).toEqual({
+    edges: [
+      {
+        node: {
+          id: "b",
+          clientId: "a",
         },
-      ],
-    },
-  } as ExperienceFragment);
+      },
+    ],
+  } as EntryConnectionFragment);
 });
 
 test("synced entries failed", () => {
@@ -269,17 +287,19 @@ test("synced entries failed", () => {
   } as UnsyncedModifiedExperience);
 
   call({
-    newEntries: [
-      {
-        __typename: "CreateEntryErrors",
-        errors: {
-          meta: {
-            clientId: "c",
+    entries: {
+      newEntries: [
+        {
+          __typename: "CreateEntryErrors",
+          errors: {
+            meta: {
+              clientId: "c",
+            },
           },
         },
-      },
-    ],
-  } as UpdateExperienceFragment);
+      ],
+    },
+  } as UpdateExperienceSomeSuccessFragment);
 
   expect(mockRemoveUnsyncedExperience).not.toHaveBeenCalled();
   expect(mockWriteUnsyncedExperience.mock.calls[0][1]).toEqual({
@@ -292,31 +312,29 @@ test("synced entries failed", () => {
 });
 
 test("updated entries success", () => {
-  mockReadExperienceFragment.mockReturnValue({
-    entries: {
-      edges: [
-        {
-          node: {
-            id: "a",
-            dataObjects: [
-              {
-                id: "aa",
-                data: "a",
-              },
-              {
-                id: "ab",
-              },
-            ],
-          },
+  mockGetEntriesQuerySuccess.mockReturnValue({
+    edges: [
+      {
+        node: {
+          id: "a",
+          dataObjects: [
+            {
+              id: "aa",
+              data: "a",
+            },
+            {
+              id: "ab",
+            },
+          ],
         },
-        {
-          node: {
-            id: "b",
-          },
+      },
+      {
+        node: {
+          id: "b",
         },
-      ],
-    },
-  } as ExperienceFragment);
+      },
+    ],
+  } as GetEntriesUnionFragment_GetEntriesSuccess_entries);
 
   mockGetUnsyncedExperience.mockReturnValue({
     modifiedEntries: {
@@ -327,52 +345,52 @@ test("updated entries success", () => {
   } as UnsyncedModifiedExperience);
 
   call({
-    updatedEntries: [
-      {
-        __typename: "UpdateEntrySomeSuccess",
-        entry: {
-          entryId: "a",
-          dataObjects: [
-            {
-              __typename: "DataObjectSuccess",
-              dataObject: {
-                id: "aa",
-                data: "b", // changed from cached
-              },
-            },
-          ],
-        },
-      },
-    ],
-  } as UpdateExperienceFragment);
-
-  expect(mockRemoveUnsyncedExperience).toHaveBeenCalled();
-
-  expect(mockWriteExperienceFragmentToCache.mock.calls[0][0]).toEqual({
     entries: {
-      edges: [
+      updatedEntries: [
         {
-          node: {
-            id: "a",
+          __typename: "UpdateEntrySomeSuccess",
+          entry: {
+            entryId: "a",
             dataObjects: [
               {
-                id: "aa",
-                data: "b",
-              },
-              {
-                id: "ab",
+                __typename: "DataObjectSuccess",
+                dataObject: {
+                  id: "aa",
+                  data: "b", // changed from cached
+                },
               },
             ],
           },
         },
-        {
-          node: {
-            id: "b",
-          },
-        },
       ],
     },
-  } as ExperienceFragment);
+  } as UpdateExperienceSomeSuccessFragment);
+
+  expect(mockRemoveUnsyncedExperience).toHaveBeenCalled();
+
+  expect(mockWriteGetEntriesQuery.mock.calls[0][1].entries).toEqual({
+    edges: [
+      {
+        node: {
+          id: "a",
+          dataObjects: [
+            {
+              id: "aa",
+              data: "b",
+            },
+            {
+              id: "ab",
+            },
+          ],
+        },
+      },
+      {
+        node: {
+          id: "b",
+        },
+      },
+    ],
+  } as GetEntriesUnionFragment_GetEntriesSuccess_entries);
 });
 
 test("updated entries errors", () => {
@@ -387,12 +405,14 @@ test("updated entries errors", () => {
   } as UnsyncedModifiedExperience);
 
   call({
-    updatedEntries: [
-      {
-        __typename: "UpdateEntryErrors",
-      },
-    ],
-  } as UpdateExperienceFragment);
+    entries: {
+      updatedEntries: [
+        {
+          __typename: "UpdateEntryErrors",
+        },
+      ],
+    },
+  } as UpdateExperienceSomeSuccessFragment);
 
   expect(mockWriteUnsyncedExperience.mock.calls[0][1]).toEqual({
     modifiedEntries: {
@@ -407,7 +427,7 @@ test("updated entries errors", () => {
   );
 });
 
-function call(data: UpdateExperienceFragment) {
+function call({ experience, entries }: UpdateExperienceSomeSuccessFragment) {
   writeUpdatedExperienceToCache(dataProxy, {
     data: {
       updateExperiences: {
@@ -417,8 +437,9 @@ function call(data: UpdateExperienceFragment) {
             __typename: "UpdateExperienceSomeSuccess",
             experience: {
               experienceId: "1",
-              ...data,
+              ...experience,
             },
+            entries,
           },
         ],
       },

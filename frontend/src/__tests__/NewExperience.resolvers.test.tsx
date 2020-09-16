@@ -6,7 +6,7 @@ import {
   CreateExperiences_createExperiences_ExperienceSuccess,
 } from "../graphql/apollo-types/CreateExperiences";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
-import { writeExperienceFragmentToCache } from "../apollo/write-experience-fragment";
+import { writeExperienceFragmentToCache } from "../apollo/get-detailed-experience-query";
 import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
 import { writeUnsyncedExperience } from "../apollo/unsynced-ledger";
 import { isOfflineId } from "../utils/offlines";
@@ -34,7 +34,9 @@ const createOfflineExperienceResolver =
 
 it("creates offline experience/success", () => {
   expect(mockWriteExperienceFragmentToCache).not.toHaveBeenCalled();
-  expect(mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery).not.toHaveBeenCalled();
+  expect(
+    mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery,
+  ).not.toHaveBeenCalled();
   expect(mockWriteUnsyncedExperience).not.toHaveBeenCalled();
 
   mockGetExperiencesMiniQuery.mockReturnValue(null);
@@ -55,10 +57,12 @@ it("creates offline experience/success", () => {
       ],
     } as CreateExperiencesVariables,
     null as any,
-  ) as CreateExperiences_createExperiences_ExperienceSuccess
+  ) as CreateExperiences_createExperiences_ExperienceSuccess;
 
   expect(mockWriteExperienceFragmentToCache).toHaveBeenCalled();
-  expect(mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery).toHaveBeenCalled();
+  expect(
+    mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery,
+  ).toHaveBeenCalled();
   expect(mockWriteUnsyncedExperience).toHaveBeenCalled();
   expect(isOfflineId(experience.id)).toBe(true);
 });

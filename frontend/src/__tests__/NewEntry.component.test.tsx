@@ -218,7 +218,7 @@ describe("component", () => {
           experiences: [
             {
               __typename: "UpdateExperienceSomeSuccess",
-              experience: {
+              entries: {
                 newEntries: [
                   {
                     __typename: "CreateEntryErrors",
@@ -236,6 +236,7 @@ describe("component", () => {
                   },
                 ],
               },
+              experience: {},
             },
           ],
         },
@@ -463,7 +464,7 @@ describe("component", () => {
           experiences: [
             {
               __typename: "UpdateExperienceSomeSuccess",
-              experience: {
+              entries: {
                 newEntries: [
                   {
                     __typename: "CreateEntryErrors",
@@ -481,6 +482,7 @@ describe("component", () => {
                   },
                 ],
               },
+              experience: {},
             },
           ],
         },
@@ -618,7 +620,7 @@ describe("reducer", () => {
           experiences: [
             {
               __typename: "UpdateExperienceSomeSuccess",
-              experience: {
+              entries: {
                 newEntries: [
                   {
                     __typename: "CreateEntrySuccess",
@@ -626,6 +628,7 @@ describe("reducer", () => {
                   },
                 ],
               },
+              experience: {},
             },
           ],
         },
@@ -661,7 +664,7 @@ describe("reducer", () => {
           experiences: [
             {
               __typename: "UpdateExperienceSomeSuccess",
-              experience: {
+              entries: {
                 newEntries: [] as any,
               },
             },
@@ -796,7 +799,9 @@ describe("reducer", () => {
 
     await wait(() => true);
     expect(mockWindowChangeUrl).toHaveBeenCalled();
-    expect(mockRemoveUnsyncedExperience.mock.calls[0][0]).toEqual([experienceId]);
+    expect(mockRemoveUnsyncedExperience.mock.calls[0][0]).toEqual([
+      experienceId,
+    ]);
     expect(mockPutOrRemoveSyncingExperience.mock.calls[0][0]).toBe("aa");
     expect(mockPersistFn).toHaveBeenCalled();
     expect(mockDispatch).not.toHaveBeenCalled();

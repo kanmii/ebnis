@@ -1,14 +1,16 @@
 import { DataProxy } from "@apollo/client";
 import { CreateExperiencesMutationResult } from "../utils/experience.gql.types";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
-import { readExperienceFragment } from "./read-experience-fragment";
 import { writeGetExperienceQueryToCache } from "./write-get-complete-experience-query";
 import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "./update-get-experiences-mini-query";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 import { EntryConnectionFragment_edges } from "../graphql/apollo-types/EntryConnectionFragment";
 import { entryToEdge } from "../components/NewEntry/entry-to-edge";
-import { getEntriesQuerySuccess } from "./get-entries-query";
+import {
+  getEntriesQuerySuccess,
+  readExperienceFragment,
+} from "./get-detailed-experience-query";
 
 export function createExperiencesManualUpdate(
   dataProxy: DataProxy,
