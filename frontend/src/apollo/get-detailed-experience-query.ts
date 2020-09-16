@@ -64,6 +64,21 @@ export function sammelnZwischengespeicherteErfahrung(erfahrungId: string) {
   } as DetailedExperienceQueryResult;
 }
 
+export function writeGetExperienceQueryToCache(experience: ExperienceFragment) {
+  const { cache } = window.____ebnis;
+  const { id } = experience;
+
+  cache.writeQuery<GetExperience, GetExperienceVariables>({
+    query: GET_EXPERIENCE_QUERY,
+    data: {
+      getExperience: experience,
+    },
+    variables: {
+      id,
+    },
+  });
+}
+
 export function getEntriesQuery(experienceId: string) {
   const { cache } = window.____ebnis;
 

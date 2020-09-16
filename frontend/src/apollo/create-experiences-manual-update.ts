@@ -1,7 +1,6 @@
 import { DataProxy } from "@apollo/client";
 import { CreateExperiencesMutationResult } from "../utils/experience.gql.types";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
-import { writeGetExperienceQueryToCache } from "./write-get-complete-experience-query";
 import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "./update-get-experiences-mini-query";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
@@ -10,6 +9,9 @@ import { entryToEdge } from "../components/NewEntry/entry-to-edge";
 import {
   getEntriesQuerySuccess,
   readExperienceFragment,
+  writeGetEntriesQuery,
+  toGetEntriesSuccessQuery,
+  writeGetExperienceQueryToCache,
 } from "./get-detailed-experience-query";
 
 export function createExperiencesManualUpdate(
@@ -39,16 +41,8 @@ export function createExperiencesManualUpdate(
         const offlineExperience = readExperienceFragment(clientId);
 
         // fresh experience created directly online
-        if (!offlineExperience) {
-          toBeInsertedOrReplacedAcc.push([
-            newlyCreatedExperience.id,
-            newlyCreatedExperience,
-          ]);
-
-          return toBeInsertedOrReplacedAcc;
-        }
-
-        if (!entriesResult) {
+        // bzw kein Eintrag erstelltet mit Erfahrung
+        if (!offlineExperience || !entriesResult) {
           toBeInsertedOrReplacedAcc.push([
             newlyCreatedExperience.id,
             newlyCreatedExperience,
@@ -79,8 +73,9 @@ export function createExperiencesManualUpdate(
           [[], []] as [EntryConnectionFragment_edges[], number[]],
         );
 
-        const beforeSyncEntriesEdges = getEntriesQuerySuccess(clientId)
-          .edges as EntryConnectionFragment_edges[];
+        const getEntries = getEntriesQuerySuccess(clientId);
+
+        const beforeSyncEntriesEdges = getEntries.edges as EntryConnectionFragment_edges[];
 
         if (!beforeSyncEntriesEdges.length) {
           toBeInsertedOrReplacedAcc.push([
@@ -144,6 +139,14 @@ export function createExperiencesManualUpdate(
         toBeInsertedOrReplacedAcc.push([clientId, newlyCreatedExperience]);
 
         writeGetExperienceQueryToCache(newlyCreatedExperience);
+
+        writeGetEntriesQuery(
+          experienceId,
+          toGetEntriesSuccessQuery({
+            ...getEntries,
+            edges: syncedAndUnsyncedEntriesEdges,
+          }),
+        );
       }
 
       return toBeInsertedOrReplacedAcc;

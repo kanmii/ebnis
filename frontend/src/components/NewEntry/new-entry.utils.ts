@@ -191,8 +191,6 @@ const createEntryEffect: DefCreateEntryEffect["func"] = (
     const { experience } = props;
     const experienceId = experience.id;
 
-    // debugger;
-
     if (isOfflineId(experienceId)) {
       syncOfflineExperienceCreateEntryEffectHelper(input, props, effectArgs);
     } else {
@@ -270,7 +268,10 @@ async function syncOfflineExperienceCreateEntryEffectHelper(
 
               const syncingData = {
                 offlineExperienceId,
-                entriesErrors,
+                entriesErrors:
+                  entriesErrors && entriesErrors.length
+                    ? entriesErrors
+                    : undefined,
                 newEntryClientId: offlineEntry.clientId,
               } as SyncingExperience;
 
