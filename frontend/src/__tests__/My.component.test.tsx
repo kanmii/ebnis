@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ComponentType } from "react";
-import { render, cleanup } from "@testing-library/react";
+import { render, cleanup, waitForElement } from "@testing-library/react";
 import { My } from "../components/My/my.component";
 import {
   Props,
@@ -25,12 +25,28 @@ import {
   descriptionControlClassName,
   dropdownTriggerClassName,
   dropdownIsActiveClassName,
+  fetchErrorRetryDomId,
 } from "../components/My/my.dom";
 import { act } from "react-dom/test-utils";
 // import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
 // import { makeOfflineId } from "../utils/offlines";
 import { fillField } from "../tests.utils";
 import { StateValue } from "../utils/types";
+import {
+  manuallyFetchExperienceConnectionMini,
+  KleinErfahrüngenAbfrageErgebnisse,
+} from "../utils/experience.gql.types";
+import { getExperiencesMiniQuery } from "../apollo/get-experiences-mini-query";
+import { getIsConnected } from "../utils/connections";
+import { getDeleteExperienceLedger } from "../apollo/delete-experience-cache";
+import { GetExperienceConnectionMini_getExperiences_edges } from "../graphql/apollo-types/GetExperienceConnectionMini";
+import { WithSubscriptionContext } from "../utils/app-context";
+
+jest.mock("../utils/experience.gql.types");
+const mockManuallyFetchExperienceConnectionMini = manuallyFetchExperienceConnectionMini as jest.Mock;
+
+jest.mock("../apollo/get-experiences-mini-query");
+const mockGetExperiencesMiniQuery = getExperiencesMiniQuery as jest.Mock;
 
 jest.mock("../apollo/delete-experience-cache");
 jest.mock("../components/Header/header.component", () => () => null);
@@ -76,6 +92,19 @@ jest.mock("react-router-dom", () => ({
   },
 }));
 
+jest.mock("../utils/connections");
+const mockGetIsConnected = getIsConnected as jest.Mock;
+
+jest.mock("../apollo/delete-experience-cache");
+const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
+
+jest.mock("../apollo/update-get-experiences-mini-query");
+
+const mockLoadingId = "l-o-a-d-i-n-g";
+jest.mock("../components/Loading/loading.component", () => {
+  return () => <div id={mockLoadingId}></div>;
+});
+
 afterEach(() => {
   cleanup();
   jest.resetAllMocks();
@@ -90,36 +119,101 @@ describe("component", () => {
   const dropdownMenuClassName = "dropdown";
   const descriptionClassName = "description";
 
-  it("no experiences", () => {
+  it("verbunden/sammeln Erfahrüngen Fehler/wiederholen aber kein Erfahrung/erstellen eine Erfahrung aktivieren/deaktivieren", async () => {
+    mockGetIsConnected.mockResolvedValue(true);
+
+    mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
+      error: new Error("a"),
+    } as KleinErfahrüngenAbfrageErgebnisse);
+
     const { ui } = makeComp();
     render(ui);
 
-    // no search/experiences UI cos no experiences
-    expect(document.getElementById(searchInputDomId)).toBeNull();
-    expect(document.getElementById(experiencesDomId)).toBeNull();
+    expect(document.getElementById(mockLoadingId)).not.toBeNull();
 
-    expect(document.getElementById(mockNewExperienceId)).toBeNull();
+    expect(document.getElementById(fetchErrorRetryDomId)).toBeNull();
 
-    // activate new using new button
-    (document.getElementById(activateNewDomId) as HTMLElement).click();
-
-    const newExperienceEl = document.getElementById(
-      mockNewExperienceId,
-    ) as HTMLElement;
-    expect(newExperienceEl).not.toBeNull();
-
-    act(() => {
-      newExperienceEl.click();
+    let wiederholenTaste = await waitForElement(() => {
+      return document.getElementById(fetchErrorRetryDomId) as HTMLElement;
     });
 
-    expect(document.getElementById(mockNewExperienceId)).toBeNull();
+    mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
+      data: {
+        getExperiences: {
+          edges: [] as any,
+        },
+      },
+    } as KleinErfahrüngenAbfrageErgebnisse);
 
-    act(() => {
-      // activate new using 'no experiences' button
-      (document.getElementById(
+    wiederholenTaste.click();
+
+    expect(document.getElementById(noExperiencesActivateNewDomId)).toBeNull();
+
+    const aktivierenNeueErfahrungTaste = await waitForElement(() => {
+      return document.getElementById(
         noExperiencesActivateNewDomId,
-      ) as HTMLElement).click();
+      ) as HTMLElement;
     });
+
+    expect(document.getElementById(mockNewExperienceId)).toBeNull();
+
+    aktivierenNeueErfahrungTaste.click();
+
+    expect(document.getElementById(mockNewExperienceId)).not.toBeNull();
+  });
+
+  fit("Holenerfahrungen erzeuge Ausnahme/ es gibt Erfahrungen", async () => {
+    mockGetIsConnected.mockResolvedValue(true);
+
+    mockManuallyFetchExperienceConnectionMini.mockRejectedValue(new Error("a"));
+
+    const { ui } = makeComp();
+    render(ui);
+
+    expect(document.getElementById(mockLoadingId)).not.toBeNull();
+
+    expect(document.getElementById(fetchErrorRetryDomId)).toBeNull();
+
+    let wiederholenTaste = await waitForElement(() => {
+      return document.getElementById(fetchErrorRetryDomId) as HTMLElement;
+    });
+
+    mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
+      data: {
+        getExperiences: {
+          edges: [
+            {
+              node: {
+                id: "a",
+                title: "a",
+              },
+            },
+          ] as GetExperienceConnectionMini_getExperiences_edges[],
+          pageInfo: {
+            hasNextPage: true,
+          },
+        },
+      },
+    } as KleinErfahrüngenAbfrageErgebnisse);
+
+    wiederholenTaste.click();
+
+    expect(document.getElementById(noExperiencesActivateNewDomId)).toBeNull();
+
+    expect(document.getElementsByClassName("my-experiences__next").item(0))
+      .toBeUndefined;
+
+    const aktivierenNeueErfahrungTaste = await waitForElement(() => {
+      return document
+        .getElementsByClassName("my-experiences__next")
+        .item(0) as HTMLDivElement;
+    });
+
+    return;
+
+    expect(document.getElementById(mockNewExperienceId)).toBeNull();
+
+    aktivierenNeueErfahrungTaste.click();
 
     expect(document.getElementById(mockNewExperienceId)).not.toBeNull();
   });
@@ -334,6 +428,14 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   const location = (props.location || {}) as any;
 
   return {
-    ui: <MyP {...props} location={location} />,
+    ui: (
+      <WithSubscriptionContext.Provider
+        value={{
+          connected: true,
+        }}
+      >
+        <MyP {...props} location={location} />{" "}
+      </WithSubscriptionContext.Provider>
+    ),
   };
 }

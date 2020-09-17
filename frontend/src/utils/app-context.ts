@@ -24,6 +24,6 @@ export const WithSubscriptionContext = createContext<WithSubscriptionContextProp
   connected: null,
 } as WithSubscriptionContextProps);
 
-interface WithSubscriptionContextProps {
+export interface WithSubscriptionContextProps {
   connected: boolean | null;
 }

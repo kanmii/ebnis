@@ -1,5 +1,4 @@
 import { Reducer, Dispatch } from "react";
-import { FetchPolicy } from "@apollo/client";
 import { wrapReducer } from "../../logger";
 import immer, { Draft } from "immer";
 import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMiniFragment";
@@ -15,7 +14,7 @@ import {
   ErrorsVal,
   LoadingVal,
   InitialVal,
-  LoadingState
+  LoadingState,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -501,7 +500,7 @@ type DefDeleteExperienceRequestEffect = EffectDefinition<
 
 let fetchExperiencesAttemptCount = 1;
 
-const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = (
+const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
   { paginationInput },
   props,
   effectArgs,
@@ -509,27 +508,34 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = (
   const { dispatch } = effectArgs;
   let timeoutId: null | NodeJS.Timeout = null;
   fetchExperiencesAttemptCount = 0;
-  let fetchPolicy: FetchPolicy = "cache-only";
 
   const timeouts = [2000, 2000, 3000, 5000];
   const timeoutsLen = timeouts.length - 1;
-  let bestehendeZwischengespeicherteErgebnis = getExperiencesMiniQuery();
+
+  const deletedExperience = await deleteExperienceProcessedEffectHelper(
+    effectArgs,
+  );
+
+  // bei seitennummerierung wurden wir zwischengespeicherte Erfahrungen nicht
+  // gebraucht
+  const zwischengespeicherteErgebnis = getExperiencesMiniQuery();
+
+  // für folgenden Situation:
+  // Kein Paginierung und:
+  //    Netzwerk = false
+  //    Netzwerk = true und gibt es zwischengespeicherte Daten
+  if (!paginationInput && zwischengespeicherteErgebnis) {
+    verarbeitenZwischengespeichertetErfahrungen(
+      dispatch,
+      zwischengespeicherteErgebnis,
+      deletedExperience,
+    );
+    return;
+  }
 
   function fetchExperiencesAfter() {
-    const isConnected = getIsConnected();
-
     // we are connected
-    if (isConnected) {
-      fetchPolicy = "network-only";
-      fetchExperiences();
-      return;
-    }
-
-    // we are not connected, oder ...
-    if (
-      isConnected === false ||
-      (bestehendeZwischengespeicherteErgebnis && !paginationInput)
-    ) {
+    if (getIsConnected()) {
       fetchExperiences();
       return;
     }
@@ -553,58 +559,29 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = (
   }
 
   async function fetchExperiences() {
-    const deletedExperience = await deleteExperienceProcessedEffectHelper(
-      effectArgs,
-    );
-
-    let isPagingRequest = false;
-
     try {
-      // wenn kein Netzwerk vorhanden ist, dann die Abfrageergebnis ist desselbe
-      // als die Daten in die Zwischenspeicher.
-      // Nur wenn wir Netzwerkanforderung und mit seitennummerierung Eingabe
-      // stellen, dass die früheren Daten im Cache abgefragt werden
-      if (fetchPolicy === "network-only") {
-        const isFirstTimeFetchAndHasCachedData =
-          !paginationInput && bestehendeZwischengespeicherteErgebnis;
-
-        if (isFirstTimeFetchAndHasCachedData) {
-          fetchPolicy = "cache-only";
-          bestehendeZwischengespeicherteErgebnis = null;
-        }
-
-        isPagingRequest = !!paginationInput;
-      } else {
-        bestehendeZwischengespeicherteErgebnis = null;
-      }
-
       const abfrageDaten = await manuallyFetchExperienceConnectionMini(
-        fetchPolicy,
+        "network-only",
         paginationInput || {
           first: EXPERIENCES_MINI_FETCH_COUNT,
         },
       );
 
-      const { data, error, loading } = abfrageDaten;
+      const { data, error } = abfrageDaten;
       if (error) {
         dispatch({
           type: ActionType.ON_DATA_RECEIVED,
           key: StateValue.errors,
           error,
         });
-      } else if (loading) {
-        dispatch({
-          type: ActionType.ON_DATA_RECEIVED,
-          key: StateValue.loading,
-        });
       } else {
         const sammelnErfahrüngen = (data &&
           data.getExperiences) as GetExperienceConnectionMini_getExperiences;
 
         const [ergebnisse, neuenErfahrüng] = appendNewToGetExperiencesQuery(
-          fetchPolicy,
+          !!paginationInput,
           sammelnErfahrüngen,
-          bestehendeZwischengespeicherteErgebnis,
+          zwischengespeicherteErgebnis,
         );
 
         dispatch({
@@ -614,7 +591,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = (
           deletedExperience,
         });
 
-        if (isPagingRequest) {
+        if (paginationInput) {
           scrollIntoView(neuenErfahrüng.id);
         }
       }
@@ -677,7 +654,7 @@ async function deleteExperienceProcessedEffectHelper({ dispatch }: EffectArgs) {
 }
 
 function appendNewToGetExperiencesQuery(
-  fetchPolicy: FetchPolicy,
+  istPaginierung: boolean,
   { edges, pageInfo }: GetExperienceConnectionMini_getExperiences,
   storeData?: GetExperienceConnectionMini_getExperiences | null,
 ): [ExperiencesData, ExperienceMiniFragment] {
@@ -688,7 +665,7 @@ function appendNewToGetExperiencesQuery(
 
   const allEdges = [...previousEdges, ...newEdges];
 
-  if (fetchPolicy === "network-only") {
+  if (istPaginierung) {
     writeGetExperiencesMiniQuery({
       edges: allEdges,
       pageInfo,
@@ -703,17 +680,45 @@ function appendNewToGetExperiencesQuery(
     (edge) => edge.node as ExperienceMiniFragment,
   );
 
-  const zuletzterfahrüngenLänge = zuletztErfahrüngen.length;
+  const zuletztErfahrüngenLänge = zuletztErfahrüngen.length;
 
   return [
     {
       experiences: zuletztErfahrüngen.concat(neuenErfahrüngen),
       pageInfo: pageInfo,
     },
-    zuletzterfahrüngenLänge === 0
+    zuletztErfahrüngenLänge === 0
       ? neuenErfahrüngen[0] || ({ id: "" } as ExperienceMiniFragment)
-      : zuletztErfahrüngen[zuletzterfahrüngenLänge - 1],
+      : zuletztErfahrüngen[zuletztErfahrüngenLänge - 1],
   ];
+}
+
+function verarbeitenZwischengespeichertetErfahrungen(
+  dispatch: DispatchType,
+  daten: GetExperienceConnectionMini_getExperiences | null | undefined,
+  deletedExperience?: DeletedExperienceLedger,
+) {
+  if (!daten) {
+    dispatch({
+      type: ActionType.ON_DATA_RECEIVED,
+      key: StateValue.errors,
+      error: DATA_FETCHING_FAILED,
+    });
+  } else {
+    const experiences = (daten.edges as GetExperienceConnectionMini_getExperiences_edges[]).map(
+      (e) => e.node as ExperienceMiniFragment,
+    );
+
+    dispatch({
+      type: ActionType.ON_DATA_RECEIVED,
+      key: StateValue.data,
+      data: {
+        experiences,
+        pageInfo: daten.pageInfo,
+      },
+      deletedExperience,
+    });
+  }
 }
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////
@@ -722,10 +727,7 @@ type DraftState = Draft<StateMachine>;
 
 export type StateMachine = GenericGeneralEffect<EffectType> &
   Readonly<{
-    states:
-      | LoadingState
-      | ErrorState
-      | DataState;
+    states: LoadingState | ErrorState | DataState;
   }>;
 
 type ErrorState = Readonly<{
