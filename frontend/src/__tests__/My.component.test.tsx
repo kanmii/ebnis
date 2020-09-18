@@ -1,46 +1,62 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ComponentType } from "react";
-import { render, cleanup, waitForElement } from "@testing-library/react";
+import { render, cleanup, waitForElement, wait } from "@testing-library/react";
 import { My } from "../components/My/my.component";
 import {
   Props,
-  reducer,
   initState,
-  ActionType,
   MyChildDispatchProps,
-  DataState,
+  EffectType,
+  effectFunctions,
+  FETCH_EXPERIENCES_TIMEOUTS,
 } from "../components/My/my.utils";
 import {
-  activateNewDomId,
   noExperiencesActivateNewDomId,
   domPrefix,
-  experiencesDomId,
   searchInputDomId,
   experienceWarningClassName,
   experienceDangerClassName,
-  descriptionMoreClassName,
   descriptionSummaryClassName,
   descriptionFullClassName,
-  descriptionLessClassName,
   descriptionControlClassName,
   dropdownTriggerClassName,
   dropdownIsActiveClassName,
   fetchErrorRetryDomId,
+  onDeleteExperienceSuccessNotificationId,
+  onDeleteExperienceCancelledNotificationId,
 } from "../components/My/my.dom";
 import { act } from "react-dom/test-utils";
 // import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
-// import { makeOfflineId } from "../utils/offlines";
+import { makeOfflineId } from "../utils/offlines";
 import { fillField } from "../tests.utils";
 import { StateValue } from "../utils/types";
+import { GenericHasEffect } from "../utils/effects";
 import {
   manuallyFetchExperienceConnectionMini,
   KleinErfahrüngenAbfrageErgebnisse,
 } from "../utils/experience.gql.types";
 import { getExperiencesMiniQuery } from "../apollo/get-experiences-mini-query";
 import { getIsConnected } from "../utils/connections";
-import { getDeleteExperienceLedger } from "../apollo/delete-experience-cache";
-import { GetExperienceConnectionMini_getExperiences_edges } from "../graphql/apollo-types/GetExperienceConnectionMini";
-import { WithSubscriptionContext } from "../utils/app-context";
+import {
+  getDeleteExperienceLedger,
+  putOrRemoveDeleteExperienceLedger,
+  DeletedExperienceLedger,
+} from "../apollo/delete-experience-cache";
+import {
+  GetExperienceConnectionMini_getExperiences_edges,
+  GetExperienceConnectionMini_getExperiences,
+} from "../graphql/apollo-types/GetExperienceConnectionMini";
+import { useWithSubscriptionContext } from "../components/My/my.injectables";
+import { purgeExperiencesFromCache1 } from "../apollo/update-get-experiences-mini-query";
+import { AppPersistor } from "../utils/app-context";
+import { E2EWindowObject } from "../utils/types";
+import { BroadcastMessageType } from "../utils/observable-manager";
+
+jest.mock("../apollo/update-get-experiences-mini-query");
+const mockPurgeExperiencesFromCache1 = purgeExperiencesFromCache1 as jest.Mock;
+
+jest.mock("../apollo/delete-experience-cache");
+const mockPutOrRemoveDeleteExperienceLedger = putOrRemoveDeleteExperienceLedger as jest.Mock;
 
 jest.mock("../utils/experience.gql.types");
 const mockManuallyFetchExperienceConnectionMini = manuallyFetchExperienceConnectionMini as jest.Mock;
@@ -71,7 +87,7 @@ jest.mock("../components/My/my.lazy", () => ({
 
 const onlineId = "1";
 const mockPartOnlineId = "2";
-// const offlineId = makeOfflineId(3);
+const offlineId = makeOfflineId(3);
 
 jest.mock("../apollo/unsynced-ledger", () => ({
   getUnsyncedExperience: (id: string) => {
@@ -85,8 +101,7 @@ jest.mock("react-router-dom", () => ({
 
     return (
       <a className={className} href={to}>
-        {" "}
-        {children}{" "}
+        {children}
       </a>
     );
   },
@@ -105,8 +120,40 @@ jest.mock("../components/Loading/loading.component", () => {
   return () => <div id={mockLoadingId}></div>;
 });
 
+jest.mock("../components/My/my.injectables");
+const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
+
+const mockHistoryPush = jest.fn();
+const mockPersistFn = jest.fn();
+const mockEvictFn = jest.fn();
+const mockPostMsg = jest.fn();
+
+const persistor = {
+  persist: mockPersistFn as any,
+} as AppPersistor;
+
+const globals = {
+  persistor,
+  cache: { evict: mockEvictFn } as any,
+  bc: { postMessage: mockPostMsg } as any,
+} as E2EWindowObject;
+
+beforeAll(() => {
+  window.____ebnis = globals;
+});
+
+afterAll(() => {
+  delete window.____ebnis;
+});
+
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
 afterEach(() => {
+  jest.runAllTimers();
   cleanup();
+  jest.clearAllTimers();
   jest.resetAllMocks();
 });
 
@@ -115,7 +162,6 @@ function getContainer() {
 }
 
 describe("component", () => {
-  const experienceClassName = "experience";
   const dropdownMenuClassName = "dropdown";
   const descriptionClassName = "description";
 
@@ -128,9 +174,9 @@ describe("component", () => {
 
     const { ui } = makeComp();
     render(ui);
+    jest.runAllTimers();
 
     expect(document.getElementById(mockLoadingId)).not.toBeNull();
-
     expect(document.getElementById(fetchErrorRetryDomId)).toBeNull();
 
     let wiederholenTaste = await waitForElement(() => {
@@ -148,6 +194,7 @@ describe("component", () => {
     wiederholenTaste.click();
 
     expect(document.getElementById(noExperiencesActivateNewDomId)).toBeNull();
+    jest.runAllTimers();
 
     const aktivierenNeueErfahrungTaste = await waitForElement(() => {
       return document.getElementById(
@@ -159,16 +206,27 @@ describe("component", () => {
 
     aktivierenNeueErfahrungTaste.click();
 
-    expect(document.getElementById(mockNewExperienceId)).not.toBeNull();
+    const neuenErfahrungEl = document.getElementById(
+      mockNewExperienceId,
+    ) as HTMLElement;
+
+    expect(neuenErfahrungEl).not.toBeNull();
+
+    neuenErfahrungEl.click();
+    expect(document.getElementById(mockNewExperienceId)).toBeNull();
   });
 
-  fit("Holenerfahrungen erzeuge Ausnahme/ es gibt Erfahrungen", async () => {
+  it("Holenerfahrungen erzeuge Ausnahme / es gibt zwischengespeicherte Erfahrungen / wiederholen ErfahrungenAnforderung", async () => {
     mockGetIsConnected.mockResolvedValue(true);
+    mockUseWithSubscriptionContext.mockReturnValue({
+      connected: true,
+    });
 
     mockManuallyFetchExperienceConnectionMini.mockRejectedValue(new Error("a"));
 
     const { ui } = makeComp();
     render(ui);
+    jest.runAllTimers();
 
     expect(document.getElementById(mockLoadingId)).not.toBeNull();
 
@@ -178,13 +236,13 @@ describe("component", () => {
       return document.getElementById(fetchErrorRetryDomId) as HTMLElement;
     });
 
-    mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
+    mockManuallyFetchExperienceConnectionMini.mockResolvedValueOnce({
       data: {
         getExperiences: {
           edges: [
             {
               node: {
-                id: "a",
+                id: onlineId,
                 title: "a",
               },
             },
@@ -197,61 +255,99 @@ describe("component", () => {
     } as KleinErfahrüngenAbfrageErgebnisse);
 
     wiederholenTaste.click();
+    jest.runAllTimers();
 
     expect(document.getElementById(noExperiencesActivateNewDomId)).toBeNull();
 
-    expect(document.getElementsByClassName("my-experiences__next").item(0))
-      .toBeUndefined;
+    expect(
+      document.getElementsByClassName("my-experiences__next").item(0),
+    ).toBeNull();
 
-    const aktivierenNeueErfahrungTaste = await waitForElement(() => {
+    const näschteErfahrungenTaste = await waitForElement(() => {
       return document
         .getElementsByClassName("my-experiences__next")
         .item(0) as HTMLDivElement;
     });
 
-    return;
+    expect(document.getElementById(onlineId)).not.toBeNull();
+    expect(document.getElementById("b")).toBeNull();
 
-    expect(document.getElementById(mockNewExperienceId)).toBeNull();
+    mockGetExperiencesMiniQuery.mockReturnValue({
+      edges: [
+        {
+          node: {
+            id: onlineId,
+            title: "a",
+          },
+        },
+      ] as GetExperienceConnectionMini_getExperiences_edges[],
+      pageInfo: {
+        hasNextPage: true,
+      },
+    } as GetExperienceConnectionMini_getExperiences);
 
-    aktivierenNeueErfahrungTaste.click();
+    mockManuallyFetchExperienceConnectionMini.mockResolvedValueOnce({
+      data: {
+        getExperiences: {
+          edges: [
+            {
+              node: {
+                id: "b",
+                title: "b",
+              },
+            },
+          ] as GetExperienceConnectionMini_getExperiences_edges[],
+          pageInfo: {},
+        },
+      },
+    } as KleinErfahrüngenAbfrageErgebnisse);
 
-    expect(document.getElementById(mockNewExperienceId)).not.toBeNull();
+    näschteErfahrungenTaste.click();
+    jest.runAllTimers();
+
+    await waitForElement(() => {
+      return document.getElementById("b");
+    });
+
+    expect(
+      document.getElementsByClassName("my-experiences__next").item(0),
+    ).toBeNull();
+
+    expect(document.getElementById(onlineId)).not.toBeNull();
+    jest.runAllTimers();
   });
 
-  // const experiences = [
-  //   {
-  //     id: onlineId,
-  //     title: "aa",
-  //     description: "aa",
-  //   },
-  //   {
-  //     id: mockPartOnlineId,
-  //     title: "bb",
-  //   },
-  //   {
-  //     id: offlineId,
-  //     title: "cc",
-  //     description: "cc",
-  //   },
-  // ] as ExperienceMiniFragment[];
+  it("interacts with description / offline Erfahrungen / teilweise online Erfahrungen", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+    mockGetExperiencesMiniQuery.mockReturnValue({
+      edges: [
+        {
+          node: {
+            id: mockPartOnlineId,
+            title: "bb",
+          },
+        },
+        {
+          node: {
+            id: offlineId,
+            title: "cc",
+            description: "cc",
+          },
+        },
+      ] as GetExperienceConnectionMini_getExperiences_edges[],
+      pageInfo: {},
+    } as GetExperienceConnectionMini_getExperiences);
 
-  it("with experiences", async () => {
     const { ui } = makeComp();
-
     render(ui);
 
-    const experiencesEls = document.getElementsByClassName(experienceClassName);
-
-    // online, part online, fully offline
-    const experiencesEls0 = experiencesEls.item(0) as HTMLElement;
-    expect(experiencesEls0.className).not.toContain(experienceDangerClassName);
-    expect(experiencesEls0.className).not.toContain(experienceWarningClassName);
-
-    const experiencesEls1 = experiencesEls.item(1) as HTMLElement;
+    const experiencesEls1 = await waitForElement(() => {
+      return document.getElementById(mockPartOnlineId) as HTMLElement;
+    });
     expect(experiencesEls1.className).toContain(experienceWarningClassName);
     expect(experiencesEls1.className).not.toContain(experienceDangerClassName);
 
-    const experiencesEls2 = experiencesEls.item(2) as HTMLElement;
+    const experiencesEls2 = document.getElementById(offlineId) as HTMLElement;
     expect(experiencesEls2.className).toContain(experienceDangerClassName);
     expect(experiencesEls2.className).not.toContain(experienceWarningClassName);
 
@@ -260,101 +356,114 @@ describe("component", () => {
       experiencesEls1.getElementsByClassName(descriptionClassName).length,
     ).toBe(0);
 
-    // toggle description b4 options menu
+    // zweite Erfahrung besitz Beschreibung
     const descriptionEl2 = experiencesEls2
       .getElementsByClassName(descriptionClassName)
       .item(0) as HTMLElement;
 
+    // aber nur übersicht
     expect(
       descriptionEl2.getElementsByClassName(descriptionSummaryClassName).length,
     ).toBe(1);
 
+    // nicht vollständig Beschreibung
     expect(
       descriptionEl2.getElementsByClassName(descriptionFullClassName).length,
     ).toBe(0);
 
-    act(() => {
-      (descriptionEl2
-        .getElementsByClassName(descriptionControlClassName)
-        .item(0) as HTMLElement).click();
+    // wir möchten vollständige Beschreibung anzeigen
+    (descriptionEl2
+      .getElementsByClassName(descriptionControlClassName)
+      .item(0) as HTMLElement).click();
+
+    // also zussamenfassende Beschreibung ist versteckt
+    expect(
+      descriptionEl2.getElementsByClassName(descriptionSummaryClassName).length,
+    ).toBe(0);
+
+    // und vollständig Beschreibung ist gezeigt
+    expect(
+      descriptionEl2.getElementsByClassName(descriptionFullClassName).length,
+    ).toBe(1);
+  });
+
+  it("Optionen Menü", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+    mockGetExperiencesMiniQuery.mockReturnValue({
+      edges: [
+        {
+          node: {
+            id: mockPartOnlineId,
+            title: "bb",
+          },
+        },
+      ] as GetExperienceConnectionMini_getExperiences_edges[],
+      pageInfo: {},
+    } as GetExperienceConnectionMini_getExperiences);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    const experiencesEls0 = await waitForElement(() => {
+      return document.getElementById(mockPartOnlineId) as HTMLElement;
     });
 
-    expect(
-      descriptionEl2.getElementsByClassName(descriptionSummaryClassName).length,
-    ).toBe(0);
-
-    expect(
-      descriptionEl2.getElementsByClassName(descriptionFullClassName).length,
-    ).toBe(1);
-
-    // options menu/dropdown
     const dropdownMenuEl0 = experiencesEls0
       .getElementsByClassName(dropdownMenuClassName)
       .item(0) as HTMLElement;
 
     expect(dropdownMenuEl0.classList).not.toContain(dropdownIsActiveClassName);
 
-    act(() => {
-      (experiencesEls0
-        .getElementsByClassName(dropdownTriggerClassName)
-        .item(0) as HTMLElement).click();
-    });
-
-    // clear search and experiences menu
-    const containerEl = getContainer();
-    act(() => {
-      containerEl.click();
-    });
-    expect(dropdownMenuEl0.classList).not.toContain(dropdownIsActiveClassName);
-
-    // toggle description after dropdown toggle
-
-    const descriptionEl0 = experiencesEls0
-      .getElementsByClassName(descriptionClassName)
+    const dropdownTriggerEl = experiencesEls0
+      .getElementsByClassName(dropdownTriggerClassName)
       .item(0) as HTMLElement;
 
-    expect(
-      descriptionEl0.getElementsByClassName(descriptionMoreClassName).length,
-    ).toBe(1);
+    dropdownTriggerEl.click();
 
-    expect(
-      descriptionEl0.getElementsByClassName(descriptionSummaryClassName).length,
-    ).toBe(1);
+    // clear experiences menu
+    const containerEl = getContainer();
+    containerEl.click();
 
-    expect(
-      descriptionEl0.getElementsByClassName(descriptionLessClassName).length,
-    ).toBe(0);
+    expect(dropdownMenuEl0.classList).not.toContain(dropdownIsActiveClassName);
 
-    expect(
-      descriptionEl0.getElementsByClassName(descriptionFullClassName).length,
-    ).toBe(0);
+    dropdownTriggerEl.click();
 
-    act(() => {
-      (descriptionEl0
-        .getElementsByClassName(descriptionControlClassName)
-        .item(0) as HTMLElement).click();
+    (document
+      .getElementsByClassName("delete-experience-menu-item")
+      .item(0) as HTMLElement).click();
+
+    await wait(() => true);
+
+    expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0].id).toBe(
+      mockPartOnlineId,
+    );
+
+    expect(mockHistoryPush).toHaveBeenCalled();
+  });
+
+  it("Suchen", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+    mockGetExperiencesMiniQuery.mockReturnValue({
+      edges: [
+        {
+          node: {
+            id: onlineId,
+            title: "aa",
+          },
+        },
+      ] as GetExperienceConnectionMini_getExperiences_edges[],
+      pageInfo: {},
+    } as GetExperienceConnectionMini_getExperiences);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    await waitForElement(() => {
+      return document.getElementById(onlineId) as HTMLElement;
     });
-
-    expect(
-      descriptionEl0.getElementsByClassName(descriptionMoreClassName).length,
-    ).toBe(0);
-
-    expect(
-      descriptionEl0.getElementsByClassName(descriptionSummaryClassName).length,
-    ).toBe(0);
-
-    expect(
-      descriptionEl0.getElementsByClassName(descriptionLessClassName).length,
-    ).toBe(1);
-
-    expect(
-      descriptionEl0.getElementsByClassName(descriptionFullClassName).length,
-    ).toBe(1);
 
     const searchLinkClassName = "search__link";
     const searchNoResultClassName = "search__no-results";
-
-    // search
 
     expect(document.getElementsByClassName(searchLinkClassName).length).toBe(0);
 
@@ -382,35 +491,145 @@ describe("component", () => {
 
     expect(document.getElementsByClassName(searchLinkClassName).length).toBe(0);
 
-    act(() => {
-      containerEl.click();
-    });
+    getContainer().click();
 
     expect(
       document.getElementsByClassName(searchNoResultClassName).length,
     ).toBe(0);
   });
+
+  it("Löschen ErfahrungAnforderung Gelingen", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetExperiencesMiniQuery.mockReturnValue({
+      edges: [
+        {
+          node: {
+            id: onlineId,
+            title: "aa",
+          },
+        },
+      ] as GetExperienceConnectionMini_getExperiences_edges[],
+      pageInfo: {},
+    } as GetExperienceConnectionMini_getExperiences);
+
+    mockGetDeleteExperienceLedger.mockReturnValue({
+      id: onlineId,
+      key: StateValue.deleted,
+      title: "aa",
+    } as DeletedExperienceLedger);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    const deleteSuccessEl = await waitForElement(() => {
+      return document.getElementById(
+        onDeleteExperienceSuccessNotificationId,
+      ) as HTMLElement;
+    });
+
+    expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
+    expect(mockPurgeExperiencesFromCache1.mock.calls[0][0][0]).toBe(onlineId);
+    expect(mockEvictFn.mock.calls[0][0].id).toEqual(onlineId);
+    expect(mockPersistFn).toHaveBeenCalled();
+    expect(mockPostMsg.mock.calls[0][0]).toMatchObject({
+      type: BroadcastMessageType.experienceDeleted,
+      payload: {
+        id: onlineId,
+        title: "aa",
+      },
+    });
+
+    deleteSuccessEl.click();
+
+    expect(
+      document.getElementById(onDeleteExperienceSuccessNotificationId),
+    ).toBeNull();
+  });
+
+  it("Löschen ErfahrungAnforderung storniert", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetExperiencesMiniQuery.mockReturnValue({
+      edges: [
+        {
+          node: {
+            id: onlineId,
+            title: "aa",
+          },
+        },
+      ] as GetExperienceConnectionMini_getExperiences_edges[],
+      pageInfo: {},
+    } as GetExperienceConnectionMini_getExperiences);
+
+    mockGetDeleteExperienceLedger.mockReturnValue({
+      key: StateValue.cancelled,
+      title: "aa",
+    } as DeletedExperienceLedger);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    const löschenStorniertEl = await waitForElement(() => {
+      return document.getElementById(
+        onDeleteExperienceCancelledNotificationId,
+      ) as HTMLElement;
+    });
+
+    expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
+
+    expect(mockPurgeExperiencesFromCache1).not.toHaveBeenCalled();
+
+    expect(mockEvictFn).not.toHaveBeenCalled();
+    expect(mockPersistFn).not.toHaveBeenCalled();
+    expect(mockPostMsg).not.toHaveBeenCalled();
+
+    löschenStorniertEl.click();
+
+    expect(
+      document.getElementById(onDeleteExperienceCancelledNotificationId),
+    ).toBeNull();
+  });
 });
 
 describe("reducer", () => {
-  test("deactivate new experience", () => {
+  it("holen Erfahrüngen:  kein Netzwerk", async () => {
     let state = initState();
 
-    state = reducer(state, {
-      type: ActionType.ACTIVATE_NEW_EXPERIENCE,
-    });
+    const effect = (state.effects.general as GenericHasEffect<EffectType>)
+      .hasEffects.context.effects[0];
 
-    let dataState = (state.states as DataState).data.states;
+    const mockDispatch = jest.fn();
 
-    expect(dataState.newExperienceActivated.value).toBe(StateValue.active);
+    const fn = effectFunctions[effect.key];
+    await fn({} as any, {} as any, { dispatch: mockDispatch } as any);
+    expect(mockDispatch).not.toHaveBeenCalled();
 
-    state = reducer(state, {
-      type: ActionType.DEACTIVATE_NEW_EXPERIENCE,
-    });
+    jest.runAllTimers();
 
-    dataState = (state.states as DataState).data.states;
+    expect(mockDispatch.mock.calls[0][0].key).toEqual(StateValue.errors);
 
-    expect(dataState.newExperienceActivated.value).toBe(StateValue.inactive);
+    mockGetIsConnected.mockReturnValue(true);
+  });
+
+  it("holen Erfahrüngen: erstmal ist Netzwerk nicht vorhandel, dann später kommt", async () => {
+    let state = initState();
+
+    const effect = (state.effects.general as GenericHasEffect<EffectType>)
+      .hasEffects.context.effects[0];
+
+    const mockDispatch = jest.fn();
+
+    const fn = effectFunctions[effect.key];
+    await fn({} as any, {} as any, { dispatch: mockDispatch } as any);
+    mockGetIsConnected.mockReturnValue(true);
+
+    jest.runTimersToTime(FETCH_EXPERIENCES_TIMEOUTS[0]);
+
+    await wait(() => true);
+    expect(mockDispatch.mock.calls[0][0].key).toEqual(StateValue.errors);
+
+    mockGetIsConnected.mockReturnValue(true);
   });
 });
 
@@ -418,24 +637,14 @@ describe("reducer", () => {
 
 const MyP = My as ComponentType<Partial<Props>>;
 
-// const pageInfo = {
-//   hasPreviousPage: false,
-//   hasNextPage: false,
-//   __typename: "PageInfo",
-// };
-
 function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   const location = (props.location || {}) as any;
 
+  const history = {
+    push: mockHistoryPush,
+  } as any;
+
   return {
-    ui: (
-      <WithSubscriptionContext.Provider
-        value={{
-          connected: true,
-        }}
-      >
-        <MyP {...props} location={location} />{" "}
-      </WithSubscriptionContext.Provider>
-    ),
+    ui: <MyP {...props} location={location} history={history} />,
   };
 }

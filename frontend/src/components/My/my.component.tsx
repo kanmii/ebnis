@@ -4,7 +4,6 @@ import React, {
   useCallback,
   Suspense,
   memo,
-  useContext,
 } from "react";
 import {
   MY_TITLE,
@@ -24,6 +23,8 @@ import {
   dropdownIsActiveClassName,
   fetchExperiencesErrorsDomId,
   fetchErrorRetryDomId,
+  onDeleteExperienceSuccessNotificationId,
+  onDeleteExperienceCancelledNotificationId,
 } from "./my.dom";
 import { setUpRoutePage } from "../../utils/global-window";
 import "./my.styles.scss";
@@ -56,7 +57,7 @@ import { PageInfoFragment } from "../../graphql/apollo-types/PageInfoFragment";
 import errorImage from "../../media/error-96.png";
 import Header from "../Header/header.component";
 import { unstable_batchedUpdates } from "react-dom";
-import { WithSubscriptionContext } from "../../utils/app-context";
+import { useWithSubscriptionContext } from "./my.injectables";
 
 export function My(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
@@ -372,7 +373,7 @@ const ExperienceComponent = React.memo(
           <div className="dropdown-menu" role="menu">
             <div className="dropdown-content">
               <a
-                className="neutral-link"
+                className="neutral-link delete-experience-menu-item"
                 style={{
                   cursor: "pointer",
                   display: "block",
@@ -413,24 +414,21 @@ function SeitennummerierungKomponente(props: {
   nächsteSeiteVorhanden: boolean;
   nächsteSeiteAbrufen: () => void;
 }) {
-  const { connected } = useContext(WithSubscriptionContext);
+  const { nächsteSeiteVorhanden, nächsteSeiteAbrufen } = props;
+  const { connected } = useWithSubscriptionContext();
 
-  if (!connected) {
+  if (!(connected && nächsteSeiteVorhanden)) {
     return null;
   }
 
-  const { nächsteSeiteVorhanden, nächsteSeiteAbrufen } = props;
-
   return (
     <div className="my-experiences__prev-next">
-      {nächsteSeiteVorhanden && (
-        <button
-          className="button my-experiences__next"
-          onClick={nächsteSeiteAbrufen}
-        >
-          Next
-        </button>
-      )}
+      <button
+        className="button my-experiences__next"
+        onClick={nächsteSeiteAbrufen}
+      >
+        Next
+      </button>
     </div>
   );
 }
@@ -508,6 +506,7 @@ function DeletedExperienceNotification(
   const { state, onCloseDeleteExperienceNotification } = props;
   let title = "";
   let message = "";
+  let domId = "";
 
   switch (state.value) {
     case StateValue.inactive:
@@ -516,17 +515,20 @@ function DeletedExperienceNotification(
     case StateValue.cancelled:
       title = state.cancelled.context.title;
       message = "cancelled";
+      domId = onDeleteExperienceCancelledNotificationId;
       break;
 
     case StateValue.deleted:
       title = state.deleted.context.title;
       message = "successful";
+      domId = onDeleteExperienceSuccessNotificationId;
       break;
   }
 
   return (
     <div className="notification is-warning">
       <button
+        id={domId}
         className="delete"
         onClick={onCloseDeleteExperienceNotification}
       />

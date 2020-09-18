@@ -17,3 +17,5 @@ export const descriptionLessClassName = "description__control--less";
 export const descriptionControlClassName = "description__control";
 export const dropdownTriggerClassName = "dropdown-trigger media-right";
 export const dropdownIsActiveClassName = "is-active";
+export const onDeleteExperienceSuccessNotificationId = `${domPrefix}-on-delete-experience-success-notification`;
+export const onDeleteExperienceCancelledNotificationId = `${domPrefix}-on-delete-experience-cancelled-notification`;

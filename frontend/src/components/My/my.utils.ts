@@ -50,6 +50,8 @@ import {
 import { getExperiencesMiniQuery } from "../../apollo/get-experiences-mini-query";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 
+export const FETCH_EXPERIENCES_TIMEOUTS = [2000, 2000, 3000, 5000];
+
 export enum ActionType {
   ACTIVATE_NEW_EXPERIENCE = "@my/activate-new-experience",
   DEACTIVATE_NEW_EXPERIENCE = "@my/deactivate-new-experience",
@@ -63,7 +65,6 @@ export enum ActionType {
   ON_DATA_RECEIVED = "@my/on-data-received",
   DATA_RE_FETCH_REQUEST = "@my/data-re-fetch-request",
   FETCH_NEXT_EXPERIENCES_PAGE = "@my/fetch-next=experiences-page",
-  FETCH_PREV_EXPERIENCES_PAGE = "@my/fetch-prev-experiences-page",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -129,12 +130,8 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             handleDataReFetchRequestAction(proxy);
             break;
 
-          case ActionType.FETCH_PREV_EXPERIENCES_PAGE:
-            handleFetchPrevNextExperiencesPage(proxy, "prev");
-            break;
-
           case ActionType.FETCH_NEXT_EXPERIENCES_PAGE:
-            handleFetchPrevNextExperiencesPage(proxy, "next");
+            handleFetchPrevNextExperiencesPage(proxy);
             break;
         }
       });
@@ -154,9 +151,7 @@ export function initState(): StateMachine {
             effects: [
               {
                 key: "fetchExperiencesEffect",
-                ownArgs: {
-                  initial: StateValue.initial,
-                },
+                ownArgs: {},
               },
             ],
           },
@@ -173,6 +168,7 @@ export function initState(): StateMachine {
 function handleActivateNewExperienceAction(proxy: DraftState) {
   const { states } = proxy;
 
+  // istanbul ignore else
   if (states.value === StateValue.data) {
     states.data.states.newExperienceActivated.value = StateValue.active;
   }
@@ -181,6 +177,7 @@ function handleActivateNewExperienceAction(proxy: DraftState) {
 function handleDeactivateNewExperienceAction(proxy: StateMachine) {
   const { states } = proxy;
 
+  // istanbul ignore else
   if (states.value === StateValue.data) {
     states.data.states.newExperienceActivated.value = StateValue.inactive;
   }
@@ -192,6 +189,7 @@ function handleToggleShowDescriptionAction(
 ) {
   const { states } = proxy;
 
+  // istanbul ignore else
   if (states.value === StateValue.data) {
     const {
       states: { experiences: experiencesState },
@@ -210,6 +208,7 @@ function handleToggleShowOptionsMenuAction(
 ) {
   const { states } = proxy;
 
+  // istanbul ignore else
   if (states.value === StateValue.data) {
     const {
       states: { experiences: experiencesState },
@@ -224,6 +223,7 @@ function handleToggleShowOptionsMenuAction(
 function handleCloseAllOptionsMenuAction(proxy: StateMachine) {
   const { states } = proxy;
 
+  // istanbul ignore else
   if (states.value === StateValue.data) {
     const {
       states: { experiences: experiencesState },
@@ -239,6 +239,7 @@ function handleSearchAction(proxy: DraftState, payload: SetSearchTextPayload) {
   const { states } = proxy;
   const { text } = payload;
 
+  // istanbul ignore else
   if (states.value === StateValue.data) {
     const {
       states: { search },
@@ -280,6 +281,7 @@ export function makeDefaultSearchActive() {
 function handleClearSearchAction(proxy: DraftState) {
   const { states } = proxy;
 
+  // istanbul ignore else
   if (states.value === StateValue.data) {
     const search = states.data.states.search;
     const state = search;
@@ -296,6 +298,7 @@ function handleClearSearchAction(proxy: DraftState) {
 function handleDeleteExperienceNotificationAction(proxy: DraftState) {
   const { states } = proxy;
 
+  // istanbul ignore else
   if (states.value === StateValue.data) {
     states.data.states.deletedExperience.value = StateValue.inactive;
   }
@@ -320,12 +323,6 @@ function handleOnDataReceivedAction(
   payload: OnDataReceivedPayload,
 ) {
   switch (payload.key) {
-    case StateValue.loading:
-      proxy.states = {
-        value: StateValue.loading,
-      };
-      break;
-
     case StateValue.data:
       {
         const { data, deletedExperience } = payload;
@@ -380,43 +377,24 @@ async function handleDataReFetchRequestAction(proxy: DraftState) {
   });
 }
 
-function handleFetchPrevNextExperiencesPage(
-  proxy: DraftState,
-  page: "prev" | "next",
-) {
+function handleFetchPrevNextExperiencesPage(proxy: DraftState) {
   const { states } = proxy;
 
+  // istanbul ignore else
   if (states.value === StateValue.data) {
-    const {
-      hasNextPage,
-      hasPreviousPage,
-      endCursor,
-      startCursor,
-    } = states.data.context.pageInfo;
+    const { endCursor } = states.data.context.pageInfo;
 
     const effects = getGeneralEffects(proxy);
 
-    if (hasNextPage && page === "next") {
-      effects.push({
-        key: "fetchExperiencesEffect",
-        ownArgs: {
-          paginationInput: {
-            after: endCursor,
-            first: EXPERIENCES_MINI_FETCH_COUNT,
-          },
+    effects.push({
+      key: "fetchExperiencesEffect",
+      ownArgs: {
+        paginationInput: {
+          after: endCursor,
+          first: EXPERIENCES_MINI_FETCH_COUNT,
         },
-      });
-    } else if (hasPreviousPage && page === "prev") {
-      effects.push({
-        key: "fetchExperiencesEffect",
-        ownArgs: {
-          paginationInput: {
-            before: startCursor,
-            last: EXPERIENCES_MINI_FETCH_COUNT,
-          },
-        },
-      });
-    }
+      },
+    });
   }
 }
 
@@ -509,8 +487,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
   let timeoutId: null | NodeJS.Timeout = null;
   fetchExperiencesAttemptCount = 0;
 
-  const timeouts = [2000, 2000, 3000, 5000];
-  const timeoutsLen = timeouts.length - 1;
+  const timeoutsLen = FETCH_EXPERIENCES_TIMEOUTS.length - 1;
 
   const deletedExperience = await deleteExperienceProcessedEffectHelper(
     effectArgs,
@@ -554,7 +531,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 
     timeoutId = setTimeout(
       fetchExperiencesAfter,
-      timeouts[fetchExperiencesAttemptCount++],
+      FETCH_EXPERIENCES_TIMEOUTS[fetchExperiencesAttemptCount++],
     );
   }
 
@@ -631,11 +608,11 @@ async function deleteExperienceProcessedEffectHelper({ dispatch }: EffectArgs) {
     return;
   }
 
-  const { id } = deletedExperience;
-
   putOrRemoveDeleteExperienceLedger();
 
+  // istanbul ignore else
   if (deletedExperience.key === StateValue.deleted) {
+    const { id } = deletedExperience;
     purgeExperiencesFromCache1([id]);
     const { persistor, bc, cache } = window.____ebnis;
     cache.evict({ id });
@@ -695,30 +672,22 @@ function appendNewToGetExperiencesQuery(
 
 function verarbeitenZwischengespeichertetErfahrungen(
   dispatch: DispatchType,
-  daten: GetExperienceConnectionMini_getExperiences | null | undefined,
+  daten: GetExperienceConnectionMini_getExperiences,
   deletedExperience?: DeletedExperienceLedger,
 ) {
-  if (!daten) {
-    dispatch({
-      type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.errors,
-      error: DATA_FETCHING_FAILED,
-    });
-  } else {
-    const experiences = (daten.edges as GetExperienceConnectionMini_getExperiences_edges[]).map(
-      (e) => e.node as ExperienceMiniFragment,
-    );
+  const experiences = (daten.edges as GetExperienceConnectionMini_getExperiences_edges[]).map(
+    (e) => e.node as ExperienceMiniFragment,
+  );
 
-    dispatch({
-      type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      data: {
-        experiences,
-        pageInfo: daten.pageInfo,
-      },
-      deletedExperience,
-    });
-  }
+  dispatch({
+    type: ActionType.ON_DATA_RECEIVED,
+    key: StateValue.data,
+    data: {
+      experiences,
+      pageInfo: daten.pageInfo,
+    },
+    deletedExperience,
+  });
 }
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////
@@ -842,9 +811,6 @@ type Action =
     }
   | {
       type: ActionType.FETCH_NEXT_EXPERIENCES_PAGE;
-    }
-  | {
-      type: ActionType.FETCH_PREV_EXPERIENCES_PAGE;
     };
 
 type OnDataReceivedPayload =
@@ -903,7 +869,9 @@ export interface EffectArgs {
   dispatch: DispatchType;
 }
 
-type EffectType = DefDeleteExperienceRequestEffect | DefFetchExperiencesEffect;
+export type EffectType =
+  | DefDeleteExperienceRequestEffect
+  | DefFetchExperiencesEffect;
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
