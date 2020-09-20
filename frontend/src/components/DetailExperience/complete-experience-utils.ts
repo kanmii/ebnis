@@ -1,5 +1,4 @@
 import { Reducer, Dispatch } from "react";
-import { ApolloError, FetchPolicy } from "@apollo/client";
 import { wrapReducer } from "../../logger";
 import { RouteChildrenProps, match } from "react-router-dom";
 import { DetailExperienceRouteMatch } from "../../utils/urls";
@@ -8,6 +7,7 @@ import { isOfflineId } from "../../utils/offlines";
 import {
   getUnsyncedExperience,
   removeUnsyncedExperiences,
+  getUnSyncEntriesErrorsLedger,
 } from "../../apollo/unsynced-ledger";
 import immer, { Draft } from "immer";
 import dateFnFormat from "date-fns/format";
@@ -20,6 +20,9 @@ import {
   DataVal,
   LoadingState,
   LoadingVal,
+  FETCH_EXPERIENCES_TIMEOUTS,
+  ErfolgWert,
+  VersagenWert,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -50,23 +53,33 @@ import {
 } from "../../apollo/delete-experience-cache";
 import {
   DeleteExperiencesComponentProps,
-  DetailedExperienceQueryResult,
+  manuallyFetchEntries,
+  GetEntriesQueryResult,
 } from "../../utils/experience.gql.types";
 import { manuallyFetchDetailedExperience } from "../../utils/experience.gql.types";
 import {
   parseStringError,
   DATA_FETCHING_FAILED,
+  HOLEN_EINTRÄGE_GESCHEITERT,
 } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
-import { PaginationInput } from "../../graphql/apollo-types/globalTypes";
-import { sammelnZwischengespeicherteErfahrung } from "../../apollo/get-detailed-experience-query";
+import {
+  sammelnZwischengespeicherteErfahrung,
+  getEntriesQuerySuccess,
+  toGetEntriesSuccessQuery,
+  writeGetEntriesQuery,
+} from "../../apollo/get-detailed-experience-query";
 import { PageInfoFragment } from "../../graphql/apollo-types/PageInfoFragment";
 import { GetEntriesUnionFragment } from "../../graphql/apollo-types/GetEntriesUnionFragment";
 import {
   EntryConnectionFragment_edges,
   EntryConnectionFragment,
 } from "../../graphql/apollo-types/EntryConnectionFragment";
+import { GetDetailExperience } from "../../graphql/apollo-types/GetDetailExperience";
+import { PaginationInput } from "../../graphql/apollo-types/globalTypes";
+import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/apollo-types/GetEntries";
+import { entryToEdge } from "../NewEntry/entry-to-edge";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -80,6 +93,8 @@ export enum ActionType {
   TOGGLE_SHOW_OPTIONS_MENU = "@detailed-experience/toggle-options-menu",
   ON_DATA_RECEIVED = "@detailed-experience/on-data-received",
   RE_FETCH_EXPERIENCE = "@detailed-experience/re-fetch-experience",
+  RE_FETCH_ENTRIES = "@detailed-experience/re-fetch-entries",
+  ON_ENTRIES_RECEIVED = "@detailed-experience/on-entries-received",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -146,6 +161,11 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
           case ActionType.RE_FETCH_EXPERIENCE:
             handleRefetchExperienceAction(proxy);
+            break;
+
+          case ActionType.RE_FETCH_ENTRIES:
+          case ActionType.ON_ENTRIES_RECEIVED:
+            handleRefetchEntries(proxy, payload as OnEntriesReceivedPayload);
             break;
         }
       });
@@ -276,7 +296,6 @@ function handleMaybeNewEntryCreatedHelper(
 
   if (globalStates.value === StateValue.data) {
     const { states, context } = globalStates.data;
-    const { entries } = context;
     const { neuEintragDaten, zustand } = mayBeNewEntry;
 
     const {
@@ -311,17 +330,28 @@ function handleMaybeNewEntryCreatedHelper(
       },
     };
 
+    const einträgeDaten = context.einträgeDaten as Draft<EinträgeDatenErfolg>;
+
     // ein völlig neu Eintrag
     if (!(vielleichtBearbeitenEintrag || zustand === "ganz-nue")) {
-      entries.unshift(neuEintragDaten);
+      einträgeDaten.daten.einträge.unshift({
+        eintragDaten: neuEintragDaten,
+      });
     } else {
       // wir ersetzen die neu Eintrag mit dem zuletzt Eintrag
 
       const { clientId, dataObjects } = neuEintragDaten;
 
-      context.entries = entries.map((kante) => {
-        return kante.id === clientId ? neuEintragDaten : kante;
-      });
+      einträgeDaten.daten.einträge = einträgeDaten.daten.einträge.map(
+        (daten) => {
+          return daten.eintragDaten.id === clientId
+            ? {
+                ...daten,
+                eintragDaten: neuEintragDaten,
+              }
+            : daten;
+        },
+      );
 
       // und die Offline-Einträge muss auf die Cache entfernen werden
 
@@ -538,84 +568,63 @@ function handleOnDataReceivedAction(
   switch (payload.key) {
     case StateValue.data:
       {
-        const { data, loading, error } = payload.data;
+        const { erfahrung, einträgeDaten } = payload.data;
 
-        if (data) {
-          const dataState = states as Draft<DataState>;
-          dataState.value = StateValue.data;
+        const dataState = states as Draft<DataState>;
+        dataState.value = StateValue.data;
 
-          const dataStateData =
-            dataState.data || ({} as Draft<DataState["data"]>);
+        const dataStateData =
+          dataState.data || ({} as Draft<DataState["data"]>);
 
-          dataState.data = dataStateData;
+        dataState.data = dataStateData;
 
-          const context =
-            dataStateData.context ||
-            ({} as Draft<DataState["data"]["context"]>);
+        const context =
+          dataStateData.context || ({} as Draft<DataState["data"]["context"]>);
 
-          dataStateData.context = context;
+        dataStateData.context = context;
+        context.einträgeDaten = einträgeDaten;
 
-          const experience = data.getExperience;
-          processEntriesData(context, data.getEntries);
+        context.experience = erfahrung;
 
-          if (experience) {
-            context.experience = experience;
+        context.dataDefinitionIdToNameMap = erfahrung.dataDefinitions.reduce(
+          (acc, d) => {
+            acc[d.id] = d.name;
+            return acc;
+          },
+          {} as DataDefinitionIdToNameMap,
+        );
 
-            dataStateData.states = {
-              newEntryActive: {
-                value: StateValue.inactive,
-              },
-              notification: {
-                value: StateValue.inactive,
-              },
-              newEntryCreated: {
-                value: StateValue.inactive,
-              },
-              entriesErrors: {
-                value: StateValue.inactive,
-              },
-              deleteExperience: {
-                value: StateValue.inactive,
-              },
-              showingOptionsMenu: {
-                value: StateValue.inactive,
-              },
-            };
+        dataStateData.states = {
+          newEntryActive: {
+            value: StateValue.inactive,
+          },
+          notification: {
+            value: StateValue.inactive,
+          },
+          newEntryCreated: {
+            value: StateValue.inactive,
+          },
+          entriesErrors: {
+            value: StateValue.inactive,
+          },
+          deleteExperience: {
+            value: StateValue.inactive,
+          },
+          showingOptionsMenu: {
+            value: StateValue.inactive,
+          },
+        };
 
-            effects.push(
-              {
-                key: "onOfflineExperienceSyncedEffect",
-                ownArgs: {},
-              },
-              {
-                key: "deleteExperienceRequestedEffect",
-                ownArgs: {},
-              },
-            );
-          } else {
-            proxy.states = {
-              value: StateValue.errors,
-              errors: {
-                context: {
-                  error: DATA_FETCHING_FAILED,
-                },
-              },
-            };
-          }
-        } else if (loading) {
-          proxy.states = {
-            value: StateValue.loading,
-          };
-        } else {
-          proxy.states = {
-            value: StateValue.errors,
-            errors: {
-              context: {
-                error: parseStringError(error as ApolloError),
-              },
-            },
-          };
-        }
+        effects.push(
+          {
+            key: "onOfflineExperienceSyncedEffect",
+            ownArgs: {},
+          },
+          {
+            key: "deleteExperienceRequestedEffect",
+            ownArgs: {},
+          },
+        );
       }
       break;
 
@@ -631,7 +640,7 @@ function handleOnDataReceivedAction(
   }
 }
 
-async function handleRefetchExperienceAction(proxy: DraftStateMachine) {
+function handleRefetchExperienceAction(proxy: DraftStateMachine) {
   const effects = getGeneralEffects(proxy);
 
   effects.push({
@@ -640,40 +649,60 @@ async function handleRefetchExperienceAction(proxy: DraftStateMachine) {
   });
 }
 
+function handleRefetchEntries(
+  proxy: DraftStateMachine,
+  payload: OnEntriesReceivedPayload,
+) {
+  const { states } = proxy;
+
+  if (states.value === StateValue.data) {
+    const { data } = payload;
+
+    if (!data) {
+      const effects = getGeneralEffects(proxy);
+
+      effects.push({
+        key: "holenEinträgeWirkung",
+        ownArgs: {},
+      });
+
+      return;
+    }
+
+    const context = states.data.context;
+    const zuletztEinträge = context.einträgeDaten;
+
+    switch (data.schlüssel) {
+      case StateValue.erfolg:
+        const { einträge, seiteInfo } = data.daten;
+
+        if (zuletztEinträge.schlüssel === StateValue.erfolg) {
+          context.einträgeDaten = {
+            schlüssel: data.schlüssel,
+            daten: {
+              seiteInfo,
+              einträge: [...einträge, ...zuletztEinträge.daten.einträge],
+            },
+          };
+        } else {
+          context.einträgeDaten = {
+            schlüssel: data.schlüssel,
+            daten: {
+              seiteInfo,
+              einträge,
+            },
+          };
+        }
+        break;
+
+      case StateValue.versagen:
+        break;
+    }
+  }
+}
+
 function getExperienceId(props: Props) {
   return (props.match as Match).params.experienceId;
-}
-
-function processEntriesData(
-  context: Draft<DataStateContext>,
-  entriesData: GetEntriesUnionFragment | null,
-) {
-  if (!entriesData) {
-    return;
-  }
-
-  switch (entriesData.__typename) {
-    case "GetEntriesSuccess":
-      processEntriesSuccess(context, entriesData.entries);
-
-      break;
-
-    default:
-      break;
-  }
-}
-
-function processEntriesSuccess(
-  context: Draft<DataStateContext>,
-  connection: EntryConnectionFragment,
-) {
-  const { edges, pageInfo } = connection;
-
-  context.entries = (edges as EntryConnectionFragment_edges[]).map((edge) => {
-    return (edge as EntryConnectionFragment_edges).node as EntryFragment;
-  });
-
-  context.pageInfo = pageInfo;
 }
 
 ////////////////////////// END STATE UPDATE ////////////////////////////
@@ -715,13 +744,11 @@ const onOfflineExperienceSyncedEffect: DefOnOfflineExperienceSyncedEffect["func"
   _props,
   effectArgs,
 ) => {
+  const { dispatch, stateContext } = effectArgs;
+
   const {
-    dispatch,
-    stateContext: {
-      experience: { id: experienceId },
-      entries,
-    },
-  } = effectArgs;
+    experience: { id: experienceId },
+  } = stateContext;
 
   const ledger = getSyncingExperience(experienceId);
 
@@ -737,12 +764,13 @@ const onOfflineExperienceSyncedEffect: DefOnOfflineExperienceSyncedEffect["func"
 
   let mayBeNewEntry: undefined | EntryFragment = undefined;
 
-  entries.forEach((node) => {
-    const { clientId } = node;
+  const einträgeDaten = stateContext.einträgeDaten as EinträgeDatenErfolg;
+  einträgeDaten.daten.einträge.forEach(({ eintragDaten }) => {
+    const { clientId } = eintragDaten;
 
     // das ein ganz Online-Eintrag zuerst erstelltet als Offline-Eintrag
     if (clientId === newEntryClientId) {
-      mayBeNewEntry = node;
+      mayBeNewEntry = eintragDaten;
     }
   });
 
@@ -894,54 +922,51 @@ const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
 
 type DefDeleteExperienceEffect = EffectDefinition<"deleteExperienceEffect">;
 
-let fetchExperienceAttemptsCount = 1;
-
 const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = (
-  { paginationInput },
+  _,
   props,
   { dispatch },
 ) => {
   const experienceId = getExperienceId(props);
+  let fetchExperienceAttemptsCount = 0;
+  let timeoutId: null | NodeJS.Timeout = null;
+  const timeoutsLen = FETCH_EXPERIENCES_TIMEOUTS.length - 1;
 
   let bestehendeZwischengespeicherteErgebnis = sammelnZwischengespeicherteErfahrung(
     experienceId,
   );
 
-  if (!paginationInput && bestehendeZwischengespeicherteErgebnis) {
+  if (bestehendeZwischengespeicherteErgebnis) {
+    const daten = bestehendeZwischengespeicherteErgebnis.data as GetDetailExperience;
+
     dispatch({
       type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      data: bestehendeZwischengespeicherteErgebnis,
+      ...verarbeitenErfahrungAbfrage(daten.getExperience, daten.getEntries),
     });
 
     return;
   }
 
-  let timeoutId: null | NodeJS.Timeout = null;
-  let fetchPolicy: FetchPolicy = "cache-only";
-  const timeouts = [2000, 2000, 3000, 5000];
-  const timeoutsLen = timeouts.length - 1;
-
   async function fetchDetailedExperience() {
     try {
-      if (!paginationInput) {
-        paginationInput = {
-          first: 10,
-        };
-      }
-
       const data = await manuallyFetchDetailedExperience(
         {
           experienceId,
-          pagination: paginationInput,
+          pagination: {
+            first: 10,
+          },
         },
-        fetchPolicy,
+        "network-only",
       );
+
+      const daten = (data && data.data) || ({} as GetDetailExperience);
 
       dispatch({
         type: ActionType.ON_DATA_RECEIVED,
-        key: StateValue.data,
-        data,
+        ...verarbeitenErfahrungAbfrage(
+          daten.getExperience || null,
+          daten.getEntries,
+        ),
       });
     } catch (error) {
       dispatch({
@@ -956,39 +981,14 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
     }
   }
 
-  fetchExperienceAttemptsCount = 1;
-
-  if (isOfflineId(experienceId)) {
-    fetchDetailedExperience();
-    return;
-  }
-
   function mayBeScheduleFetchDetailedExperience() {
-    const isConnected = getIsConnected();
-
     // we are connected
-    if (isConnected) {
-      const { isOffline, isPartOffline } = getOnlineStatus(experienceId);
-
-      if (isOffline || isPartOffline) {
-        fetchDetailedExperience();
-      } else {
-        fetchPolicy = "network-only";
-        fetchDetailedExperience();
-      }
-      return;
-    }
-
-    // we are not connected, oder das is nicht ein Seitennummerierung Anforderung
-    if (
-      isConnected === false ||
-      (bestehendeZwischengespeicherteErgebnis && !paginationInput)
-    ) {
+    if (getIsConnected()) {
       fetchDetailedExperience();
       return;
     }
 
-    // we are still trying to connect
+    // we were never able to connect
     if (fetchExperienceAttemptsCount > timeoutsLen) {
       dispatch({
         type: ActionType.ON_DATA_RECEIVED,
@@ -999,11 +999,9 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
       return;
     }
 
-    ++fetchExperienceAttemptsCount;
-
     timeoutId = setTimeout(
       mayBeScheduleFetchDetailedExperience,
-      timeouts[fetchExperienceAttemptsCount++],
+      FETCH_EXPERIENCES_TIMEOUTS[fetchExperienceAttemptsCount++],
     );
   }
 
@@ -1011,10 +1009,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
 };
 
 type DefFetchDetailedExperienceEffect = EffectDefinition<
-  "fetchDetailedExperienceEffect",
-  {
-    paginationInput?: PaginationInput;
-  }
+  "fetchDetailedExperienceEffect"
 >;
 
 const clearTimeoutEffect: DefClearTimeoutEffect["func"] = (ownArgs) => {
@@ -1046,6 +1041,56 @@ type DefDeleteCacheKeysEffect = EffectDefinition<
   }
 >;
 
+const holenEinträgeWirkung: HolenEinträgeWirkung["func"] = async (
+  { pagination },
+  props,
+  effectArgs,
+) => {
+  const erfahrungId = getExperienceId(props);
+  const { dispatch } = effectArgs;
+
+  const variables = {
+    experienceId: erfahrungId,
+    pagination: pagination || {
+      first: 10,
+    },
+  };
+
+  const zuletztEinträge = getEntriesQuerySuccess(erfahrungId);
+
+  try {
+    const { data, error } =
+      (await manuallyFetchEntries(variables)) || ({} as GetEntriesQueryResult);
+
+    if (data) {
+      let verarbeitetEinträge = verarbeitenEinträgeAbfrage(
+        erfahrungId,
+        data.getEntries,
+      );
+
+      if (pagination) {
+        anhängenZuletztEinträge(
+          erfahrungId,
+          verarbeitetEinträge,
+          zuletztEinträge,
+        );
+      }
+
+      dispatch({
+        type: ActionType.ON_ENTRIES_RECEIVED,
+        data: verarbeitetEinträge,
+      });
+    }
+  } catch (error) {}
+};
+
+type HolenEinträgeWirkung = EffectDefinition<
+  "holenEinträgeWirkung",
+  {
+    pagination: PaginationInput;
+  }
+>;
+
 export const effectFunctions = {
   scrollDocToTopEffect,
   autoCloseNotificationEffect,
@@ -1057,7 +1102,103 @@ export const effectFunctions = {
   fetchDetailedExperienceEffect,
   clearTimeoutEffect,
   deleteCacheKeysEffect,
+  holenEinträgeWirkung,
 };
+
+function verarbeitenErfahrungAbfrage(
+  erfahrung: ExperienceFragment | null,
+  kriegEinträgeAbfrage: GetEntriesUnionFragment | null,
+): OnDataReceivedPayload {
+  return erfahrung
+    ? {
+        key: StateValue.data,
+        data: {
+          erfahrung,
+          einträgeDaten: verarbeitenEinträgeAbfrage(
+            erfahrung.id,
+            kriegEinträgeAbfrage,
+          ),
+        },
+      }
+    : {
+        key: StateValue.errors,
+        error: DATA_FETCHING_FAILED,
+      };
+}
+
+function verarbeitenEinträgeAbfrage(
+  erfahrungId: string,
+  kriegEinträgeAbfrage?: GetEntriesUnionFragment | null,
+): EinträgeDaten {
+  if (!kriegEinträgeAbfrage) {
+    return {
+      schlüssel: StateValue.versagen,
+      fehler: HOLEN_EINTRÄGE_GESCHEITERT,
+    };
+  }
+
+  const nichtSynchronisiertFehler =
+    getUnSyncEntriesErrorsLedger(erfahrungId) ||
+    // istanbul ignore next:
+    {};
+
+  if (kriegEinträgeAbfrage.__typename === "GetEntriesSuccess") {
+    const daten = kriegEinträgeAbfrage.entries as EntryConnectionFragment;
+
+    const einträge = (daten.edges as EntryConnectionFragment_edges[]).map(
+      (edge) => {
+        const eintrag = edge.node as EntryFragment;
+        return {
+          eintragDaten: eintrag,
+          nichtSynchronisiertFehler:
+            nichtSynchronisiertFehler[eintrag.clientId as string],
+        };
+      },
+    );
+
+    return {
+      schlüssel: StateValue.erfolg,
+      daten: {
+        einträge,
+        seiteInfo: daten.pageInfo,
+      },
+    };
+  } else {
+    return {
+      schlüssel: StateValue.versagen,
+      fehler: kriegEinträgeAbfrage.errors.error,
+    };
+  }
+}
+
+function anhängenZuletztEinträge(
+  erfahrungId: string,
+  eintragDaten: EinträgeDaten,
+  zuletztEinträge: GetEntries_getEntries_GetEntriesSuccess_entries,
+) {
+  if (eintragDaten.schlüssel === StateValue.versagen) {
+    return;
+  }
+
+  const { einträge, seiteInfo } = eintragDaten.daten;
+  const kanten = [
+    ...einträge.map(
+      (e) => entryToEdge(e.eintragDaten),
+      ...(zuletztEinträge.edges as EntryConnectionFragment_edges[]),
+    ),
+  ];
+
+  const y = toGetEntriesSuccessQuery({
+    edges: kanten,
+    pageInfo: seiteInfo,
+    __typename: "EntryConnection",
+  });
+
+  writeGetEntriesQuery(erfahrungId, y);
+
+  const { persistor } = window.____ebnis;
+  persistor.persist();
+}
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
 
@@ -1111,11 +1252,33 @@ type ErrorState = Readonly<{
   }>;
 }>;
 
+export type EinträgeDatenErfolg = {
+  schlüssel: ErfolgWert;
+  daten: Readonly<{
+    einträge: DataStateContextEntries;
+    seiteInfo: PageInfoFragment;
+  }>;
+};
+
+type EinträgeDaten =
+  | EinträgeDatenErfolg
+  | Readonly<{
+      schlüssel: VersagenWert;
+      fehler: string;
+    }>;
+
 export type DataStateContext = Readonly<{
   experience: ExperienceFragment;
-  entries: EntryFragment[];
-  pageInfo: PageInfoFragment;
+  einträgeDaten: EinträgeDaten;
+  dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
 }>;
+
+export type DataStateContextEntry = Readonly<{
+  eintragDaten: EntryFragment;
+  nichtSynchronisiertFehler?: CreateEntryErrorFragment;
+}>;
+
+export type DataStateContextEntries = DataStateContextEntry[];
 
 export type DataState = Readonly<{
   value: DataVal;
@@ -1260,16 +1423,29 @@ type Action =
     } & OnDataReceivedPayload)
   | {
       type: ActionType.RE_FETCH_EXPERIENCE;
-    };
+    }
+  | ({
+      type: ActionType.RE_FETCH_ENTRIES;
+    } & OnEntriesReceivedPayload)
+  | ({
+      type: ActionType.ON_ENTRIES_RECEIVED;
+    } & OnEntriesReceivedPayload);
 
 type NewEntryActivePayload = {
   bearbeitenEintrag?: EntryFragment;
 };
 
+type OnEntriesReceivedPayload = Readonly<{
+  data?: EinträgeDaten;
+}>;
+
 type OnDataReceivedPayload =
   | {
       key: DataVal;
-      data: DetailedExperienceQueryResult;
+      data: {
+        erfahrung: ExperienceFragment;
+        einträgeDaten: EinträgeDaten;
+      };
     }
   | {
       key: ErrorsVal;
@@ -1285,6 +1461,10 @@ interface ToggleOptionsMenuPayload {
 
 interface DeleteExperienceRequestPayload {
   key?: RequestedVal;
+}
+
+export interface DataDefinitionIdToNameMap {
+  [dataDefinitionId: string]: string;
 }
 
 interface OnNewEntryCreatedOrOfflineExperienceSyncedPayload {
@@ -1326,7 +1506,8 @@ export type EffectType =
   | DefDeleteExperienceEffect
   | DefFetchDetailedExperienceEffect
   | DefClearTimeoutEffect
-  | DefDeleteCacheKeysEffect;
+  | DefDeleteCacheKeysEffect
+  | HolenEinträgeWirkung;
 
 // [index/label, [errorKey, errorValue][]][]
 export type EintragFehlerAlsListe = [string | number, [string, string][]][];

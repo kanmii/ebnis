@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useSubscription } from "@apollo/client";
+import { useMutation, useSubscription } from "@apollo/client";
 import {
   MutationFunctionOptions,
   MutationResult,
@@ -37,7 +37,10 @@ import {
   GetDetailExperience,
   GetDetailExperienceVariables,
 } from "../graphql/apollo-types/GetDetailExperience";
-import { GET_COMPLETE_EXPERIENCE_QUERY } from "../graphql/experience.gql";
+import {
+  GET_COMPLETE_EXPERIENCE_QUERY,
+  GET_ENTRIES_QUERY,
+} from "../graphql/experience.gql";
 import {
   GetExperienceConnectionMiniVariables,
   GetExperienceConnectionMini,
@@ -46,7 +49,11 @@ import { OnExperiencesDeletedSubscription } from "../graphql/apollo-types/OnExpe
 import { getSessionId } from "./session-manager";
 import { PageInfoFragment } from "../graphql/apollo-types/PageInfoFragment";
 import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
-import {UpdateExperienceSomeSuccessFragment} from "../graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
+import { UpdateExperienceSomeSuccessFragment } from "../graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
+import {
+  GetEntries,
+  GetEntriesVariables,
+} from "../graphql/apollo-types/GetEntries";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 
@@ -210,18 +217,6 @@ export function useOnExperiencesDeletedSubscription() {
 
 ////////////////////////// START FULL EXPERIENCE SECTION ////////////////////
 
-export function useGetExperienceDetail(
-  variables: GetDetailExperienceVariables,
-) {
-  return useQuery<GetDetailExperience, GetDetailExperienceVariables>(
-    GET_COMPLETE_EXPERIENCE_QUERY,
-    {
-      variables,
-      notifyOnNetworkStatusChange: true,
-    },
-  );
-}
-
 export function manuallyFetchDetailedExperience(
   variables: GetDetailExperienceVariables,
   fetchPolicy?: FetchPolicy,
@@ -238,6 +233,18 @@ export function manuallyFetchDetailedExperience(
 export type DetailedExperienceQueryResult = ApolloQueryResult<
   GetDetailExperience
 >;
+
+export function manuallyFetchEntries(variables: GetEntriesVariables) {
+  const { client } = window.____ebnis;
+
+  return client.query<GetEntries, GetEntriesVariables>({
+    query: GET_ENTRIES_QUERY,
+    variables,
+    fetchPolicy: "network-only",
+  });
+}
+
+export type GetEntriesQueryResult = ApolloQueryResult<GetEntries>;
 
 ////////////////////////// END COMPLETE EXPERIENCE SECTION ////////////////////
 

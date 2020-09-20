@@ -20,6 +20,9 @@ export const GENERIC_SERVER_ERROR = "Something went wrong - please try again.";
 export const DATA_FETCHING_FAILED =
   "Data fetching failed - please check your network connection and try again.";
 
+export const HOLEN_EINTRÄGE_GESCHEITERT =
+  "Fetch of entries failed - please try again";
+
 export const NOTHING_TO_SAVE_WARNING_MESSAGE =
   "Please make changes before saving.";
 

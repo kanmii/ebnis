@@ -8,6 +8,8 @@ import { EmitActionType, BroadcastMessageType } from "./observable-manager";
 import { ChangeEvent } from "react";
 import { BroadcastChannel } from "broadcast-channel";
 
+export const FETCH_EXPERIENCES_TIMEOUTS = [2000, 2000, 3000, 5000];
+
 export type ReactMouseAnchorEvent = React.MouseEvent<
   HTMLAnchorElement | HTMLButtonElement,
   MouseEvent
@@ -110,6 +112,8 @@ export type DataVal = "data";
 export type CancelledVal = "cancelled";
 export type DeletedVal = "deleted";
 export type RequestedVal = "requested";
+export type ErfolgWert = "erfolg";
+export type VersagenWert = "versagen";
 
 export const StateValue = {
   noEffect: "noEffect" as NoEffectVal,
@@ -131,6 +135,8 @@ export const StateValue = {
   cancelled: "cancelled" as CancelledVal,
   deleted: "deleted" as DeletedVal,
   requested: "requested" as RequestedVal,
+  erfolg: "erfolg" as ErfolgWert,
+  versagen: "versagen" as VersagenWert,
 } as const;
 
 export type LoadingState = Readonly<{

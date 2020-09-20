@@ -9,29 +9,47 @@ import {
   DetailedExperienceChildDispatchProps,
   Match,
 } from "../components/DetailExperience/complete-experience-utils";
-import { EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
+import {
+  EntryConnectionFragment,
+  EntryConnectionFragment_edges,
+} from "../graphql/apollo-types/EntryConnectionFragment";
 import { scrollDocumentToTop } from "../components/DetailExperience/detail-experience.injectables";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import {
   newEntryCreatedNotificationCloseId,
   entriesErrorsNotificationCloseId,
-  noEntryTrigger,
+  noEntryTriggerId,
+  refetchExperienceId,
+  neueHolenEinträgeId,
 } from "../components/DetailExperience/detail-experience.dom";
 import { act } from "react-dom/test-utils";
-import { defaultExperience } from "../tests.utils";
 import { makeOfflineId } from "../utils/offlines";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
 import { getSyncingExperience } from "../apollo/syncing-experience-ledger";
 import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
-import { E2EWindowObject } from "../utils/types";
-import { getUnSyncEntriesErrorsLedger } from "../apollo/unsynced-ledger";
-import { getDeleteExperienceLedger } from "../apollo/delete-experience-cache";
+import { E2EWindowObject, StateValue } from "../utils/types";
+import {
+  getUnSyncEntriesErrorsLedger,
+  removeUnsyncedExperiences,
+} from "../apollo/unsynced-ledger";
+import {
+  getDeleteExperienceLedger,
+  putOrRemoveDeleteExperienceLedger,
+} from "../apollo/delete-experience-cache";
 import { getIsConnected } from "../utils/connections";
 import {
   manuallyFetchDetailedExperience,
   DetailedExperienceQueryResult,
+  DeleteExperiencesMutationResult,
 } from "../utils/experience.gql.types";
 import { useDeleteExperiencesMutation } from "../components/DetailExperience/detail-experience.injectables";
+import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
+import { DataTypes } from "../graphql/apollo-types/globalTypes";
+import { sammelnZwischengespeicherteErfahrung } from "../apollo/get-detailed-experience-query";
+import { activeClassName } from "../utils/utils.dom";
+
+jest.mock("../apollo/get-detailed-experience-query");
+const mockSammelnZwischengespeicherteErfahrung = sammelnZwischengespeicherteErfahrung as jest.Mock;
 
 jest.mock("../components/Header/header.component", () => () => null);
 
@@ -40,8 +58,9 @@ const mockUseDeleteExperiencesMutation = useDeleteExperiencesMutation as jest.Mo
 jest.mock("../components/DetailExperience/detail-experience.injectables");
 mockUseDeleteExperiencesMutation.mockReturnValue([mockDeleteExperiences]);
 
-const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
 jest.mock("../apollo/delete-experience-cache");
+const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
+const mockPutOrRemoveDeleteExperienceLedger = putOrRemoveDeleteExperienceLedger as jest.Mock;
 
 jest.mock("../apollo/syncing-experience-ledger");
 
@@ -119,6 +138,14 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
 
 jest.mock("../apollo/unsynced-ledger");
 const mockGetSyncEntriesErrorsLedger = getUnSyncEntriesErrorsLedger as jest.Mock;
+const mockRemoveUnsyncedExperiences = removeUnsyncedExperiences as jest.Mock;
+
+const mockLoadingId = "l-o-a-d-i-n-g";
+jest.mock("../components/Loading/loading.component", () => {
+  return () => <div id={mockLoadingId}></div>;
+});
+
+const mockHistoryPushFn = jest.fn();
 
 const mockPersistFunc = jest.fn();
 
@@ -145,79 +172,216 @@ afterEach(() => {
   jest.clearAllTimers();
 });
 
+const onlineId = "onlineId";
+
+const defaultExperience = {
+  id: onlineId,
+  dataDefinitions: [
+    {
+      id: "1",
+      name: "aa",
+      type: DataTypes.INTEGER,
+    },
+  ],
+} as ExperienceFragment;
+
+////////////////////////// TESTS //////////////////////////////
+
 describe("components", () => {
-  const timeout = 100000;
   const entryOfflineClassName = "entry--is-danger";
 
-  it("has connection/nothing to sync/no entries/entry added/entry errors auto close notification", async () => {
-    mockGetSyncingExperience.mockReturnValue(null);
-    mockGetDeleteExperienceLedger.mockReturnValue(null);
+  const eintrag = {
+    id: "a",
+    insertedAt: "2020-09-16T20:00:37Z",
+    updatedAt: "2020-09-16T20:00:37Z",
+    dataObjects: [
+      {
+        id: "a",
+        definitionId: "1",
+        data: `{"integer":1}`,
+      },
+    ],
+  };
+
+  const einträgeErfolg = {
+    __typename: "GetEntriesSuccess",
+    entries: {
+      edges: [
+        {
+          node: eintrag,
+        },
+      ],
+    },
+  };
+
+  fit("has connection/holen erzeugt Ausnahme/entry added/entry errors auto close notification", async () => {
     mockGetIsConnected.mockReturnValue(true);
+
+    mockManuallyFetchDetailedExperience.mockResolvedValueOnce({
+      error: new Error("a"),
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    const { debug } = render(ui);
+
+    expect(document.getElementById(mockLoadingId)).not.toBeNull();
+    expect(document.getElementById(refetchExperienceId)).toBeNull();
+
+    jest.runAllTimers();
+    const wiederholenTaste = await waitForElement(() => {
+      return document.getElementById(refetchExperienceId) as HTMLElement;
+    });
+
+    mockManuallyFetchDetailedExperience.mockRejectedValueOnce(new Error("b"));
+
+    wiederholenTaste.click();
+    jest.runAllTimers();
+
+    await wait(() => true);
 
     mockManuallyFetchDetailedExperience.mockResolvedValueOnce({
       data: {
         getExperience: {
-          ...defaultExperience, // no entries
+          ...defaultExperience,
         },
+      },
+    } as DetailedExperienceQueryResult);
+
+    wiederholenTaste.click();
+    jest.runAllTimers();
+
+    expect(kriegNeueHolenEinträge()).toBeNull();
+    await waitForElement(kriegNeueHolenEinträge);
+
+
+    mockManuallyFetchDetailedExperience.mockResolvedValueOnce({
+      data: {
+        getExperience: {
+          ...defaultExperience,
+        },
+        getEntries: {
+          ...einträgeErfolg,
+          entries: {
+            edges: [] as any,
+          },
+        },
+      },
+    } as DetailedExperienceQueryResult);
+
+    wiederholenTaste.click();
+    jest.runAllTimers();
+    await wait(() => true);
+    debug()
+    return;
+
+    expect(getNoEntryEl()).toBeNull();
+    const noEntryEl = await waitForElement(getNoEntryEl);
+    expect(document.getElementById(mockNewEntryId)).toBeNull();
+
+    act(() => {
+      noEntryEl.click();
+    });
+
+    const entryEl = document.getElementById(mockNewEntryId) as HTMLElement;
+
+    expect(getNewEntryNotificationEl()).toBeNull();
+    expect(getEntriesErrorsNotificationEl()).toBeNull();
+
+    act(() => {
+      entryEl.click();
+    });
+
+    const schließNeuEintragEl = getNewEntryNotificationEl();
+    const eintragFehlerNachrichten = getEntriesErrorsNotificationEl();
+
+    act(() => {
+      schließNeuEintragEl.click();
+    });
+    expect(getNewEntryNotificationEl()).toBeNull();
+
+    act(() => {
+      eintragFehlerNachrichten.click();
+    });
+    expect(getEntriesErrorsNotificationEl()).toBeNull();
+  });
+
+  it("es gibt Einträge von zwischengespeicherte, löschen erfahrung", async () => {
+    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...defaultExperience,
+        },
+        getEntries: einträgeErfolg,
       },
     } as DetailedExperienceQueryResult);
 
     const { ui } = makeComp();
     render(ui);
 
-    // no entries to display
-    expect(getEntriesEl()).toBeNull();
+    const menüEl = getMenuEl();
+    const menüElEltern = menüEl.previousSibling as HTMLElement;
 
-    expect(document.getElementById(mockNewEntryId)).toBeNull();
-
-    // new entry UI initially not visible while experience is being fetched
-    // so we must wait till the next tick
-    const noEntryEl = await waitForElement(getNoEntryEl);
+    expect(menüElEltern.classList).not.toContain(activeClassName);
 
     act(() => {
-      noEntryEl.click();
+      menüEl.click();
     });
 
-    // assertions to show new entry has not been created / error received
-    expect(mockScrollDocumentToTop).not.toHaveBeenCalled();
-    expect(getNewEntryNotificationEl()).toBeNull();
-    expect(getEntriesErrorsNotificationEl()).toBeNull();
+    expect(menüElEltern.classList).toContain(activeClassName);
 
-    // let's simulate new entry created but with error and one entry created
-    const newEntryEl = document.getElementById(mockNewEntryId) as HTMLElement;
+    const erfahrungLöschenEl = document
+      .getElementsByClassName("delete-experience-link")
+      .item(0) as HTMLElement;
+
+    expect(kriegStornierenErfahrungLöschenEl()).toBeNull();
 
     act(() => {
-      newEntryEl.click();
+      erfahrungLöschenEl.click();
     });
-
-    // UI has not been updated with newly created entry
-    expect(document.getElementById(mockNewEntryId)).toBeNull();
-
-    // now UI is updated with newly created entry
-    await waitForElement(getNewEntryNotificationEl);
-
-    const entriesErrorsNotificationEl = getEntriesErrorsNotificationEl();
-
-    expect(mockScrollDocumentToTop).toHaveBeenCalled();
 
     act(() => {
-      entriesErrorsNotificationEl.click();
+      kriegStornierenErfahrungLöschenEl().click();
     });
 
-    expect(getEntriesErrorsNotificationEl()).toBeNull();
-
-    // simulate auto close notification
+    expect(kriegOkErfahrungLöschenEl()).toBeNull();
 
     act(() => {
-      jest.advanceTimersByTime(timeout);
+      erfahrungLöschenEl.click();
     });
 
-    expect(getNewEntryNotificationEl()).toBeNull();
+    mockDeleteExperiences.mockResolvedValueOnce({
+      data: {
+        deleteExperiences: {
+          __typename: "DeleteExperiencesSomeSuccess",
+          experiences: [
+            {
+              __typename: "DeleteExperienceSuccess",
+              experience: {
+                id: onlineId,
+                title: "aa",
+              },
+            },
+          ],
+        },
+      },
+    } as DeleteExperiencesMutationResult);
+
+    act(() => {
+      kriegOkErfahrungLöschenEl().click();
+    });
+
+    await wait(() => true);
+
+    expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0].key).toBe(
+      StateValue.deleted,
+    );
+
+    expect(mockRemoveUnsyncedExperiences.mock.calls[0][0][0]).toBe(onlineId);
+
+    expect(mockPersistFunc).toHaveBeenCalled();
+
+    expect(mockHistoryPushFn).toHaveBeenCalled();
   });
-});
-
-describe("reducer", () => {
-  //
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
@@ -230,6 +394,9 @@ function makeComp({
   props?: Partial<Props>;
 } = {}) {
   const location = props.location || ({} as any);
+  const history = {
+    push: mockHistoryPushFn,
+  } as any;
 
   props.match = {
     params: {
@@ -238,12 +405,12 @@ function makeComp({
   } as Match;
 
   return {
-    ui: <DetailExperienceP location={location} {...props} />,
+    ui: <DetailExperienceP location={location} history={history} {...props} />,
   };
 }
 
 function getNoEntryEl() {
-  return document.getElementsByClassName(noEntryTrigger).item(0) as HTMLElement;
+  return document.getElementById(noEntryTriggerId) as HTMLElement;
 }
 
 function getEntriesEl() {
@@ -266,4 +433,26 @@ function getEntriesErrorsNotificationEl() {
   return document.getElementById(
     entriesErrorsNotificationCloseId,
   ) as HTMLElement;
+}
+
+function getMenuEl() {
+  return document
+    .getElementsByClassName("top-options-menu")
+    .item(0) as HTMLDivElement;
+}
+
+function kriegStornierenErfahrungLöschenEl() {
+  return document
+    .getElementsByClassName("delete-experience__cancel-button")
+    .item(0) as HTMLElement;
+}
+
+function kriegOkErfahrungLöschenEl() {
+  return document
+    .getElementsByClassName("delete-experience__ok-button")
+    .item(0) as HTMLElement;
+}
+
+function kriegNeueHolenEinträge() {
+  return document.getElementById(neueHolenEinträgeId) as HTMLElement;
 }

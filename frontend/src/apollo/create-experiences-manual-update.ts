@@ -37,8 +37,8 @@ export function createExperiencesManualUpdate(
           entries: entriesResult,
         } = response;
 
-        const clientId = newlyCreatedExperience.clientId || "";
-        const offlineExperience = readExperienceFragment(clientId);
+        const offlineErfahrungId = newlyCreatedExperience.clientId || "";
+        const offlineExperience = readExperienceFragment(offlineErfahrungId);
 
         // fresh experience created directly online
         // bzw kein Eintrag erstelltet mit Erfahrung
@@ -73,7 +73,7 @@ export function createExperiencesManualUpdate(
           [[], []] as [EntryConnectionFragment_edges[], number[]],
         );
 
-        const getEntries = getEntriesQuerySuccess(clientId);
+        const getEntries = getEntriesQuerySuccess(offlineErfahrungId);
 
         const beforeSyncEntriesEdges = getEntries.edges as EntryConnectionFragment_edges[];
 
@@ -86,11 +86,13 @@ export function createExperiencesManualUpdate(
           return toBeInsertedOrReplacedAcc;
         }
 
-        const syncedAndUnsyncedEntriesEdges: EntryConnectionFragment_edges[] = Array.from(
+        const neueErstellteErfahrungEinträgeKanten: EntryConnectionFragment_edges[] = Array.from(
           {
             length: beforeSyncEntriesEdges.length,
           },
         );
+
+        const entriesLeftOverForOfflineExperience: EntryConnectionFragment_edges[] = [];
 
         let syncedIndex = 0;
 
@@ -129,14 +131,19 @@ export function createExperiencesManualUpdate(
               },
             };
 
-            syncedAndUnsyncedEntriesEdges[index] = entryEdge;
+            neueErstellteErfahrungEinträgeKanten[index] = entryEdge;
           } else {
-            syncedAndUnsyncedEntriesEdges[index] =
+            neueErstellteErfahrungEinträgeKanten[index] =
               newlyCreatedEntriesEdges[syncedIndex++];
+
+            entriesLeftOverForOfflineExperience.push(edge);
           }
         });
 
-        toBeInsertedOrReplacedAcc.push([clientId, newlyCreatedExperience]);
+        toBeInsertedOrReplacedAcc.push([
+          offlineErfahrungId,
+          newlyCreatedExperience,
+        ]);
 
         writeGetExperienceQueryToCache(newlyCreatedExperience);
 
@@ -144,7 +151,15 @@ export function createExperiencesManualUpdate(
           experienceId,
           toGetEntriesSuccessQuery({
             ...getEntries,
-            edges: syncedAndUnsyncedEntriesEdges,
+            edges: neueErstellteErfahrungEinträgeKanten,
+          }),
+        );
+
+        writeGetEntriesQuery(
+          offlineErfahrungId,
+          toGetEntriesSuccessQuery({
+            ...getEntries,
+            edges: entriesLeftOverForOfflineExperience,
           }),
         );
       }

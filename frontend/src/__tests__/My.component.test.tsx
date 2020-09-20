@@ -8,7 +8,6 @@ import {
   MyChildDispatchProps,
   EffectType,
   effectFunctions,
-  FETCH_EXPERIENCES_TIMEOUTS,
 } from "../components/My/my.utils";
 import {
   noExperiencesActivateNewDomId,
@@ -25,11 +24,9 @@ import {
   onDeleteExperienceSuccessNotificationId,
   onDeleteExperienceCancelledNotificationId,
 } from "../components/My/my.dom";
-import { act } from "react-dom/test-utils";
-// import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
 import { makeOfflineId } from "../utils/offlines";
 import { fillField } from "../tests.utils";
-import { StateValue } from "../utils/types";
+import { StateValue, FETCH_EXPERIENCES_TIMEOUTS } from "../utils/types";
 import { GenericHasEffect } from "../utils/effects";
 import {
   manuallyFetchExperienceConnectionMini,

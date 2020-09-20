@@ -15,6 +15,7 @@ import {
   LoadingVal,
   InitialVal,
   LoadingState,
+  FETCH_EXPERIENCES_TIMEOUTS,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -49,8 +50,6 @@ import {
 } from "../../graphql/apollo-types/GetExperienceConnectionMini";
 import { getExperiencesMiniQuery } from "../../apollo/get-experiences-mini-query";
 import { scrollIntoView } from "../../utils/scroll-into-view";
-
-export const FETCH_EXPERIENCES_TIMEOUTS = [2000, 2000, 3000, 5000];
 
 export enum ActionType {
   ACTIVATE_NEW_EXPERIENCE = "@my/activate-new-experience",
@@ -476,8 +475,6 @@ type DefDeleteExperienceRequestEffect = EffectDefinition<
   WithExperienceIdPayload
 >;
 
-let fetchExperiencesAttemptCount = 1;
-
 const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
   { paginationInput },
   props,
@@ -485,8 +482,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 ) => {
   const { dispatch } = effectArgs;
   let timeoutId: null | NodeJS.Timeout = null;
-  fetchExperiencesAttemptCount = 0;
-
+  let fetchExperiencesAttemptsCount = 0;
   const timeoutsLen = FETCH_EXPERIENCES_TIMEOUTS.length - 1;
 
   const deletedExperience = await deleteExperienceProcessedEffectHelper(
@@ -519,7 +515,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 
     // we are still trying to connect and have tried enough times
     // isConnected === null
-    if (fetchExperiencesAttemptCount > timeoutsLen) {
+    if (fetchExperiencesAttemptsCount > timeoutsLen) {
       dispatch({
         type: ActionType.ON_DATA_RECEIVED,
         key: StateValue.errors,
@@ -531,7 +527,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 
     timeoutId = setTimeout(
       fetchExperiencesAfter,
-      FETCH_EXPERIENCES_TIMEOUTS[fetchExperiencesAttemptCount++],
+      FETCH_EXPERIENCES_TIMEOUTS[fetchExperiencesAttemptsCount++],
     );
   }
 
@@ -552,12 +548,12 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
           error,
         });
       } else {
-        const sammelnErfahrüngen = (data &&
+        const sammelnErfahrungen = (data &&
           data.getExperiences) as GetExperienceConnectionMini_getExperiences;
 
-        const [ergebnisse, neuenErfahrüng] = appendNewToGetExperiencesQuery(
+        const [ergebnisse, neuenErfahrung] = appendNewToGetExperiencesQuery(
           !!paginationInput,
-          sammelnErfahrüngen,
+          sammelnErfahrungen,
           zwischengespeicherteErgebnis,
         );
 
@@ -569,7 +565,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
         });
 
         if (paginationInput) {
-          scrollIntoView(neuenErfahrüng.id);
+          scrollIntoView(neuenErfahrung.id);
         }
       }
     } catch (error) {
