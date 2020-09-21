@@ -43,7 +43,7 @@ import {
   GetExperienceConnectionMini_getExperiences_edges,
   GetExperienceConnectionMini_getExperiences,
 } from "../graphql/apollo-types/GetExperienceConnectionMini";
-import { useWithSubscriptionContext } from "../components/My/my.injectables";
+import { useWithSubscriptionContext } from "../apollo/injectables";
 import { purgeExperiencesFromCache1 } from "../apollo/update-get-experiences-mini-query";
 import { AppPersistor } from "../utils/app-context";
 import { E2EWindowObject } from "../utils/types";
@@ -117,7 +117,7 @@ jest.mock("../components/Loading/loading.component", () => {
   return () => <div id={mockLoadingId}></div>;
 });
 
-jest.mock("../components/My/my.injectables");
+jest.mock("../apollo/injectables");
 const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
 
 const mockHistoryPush = jest.fn();

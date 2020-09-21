@@ -22,7 +22,7 @@ import {
   DataState,
   EinträgeDatenErfolg,
   DataStateContextEntry,
-} from "./complete-experience-utils";
+} from "./detailed-experience-utils";
 import { setUpRoutePage } from "../../utils/global-window";
 import { NewEntry } from "./detail-experience.lazy";
 import Loading from "../Loading/loading.component";
@@ -41,6 +41,7 @@ import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
 import { useDeleteExperiencesMutation } from "./detail-experience.injectables";
 import { activeClassName } from "../../utils/utils.dom";
+import { useWithSubscriptionContext } from "../../apollo/injectables";
 
 type DispatchContextValue = Readonly<{
   onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
@@ -51,6 +52,7 @@ type DispatchContextValue = Readonly<{
   onDeleteExperienceRequest: (e: ReactMouseAnchorEvent) => void;
   onToggleMenu: () => void;
   onRefetchEntries: () => void;
+  holenNächstenEinträge: () => void;
   dispatch: DispatchType;
 }>;
 const DispatchContext = createContext<DispatchContextValue>(
@@ -73,12 +75,9 @@ export function DetailExperience(props: Props) {
     timeouts: { autoCloseNotification: autoCloseNotificationTimeout },
   } = stateMachine;
 
-  const dataState = states as DataState;
-
   useRunEffects(generalEffects, effectFunctions, props, {
     dispatch,
     deleteExperiences,
-    stateContext: dataState.data && dataState.data.context,
   });
 
   useEffect(() => {
@@ -138,6 +137,11 @@ export function DetailExperience(props: Props) {
       onRefetchEntries: () => {
         dispatch({
           type: ActionType.RE_FETCH_ENTRIES,
+        });
+      },
+      holenNächstenEinträge: () => {
+        dispatch({
+          type: ActionType.HOLEN_NÄCHSTE_EINTÄGE,
         });
       },
     };
@@ -217,10 +221,11 @@ function ExperienceComponent() {
       newEntryActive: newEntryActiveState,
       newEntryCreated,
       entriesErrors,
+      einträge: einträgeStatten,
     },
   } = useContext(DataStateContextC);
 
-  const { experience, einträgeDaten } = context;
+  const { experience } = context;
 
   useLayoutEffect(() => {
     setUpRoutePage({
@@ -278,11 +283,13 @@ function ExperienceComponent() {
             onCloseNewEntryCreatedNotification
           }
         />
-        {einträgeDaten.schlüssel === StateValue.erfolg ? (
-          <EntriesComponent state={einträgeDaten.daten} />
-        ) : (
+        {einträgeStatten.wert === StateValue.erfolg && (
+          <EntriesComponent state={einträgeStatten.erfolg} />
+        )}
+
+        {einträgeStatten.wert === StateValue.versagen && (
           <div id={neueHolenEinträgeId}>
-            {einträgeDaten.fehler}
+            {einträgeStatten.fehler}
 
             <button className="button" onClick={onRefetchEntries} />
           </div>
@@ -292,18 +299,26 @@ function ExperienceComponent() {
   );
 }
 
-function EntriesComponent(props: { state: EinträgeDatenErfolg["daten"] }) {
+function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
+  const { connected } = useWithSubscriptionContext();
+
   const {
     onOpenNewEntry,
     onToggleMenu,
     onDeleteExperienceRequest,
+    holenNächstenEinträge,
   } = useContext(DispatchContext);
 
   const {
     states: { showingOptionsMenu },
   } = useContext(DataStateContextC);
 
-  const entries = props.state.einträge;
+  const {
+    context: {
+      einträge: entries,
+      seiteInfo: { hasNextPage },
+    },
+  } = props.state;
 
   return (
     <>
@@ -335,12 +350,23 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["daten"] }) {
           />
 
           <div className="entries">
-            {entries.map((daten) => {
+            {entries.map((daten, index) => {
               return (
                 <EntryComponent key={daten.eintragDaten.id} state={daten} />
               );
             })}
           </div>
+
+          {connected && hasNextPage && (
+            <div className="detailed-experience__next-entries">
+              <button
+                className="button is-primary"
+                onClick={holenNächstenEinträge}
+              >
+                More
+              </button>
+            </div>
+          )}
         </>
       )}
     </>

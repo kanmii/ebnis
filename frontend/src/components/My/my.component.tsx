@@ -50,14 +50,14 @@ import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMin
 import makeClassNames from "classnames";
 import { Link } from "react-router-dom";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
-import { getOnlineStatus } from "../DetailExperience/complete-experience-utils";
+import { getOnlineStatus } from "../DetailExperience/detailed-experience-utils";
 import { InputChangeEvent } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { PageInfoFragment } from "../../graphql/apollo-types/PageInfoFragment";
 import errorImage from "../../media/error-96.png";
 import Header from "../Header/header.component";
 import { unstable_batchedUpdates } from "react-dom";
-import { useWithSubscriptionContext } from "./my.injectables";
+import { useWithSubscriptionContext } from "../../apollo/injectables";
 
 export function My(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);

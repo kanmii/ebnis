@@ -114,6 +114,7 @@ export type DeletedVal = "deleted";
 export type RequestedVal = "requested";
 export type ErfolgWert = "erfolg";
 export type VersagenWert = "versagen";
+export type EinträgeMitHolenFehlerWert = 'einträgeMitHolenFehler'
 
 export const StateValue = {
   noEffect: "noEffect" as NoEffectVal,
@@ -137,6 +138,7 @@ export const StateValue = {
   requested: "requested" as RequestedVal,
   erfolg: "erfolg" as ErfolgWert,
   versagen: "versagen" as VersagenWert,
+  einträgeMitHolenFehler: 'einträgeMitHolenFehler' as EinträgeMitHolenFehlerWert
 } as const;
 
 export type LoadingState = Readonly<{

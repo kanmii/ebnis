@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 export { useDeleteExperiencesMutation } from "../../utils/experience.gql.types";
 
 // istanbul ignore next:

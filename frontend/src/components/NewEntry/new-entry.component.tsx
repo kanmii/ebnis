@@ -35,7 +35,7 @@ import {
   notificationCloseId,
   fieldErrorSelector,
 } from "./new-entry.dom";
-import { ActionType as DetailExperienceActionType } from "../DetailExperience/complete-experience-utils";
+import { ActionType as DetailExperienceActionType } from "../DetailExperience/detailed-experience-utils";
 import { StateValue } from "../../utils/types";
 import { errorClassName } from "../../utils/utils.dom";
 import { useRunEffects } from "../../utils/use-run-effects";
