@@ -8,7 +8,7 @@ import {
   ActionType,
   DetailedExperienceChildDispatchProps,
   Match,
-} from "../components/DetailExperience/complete-experience-utils";
+} from "../components/DetailExperience/detailed-experience-utils";
 import {
   EntryConnectionFragment,
   EntryConnectionFragment_edges,
@@ -41,22 +41,27 @@ import {
   manuallyFetchDetailedExperience,
   DetailedExperienceQueryResult,
   DeleteExperiencesMutationResult,
+  manuallyFetchEntries,
+  GetEntriesQueryResult,
 } from "../utils/experience.gql.types";
 import { useDeleteExperiencesMutation } from "../components/DetailExperience/detail-experience.injectables";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
 import { sammelnZwischengespeicherteErfahrung } from "../apollo/get-detailed-experience-query";
 import { activeClassName } from "../utils/utils.dom";
+import { useWithSubscriptionContext } from "../apollo/injectables";
+
+jest.mock("../apollo/injectables");
+const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockSammelnZwischengespeicherteErfahrung = sammelnZwischengespeicherteErfahrung as jest.Mock;
 
 jest.mock("../components/Header/header.component", () => () => null);
 
+jest.mock("../components/DetailExperience/detail-experience.injectables");
 const mockDeleteExperiences = jest.fn();
 const mockUseDeleteExperiencesMutation = useDeleteExperiencesMutation as jest.Mock;
-jest.mock("../components/DetailExperience/detail-experience.injectables");
-mockUseDeleteExperiencesMutation.mockReturnValue([mockDeleteExperiences]);
 
 jest.mock("../apollo/delete-experience-cache");
 const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
@@ -64,8 +69,9 @@ const mockPutOrRemoveDeleteExperienceLedger = putOrRemoveDeleteExperienceLedger 
 
 jest.mock("../apollo/syncing-experience-ledger");
 
-const mockManuallyFetchDetailedExperience = manuallyFetchDetailedExperience as jest.Mock;
 jest.mock("../utils/experience.gql.types");
+const mockManuallyFetchDetailedExperience = manuallyFetchDetailedExperience as jest.Mock;
+const mockManuallyFetchEntries = manuallyFetchEntries as jest.Mock;
 
 const mockGetIsConnected = getIsConnected as jest.Mock;
 jest.mock("../utils/connections");
@@ -170,6 +176,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.clearAllTimers();
+  jest.resetAllMocks();
 });
 
 const onlineId = "onlineId";
@@ -211,10 +218,12 @@ describe("components", () => {
           node: eintrag,
         },
       ],
+      pageInfo: {},
     },
   };
 
-  fit("has connection/holen erzeugt Ausnahme/entry added/entry errors auto close notification", async () => {
+  it("has connection/holen erzeugt Ausnahme/entry added/entry errors auto close notification", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
     mockGetIsConnected.mockReturnValue(true);
 
     mockManuallyFetchDetailedExperience.mockResolvedValueOnce({
@@ -222,19 +231,19 @@ describe("components", () => {
     } as DetailedExperienceQueryResult);
 
     const { ui } = makeComp();
-    const { debug } = render(ui);
+    render(ui);
 
     expect(document.getElementById(mockLoadingId)).not.toBeNull();
     expect(document.getElementById(refetchExperienceId)).toBeNull();
 
     jest.runAllTimers();
-    const wiederholenTaste = await waitForElement(() => {
+    const wiederholenErfahrungTaste = await waitForElement(() => {
       return document.getElementById(refetchExperienceId) as HTMLElement;
     });
 
     mockManuallyFetchDetailedExperience.mockRejectedValueOnce(new Error("b"));
 
-    wiederholenTaste.click();
+    wiederholenErfahrungTaste.click();
     jest.runAllTimers();
 
     await wait(() => true);
@@ -247,35 +256,32 @@ describe("components", () => {
       },
     } as DetailedExperienceQueryResult);
 
-    wiederholenTaste.click();
+    wiederholenErfahrungTaste.click();
     jest.runAllTimers();
 
     expect(kriegNeueHolenEinträge()).toBeNull();
-    await waitForElement(kriegNeueHolenEinträge);
+    const neueHolenEinträgeEl = await waitForElement(kriegNeueHolenEinträge);
 
-
-    mockManuallyFetchDetailedExperience.mockResolvedValueOnce({
+    mockManuallyFetchEntries.mockResolvedValueOnce({
       data: {
-        getExperience: {
-          ...defaultExperience,
-        },
         getEntries: {
           ...einträgeErfolg,
           entries: {
             edges: [] as any,
+            pageInfo: {},
           },
         },
       },
-    } as DetailedExperienceQueryResult);
+    } as GetEntriesQueryResult);
 
-    wiederholenTaste.click();
-    jest.runAllTimers();
-    await wait(() => true);
-    debug()
-    return;
+    act(() => {
+      neueHolenEinträgeEl.click();
+    });
 
     expect(getNoEntryEl()).toBeNull();
+    jest.runAllTimers();
     const noEntryEl = await waitForElement(getNoEntryEl);
+
     expect(document.getElementById(mockNewEntryId)).toBeNull();
 
     act(() => {
@@ -305,7 +311,8 @@ describe("components", () => {
     expect(getEntriesErrorsNotificationEl()).toBeNull();
   });
 
-  it("es gibt Einträge von zwischengespeicherte, löschen erfahrung", async () => {
+  it("es gibt Einträge von zwischengespeicherte/löschen erfahrung", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
     mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
       data: {
         getExperience: {
@@ -382,6 +389,34 @@ describe("components", () => {
 
     expect(mockHistoryPushFn).toHaveBeenCalled();
   });
+
+  it("Einträge paginierung", async () => {
+    mockUseWithSubscriptionContext.mockReturnValueOnce({ connected: true });
+
+    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...defaultExperience,
+        },
+        getEntries: {
+          __typename: "GetEntriesSuccess",
+          entries: {
+            edges: [
+              {
+                node: eintrag,
+              },
+            ],
+            pageInfo: {
+              hasNextPage: true,
+            },
+          },
+        },
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    const { debug } = render(ui);
+  });
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
@@ -393,6 +428,7 @@ function makeComp({
 }: {
   props?: Partial<Props>;
 } = {}) {
+  mockUseDeleteExperiencesMutation.mockReturnValue([mockDeleteExperiences]);
   const location = props.location || ({} as any);
   const history = {
     push: mockHistoryPushFn,

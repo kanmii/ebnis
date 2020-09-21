@@ -288,10 +288,14 @@ function ExperienceComponent() {
         )}
 
         {einträgeStatten.wert === StateValue.versagen && (
-          <div id={neueHolenEinträgeId}>
+          <div>
             {einträgeStatten.fehler}
 
-            <button className="button" onClick={onRefetchEntries} />
+            <button
+              id={neueHolenEinträgeId}
+              className="button"
+              onClick={onRefetchEntries}
+            />
           </div>
         )}
       </div>
