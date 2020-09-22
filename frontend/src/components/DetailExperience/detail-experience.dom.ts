@@ -5,3 +5,4 @@ export const noTriggerDocumentEventClassName = `js-${domPrefix}-no-trigger-docum
 export const noEntryTriggerId = `${domPrefix}-no-entry-trigger`;
 export const refetchExperienceId = `${domPrefix}-refetch-experience`;
 export const neueHolenEinträgeId = `${domPrefix}-neue-holen-einträge`;
+export const holenNächstenEinträgeId = `${domPrefix}-holen-nächste-einträge`;

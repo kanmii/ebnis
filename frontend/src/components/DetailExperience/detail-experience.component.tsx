@@ -36,6 +36,7 @@ import {
   noEntryTriggerId,
   refetchExperienceId,
   neueHolenEinträgeId,
+  holenNächstenEinträgeId,
 } from "./detail-experience.dom";
 import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
@@ -141,7 +142,7 @@ export function DetailExperience(props: Props) {
       },
       holenNächstenEinträge: () => {
         dispatch({
-          type: ActionType.HOLEN_NÄCHSTE_EINTÄGE,
+          type: ActionType.HOLEN_NÄCHSTE_EINTRÄGE,
         });
       },
     };
@@ -321,6 +322,7 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
     context: {
       einträge: entries,
       seiteInfo: { hasNextPage },
+      paginierungFehler,
     },
   } = props.state;
 
@@ -363,7 +365,15 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
 
           {connected && hasNextPage && (
             <div className="detailed-experience__next-entries">
+              {paginierungFehler && (
+                <div className="detailed-experience__paginierung-fehler">
+                  Unable to fetch more entries
+                  {paginierungFehler}
+                </div>
+              )}
+
               <button
+                id={holenNächstenEinträgeId}
                 className="button is-primary"
                 onClick={holenNächstenEinträge}
               >
@@ -415,7 +425,7 @@ function EntryComponent(props: { state: DataStateContextEntry }) {
             >
               <button
                 type="button"
-                className="button is-small entry__edit"
+                className="button is-small detailed-experience__entry-edit"
                 onClick={() => {
                   dispatch({
                     type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,

@@ -1,5 +1,5 @@
 import { Reducer, Dispatch } from "react";
-import { wrapReducer } from "../../logger";
+import { wrapReducer, wickelnStatten } from "../../logger";
 import { RouteChildrenProps, match } from "react-router-dom";
 import { DetailExperienceRouteMatch } from "../../utils/urls";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
@@ -96,7 +96,7 @@ export enum ActionType {
   AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN = "@detailed-experience/on-data-received",
   RE_FETCH_EXPERIENCE = "@detailed-experience/re-fetch-experience",
   RE_FETCH_ENTRIES = "@detailed-experience/re-fetch-entries",
-  HOLEN_NÄCHSTE_EINTÄGE = "@detailed-experience/holen-nächste-einträge",
+  HOLEN_NÄCHSTE_EINTRÄGE = "@detailed-experience/holen-nächste-einträge",
   AUF_EINTRÄGE_ERHIELTEN = "@detailed-experience/on-entries-received",
 }
 
@@ -180,7 +180,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             );
             break;
 
-          case ActionType.HOLEN_NÄCHSTE_EINTÄGE:
+          case ActionType.HOLEN_NÄCHSTE_EINTRÄGE:
             handhabenHolenNächsteEinträgeHandlung(proxy);
             break;
         }
@@ -192,8 +192,8 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
 ////////////////////////// STATE UPDATE SECTION ////////////////////////////
 
-export function initState(props: Props): StateMachine {
-  return {
+export function initState(): StateMachine {
+  const state = {
     effects: {
       general: {
         value: StateValue.hasEffects,
@@ -215,6 +215,8 @@ export function initState(props: Props): StateMachine {
 
     timeouts: {},
   };
+
+  return wickelnStatten(state);
 }
 
 function handleToggleNewEntryActiveAction(
@@ -223,6 +225,7 @@ function handleToggleNewEntryActiveAction(
 ) {
   const { states: globalStates } = proxy;
 
+  // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const { states } = globalStates.data;
     const { bearbeitenEintrag } = payload;
@@ -262,6 +265,7 @@ function handleOnNewEntryCreatedOrOfflineExperienceSynced(
 ) {
   const { states: globalStates } = proxy;
 
+  // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const { states, context } = globalStates.data;
 
@@ -313,6 +317,7 @@ function handleMaybeNewEntryCreatedHelper(
 
   const { states: globalStates } = proxy;
 
+  // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const { states } = globalStates.data;
     const { neuEintragDaten, zustand } = mayBeNewEntry;
@@ -336,6 +341,7 @@ function handleMaybeNewEntryCreatedHelper(
         return error.meta.clientId === neuErstellteEintragKlientId;
       });
 
+    // istanbul ignore next:
     if (neuErstellteEintragFehler) {
       return;
     }
@@ -402,6 +408,7 @@ function handleMaybeEntriesErrorsHelper(
 
   const { states: globalStates } = proxy;
 
+  // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const {
       states: { entriesErrors },
@@ -468,6 +475,7 @@ function handleMaybeEntriesErrorsHelper(
 function handleOnCloseNewEntryCreatedNotification(proxy: DraftStateMachine) {
   const { states: globalStates } = proxy;
 
+  // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const { states } = globalStates.data;
     states.newEntryCreated.value = StateValue.inactive;
@@ -477,6 +485,7 @@ function handleOnCloseNewEntryCreatedNotification(proxy: DraftStateMachine) {
 function handleOnCloseEntriesErrorsNotification(proxy: DraftStateMachine) {
   const { states: globalStates } = proxy;
 
+  // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const { states } = globalStates.data;
     states.entriesErrors.value = StateValue.inactive;
@@ -500,6 +509,7 @@ function handleDeleteExperienceRequestAction(
 ) {
   const { states: globalStates } = proxy;
 
+  // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const {
       states: { deleteExperience },
@@ -521,24 +531,28 @@ function handleDeleteExperienceRequestAction(
 function handleDeleteExperienceCancelledAction(proxy: DraftStateMachine) {
   const { states: globalStates } = proxy;
 
+  // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const {
       states: { deleteExperience },
       context: { experience },
     } = globalStates.data;
-    deleteExperience.value = StateValue.inactive;
 
     const deleteExperienceActive = deleteExperience as DeleteExperienceActiveState;
 
-    const effects = getGeneralEffects(proxy);
+    // istanbul ignore else:
+    if (deleteExperienceActive.value === StateValue.active) {
+      deleteExperience.value = StateValue.inactive;
+      const effects = getGeneralEffects(proxy);
 
-    effects.push({
-      key: "cancelDeleteExperienceEffect",
-      ownArgs: {
-        schlüssel: deleteExperienceActive.active.context.key,
-        experience,
-      },
-    });
+      effects.push({
+        key: "cancelDeleteExperienceEffect",
+        ownArgs: {
+          schlüssel: deleteExperienceActive.active.context.key,
+          experience,
+        },
+      });
+    }
   }
 }
 
@@ -563,6 +577,7 @@ function handleToggleShowOptionsMenuAction(
 ) {
   const { states: globalStates } = proxy;
 
+  // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const {
       states: { showingOptionsMenu },
@@ -753,6 +768,7 @@ function handhabenEinträgeErhieltenHandlung(
 ) {
   const { states: globalStates } = proxy;
 
+  // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const { states } = globalStates.data;
     const einträgeStatten = states.einträge;
@@ -772,6 +788,7 @@ function handhabenEinträgeErhieltenHandlung(
         break;
 
       case StateValue.versagen:
+        // istanbul ignore else:
         if (payload.schlüssel === StateValue.erfolg) {
           const einträgeErfolgStatten = states.einträge as Draft<
             EinträgeDatenErfolg
@@ -825,6 +842,7 @@ function verarbeitenEinträgeContext(
   const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
 
   // ein völlig neu Eintrag
+  // istanbul ignore else:
   if (!(vielleichtBearbeitenEintrag || zustand === "ganz-nue")) {
     context.einträge.unshift({
       eintragDaten: neuEintragDaten,
@@ -918,6 +936,7 @@ const onOfflineExperienceSyncedEffect: DefOnOfflineExperienceSyncedEffect["func"
       const { clientId } = eintragDaten;
 
       // das ein ganz Online-Eintrag zuerst erstelltet als Offline-Eintrag
+      // istanbul ignore else:
       if (clientId === newEntryClientId) {
         mayBeNewEntry = eintragDaten;
       }
@@ -942,6 +961,34 @@ type DefOnOfflineExperienceSyncedEffect = EffectDefinition<
   {
     erfahrungId: string;
     einträge?: DataStateContextEntries;
+  }
+>;
+
+const deleteExperienceRequestedEffect: DefDeleteExperienceRequestedEffect["func"] = (
+  { experienceId },
+  props,
+  effectArgs,
+) => {
+  const { dispatch } = effectArgs;
+  const deleteExperienceLedger = getDeleteExperienceLedger(experienceId);
+
+  if (
+    deleteExperienceLedger &&
+    deleteExperienceLedger.key === StateValue.requested
+  ) {
+    putOrRemoveDeleteExperienceLedger();
+
+    dispatch({
+      type: ActionType.DELETE_EXPERIENCE_REQUEST,
+      key: deleteExperienceLedger.key,
+    });
+  }
+};
+
+type DefDeleteExperienceRequestedEffect = EffectDefinition<
+  "deleteExperienceRequestedEffect",
+  {
+    experienceId: string;
   }
 >;
 
@@ -986,34 +1033,6 @@ type DefCancelDeleteExperienceEffect = EffectDefinition<
   }
 >;
 
-const deleteExperienceRequestedEffect: DefDeleteExperienceRequestedEffect["func"] = (
-  { experienceId },
-  props,
-  effectArgs,
-) => {
-  const { dispatch } = effectArgs;
-  const deleteExperienceLedger = getDeleteExperienceLedger(experienceId);
-
-  if (
-    deleteExperienceLedger &&
-    deleteExperienceLedger.key === StateValue.requested
-  ) {
-    putOrRemoveDeleteExperienceLedger();
-
-    dispatch({
-      type: ActionType.DELETE_EXPERIENCE_REQUEST,
-      key: deleteExperienceLedger.key,
-    });
-  }
-};
-
-type DefDeleteExperienceRequestedEffect = EffectDefinition<
-  "deleteExperienceRequestedEffect",
-  {
-    experienceId: string;
-  }
->;
-
 const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
   { erfahrungId },
   props,
@@ -1033,16 +1052,19 @@ const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
     const validResponse =
       response && response.data && response.data.deleteExperiences;
 
+    // istanbul ignore next
     if (!validResponse) {
       return;
     }
 
+    // istanbul ignore next
     if (validResponse.__typename === "DeleteExperiencesAllFail") {
       return;
     }
 
     const experienceResponse = validResponse.experiences[0];
 
+    // istanbul ignore next
     if (experienceResponse.__typename === "DeleteExperienceErrors") {
       return;
     }
@@ -1192,7 +1214,7 @@ type DefDeleteCacheKeysEffect = EffectDefinition<
   }
 >;
 
-const holenEinträgeWirkung: HolenEinträgeWirkung["func"] = async (
+const holenEinträgeWirkung: DefHolenEinträgeWirkung["func"] = async (
   { pagination },
   props,
   effectArgs,
@@ -1211,7 +1233,9 @@ const holenEinträgeWirkung: HolenEinträgeWirkung["func"] = async (
 
   try {
     const { data, error } =
-      (await manuallyFetchEntries(variables)) || ({} as GetEntriesQueryResult);
+      (await manuallyFetchEntries(variables)) ||
+      // istanbul ignore next:
+      ({} as GetEntriesQueryResult);
 
     if (data) {
       let verarbeitetEinträge = verarbeitenEinträgeAbfrage(
@@ -1251,10 +1275,26 @@ const holenEinträgeWirkung: HolenEinträgeWirkung["func"] = async (
   }
 };
 
-type HolenEinträgeWirkung = EffectDefinition<
+type DefHolenEinträgeWirkung = EffectDefinition<
   "holenEinträgeWirkung",
   {
     pagination: PaginationInput;
+  }
+>;
+
+const onInitStattenWirkung: DefOnInitStattenWirkung["func"] = (
+  { erfahrungId, einträge },
+  _props,
+  effectArgs,
+) => {
+  //
+};
+
+type DefOnInitStattenWirkung = EffectDefinition<
+  "onInitStattenWirkung",
+  {
+    erfahrungId: string;
+    einträge?: DataStateContextEntries;
   }
 >;
 
@@ -1270,6 +1310,7 @@ export const effectFunctions = {
   clearTimeoutEffect,
   deleteCacheKeysEffect,
   holenEinträgeWirkung,
+  onInitStattenWirkung,
 };
 
 function verarbeitenErfahrungAbfrage(
@@ -1337,7 +1378,7 @@ function verarbeitenEinträgeAbfrage(
 function anhängenZuletztEinträge(
   erfahrungId: string,
   eintragDaten: VerarbeitenEinträgeAbfrageZurückgegebenerWert,
-  zuletztEinträge: GetEntries_getEntries_GetEntriesSuccess_entries,
+  zuletztEinträge?: GetEntries_getEntries_GetEntriesSuccess_entries,
 ) {
   let blätternZuId = "??";
 
@@ -1351,7 +1392,13 @@ function anhängenZuletztEinträge(
     entryToEdge(e.eintragDaten),
   );
 
-  const zuletztEinträgeKanten = zuletztEinträge.edges as EntryConnectionFragment_edges[];
+  const zuletztEinträgeKanten = ((
+    zuletztEinträge ||
+    // istanbul ignore next:
+    ({} as GetEntries_getEntries_GetEntriesSuccess_entries)
+  ).edges ||
+    // istanbul ignore next:
+    []) as EntryConnectionFragment_edges[];
 
   const kanten = [...zuletztEinträgeKanten, ...zurzeitEinträgeKanten];
 
@@ -1455,6 +1502,11 @@ export type EinträgeDatenErfolg = {
   };
 };
 
+export type EinträgeDatenVersagen = Readonly<{
+  wert: VersagenWert;
+  fehler: string;
+}>;
+
 export type EinträgeMitHolenFehler = Readonly<{
   wert: EinträgeMitHolenFehlerWert;
   einträgeMitHolenFehler: {
@@ -1468,10 +1520,7 @@ export type EinträgeMitHolenFehler = Readonly<{
 type EinträgeDaten =
   | EinträgeDatenErfolg
   | EinträgeMitHolenFehler
-  | Readonly<{
-      wert: VersagenWert;
-      fehler: string;
-    }>;
+  | EinträgeDatenVersagen;
 
 export type DataStateContext = Readonly<{
   experience: ExperienceFragment;
@@ -1638,7 +1687,7 @@ type Action =
       type: ActionType.AUF_EINTRÄGE_ERHIELTEN;
     } & VerarbeitenEinträgeAbfrageZurückgegebenerWert)
   | {
-      type: ActionType.HOLEN_NÄCHSTE_EINTÄGE;
+      type: ActionType.HOLEN_NÄCHSTE_EINTRÄGE;
     };
 
 type NewEntryActivePayload = {
@@ -1709,7 +1758,8 @@ export type EffectType =
   | DefFetchDetailedExperienceEffect
   | DefClearTimeoutEffect
   | DefDeleteCacheKeysEffect
-  | HolenEinträgeWirkung;
+  | DefHolenEinträgeWirkung
+  | DefOnInitStattenWirkung;
 
 // [index/label, [errorKey, errorValue][]][]
 export type EintragFehlerAlsListe = [string | number, [string, string][]][];

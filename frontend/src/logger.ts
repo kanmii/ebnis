@@ -103,3 +103,11 @@ export function doNotLog() {
     (process.env.NODE_ENV === "production" || process.env[noLogReactEnv])
   );
 }
+
+export function wickelnStatten(state: any, sollenWickeln?: boolean) {
+  if ((sollenWickeln && !doNotLog()) || isDevEnv) {
+    console.log("\ninitial state = \n\t", objectForEnv(state));
+  }
+
+  return state;
+}

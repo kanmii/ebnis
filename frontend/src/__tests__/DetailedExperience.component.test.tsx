@@ -8,6 +8,14 @@ import {
   ActionType,
   DetailedExperienceChildDispatchProps,
   Match,
+  initState,
+  reducer,
+  DataState,
+  EinträgeMitHolenFehler,
+  EffectType,
+  effectFunctions,
+  EinträgeDatenErfolg,
+  EinträgeDatenVersagen,
 } from "../components/DetailExperience/detailed-experience-utils";
 import {
   EntryConnectionFragment,
@@ -21,12 +29,19 @@ import {
   noEntryTriggerId,
   refetchExperienceId,
   neueHolenEinträgeId,
+  holenNächstenEinträgeId,
 } from "../components/DetailExperience/detail-experience.dom";
 import { act } from "react-dom/test-utils";
 import { makeOfflineId } from "../utils/offlines";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
-import { getSyncingExperience } from "../apollo/syncing-experience-ledger";
-import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
+import {
+  getSyncingExperience,
+  putOrRemoveSyncingExperience,
+} from "../apollo/syncing-experience-ledger";
+import {
+  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery,
+  purgeExperience,
+} from "../apollo/update-get-experiences-mini-query";
 import { E2EWindowObject, StateValue } from "../utils/types";
 import {
   getUnSyncEntriesErrorsLedger,
@@ -50,6 +65,7 @@ import { DataTypes } from "../graphql/apollo-types/globalTypes";
 import { sammelnZwischengespeicherteErfahrung } from "../apollo/get-detailed-experience-query";
 import { activeClassName } from "../utils/utils.dom";
 import { useWithSubscriptionContext } from "../apollo/injectables";
+import { GenericHasEffect } from "../utils/effects";
 
 jest.mock("../apollo/injectables");
 const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
@@ -83,11 +99,14 @@ const mockScrollDocumentToTop = scrollDocumentToTop as jest.Mock;
 
 jest.mock("../apollo/syncing-experience-ledger");
 const mockGetSyncingExperience = getSyncingExperience as jest.Mock;
+const mockPutOrRemoveSyncingExperience = putOrRemoveSyncingExperience as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
 const mockReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = insertReplaceRemoveExperiencesInGetExperiencesMiniQuery as jest.Mock;
+const mockPurgeExperience = purgeExperience as jest.Mock;
 
-const mockNewEntryId = "aa";
+const mockCreateNewEntryId = "?a?";
+const mockDismissNewEntryUiId = "?b?";
 const mockActionType = ActionType;
 const mockNewlyCreatedEntry = {
   updatedAt: "2020-05-08T06:49:19Z",
@@ -106,38 +125,49 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
     NewEntry: ({
       detailedExperienceDispatch,
     }: DetailedExperienceChildDispatchProps) => (
-      <div
-        id={mockNewEntryId}
-        onClick={() => {
-          detailedExperienceDispatch({
-            type:
-              mockActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
-            mayBeNewEntry: {
-              neuEintragDaten: mockNewlyCreatedEntry,
-              zustand: "synchronisiert",
-            },
-            mayBeEntriesErrors: [
-              {
-                meta: {
-                  index: 1,
-                  clientId: "b",
-                },
-                error: "a",
-                experienceId: null,
-                dataObjects: [
-                  {
-                    meta: {
-                      index: 2,
-                    },
-                    data: "a",
-                    definition: null,
+      <div>
+        <button
+          id={mockCreateNewEntryId}
+          onClick={() => {
+            detailedExperienceDispatch({
+              type:
+                mockActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
+              mayBeNewEntry: {
+                neuEintragDaten: mockNewlyCreatedEntry,
+                zustand: "synchronisiert",
+              },
+              mayBeEntriesErrors: [
+                {
+                  meta: {
+                    index: 1,
+                    clientId: "b",
                   },
-                ],
-              } as CreateEntryErrorFragment,
-            ],
-          });
-        }}
-      />
+                  error: "a",
+                  experienceId: null,
+                  dataObjects: [
+                    {
+                      meta: {
+                        index: 2,
+                      },
+                      data: "a",
+                      definition: null,
+                    },
+                  ],
+                } as CreateEntryErrorFragment,
+              ],
+            });
+          }}
+        />
+
+        <button
+          id={mockDismissNewEntryUiId}
+          onClick={() => {
+            detailedExperienceDispatch({
+              type: mockActionType.TOGGLE_NEW_ENTRY_ACTIVE,
+            });
+          }}
+        />
+      </div>
     ),
   };
 });
@@ -181,7 +211,7 @@ afterEach(() => {
 
 const onlineId = "onlineId";
 
-const defaultExperience = {
+const DEFAULT_ERFAHRUNG = {
   id: onlineId,
   dataDefinitions: [
     {
@@ -197,8 +227,11 @@ const defaultExperience = {
 describe("components", () => {
   const entryOfflineClassName = "entry--is-danger";
 
-  const eintrag = {
+  const EINTRAG_KLIENT_ID = "aa";
+
+  const EINTRAG = {
     id: "a",
+    clientId: EINTRAG_KLIENT_ID,
     insertedAt: "2020-09-16T20:00:37Z",
     updatedAt: "2020-09-16T20:00:37Z",
     dataObjects: [
@@ -215,7 +248,7 @@ describe("components", () => {
     entries: {
       edges: [
         {
-          node: eintrag,
+          node: EINTRAG,
         },
       ],
       pageInfo: {},
@@ -251,7 +284,7 @@ describe("components", () => {
     mockManuallyFetchDetailedExperience.mockResolvedValueOnce({
       data: {
         getExperience: {
-          ...defaultExperience,
+          ...DEFAULT_ERFAHRUNG,
         },
       },
     } as DetailedExperienceQueryResult);
@@ -282,13 +315,31 @@ describe("components", () => {
     jest.runAllTimers();
     const noEntryEl = await waitForElement(getNoEntryEl);
 
-    expect(document.getElementById(mockNewEntryId)).toBeNull();
+    expect(document.getElementById(mockDismissNewEntryUiId)).toBeNull();
 
     act(() => {
       noEntryEl.click();
     });
 
-    const entryEl = document.getElementById(mockNewEntryId) as HTMLElement;
+    const entlassenNeuEintragUiEl = await waitForElement(() => {
+      return document.getElementById(mockDismissNewEntryUiId) as HTMLElement;
+    });
+
+    act(() => {
+      entlassenNeuEintragUiEl.click();
+    });
+
+    expect(document.getElementById(mockDismissNewEntryUiId)).toBeNull();
+
+    expect(document.getElementById(mockCreateNewEntryId)).toBeNull();
+
+    act(() => {
+      noEntryEl.click();
+    });
+
+    const entryEl = document.getElementById(
+      mockCreateNewEntryId,
+    ) as HTMLElement;
 
     expect(getNewEntryNotificationEl()).toBeNull();
     expect(getEntriesErrorsNotificationEl()).toBeNull();
@@ -313,10 +364,11 @@ describe("components", () => {
 
   it("es gibt Einträge von zwischengespeicherte/löschen erfahrung", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
+
     mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...defaultExperience,
+          ...DEFAULT_ERFAHRUNG,
         },
         getEntries: einträgeErfolg,
       },
@@ -392,18 +444,21 @@ describe("components", () => {
 
   it("Einträge paginierung", async () => {
     mockUseWithSubscriptionContext.mockReturnValueOnce({ connected: true });
+    mockGetSyncEntriesErrorsLedger.mockReturnValueOnce({
+      [EINTRAG_KLIENT_ID]: {},
+    });
 
     mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...defaultExperience,
+          ...DEFAULT_ERFAHRUNG,
         },
         getEntries: {
           __typename: "GetEntriesSuccess",
           entries: {
             edges: [
               {
-                node: eintrag,
+                node: EINTRAG,
               },
             ],
             pageInfo: {
@@ -415,7 +470,373 @@ describe("components", () => {
     } as DetailedExperienceQueryResult);
 
     const { ui } = makeComp();
-    const { debug } = render(ui);
+    render(ui);
+    // return;
+
+    const holenNächstenEinträgeEl = kriegHolenNächstenEinträgeEl();
+    mockUseWithSubscriptionContext.mockReturnValue({ connected: true });
+
+    mockManuallyFetchEntries.mockResolvedValueOnce({ error: "a" });
+
+    act(() => {
+      holenNächstenEinträgeEl.click();
+    });
+
+    expect(kriegPaginierungFehlerEl()).toBeNull();
+
+    await waitForElement(kriegPaginierungFehlerEl);
+
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockManuallyFetchEntries.mockResolvedValueOnce({
+      data: {
+        getEntries: {
+          ...einträgeErfolg,
+          entries: {
+            edges: [
+              {
+                node: {
+                  ...EINTRAG,
+                  id: "b",
+                },
+              },
+            ],
+            pageInfo: {
+              hasNextPage: true,
+            },
+          },
+        },
+      },
+    } as GetEntriesQueryResult);
+
+    act(() => {
+      holenNächstenEinträgeEl.click();
+    });
+
+    expect(document.getElementById("b")).toBeNull();
+
+    await waitForElement(() => {
+      return document.getElementById("b");
+    });
+
+    expect(kriegPaginierungFehlerEl()).toBeNull();
+    // weil es gibt kein Netzwerk
+    expect(kriegHolenNächstenEinträgeEl()).toBeNull();
+  });
+
+  it("nichtSynchronisiertFehler ", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+    mockGetSyncEntriesErrorsLedger.mockReturnValueOnce({
+      [EINTRAG_KLIENT_ID]: {},
+    });
+
+    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...DEFAULT_ERFAHRUNG,
+        },
+        getEntries: {
+          __typename: "GetEntriesSuccess",
+          entries: {
+            edges: [
+              {
+                node: EINTRAG,
+              },
+            ],
+            pageInfo: {
+              hasNextPage: true,
+            },
+          },
+        },
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    render(ui);
+    expect(document.getElementById(mockCreateNewEntryId)).toBeNull();
+
+    act(() => {
+      kriegNichtSynchronisiertFehler().click();
+    });
+
+    expect(document.getElementById(mockCreateNewEntryId)).not.toBeNull();
+  });
+});
+
+describe("reducers", () => {
+  const mockHistoryPushFn = jest.fn();
+  const props = {
+    history: {
+      push: mockHistoryPushFn as any,
+    },
+  } as Props;
+
+  const mockDispatchFn = jest.fn();
+  const effectArgs = {
+    dispatch: mockDispatchFn,
+  } as any;
+
+  it("Neu Eintrag erstelltet während Einträge könnten nicht holen", () => {
+    let statten = initState();
+
+    statten = reducer(statten, {
+      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      key: StateValue.data,
+      erfahrung: DEFAULT_ERFAHRUNG,
+      einträgeDaten: {
+        schlüssel: StateValue.versagen,
+        fehler: "a",
+      },
+    });
+
+    const holenEinträgeScheitertStatten = (statten.states as DataState).data
+      .states.einträge;
+
+    expect(holenEinträgeScheitertStatten.wert).toBe(StateValue.versagen);
+
+    statten = reducer(statten, {
+      type: ActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
+      mayBeNewEntry: {
+        neuEintragDaten: mockNewlyCreatedEntry,
+        zustand: "synchronisiert",
+      },
+    });
+
+    const stattenNachEintragErstelltet = (statten.states as DataState).data
+      .states.einträge as EinträgeMitHolenFehler;
+
+    expect(stattenNachEintragErstelltet.wert).toBe(
+      StateValue.einträgeMitHolenFehler,
+    );
+
+    expect(
+      stattenNachEintragErstelltet.einträgeMitHolenFehler.context.einträge
+        .length,
+    ).toBe(1);
+
+    statten = reducer(statten, {
+      type: ActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
+      mayBeNewEntry: {
+        neuEintragDaten: mockNewlyCreatedEntry,
+        zustand: "synchronisiert",
+      },
+    });
+
+    const stattenNachEintragErstelltet1 = (statten.states as DataState).data
+      .states.einträge as EinträgeMitHolenFehler;
+
+    expect(
+      stattenNachEintragErstelltet1.einträgeMitHolenFehler.context.einträge
+        .length,
+    ).toBe(2);
+  });
+
+  it("löschen Erfahrung Anforderung", () => {
+    let statten = initState();
+
+    statten = reducer(statten, {
+      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      key: StateValue.data,
+      erfahrung: DEFAULT_ERFAHRUNG,
+      einträgeDaten: {
+        schlüssel: StateValue.versagen,
+        fehler: "a",
+      },
+    });
+
+    const [wirkung1, wirkung2] = (statten.effects.general as GenericHasEffect<
+      EffectType
+    >).hasEffects.context.effects;
+
+    const wirkungFunc2 = effectFunctions[wirkung2.key];
+
+    mockGetDeleteExperienceLedger.mockReturnValueOnce({
+      key: StateValue.requested,
+    });
+
+    wirkungFunc2(wirkung2.ownArgs as any, props, effectArgs);
+
+    expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
+    expect(mockDispatchFn.mock.calls[0][0]).toEqual({
+      type: ActionType.DELETE_EXPERIENCE_REQUEST,
+      key: StateValue.requested,
+    });
+
+    const offlineExperienceId = "a";
+    mockGetSyncingExperience.mockReturnValueOnce({
+      offlineExperienceId,
+      newEntryClientId: "c",
+      entriesErrors: {},
+    });
+
+    const eintragDaten = {
+      clientId: "c",
+    };
+
+    const wirkungOwnArgs1 = {
+      ...wirkung1.ownArgs,
+      einträge: [
+        {
+          eintragDaten,
+        },
+      ],
+    };
+
+    expect(mockPersistFunc).not.toHaveBeenCalled();
+    const wirkungFunc1 = effectFunctions[wirkung1.key];
+    wirkungFunc1(wirkungOwnArgs1 as any, props, effectArgs);
+
+    expect(mockPutOrRemoveSyncingExperience.mock.calls[0][0]).toEqual(onlineId);
+    expect(mockPurgeExperience.mock.calls[0][0]).toEqual(offlineExperienceId);
+    expect(mockPersistFunc).toHaveBeenCalled();
+
+    expect(mockDispatchFn.mock.calls[1][0]).toEqual({
+      type: ActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
+      mayBeNewEntry: {
+        neuEintragDaten: eintragDaten,
+        zustand: "ganz-nue",
+      },
+      mayBeEntriesErrors: {},
+    });
+  });
+
+  it("Erhalten Einträge handhaben erfolg, wenn Einträge mit Fehler", () => {
+    let statten = initState();
+
+    statten = reducer(statten, {
+      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      key: StateValue.data,
+      erfahrung: DEFAULT_ERFAHRUNG,
+      einträgeDaten: {
+        schlüssel: StateValue.versagen,
+        fehler: "a",
+      },
+    });
+
+    statten = reducer(statten, {
+      type: ActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
+      mayBeNewEntry: {
+        neuEintragDaten: mockNewlyCreatedEntry,
+        zustand: "synchronisiert",
+      },
+    });
+
+    const stattenNachEintragErstelltet = (statten.states as DataState).data
+      .states.einträge as EinträgeMitHolenFehler;
+
+    expect(stattenNachEintragErstelltet.wert).toBe(
+      StateValue.einträgeMitHolenFehler,
+    );
+
+    statten = reducer(statten, {
+      type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
+      schlüssel: StateValue.erfolg,
+      seiteInfo: {} as any,
+      einträge: [
+        {
+          eintragDaten: {} as any,
+        },
+      ],
+    });
+
+    const stattenHolenEinträgeErfolg = (statten.states as DataState).data.states
+      .einträge as EinträgeDatenErfolg;
+
+    expect(stattenHolenEinträgeErfolg.wert).toBe(StateValue.erfolg);
+    expect(stattenHolenEinträgeErfolg.erfolg.context).toEqual({
+      seiteInfo: {},
+      einträge: [
+        {
+          eintragDaten: {},
+        },
+      ],
+    });
+  });
+
+  it("Erhalten Einträge handhaben scheitern, wenn Einträge mit Fehler", () => {
+    let statten = initState();
+
+    statten = reducer(statten, {
+      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      key: StateValue.data,
+      erfahrung: DEFAULT_ERFAHRUNG,
+      einträgeDaten: {
+        schlüssel: StateValue.versagen,
+        fehler: "a",
+      },
+    });
+
+    statten = reducer(statten, {
+      type: ActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
+      mayBeNewEntry: {
+        neuEintragDaten: mockNewlyCreatedEntry,
+        zustand: "synchronisiert",
+      },
+    });
+
+    const stattenNachEintragErstelltet = (statten.states as DataState).data
+      .states.einträge as EinträgeMitHolenFehler;
+
+    expect(stattenNachEintragErstelltet.wert).toBe(
+      StateValue.einträgeMitHolenFehler,
+    );
+
+    statten = reducer(statten, {
+      type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
+      schlüssel: StateValue.versagen,
+      fehler: "a",
+    });
+
+    const stattenHolenEinträgeVersagen = (statten.states as DataState).data
+      .states.einträge as EinträgeMitHolenFehler;
+
+    expect(stattenHolenEinträgeVersagen.wert).toBe(
+      StateValue.einträgeMitHolenFehler,
+    );
+    expect(
+      stattenHolenEinträgeVersagen.einträgeMitHolenFehler.context.holenFehler,
+    ).toEqual("a");
+  });
+
+  it("stornieren löschen Erfahrung", () => {
+    let statten = initState();
+
+    statten = reducer(statten, {
+      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      key: StateValue.data,
+      erfahrung: DEFAULT_ERFAHRUNG,
+      einträgeDaten: {
+        schlüssel: StateValue.versagen,
+        fehler: "a",
+      },
+    });
+
+    statten = reducer(statten, {
+      type: ActionType.DELETE_EXPERIENCE_REQUEST,
+      key: StateValue.requested,
+    });
+
+    statten = reducer(statten, {
+      type: ActionType.DELETE_EXPERIENCE_CANCELLED,
+    });
+
+    const [wirkung] = (statten.effects.general as GenericHasEffect<
+      EffectType
+    >).hasEffects.context.effects;
+
+    const wirkungFunc = effectFunctions[wirkung.key];
+
+    expect(mockHistoryPushFn).not.toBeCalled();
+
+    wirkungFunc(wirkung.ownArgs as any, props, effectArgs);
+
+    expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0]).toEqual({
+      key: StateValue.cancelled,
+      id: onlineId,
+      title: DEFAULT_ERFAHRUNG.title,
+    });
+
+    expect(mockHistoryPushFn).toBeCalled();
   });
 });
 
@@ -436,7 +857,7 @@ function makeComp({
 
   props.match = {
     params: {
-      experienceId: defaultExperience.id,
+      experienceId: DEFAULT_ERFAHRUNG.id,
     },
   } as Match;
 
@@ -491,4 +912,20 @@ function kriegOkErfahrungLöschenEl() {
 
 function kriegNeueHolenEinträge() {
   return document.getElementById(neueHolenEinträgeId) as HTMLElement;
+}
+
+function kriegHolenNächstenEinträgeEl() {
+  return document.getElementById(holenNächstenEinträgeId) as HTMLElement;
+}
+
+function kriegPaginierungFehlerEl() {
+  return document
+    .getElementsByClassName("detailed-experience__paginierung-fehler")
+    .item(0);
+}
+
+function kriegNichtSynchronisiertFehler(index: number = 0) {
+  return document
+    .getElementsByClassName("detailed-experience__entry-edit")
+    .item(index) as HTMLElement;
 }
