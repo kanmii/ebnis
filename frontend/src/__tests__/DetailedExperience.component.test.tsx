@@ -42,7 +42,11 @@ import {
   insertReplaceRemoveExperiencesInGetExperiencesMiniQuery,
   purgeExperience,
 } from "../apollo/update-get-experiences-mini-query";
-import { E2EWindowObject, StateValue } from "../utils/types";
+import {
+  E2EWindowObject,
+  StateValue,
+  FETCH_EXPERIENCES_TIMEOUTS,
+} from "../utils/types";
 import {
   getUnSyncEntriesErrorsLedger,
   removeUnsyncedExperiences,
@@ -559,7 +563,15 @@ describe("components", () => {
       kriegNichtSynchronisiertFehler().click();
     });
 
-    expect(document.getElementById(mockCreateNewEntryId)).not.toBeNull();
+    act(() => {
+      (document.getElementById(mockCreateNewEntryId) as HTMLElement).click();
+    });
+
+    expect(getNewEntryNotificationEl()).not.toBeNull();
+
+    act(() => {
+      jest.runAllTimers();
+    });
   });
 });
 
@@ -568,6 +580,9 @@ describe("reducers", () => {
   const props = {
     history: {
       push: mockHistoryPushFn as any,
+    },
+    match: {
+      params: {},
     },
   } as Props;
 
@@ -837,6 +852,57 @@ describe("reducers", () => {
     });
 
     expect(mockHistoryPushFn).toBeCalled();
+  });
+
+  it("handhaben zeigen vollständig optionen menü", () => {
+    let statten = initState();
+
+    statten = reducer(statten, {
+      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      key: StateValue.data,
+      erfahrung: DEFAULT_ERFAHRUNG,
+      einträgeDaten: {
+        schlüssel: StateValue.versagen,
+        fehler: "a",
+      },
+    });
+
+    expect(
+      (statten.states as DataState).data.states.showingOptionsMenu.value,
+    ).toBe(StateValue.inactive);
+
+    statten = reducer(statten, {
+      type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
+    });
+
+    expect(
+      (statten.states as DataState).data.states.showingOptionsMenu.value,
+    ).toBe(StateValue.active);
+
+    statten = reducer(statten, {
+      type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
+    });
+
+    expect(
+      (statten.states as DataState).data.states.showingOptionsMenu.value,
+    ).toBe(StateValue.inactive);
+  });
+
+  it("holen Erfahrungen mit timeouts", async () => {
+    let statten = initState();
+
+    const [wirkung] = (statten.effects.general as GenericHasEffect<
+      EffectType
+    >).hasEffects.context.effects;
+
+    const wirkungFunc = effectFunctions[wirkung.key];
+    wirkungFunc(wirkung.ownArgs as any, props, effectArgs);
+    jest.runAllTimers()
+
+
+    wirkungFunc(wirkung.ownArgs as any, props, effectArgs);
+    mockGetIsConnected.mockReturnValue(true)
+    jest.runTimersToTime(FETCH_EXPERIENCES_TIMEOUTS[0]);
   });
 });
 

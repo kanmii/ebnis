@@ -310,6 +310,7 @@ function handleMaybeNewEntryCreatedHelper(
     vielleichtBearbeitenEintrag,
   } = payload;
 
+
   // istanbul ignore next:
   if (!mayBeNewEntry) {
     return;
@@ -1176,6 +1177,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
       mayBeScheduleFetchDetailedExperience,
       FETCH_EXPERIENCES_TIMEOUTS[fetchExperienceAttemptsCount++],
     );
+
   }
 
   mayBeScheduleFetchDetailedExperience();
