@@ -6,7 +6,6 @@ import {
   CreateExperiences_createExperiences_ExperienceSuccess,
 } from "../graphql/apollo-types/CreateExperiences";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
-import { writeExperienceFragmentToCache } from "../apollo/get-detailed-experience-query";
 import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
 import { writeUnsyncedExperience } from "../apollo/unsynced-ledger";
 import { isOfflineId } from "../utils/offlines";
@@ -22,21 +21,32 @@ const mockWriteUnsyncedExperience = writeUnsyncedExperience as jest.Mock;
 jest.mock("../apollo/update-get-experiences-mini-query");
 const mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = insertReplaceRemoveExperiencesInGetExperiencesMiniQuery as jest.Mock;
 
-jest.mock("../apollo/write-experience-fragment");
-const mockWriteExperienceFragmentToCache = writeExperienceFragmentToCache as jest.Mock;
+const mockWriteQueryFn = jest.fn();
 
-jest.mock("uuidv4", () => ({
-  uuid: () => "1",
+const cache = {
+  writeQuery: mockWriteQueryFn,
+};
+
+const lastArg = { cache } as any;
+
+let mockUuid = 0;
+jest.mock("uuid", () => ({
+  v4: () => "" + mockUuid++,
 }));
+
+afterEach(() => {
+  jest.resetAllMocks();
+  mockUuid = 0;
+});
 
 const createOfflineExperienceResolver =
   experienceDefinitionResolvers.Mutation[MUTATION_NAME_createExperienceOffline];
 
 it("creates offline experience/success", () => {
-  expect(mockWriteExperienceFragmentToCache).not.toHaveBeenCalled();
   expect(
     mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery,
   ).not.toHaveBeenCalled();
+
   expect(mockWriteUnsyncedExperience).not.toHaveBeenCalled();
 
   mockGetExperiencesMiniQuery.mockReturnValue(null);
@@ -56,18 +66,25 @@ it("creates offline experience/success", () => {
         },
       ],
     } as CreateExperiencesVariables,
-    null as any,
+    lastArg,
   ) as CreateExperiences_createExperiences_ExperienceSuccess;
 
-  expect(mockWriteExperienceFragmentToCache).toHaveBeenCalled();
+  const erfahrungId = experience.id;
+
   expect(
-    mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery,
-  ).toHaveBeenCalled();
-  expect(mockWriteUnsyncedExperience).toHaveBeenCalled();
-  expect(isOfflineId(experience.id)).toBe(true);
+    mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery.mock
+      .calls[0][0],
+  ).toEqual([[erfahrungId, experience]]);
+
+  expect(mockWriteUnsyncedExperience.mock.calls[0]).toEqual([
+    erfahrungId,
+    true,
+  ]);
+
+  expect(isOfflineId(erfahrungId)).toBe(true);
 });
 
-it("creates offline experience/fails", () => {
+it("creates offline experience fails weil es liegt Erfahrung Titel", () => {
   mockGetExperiencesMiniQuery.mockReturnValue({
     edges: [
       {
@@ -93,7 +110,7 @@ it("creates offline experience/fails", () => {
         },
       ],
     } as CreateExperiencesVariables,
-    null as any,
+    lastArg,
   ) as CreateExperiences_createExperiences_CreateExperienceErrors;
 
   expect(typeof errors.title).toBe("string");
