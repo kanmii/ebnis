@@ -439,7 +439,7 @@ describe("reducer", () => {
 
     const effectFn = effectFunctions[effect.key];
 
-    mockCreateOfflineExperience.mockResolvedValue({
+    mockCreateOfflineExperience.mockResolvedValueOnce({
       data: {},
     });
 
@@ -452,6 +452,15 @@ describe("reducer", () => {
     expect(mockDispatch.mock.calls[0][0].type).toEqual(
       ActionType.ON_COMMON_ERROR,
     );
+
+    const error = new Error("z");
+    mockCreateOfflineExperience.mockRejectedValueOnce(error);
+    effectFn(effect.ownArgs as any, props, effectArgs);
+    await wait(() => true);
+    expect(mockDispatch.mock.calls[1][0]).toEqual({
+      type: ActionType.ON_COMMON_ERROR,
+      error,
+    });
   });
 
   it("submits offline: field errors", async () => {
