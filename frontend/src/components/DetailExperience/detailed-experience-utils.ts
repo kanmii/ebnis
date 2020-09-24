@@ -36,10 +36,7 @@ import {
   getSyncingExperience,
   putOrRemoveSyncingExperience,
 } from "../../apollo/syncing-experience-ledger";
-import {
-  purgeExperience,
-  deleteCacheKeys,
-} from "../../apollo/update-get-experiences-mini-query";
+import { purgeExperience } from "../../apollo/update-get-experiences-mini-query";
 import {
   CreateEntryErrorFragment,
   CreateEntryErrorFragment_dataObjects,
@@ -63,7 +60,6 @@ import {
   HOLEN_EINTRÄGE_GESCHEITERT,
 } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";
-import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
 import {
   sammelnZwischengespeicherteErfahrung,
   getEntriesQuerySuccess,
@@ -82,6 +78,7 @@ import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/a
 import { entryToEdge } from "../NewEntry/entry-to-edge";
 import { ApolloError } from "@apollo/client";
 import { scrollIntoView } from "../../utils/scroll-into-view";
+import { nonsenseId } from "../../utils/utils.dom";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -309,7 +306,6 @@ function handleMaybeNewEntryCreatedHelper(
     mayBeEntriesErrors,
     vielleichtBearbeitenEintrag,
   } = payload;
-
 
   // istanbul ignore next:
   if (!mayBeNewEntry) {
@@ -840,8 +836,6 @@ function verarbeitenEinträgeContext(
   zustand: ErstellenNeuEintragZustand,
   vielleichtBearbeitenEintrag?: EntryFragment,
 ) {
-  const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
-
   // ein völlig neu Eintrag
   // istanbul ignore else:
   if (!(vielleichtBearbeitenEintrag || zustand === "ganz-nue")) {
@@ -851,7 +845,7 @@ function verarbeitenEinträgeContext(
   } else {
     // wir ersetzen die neu Eintrag mit dem zuletzt Eintrag
 
-    const { clientId, dataObjects } = neuEintragDaten;
+    const { clientId } = neuEintragDaten;
 
     context.einträge = context.einträge.map((daten) => {
       return daten.eintragDaten.id === clientId
@@ -860,19 +854,6 @@ function verarbeitenEinträgeContext(
             eintragDaten: neuEintragDaten,
           }
         : daten;
-    });
-
-    // und die Offline-Einträge muss auf die Cache entfernen werden
-
-    effects.push({
-      key: "deleteCacheKeysEffect",
-      ownArgs: {
-        keys: [`Entry:${clientId}`].concat(
-          dataObjects.map((d) => {
-            return `DataObject:${(d as DataObjectFragment).clientId as string}`;
-          }),
-        ),
-      },
     });
   }
 }
@@ -1177,7 +1158,6 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
       mayBeScheduleFetchDetailedExperience,
       FETCH_EXPERIENCES_TIMEOUTS[fetchExperienceAttemptsCount++],
     );
-
   }
 
   mayBeScheduleFetchDetailedExperience();
@@ -1185,35 +1165,6 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
 
 type DefFetchDetailedExperienceEffect = EffectDefinition<
   "fetchDetailedExperienceEffect"
->;
-
-const clearTimeoutEffect: DefClearTimeoutEffect["func"] = (ownArgs) => {
-  clearTimeout(ownArgs.timeoutId);
-};
-
-type DefClearTimeoutEffect = EffectDefinition<
-  "clearTimeoutEffect",
-  {
-    timeoutId: NodeJS.Timeout;
-  }
->;
-
-const deleteCacheKeysEffect: DefDeleteCacheKeysEffect["func"] = async ({
-  keys,
-}) => {
-  deleteCacheKeys({
-    wurzelSchlüssel: keys,
-  });
-
-  const { persistor } = window.____ebnis;
-  await persistor.persist();
-};
-
-type DefDeleteCacheKeysEffect = EffectDefinition<
-  "deleteCacheKeysEffect",
-  {
-    keys: string[];
-  }
 >;
 
 const holenEinträgeWirkung: DefHolenEinträgeWirkung["func"] = async (
@@ -1284,22 +1235,6 @@ type DefHolenEinträgeWirkung = EffectDefinition<
   }
 >;
 
-const onInitStattenWirkung: DefOnInitStattenWirkung["func"] = (
-  { erfahrungId, einträge },
-  _props,
-  effectArgs,
-) => {
-  //
-};
-
-type DefOnInitStattenWirkung = EffectDefinition<
-  "onInitStattenWirkung",
-  {
-    erfahrungId: string;
-    einträge?: DataStateContextEntries;
-  }
->;
-
 export const effectFunctions = {
   scrollDocToTopEffect,
   autoCloseNotificationEffect,
@@ -1309,10 +1244,7 @@ export const effectFunctions = {
   deleteExperienceRequestedEffect,
   deleteExperienceEffect,
   fetchDetailedExperienceEffect,
-  clearTimeoutEffect,
-  deleteCacheKeysEffect,
   holenEinträgeWirkung,
-  onInitStattenWirkung,
 };
 
 function verarbeitenErfahrungAbfrage(
@@ -1382,7 +1314,7 @@ function anhängenZuletztEinträge(
   eintragDaten: VerarbeitenEinträgeAbfrageZurückgegebenerWert,
   zuletztEinträge?: GetEntries_getEntries_GetEntriesSuccess_entries,
 ) {
-  let blätternZuId = "??";
+  let blätternZuId = nonsenseId;
 
   if (eintragDaten.schlüssel === StateValue.versagen) {
     return blätternZuId;
@@ -1450,7 +1382,11 @@ export function formatDatetime(date: Date | string) {
 export function getOnlineStatus<T extends { id: string }>(
   experience: string | T,
 ) {
-  const id = "string" === typeof experience ? experience : experience.id;
+  const id =
+    "string" === typeof experience
+      ? // istanbul ignore next:
+        experience
+      : experience.id;
   const isOffline = isOfflineId(id);
   const hasUnsaved = getUnsyncedExperience(id);
   const isPartOffline = !isOffline && !!hasUnsaved;
@@ -1757,11 +1693,7 @@ export type EffectType =
   | DefCancelDeleteExperienceEffect
   | DefDeleteExperienceRequestedEffect
   | DefDeleteExperienceEffect
-  | DefFetchDetailedExperienceEffect
-  | DefClearTimeoutEffect
-  | DefDeleteCacheKeysEffect
-  | DefHolenEinträgeWirkung
-  | DefOnInitStattenWirkung;
+  | DefFetchDetailedExperienceEffect;
 
 // [index/label, [errorKey, errorValue][]][]
 export type EintragFehlerAlsListe = [string | number, [string, string][]][];

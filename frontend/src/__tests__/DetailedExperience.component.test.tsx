@@ -66,16 +66,25 @@ import {
 import { useDeleteExperiencesMutation } from "../components/DetailExperience/detail-experience.injectables";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
-import { sammelnZwischengespeicherteErfahrung } from "../apollo/get-detailed-experience-query";
-import { activeClassName } from "../utils/utils.dom";
+import {
+  sammelnZwischengespeicherteErfahrung,
+  getEntriesQuerySuccess,
+} from "../apollo/get-detailed-experience-query";
+import { activeClassName, nonsenseId } from "../utils/utils.dom";
 import { useWithSubscriptionContext } from "../apollo/injectables";
 import { GenericHasEffect } from "../utils/effects";
+import { scrollIntoView } from "../utils/scroll-into-view";
+
+jest.mock("../utils/scroll-into-view");
+const mockScrollIntoView = scrollIntoView as jest.Mock;
 
 jest.mock("../apollo/injectables");
 const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockSammelnZwischengespeicherteErfahrung = sammelnZwischengespeicherteErfahrung as jest.Mock;
+
+const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
 
 jest.mock("../components/Header/header.component", () => () => null);
 
@@ -226,39 +235,39 @@ const DEFAULT_ERFAHRUNG = {
   ],
 } as ExperienceFragment;
 
+const entryOfflineClassName = "entry--is-danger";
+
+const EINTRAG_KLIENT_ID = "aa";
+
+const EINTRAG = {
+  id: "a",
+  clientId: EINTRAG_KLIENT_ID,
+  insertedAt: "2020-09-16T20:00:37Z",
+  updatedAt: "2020-09-16T20:00:37Z",
+  dataObjects: [
+    {
+      id: "a",
+      definitionId: "1",
+      data: `{"integer":1}`,
+    },
+  ],
+};
+
+const einträgeErfolg = {
+  __typename: "GetEntriesSuccess",
+  entries: {
+    edges: [
+      {
+        node: EINTRAG,
+      },
+    ],
+    pageInfo: {},
+  },
+};
+
 ////////////////////////// TESTS //////////////////////////////
 
 describe("components", () => {
-  const entryOfflineClassName = "entry--is-danger";
-
-  const EINTRAG_KLIENT_ID = "aa";
-
-  const EINTRAG = {
-    id: "a",
-    clientId: EINTRAG_KLIENT_ID,
-    insertedAt: "2020-09-16T20:00:37Z",
-    updatedAt: "2020-09-16T20:00:37Z",
-    dataObjects: [
-      {
-        id: "a",
-        definitionId: "1",
-        data: `{"integer":1}`,
-      },
-    ],
-  };
-
-  const einträgeErfolg = {
-    __typename: "GetEntriesSuccess",
-    entries: {
-      edges: [
-        {
-          node: EINTRAG,
-        },
-      ],
-      pageInfo: {},
-    },
-  };
-
   it("has connection/holen erzeugt Ausnahme/entry added/entry errors auto close notification", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
     mockGetIsConnected.mockReturnValue(true);
@@ -591,7 +600,7 @@ describe("reducers", () => {
     dispatch: mockDispatchFn,
   } as any;
 
-  it("Neu Eintrag erstelltet während Einträge könnten nicht holen", () => {
+  it("Neu Eintrag erstelltet als Einträge könnten nicht holen", () => {
     let statten = initState();
 
     statten = reducer(statten, {
@@ -897,12 +906,121 @@ describe("reducers", () => {
 
     const wirkungFunc = effectFunctions[wirkung.key];
     wirkungFunc(wirkung.ownArgs as any, props, effectArgs);
-    jest.runAllTimers()
-
+    jest.runAllTimers();
 
     wirkungFunc(wirkung.ownArgs as any, props, effectArgs);
-    mockGetIsConnected.mockReturnValue(true)
+    mockGetIsConnected.mockReturnValue(true);
     jest.runTimersToTime(FETCH_EXPERIENCES_TIMEOUTS[0]);
+  });
+
+  it("holen Einträge warf Ausnahme, dann ohne erfolg", async () => {
+    let statten = initState();
+
+    statten = reducer(statten, {
+      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      key: StateValue.data,
+      erfahrung: DEFAULT_ERFAHRUNG,
+      einträgeDaten: {
+        schlüssel: StateValue.versagen,
+        fehler: "a",
+      },
+    });
+
+    statten = reducer(statten, {
+      type: ActionType.RE_FETCH_ENTRIES,
+    });
+
+    const [wirkung] = (statten.effects.general as GenericHasEffect<
+      EffectType
+    >).hasEffects.context.effects;
+
+    const ownArgs = {
+      pagination: {},
+    } as any;
+    const wirkungFunc = effectFunctions[wirkung.key];
+
+    const error = new Error("a");
+    mockManuallyFetchEntries.mockRejectedValueOnce(error);
+    await wirkungFunc(ownArgs, props, effectArgs);
+
+    expect(mockDispatchFn.mock.calls[0][0]).toEqual({
+      type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
+      schlüssel: StateValue.versagen,
+      fehler: error,
+    });
+
+    mockManuallyFetchEntries.mockResolvedValueOnce({
+      data: {
+        getEntries: {
+          __typename: "GetEntriesErrors",
+          errors: {
+            error: "b",
+          },
+        },
+      },
+    } as GetEntriesQueryResult);
+
+    await wirkungFunc(ownArgs, props, effectArgs);
+
+    expect(mockDispatchFn.mock.calls[1][0]).toEqual({
+      type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
+      schlüssel: StateValue.versagen,
+      fehler: "b",
+    });
+
+    await wirkungFunc(ownArgs, props, effectArgs);
+    expect(mockScrollIntoView).not.toHaveBeenCalled();
+    jest.runAllTimers();
+    expect(mockScrollIntoView.mock.calls[0][0]).toBe(nonsenseId);
+
+    mockManuallyFetchEntries.mockResolvedValueOnce({
+      data: {
+        getEntries: {
+          ...einträgeErfolg,
+          entries: {
+            edges: [
+              {
+                node: {
+                  id: "z",
+                },
+              },
+            ],
+            pageInfo: {},
+          },
+        },
+      },
+    } as GetEntriesQueryResult);
+
+    await wirkungFunc(ownArgs, props, effectArgs);
+    jest.runAllTimers();
+    expect(mockScrollIntoView.mock.calls[1][0]).toBe("z");
+
+    mockManuallyFetchEntries.mockResolvedValueOnce({
+      data: {
+        getEntries: {
+          ...einträgeErfolg,
+          entries: {
+            edges: [] as any,
+            pageInfo: {},
+          },
+        },
+      },
+    } as GetEntriesQueryResult);
+
+    mockGetEntriesQuerySuccess.mockReturnValue({
+      edges: [
+        {
+          node: {
+            id: "t",
+          },
+        },
+      ],
+      pageInfo: {}
+    });
+
+    await wirkungFunc(ownArgs, props, effectArgs);
+    jest.runAllTimers();
+    expect(mockScrollIntoView.mock.calls[2][0]).toBe("t");
   });
 });
 
