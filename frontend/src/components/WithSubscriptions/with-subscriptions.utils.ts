@@ -92,7 +92,6 @@ export function onMessage({ type, payload }: BroadcastMessage) {
       if (getLocation().pathname.includes(MY_URL)) {
         windowChangeUrl(MY_URL, ChangeUrlType.replace);
       }
-
       break;
   }
 }
@@ -102,21 +101,21 @@ const onExperiencesDeletedEffect: DefOnExperiencesDeletedEffect["func"] = async 
 ) => {
   const data = ownArgs && ownArgs.onExperiencesDeleted;
 
-  if (!data) {
-    return;
-  }
+  // istanbul ignore else:
+  if (data) {
+    const ids = data.experiences.map((experience) => {
+      return (experience as OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences)
+        .id;
+    });
 
-  const ids = data.experiences.map((experience) => {
-    return (experience as OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences)
-      .id;
-  });
+    purgeExperiencesFromCache1(ids);
+    const { persistor } = window.____ebnis;
+    await persistor.persist();
 
-  purgeExperiencesFromCache1(ids);
-  const { persistor } = window.____ebnis;
-  await persistor.persist();
-
-  if (getLocation().pathname.includes(MY_URL)) {
-    windowChangeUrl(MY_URL, ChangeUrlType.replace);
+    // istanbul ignore else:
+    if (getLocation().pathname.includes(MY_URL)) {
+      windowChangeUrl(MY_URL, ChangeUrlType.replace);
+    }
   }
 };
 

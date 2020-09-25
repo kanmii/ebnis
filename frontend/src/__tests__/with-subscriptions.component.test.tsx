@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ComponentType } from "react";
-import { render, cleanup } from "@testing-library/react";
+import { render, cleanup, wait } from "@testing-library/react";
 import { E2EWindowObject } from "../utils/types";
 import {
   cleanupObservableSubscription,
@@ -13,12 +13,24 @@ import {
   makeBChannel,
 } from "../utils/observable-manager";
 import { act } from "react-dom/test-utils";
+import {
+  windowChangeUrl,
+  getLocation,
+  ChangeUrlType,
+} from "../utils/global-window";
+import { BroadcastMessageType } from "../utils/observable-manager";
+import { MY_URL } from "../utils/urls";
+import { onMessage } from "../components/WithSubscriptions/with-subscriptions.utils";
+
+jest.mock("../utils/global-window");
+const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
+const mockGetLocation = getLocation as jest.Mock;
 
 let mockWithEmitterProviderValue = null as any;
 jest.mock(
   "../components/WithSubscriptions/with-subscriptions.injectables",
   () => ({
-    WithEmitterProvider: ({ children, value }: any) => {
+    WithSubscriptionProvider: ({ children, value }: any) => {
       mockWithEmitterProviderValue = value;
 
       return children;
@@ -30,32 +42,74 @@ jest.mock(
 const mockCleanupObservableSubscription = cleanupObservableSubscription as jest.Mock;
 const mockUseOnExperiencesDeletedSubscription = useOnExperiencesDeletedSubscription as jest.Mock;
 
-const zen = {} as E2EWindowObject;
+const mockPersistFn = jest.fn();
+
+const persistor = {
+  persist: mockPersistFn as any,
+} as any;
+
+const globals = {
+  persistor,
+} as E2EWindowObject;
+
+beforeAll(() => {
+  window.____ebnis = globals;
+});
+
+afterAll(() => {
+  delete window.____ebnis;
+});
 
 afterEach(() => {
   cleanup();
   jest.resetAllMocks();
-  (zen.observable as any) = null;
-  (zen.emitData as any) = null;
+  (globals.observable as any) = null;
+  (globals.emitData as any) = null;
 });
 
-it("defaults", () => {
-  mockUseOnExperiencesDeletedSubscription.mockReturnValue({});
+it("renders", async () => {
+  mockUseOnExperiencesDeletedSubscription.mockReturnValue({
+    data: {
+      onExperiencesDeleted: {
+        experiences: [
+          {
+            id: "a",
+          },
+        ],
+      },
+    },
+  });
+
+  mockGetLocation.mockReturnValueOnce({
+    pathname: MY_URL,
+  });
+
+  expect(mockPersistFn).not.toHaveBeenCalled();
+
   const { ui } = makeComp();
   const { unmount } = render(ui);
 
   // no network connection
-  expect(mockWithEmitterProviderValue.connected).toBe(false);
+  expect(mockWithEmitterProviderValue.connected).toBe(null);
 
   // now connected
   act(() => {
-    zen.emitData({
+    globals.emitData({
       type: EmitActionType.connectionChanged,
       connected: true,
     });
   });
 
   expect(mockWithEmitterProviderValue.connected).toBe(true);
+
+  await wait(() => true);
+
+  expect(mockWindowChangeUrl.mock.calls[0]).toEqual([
+    MY_URL,
+    ChangeUrlType.replace,
+  ]);
+
+  expect(mockPersistFn).toHaveBeenCalled();
 
   // not time to cleanup
   expect(mockCleanupObservableSubscription).not.toHaveBeenCalled();
@@ -65,20 +119,38 @@ it("defaults", () => {
   expect(mockCleanupObservableSubscription).toHaveBeenCalled();
 });
 
+it("utils/on broadcast channel message", () => {
+  mockGetLocation.mockReturnValueOnce({
+    pathname: MY_URL,
+  });
+
+  onMessage({
+    type: BroadcastMessageType.experienceDeleted,
+    payload: {
+      id: "a",
+      title: "b",
+    },
+  });
+
+  expect(mockWindowChangeUrl.mock.calls[0]).toEqual([
+    MY_URL,
+    ChangeUrlType.replace,
+  ]);
+});
+
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
 const WithSubscriptionsP = WithSubscriptions as ComponentType<Partial<{}>>;
 
 function makeComp() {
-  makeObservable(zen);
-  makeBChannel(zen);
+  makeObservable(globals);
+  makeBChannel(globals);
 
   return {
     ui: (
-      <WithSubscriptionsP {...zen}>
+      <WithSubscriptionsP {...globals}>
         <div />
       </WithSubscriptionsP>
     ),
   };
 }
-
