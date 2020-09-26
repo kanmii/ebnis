@@ -1,6 +1,6 @@
 import gql from "graphql-tag";
 import { PageInfoFragment } from "./apollo-types/PageInfoFragment";
-import { GetEntriesUnionFragment } from "./apollo-types/GetEntriesUnionFragment";
+import { GetEntriesUnionFragment_GetEntriesSuccess } from "./apollo-types/GetEntriesUnionFragment";
 import { EntryConnectionFragment_edges } from "./apollo-types/EntryConnectionFragment";
 
 export const emptyPageInfo: PageInfoFragment = {
@@ -21,7 +21,7 @@ export const emptyGetEntries = {
       hasNextPage: false,
     },
   },
-} as GetEntriesUnionFragment;
+} as GetEntriesUnionFragment_GetEntriesSuccess;
 
 export const PAGE_INFO_FRAGMENT = gql`
   fragment PageInfoFragment on PageInfo {

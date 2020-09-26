@@ -271,7 +271,8 @@ async function syncOfflineExperienceCreateEntryEffectHelper(
                 entriesErrors:
                   entriesErrors && entriesErrors.length
                     ? entriesErrors
-                    : undefined,
+                    : // istanbul ignore next:
+                      undefined,
                 newEntryClientId: offlineEntry.clientId,
               } as SyncingExperience;
 
@@ -696,6 +697,7 @@ function handleSubmissionAction(proxy: DraftState) {
 
     // das bedeutet ein vollständig Offline-Eintrag und ein nue Eintrag muss
     // erstellten werden
+    // istanbul ignore else:
     if (id === clientId) {
       erstelltenNeuEintragKlientId = id;
     }

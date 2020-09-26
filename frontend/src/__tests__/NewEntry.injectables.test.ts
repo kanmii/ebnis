@@ -2,54 +2,53 @@
 import { upsertNewEntry } from "../components/NewEntry/new-entry.injectables";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
-import { entryToEdge } from "../components/NewEntry/entry-to-edge";
 import {
   getEntriesQuerySuccess,
-  readExperienceFragment,
-  writeExperienceFragmentToCache,
+  writeGetEntriesQuery,
 } from "../apollo/get-detailed-experience-query";
 
-jest.mock("../apollo/write-experience-fragment");
-const mockWriteExperienceFragmentToCache = writeExperienceFragmentToCache as jest.Mock;
+jest.mock("../apollo/get-detailed-experience-query");
+const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
+const mockWriteGetEntriesQuery = writeGetEntriesQuery as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
 const mockFloatExperienceToTheTopInGetExperiencesMiniQuery = floatExperienceToTheTopInGetExperiencesMiniQuery as jest.Mock;
-
-jest.mock("../apollo/read-experience-fragment");
-const mockReadExperienceFragment = readExperienceFragment as jest.Mock;
-
-const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
 
 afterEach(() => {
   jest.resetAllMocks();
 });
 
+const experience = {
+  id: "1",
+} as ExperienceFragment;
+
+const erfahrungId = experience.id;
+
 it("inserts with id/no onDone", () => {
-  mockReadExperienceFragment.mockReturnValue({} as ExperienceFragment);
-  mockGetEntriesQuerySuccess.mockReturnValue({});
+  mockGetEntriesQuerySuccess.mockReturnValue({
+    edges: [],
+  });
   const entry = {} as any;
 
   expect(
     mockFloatExperienceToTheTopInGetExperiencesMiniQuery,
   ).not.toHaveBeenCalled();
 
-  expect(mockWriteExperienceFragmentToCache).not.toHaveBeenCalled();
+  expect(mockWriteGetEntriesQuery).not.toHaveBeenCalled();
 
-  upsertNewEntry("1", entry);
+  upsertNewEntry(experience, entry);
 
-  expect(mockWriteExperienceFragmentToCache).toHaveBeenCalled();
+  expect(mockWriteGetEntriesQuery.mock.calls[0][0]).toEqual(erfahrungId);
+  expect(
+    mockWriteGetEntriesQuery.mock.calls[0][1].entries.edges[0].node,
+  ).toEqual(entry);
 
   expect(
-    mockFloatExperienceToTheTopInGetExperiencesMiniQuery.mock.calls[0][0]
-      .entries.edges,
-  ).toEqual([entryToEdge(entry)]);
+    mockFloatExperienceToTheTopInGetExperiencesMiniQuery.mock.calls[0][0].id,
+  ).toBe(erfahrungId);
 });
 
 it("inserts with experience/onDone", () => {
-  const experience = {
-    id: "1",
-  } as ExperienceFragment;
-
   mockGetEntriesQuerySuccess.mockReturnValue({
     edges: [
       {
@@ -70,23 +69,11 @@ it("inserts with experience/onDone", () => {
     __typename: "Entry",
   } as any;
 
-  expect(
-    mockFloatExperienceToTheTopInGetExperiencesMiniQuery,
-  ).not.toHaveBeenCalled();
-
-  expect(mockWriteExperienceFragmentToCache).not.toHaveBeenCalled();
-
   const mockOnDone = jest.fn();
 
-  upsertNewEntry(experience.id, entry, mockOnDone);
+  upsertNewEntry(experience, entry, mockOnDone);
 
-  expect(
-    mockFloatExperienceToTheTopInGetExperiencesMiniQuery,
-  ).toHaveBeenCalled();
-
-  expect(
-    mockWriteExperienceFragmentToCache.mock.calls[0][0].entries.edges,
-  ).toEqual([
+  expect(mockWriteGetEntriesQuery.mock.calls[0][1].entries.edges).toEqual([
     {
       node: {
         id: "x",

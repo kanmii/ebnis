@@ -11,17 +11,21 @@ import {
   getUnsyncedExperience,
   writeUnsyncedExperience,
 } from "../apollo/unsynced-ledger";
-import { readExperienceFragment } from "../apollo/get-detailed-experience-query";
+import {
+  readExperienceFragment,
+  getEntriesQuerySuccess,
+} from "../apollo/get-detailed-experience-query";
 
 jest.mock("../components/NewEntry/new-entry.injectables");
-const mockUpsertExperienceWithEntry = upsertNewEntry as jest.Mock;
+const mockUpsertWithEntry = upsertNewEntry as jest.Mock;
 
 jest.mock("../apollo/unsynced-ledger");
 const mockGetUnsyncedExperience = getUnsyncedExperience as jest.Mock;
 const mockWriteUnsyncedExperience = writeUnsyncedExperience as jest.Mock;
 
-jest.mock("../apollo/read-experience-fragment");
+jest.mock("../apollo/get-detailed-experience-query");
 const mockReadExperienceFragment = readExperienceFragment as jest.Mock;
+const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
 
 const createOfflineEntryMutationResolver =
   newEntryResolvers.Mutation[MUTATION_NAME_createOfflineEntry];
@@ -40,19 +44,21 @@ const obj = null as any;
 it("online experience/creates entry", () => {
   mockGetUnsyncedExperience.mockReturnValue({});
 
+  mockGetEntriesQuerySuccess.mockReturnValueOnce({
+    edges: [],
+  });
+
+  mockUpsertWithEntry.mockReturnValueOnce({});
+
   const variables = {
     experienceId: "1",
     dataObjects: [{}],
   } as CreateOfflineEntryMutationVariables;
 
-  expect(mockUpsertExperienceWithEntry).not.toHaveBeenCalled();
+  expect(mockUpsertWithEntry).not.toHaveBeenCalled();
   expect(mockWriteUnsyncedExperience).not.toHaveBeenCalled();
 
-  mockReadExperienceFragment.mockReturnValue({
-    entries: {
-      edges: [],
-    },
-  });
+  mockReadExperienceFragment.mockReturnValue({});
 
   const {
     entry: { id, dataObjects },
@@ -62,9 +68,10 @@ it("online experience/creates entry", () => {
     context,
   ) as CreateOfflineEntryMutationValid;
 
-  expect(mockUpsertExperienceWithEntry).toHaveBeenCalled();
+  expect(mockUpsertWithEntry).toHaveBeenCalled();
   expect(isOfflineId(id));
   expect(isOfflineId((dataObjects[0] as any).id));
+
   expect(mockWriteUnsyncedExperience.mock.calls[0]).toEqual([
     "1",
     {
@@ -76,11 +83,13 @@ it("online experience/creates entry", () => {
 it("offline experience/creates entry", () => {
   mockGetUnsyncedExperience.mockReturnValue(null);
 
-  mockReadExperienceFragment.mockReturnValue({
-    entries: {
-      edges: [],
-    },
+  mockGetEntriesQuerySuccess.mockReturnValueOnce({
+    edges: [],
   });
+
+  mockUpsertWithEntry.mockReturnValueOnce({});
+
+  mockReadExperienceFragment.mockReturnValue({});
 
   const id = makeOfflineId(1);
 
@@ -92,7 +101,7 @@ it("offline experience/creates entry", () => {
   createOfflineEntryMutationResolver(obj, variables, context);
 
   expect(mockWriteUnsyncedExperience).not.toHaveBeenCalled();
-  expect(mockUpsertExperienceWithEntry).toHaveBeenCalled();
+  expect(mockUpsertWithEntry).toHaveBeenCalled();
 });
 
 it("experience not found", () => {

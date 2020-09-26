@@ -12,7 +12,6 @@ import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../../apollo/u
 import {
   getEntriesQuerySuccess,
   writeGetEntriesQuery,
-  readExperienceFragment,
 } from "../../apollo/get-detailed-experience-query";
 import { GetEntriesUnionFragment } from "../../graphql/apollo-types/GetEntriesUnionFragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
@@ -33,17 +32,12 @@ export function addResolvers(client: ApolloClient<{}>) {
  * query
  */
 export function upsertNewEntry(
-  experienceId: string,
+  experience: ExperienceFragment,
   entry: EntryFragment,
   onDone?: () => void,
 ): UpsertNewEntryReturnVal | undefined {
-  const experience = readExperienceFragment(experienceId);
-
-  if (!experience) {
-    return;
-  }
-
-  const entriesQuery = getEntriesQuerySuccess(experienceId);
+  const erfahrungId = experience.id;
+  const entriesQuery = getEntriesQuerySuccess(erfahrungId);
 
   const [updatedGetEntriesQuery, updatedExperience] = immer(
     [entriesQuery, experience],
@@ -62,7 +56,11 @@ export function upsertNewEntry(
         existingEntry.node = entry;
       } else {
         // insert
-        edges.unshift(entryToEdge(entry as EntryConnectionFragment_edges_node));
+        const newEdge = entryToEdge(
+          entry as EntryConnectionFragment_edges_node,
+        );
+
+        edges.unshift(newEdge);
       }
     },
   );
@@ -72,7 +70,7 @@ export function upsertNewEntry(
     __typename: "GetEntriesSuccess",
   };
 
-  writeGetEntriesQuery(experienceId, entriesUnionFragment);
+  writeGetEntriesQuery(erfahrungId, entriesUnionFragment);
 
   floatExperienceToTheTopInGetExperiencesMiniQuery(updatedExperience);
 
@@ -85,8 +83,6 @@ export function upsertNewEntry(
     updatedGetEntriesQuery,
   };
 }
-
-export type UpsertExperienceInCacheMode = "online" | "offline";
 
 export type UpsertNewEntryReturnVal = {
   experience: ExperienceFragment;

@@ -106,10 +106,7 @@ const createOfflineEntryMutationResolver: LocalResolverFn<
     updatedAt: timestamps,
   };
 
-  const updates = upsertNewEntry(
-    experience.id,
-    entry,
-  ) as UpsertNewEntryReturnVal;
+  const updates = upsertNewEntry(experience, entry) as UpsertNewEntryReturnVal;
 
   updateUnsynced(experienceId);
 

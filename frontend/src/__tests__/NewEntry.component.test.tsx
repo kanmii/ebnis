@@ -34,10 +34,18 @@ import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { E2EWindowObject } from "../utils/types";
 import { makeOfflineId } from "../utils/offlines";
 import { windowChangeUrl } from "../utils/global-window";
-import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
+import {
+  removeUnsyncedExperiences,
+  getUnSyncEntriesErrorsLedger,
+} from "../apollo/unsynced-ledger";
 import { putOrRemoveSyncingExperience } from "../apollo/syncing-experience-ledger";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
+import { getEntriesQuerySuccess } from "../apollo/get-detailed-experience-query";
+import { emptyGetEntries } from "../graphql/utils.gql";
+
+jest.mock("../apollo/get-detailed-experience-query");
+const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
 
 jest.mock("../utils/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
@@ -87,6 +95,7 @@ const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
 
 jest.mock("../apollo/unsynced-ledger");
 const mockRemoveUnsyncedExperience = removeUnsyncedExperiences as jest.Mock;
+const mockGetUnSyncEntriesErrorsLedger = getUnSyncEntriesErrorsLedger as jest.Mock;
 
 jest.mock("../apollo/syncing-experience-ledger");
 const mockPutOrRemoveSyncingExperience = putOrRemoveSyncingExperience as jest.Mock;
@@ -119,6 +128,8 @@ afterEach(() => {
   cleanup();
   jest.resetAllMocks();
 });
+
+const entriesSuccess = emptyGetEntries.entries;
 
 describe("component", () => {
   it("connected/renders date field/invalid server response", async () => {
@@ -407,6 +418,25 @@ describe("component", () => {
       ] as DataDefinitionFragment[],
     };
 
+    const eintrag = {
+      id: "a",
+      experienceId,
+      dataObjects: [
+        {
+          definitionId: "1",
+          data: `{"integer":1}`,
+        },
+      ],
+    };
+
+    const zwischenGespeicherteEinträge = {
+      edges: [
+        {
+          node: eintrag,
+        },
+      ],
+    };
+
     mockCreateOfflineEntry.mockResolvedValue({
       data: {
         createOfflineEntry: {
@@ -415,6 +445,10 @@ describe("component", () => {
         },
       },
     } as CreateOfflineEntryResult);
+
+    mockGetEntriesQuerySuccess.mockReturnValueOnce(
+      zwischenGespeicherteEinträge,
+    );
 
     mockCreateExperiencesOnline.mockResolvedValue({
       data: {
@@ -448,15 +482,38 @@ describe("component", () => {
     const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
     fillField(inputEl, "1");
     expect(getNotificationEl()).toBeNull();
-    expect(getFieldError()).toBeNull();
 
     submitEl.click();
-    await wait(() => true);
     await waitForElement(getNotificationEl);
   });
 
   it("connected/edit entry", async () => {
+    const now = new Date();
+    const nowJson = now.toJSON();
+
+    const bearbeitenEintrag = {
+      id: "a",
+      clientId: "a",
+      dataObjects: [
+        {
+          id: "a1",
+          data: `{"integer":1}`,
+          definitionId: "1",
+        },
+        {
+          id: "a2",
+          data: `{"date":"${nowJson}"}`,
+          definitionId: "2",
+        },
+      ],
+    } as EntryFragment;
+
+    mockGetUnSyncEntriesErrorsLedger.mockReturnValueOnce({
+      [bearbeitenEintrag.id]: {},
+    });
+
     mockIsConnected.mockReturnValue(true);
+
     mockUpdateExperiencesOnline.mockResolvedValue({
       data: {
         updateExperiences: {
@@ -489,14 +546,9 @@ describe("component", () => {
       },
     } as UpdateExperiencesOnlineMutationResult);
 
-    const now = new Date();
-    const nowJson = now.toJSON();
-
     const { ui } = makeComp({
       props: {
-        bearbeitenEintrag: {
-          id: "a",
-        } as EntryFragment,
+        bearbeitenEintrag,
         experience: {
           ...defaultExperience,
           dataDefinitions: [
@@ -511,35 +563,14 @@ describe("component", () => {
               name: "b",
             },
           ] as DataDefinitionFragment[],
-          entries: {
-            edges: [
-              {
-                node: {
-                  id: "a",
-                  clientId: "a",
-                  dataObjects: [
-                    {
-                      id: "a1",
-                      data: `{"integer":1}`,
-                      definitionId: "1",
-                    },
-                    {
-                      id: "a2",
-                      data: `{"date":"${nowJson}"}`,
-                      definitionId: "2",
-                    },
-                  ],
-                },
-              },
-              {
-                node: {},
-              },
-            ],
-          },
         } as ExperienceFragment,
       },
     });
-    render(ui);
+
+    const { debug } = render(ui);
+    getNotificationEl().click()
+
+
     const inputEl = document.getElementById("1") as HTMLInputElement;
     expect(inputEl.value).toBe("1");
     const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
@@ -725,6 +756,7 @@ describe("reducer", () => {
   });
 
   it("sync offline experience: ExperienceSuccess", async () => {
+    mockGetEntriesQuerySuccess.mockResolvedValueOnce(entriesSuccess);
     mockIsConnected.mockResolvedValue(true);
 
     const experienceId = makeOfflineId(experience.id);
@@ -776,6 +808,14 @@ describe("reducer", () => {
             experience: {
               id: "aa",
             },
+            entries: [
+              {
+                __typename: "CreateEntrySuccess",
+              },
+              {
+                __typename: "CreateEntryErrors",
+              },
+            ],
           },
         ],
       },
@@ -808,6 +848,7 @@ describe("reducer", () => {
   });
 
   it("sync offline experience: exception", async () => {
+    mockGetEntriesQuerySuccess.mockResolvedValueOnce(entriesSuccess);
     mockIsConnected.mockResolvedValue(true);
 
     const experienceId = makeOfflineId(experience.id);
@@ -870,6 +911,7 @@ describe("reducer", () => {
   });
 
   it("sync offline experience: invalid createExperiences response", async () => {
+    mockGetEntriesQuerySuccess.mockResolvedValueOnce(entriesSuccess);
     mockIsConnected.mockResolvedValue(true);
 
     const experienceId = makeOfflineId(experience.id);
