@@ -10,9 +10,9 @@ import {
   getEntriesQuerySuccess,
   readExperienceFragment,
   writeGetEntriesQuery,
-  toGetEntriesSuccessQuery,
   writeGetExperienceQueryToCache,
 } from "./get-detailed-experience-query";
+import { toGetEntriesSuccessQuery } from "../graphql/utils.gql";
 
 export function createExperiencesManualUpdate(
   dataProxy: DataProxy,

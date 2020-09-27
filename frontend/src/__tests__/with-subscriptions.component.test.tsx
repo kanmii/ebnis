@@ -3,7 +3,7 @@ import React, { ComponentType } from "react";
 import { render, cleanup, wait } from "@testing-library/react";
 import { E2EWindowObject } from "../utils/types";
 import {
-  cleanupObservableSubscription,
+  cleanupWithSubscriptions,
   useOnExperiencesDeletedSubscription,
 } from "../components/WithSubscriptions/with-subscriptions.injectables";
 import { WithSubscriptions } from "../components/WithSubscriptions/with-subscriptions.component";
@@ -35,11 +35,11 @@ jest.mock(
 
       return children;
     },
-    cleanupObservableSubscription: jest.fn(),
+    cleanupWithSubscriptions: jest.fn(),
     useOnExperiencesDeletedSubscription: jest.fn(),
   }),
 );
-const mockCleanupObservableSubscription = cleanupObservableSubscription as jest.Mock;
+const mockCleanupWithSubscription = cleanupWithSubscriptions as jest.Mock;
 const mockUseOnExperiencesDeletedSubscription = useOnExperiencesDeletedSubscription as jest.Mock;
 
 const mockPersistFn = jest.fn();
@@ -51,6 +51,11 @@ const persistor = {
 const globals = {
   persistor,
 } as E2EWindowObject;
+
+const bc = {
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+} as any;
 
 beforeAll(() => {
   window.____ebnis = globals;
@@ -65,9 +70,10 @@ afterEach(() => {
   jest.resetAllMocks();
   (globals.observable as any) = null;
   (globals.emitData as any) = null;
+  (globals.bc as any) = null;
 });
 
-it("renders", async () => {
+it("renders", async (done) => {
   mockUseOnExperiencesDeletedSubscription.mockReturnValue({
     data: {
       onExperiencesDeleted: {
@@ -112,11 +118,13 @@ it("renders", async () => {
   expect(mockPersistFn).toHaveBeenCalled();
 
   // not time to cleanup
-  expect(mockCleanupObservableSubscription).not.toHaveBeenCalled();
+  expect(mockCleanupWithSubscription).not.toHaveBeenCalled();
   unmount();
 
   //cleanup
-  expect(mockCleanupObservableSubscription).toHaveBeenCalled();
+  mockCleanupWithSubscription.mock.calls[0][0]();
+
+  done();
 });
 
 it("utils/on broadcast channel message", () => {
@@ -144,7 +152,7 @@ const WithSubscriptionsP = WithSubscriptions as ComponentType<Partial<{}>>;
 
 function makeComp() {
   makeObservable(globals);
-  makeBChannel(globals);
+  globals.bc = bc;
 
   return {
     ui: (

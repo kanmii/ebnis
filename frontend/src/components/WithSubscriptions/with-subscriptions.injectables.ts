@@ -4,8 +4,6 @@ export { useOnExperiencesDeletedSubscription } from "../../utils/experience.gql.
 
 export const WithSubscriptionProvider = WithSubscriptionContext.Provider;
 
-export function cleanupObservableSubscription(
-  subscription: ZenObservable.Subscription,
-) {
-  subscription.unsubscribe();
+export function cleanupWithSubscriptions(func: () => void) {
+  func();
 }

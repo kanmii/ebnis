@@ -18,11 +18,11 @@ import { UpdateExperienceSomeSuccessFragment_entries } from "../graphql/apollo-t
 import {
   getEntriesQuerySuccess,
   writeGetEntriesQuery,
-  toGetEntriesSuccessQuery,
   writeExperienceFragmentToCache,
   readExperienceFragment,
 } from "./get-detailed-experience-query";
 import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "../graphql/apollo-types/GetEntriesUnionFragment";
+import { toGetEntriesSuccessQuery } from "../graphql/utils.gql";
 
 export function writeUpdatedExperienceToCache(
   dataProxy: DataProxy,

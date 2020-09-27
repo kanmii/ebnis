@@ -1,6 +1,9 @@
 import gql from "graphql-tag";
 import { PageInfoFragment } from "./apollo-types/PageInfoFragment";
-import { GetEntriesUnionFragment_GetEntriesSuccess } from "./apollo-types/GetEntriesUnionFragment";
+import {
+  GetEntriesUnionFragment_GetEntriesSuccess,
+  GetEntriesUnionFragment_GetEntriesSuccess_entries,
+} from "./apollo-types/GetEntriesUnionFragment";
 import { EntryConnectionFragment_edges } from "./apollo-types/EntryConnectionFragment";
 
 export const emptyPageInfo: PageInfoFragment = {
@@ -31,3 +34,12 @@ export const PAGE_INFO_FRAGMENT = gql`
     endCursor
   }
 `;
+
+export function toGetEntriesSuccessQuery(
+  entries: GetEntriesUnionFragment_GetEntriesSuccess_entries,
+) {
+  return {
+    entries,
+    __typename: "GetEntriesSuccess" as "GetEntriesSuccess",
+  };
+}

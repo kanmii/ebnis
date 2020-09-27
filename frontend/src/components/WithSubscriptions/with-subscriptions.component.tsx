@@ -1,7 +1,7 @@
 import React, { useEffect, useReducer } from "react";
 import { EmitActionType } from "../../utils/observable-manager";
 import {
-  cleanupObservableSubscription,
+  cleanupWithSubscriptions,
   WithSubscriptionProvider,
   useOnExperiencesDeletedSubscription,
 } from "./with-subscriptions.injectables";
@@ -61,7 +61,10 @@ export function WithSubscriptions(props: Props) {
     });
 
     return () => {
-      cleanupObservableSubscription(subscription);
+      cleanupWithSubscriptions(() => {
+        bc.removeEventListener("message", onMessage);
+        subscription.unsubscribe();
+      });
     };
     /* eslint-disable react-hooks/exhaustive-deps*/
   }, []);

@@ -63,7 +63,6 @@ import { getIsConnected } from "../../utils/connections";
 import {
   sammelnZwischengespeicherteErfahrung,
   getEntriesQuerySuccess,
-  toGetEntriesSuccessQuery,
   writeGetEntriesQuery,
 } from "../../apollo/get-detailed-experience-query";
 import { PageInfoFragment } from "../../graphql/apollo-types/PageInfoFragment";
@@ -79,6 +78,7 @@ import { entryToEdge } from "../NewEntry/entry-to-edge";
 import { ApolloError } from "@apollo/client";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { nonsenseId } from "../../utils/utils.dom";
+import { toGetEntriesSuccessQuery } from "../../graphql/utils.gql";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",

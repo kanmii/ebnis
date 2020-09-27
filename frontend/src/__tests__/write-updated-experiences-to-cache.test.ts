@@ -33,10 +33,8 @@ const mockGetUnsyncedExperience = getUnsyncedExperience as jest.Mock;
 const mockRemoveUnsyncedExperience = removeUnsyncedExperiences as jest.Mock;
 const mockWriteUnsyncedExperience = writeUnsyncedExperience as jest.Mock;
 
-jest.mock("../apollo/write-experience-fragment");
+jest.mock("../apollo/get-detailed-experience-query");
 const mockWriteExperienceFragmentToCache = writeExperienceFragmentToCache as jest.Mock;
-
-jest.mock("../apollo/read-experience-fragment");
 const mockReadExperienceFragment = readExperienceFragment as jest.Mock;
 
 const app = {} as E2EWindowObject;
@@ -51,7 +49,7 @@ afterEach(() => {
   jest.resetAllMocks();
 });
 
-test("invalid result", () => {
+it("invalid result", () => {
   writeUpdatedExperienceToCache(dataProxy, {
     data: {},
   } as any);
@@ -60,7 +58,7 @@ test("invalid result", () => {
   expect(mockWriteUnsyncedExperience).not.toHaveBeenCalled();
 });
 
-test("ownFields success", () => {
+it("ownFields success", () => {
   mockReadExperienceFragment.mockReturnValue({
     title: "a",
   } as ExperienceFragment);
@@ -86,7 +84,7 @@ test("ownFields success", () => {
   });
 });
 
-test("ownFields failed", () => {
+it("ownFields failed", () => {
   mockReadExperienceFragment.mockReturnValue({
     title: "a",
   } as ExperienceFragment);
@@ -119,7 +117,7 @@ test("ownFields failed", () => {
   });
 });
 
-test("data definitions success", () => {
+it("data definitions success", () => {
   mockReadExperienceFragment.mockReturnValue({
     dataDefinitions: [
       {
@@ -165,7 +163,7 @@ test("data definitions success", () => {
   });
 });
 
-test("data definitions failed", () => {
+it("data definitions failed", () => {
   mockReadExperienceFragment.mockReturnValue({
     dataDefinitions: [
       {
@@ -201,10 +199,10 @@ test("data definitions failed", () => {
   });
 });
 
-test("new entries success", () => {
-  mockReadExperienceFragment.mockReturnValue({});
+it("new entries success", () => {
+  mockReadExperienceFragment.mockReturnValueOnce({});
 
-  mockGetEntriesQuerySuccess.mockResolvedValue({
+  mockGetEntriesQuerySuccess.mockReturnValueOnce({
     edges: [] as any,
   } as GetEntriesUnionFragment_GetEntriesSuccess_entries);
 
@@ -233,7 +231,7 @@ test("new entries success", () => {
 it("synced entries success", () => {
   mockReadExperienceFragment.mockReturnValue({} as ExperienceFragment);
 
-  mockGetEntriesQuerySuccess({
+  mockGetEntriesQuerySuccess.mockReturnValueOnce({
     edges: [
       {
         node: {
@@ -279,7 +277,7 @@ it("synced entries success", () => {
   } as EntryConnectionFragment);
 });
 
-test("synced entries failed", () => {
+it("synced entries failed", () => {
   mockReadExperienceFragment.mockReturnValue({} as ExperienceFragment);
 
   mockGetUnsyncedExperience.mockReturnValue({
@@ -311,7 +309,7 @@ test("synced entries failed", () => {
   );
 });
 
-test("updated entries success", () => {
+it("updated entries success", () => {
   mockGetEntriesQuerySuccess.mockReturnValue({
     edges: [
       {
@@ -343,6 +341,8 @@ test("updated entries success", () => {
       },
     },
   } as UnsyncedModifiedExperience);
+
+  mockReadExperienceFragment.mockReturnValueOnce({})
 
   call({
     entries: {

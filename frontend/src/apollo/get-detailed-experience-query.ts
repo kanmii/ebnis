@@ -18,10 +18,7 @@ import {
   EntryConnectionFragment_edges,
 } from "../graphql/apollo-types/EntryConnectionFragment";
 import { emptyPageInfo } from "../graphql/utils.gql";
-import {
-  GetEntriesUnionFragment,
-  GetEntriesUnionFragment_GetEntriesSuccess_entries,
-} from "../graphql/apollo-types/GetEntriesUnionFragment";
+import { GetEntriesUnionFragment } from "../graphql/apollo-types/GetEntriesUnionFragment";
 
 export function writeExperienceFragmentToCache(experience: ExperienceFragment) {
   const { id } = experience;
@@ -130,15 +127,6 @@ export function writeGetEntriesQuery(
       },
     },
   });
-}
-
-export function toGetEntriesSuccessQuery(
-  entries: GetEntriesUnionFragment_GetEntriesSuccess_entries,
-) {
-  return {
-    entries,
-    __typename: "GetEntriesSuccess" as "GetEntriesSuccess",
-  };
 }
 
 export function getExperienceQuery(erfahrungId: string) {
