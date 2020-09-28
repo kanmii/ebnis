@@ -29,17 +29,9 @@ defmodule EbnisData.EntryApi do
 
   @experience_not_found_error "experience not found"
 
-  @empty_relay_connection %{
-    edges: [],
-    page_info: %{
-      start_cursor: "",
-      end_cursor: "",
-      has_previous_page: false,
-      has_next_page: false
-    }
-  }
-
   @get_entries_exception_header "\n\nException while getting entries with:"
+
+  @empty_relay_connection EbnisData.get_empty_relay_connection()
 
   defp validate_data_objects_with_definitions(data_definitions, data_list) do
     definitions_id_to_type_map =
@@ -191,11 +183,11 @@ defmodule EbnisData.EntryApi do
     Changeset.put_change(changeset, :data_objects, [])
   end
 
-  @spec get_paginated_entries(
+  @spec get_experience_id_to_entry_connection_map(
           [{integer() | binary(), map()}],
           list()
-        ) :: [Connection.t()]
-  def get_paginated_entries(
+        ) :: %{required(binary()) => Connection.t()}
+  def get_experience_id_to_entry_connection_map(
         experiences_ids_pagination_args,
         repo_opts
       ) do
@@ -221,7 +213,7 @@ defmodule EbnisData.EntryApi do
         )
     ]
 
-    query =
+    data =
       from(ent in Entry,
         as: :ents,
         join: ex in assoc(ent, :experience),
@@ -241,40 +233,54 @@ defmodule EbnisData.EntryApi do
         join: d0 in assoc(ent, :data_objects),
         preload: [data_objects: d0]
       )
+      |> Repo.all(repo_opts)
+      |> case do
+        [] ->
+          %{}
 
-    query
-    |> Repo.all(repo_opts)
-    |> case do
-      [] ->
-        Enum.map(experience_ids, fn _ -> @empty_relay_connection end)
-
-      entries ->
-        experience_id_to_entry_map =
+        entries ->
           entries
           |> Enum.group_by(& &1.experience_id)
+      end
 
-        Enum.map(
-          experience_ids,
-          fn experience_id ->
-            case experience_id_to_entry_map[experience_id] do
-              nil ->
-                @empty_relay_connection
+    {data, experience_ids, limit, offset}
+  end
 
-              entries_for_experience ->
-                {:ok, connection} =
-                  Connection.from_slice(
-                    entries_for_experience
-                    |> Enum.take(limit),
-                    offset,
-                    has_previous_page: offset > 0,
-                    has_next_page: length(entries_for_experience) > limit
-                  )
+  @spec get_paginated_entries(
+          [{integer() | binary(), map()}],
+          list()
+        ) :: [Connection.t()]
+  def get_paginated_entries(
+        experiences_ids_pagination_args,
+        repo_opts
+      ) do
+    {experience_id_to_entry_map, experience_ids, limit, offset} =
+      get_experience_id_to_entry_connection_map(
+        experiences_ids_pagination_args,
+        repo_opts
+      )
 
-                connection
-            end
-          end
-        )
-    end
+    Enum.map(
+      experience_ids,
+      fn experience_id ->
+        case experience_id_to_entry_map[experience_id] do
+          nil ->
+            @empty_relay_connection
+
+          entries_for_experience ->
+            {:ok, connection} =
+              Connection.from_slice(
+                entries_for_experience
+                |> Enum.take(limit),
+                offset,
+                has_previous_page: offset > 0,
+                has_next_page: length(entries_for_experience) > limit
+              )
+
+            connection
+        end
+      end
+    )
   end
 
   def get_entry(id) do

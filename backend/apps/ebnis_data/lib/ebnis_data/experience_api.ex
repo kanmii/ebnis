@@ -9,6 +9,7 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.Entry
   alias EbnisData.DataDefinition
   alias EbnisData.EntryApi
+  alias Absinthe.Relay.Connection
 
   @get_experience_exception_header "\n\nException while getting experience with:"
   @bad_request "bad request"
@@ -16,6 +17,8 @@ defmodule EbnisData.ExperienceApi do
   @experience_can_not_be_created_exception_header "\n\nsomething is wrong - experience can not be created"
   @update_experience_exception_header "\n\nException while updating experience with:"
   @delete_experience_exception_header "\n\nException while deleting experience with:"
+
+  @empty_relay_connection EbnisData.get_empty_relay_connection()
 
   @spec get_experience(id :: integer() | binary(), user_id :: integer() | binary()) ::
           Experience.t() | nil
@@ -51,19 +54,19 @@ defmodule EbnisData.ExperienceApi do
 
   @spec get_experiences(
           args :: %{
-            pagination: Absinthe.Relay.Connection.Options.t(),
+            pagination: Connection.Options.t(),
             user_id: binary() | Integer.t(),
             ids: [binary() | Integer.t()],
             client_ids: [binary() | Integer.t()]
           }
         ) ::
-          {:ok, Absinthe.Relay.Connection.t()} | {:error, any}
+          {:ok, Connection.t()} | {:error, any}
   def get_experiences(args) do
     case Enum.any?(@pagination_keys, &Map.has_key?(args, &1)) do
       true ->
         args
         |> query_with_data_definitions()
-        |> Absinthe.Relay.Connection.from_query(
+        |> Connection.from_query(
           &Repo.all(&1),
           args
         )
@@ -637,7 +640,7 @@ defmodule EbnisData.ExperienceApi do
     [changeset | created_entries_and_error_changesets]
   end
 
-  def prefetch_experiences(%{ids: ids} = args, user_id) do
+  def pre_fetch_experiences(%{ids: ids} = args, user_id) do
     from(
       exp in Experience,
       where: exp.user_id == ^user_id,
@@ -648,10 +651,7 @@ defmodule EbnisData.ExperienceApi do
     |> Repo.all()
     |> case do
       [] ->
-        %{
-          experiences: [],
-          entries: []
-        }
+        []
 
       experiences ->
         pagination_args =
@@ -665,17 +665,43 @@ defmodule EbnisData.ExperienceApi do
               }
           end
 
-        %{
-          experiences: experiences,
-          entries:
-            EntryApi.get_paginated_entries(
-              Enum.map(
-                ids,
-                &{&1, pagination_args}
-              ),
-              []
+        {experience_id_to_entry_map, _experience_ids, limit, offset} =
+          EbnisData.get_experience_id_to_entry_connection_map(
+            Enum.map(
+              ids,
+              &{&1, pagination_args}
+            ),
+            []
+          )
+
+        Enum.map(
+          experiences,
+          fn experience ->
+            entries =
+              case experience_id_to_entry_map[experience.id] do
+                nil ->
+                  @empty_relay_connection
+
+                entries_for_experience ->
+                  {:ok, connection} =
+                    Connection.from_slice(
+                      entries_for_experience
+                      |> Enum.take(limit),
+                      offset,
+                      has_previous_page: offset > 0,
+                      has_next_page: length(entries_for_experience) > limit
+                    )
+
+                  connection
+              end
+
+            Map.put(
+              experience,
+              :entries,
+              entries
             )
-        }
+          end
+        )
     end
   rescue
     error ->

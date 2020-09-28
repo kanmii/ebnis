@@ -33,15 +33,19 @@ defmodule EbnisData.Query.Experience do
     }
   """
 
+  @naked_erfarung """
+    id
+    title
+    description
+    clientId
+    insertedAt
+    updatedAt
+    dataDefinitions #{@data_definition_fragment}
+  """
+
   @erfahrung_scherbe """
     {
-      id
-      title
-      description
-      clientId
-      insertedAt
-      updatedAt
-      dataDefinitions #{@data_definition_fragment}
+      #{@naked_erfarung}
     }
   """
 
@@ -352,10 +356,10 @@ defmodule EbnisData.Query.Experience do
 
   def vorholen_erfahrungen do
     """
-      query PrefetchExperiences($ids: [ID!]!, $entryPagination: PaginationInput) {
-        prefetchExperiences(ids: $ids, entryPagination: $entryPagination) {
-          experiences #{@erfahrung_scherbe}
-          entries {
+      query PreFetchExperiences($ids: [ID!]!, $entryPagination: PaginationInput!) {
+        preFetchExperiences(ids: $ids, entryPagination: $entryPagination) {
+          #{@naked_erfarung}
+          entries(pagination: $entryPagination) {
             edges {
               node #{@eintrag_scherbe}
             }

@@ -699,23 +699,23 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     :get_entries_success
   end
 
-  def prefetch_experiences(
+  def pre_fetch_experiences(
         %{
           ids: _ids
         } = args,
         %{context: %{current_user: user}}
       ) do
-    EbnisData.prefetch_experiences(args, user.id)
+    EbnisData.pre_fetch_experiences(args, user.id)
     |> case do
-      %{} = data ->
-        {:ok, data}
+      {:error, errors} ->
+        {:error, errors}
 
-      errors ->
-        errors
+      data ->
+        {:ok, data}
     end
   end
 
-  def prefetch_experiences(_, _) do
+  def pre_fetch_experiences(_, _) do
     Resolver.unauthorized()
   end
 end

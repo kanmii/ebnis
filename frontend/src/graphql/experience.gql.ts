@@ -72,19 +72,6 @@ export const EXPERIENCE_CONNECTION_FRAGMENT = gql`
   ${PAGE_INFO_FRAGMENT}
 `;
 
-export const PRE_FETCH_EXPERIENCE_FRAGMENT = gql`
-  fragment PreFetchExperienceFragment on ExperienceConnection {
-    edges {
-      cursor
-      node {
-        ...ExperienceRestFragment
-      }
-    }
-  }
-
-  ${EXPERIENCE_REST_FRAGMENT}
-`;
-
 const EXPERIENCE_ERROR_FRAGMENT = gql`
   fragment ExperienceErrorFragment on ExperienceError {
     experienceId
@@ -514,19 +501,20 @@ export const GET_EXPERIENCES_CONNECTION_MINI_QUERY = gql`
 
 ////////////////////////// END GET MINIMAL EXPERIENCES QUERY /////////////////
 
-// this query will be deleted after we ran it.
-// export const PRE_FETCH_EXPERIENCES_QUERY = gql`
-//   query PreFetchExperiences(
-//     $input: GetExperiencesInput!
-//     $entriesPagination: PaginationInput!
-//   ) {
-//     getExperiences(input: $input) {
-//       ...PreFetchExperienceFragment
-//     }
-//   }
+// this query will be deleted after we run it.
+export const PRE_FETCH_EXPERIENCES_QUERY = gql`
+  query PreFetchExperiences($ids: [ID!]!, $entryPagination: PaginationInput!) {
+    preFetchExperiences(ids: $ids, entryPagination: $entryPagination) {
+      ...ExperienceRestFragment
+      entries(pagination: $entryPagination) {
+        ...EntryConnectionFragment
+      }
+    }
+  }
 
-//   ${PRE_FETCH_EXPERIENCE_FRAGMENT}
-// `;
+  ${EXPERIENCE_REST_FRAGMENT}
+  ${ENTRY_CONNECTION_FRAGMENT}
+`;
 
 ////////////////////////// GET COMPLETE EXPERIENCE QUERY //////////////////
 

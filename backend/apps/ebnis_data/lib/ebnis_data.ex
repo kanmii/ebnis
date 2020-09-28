@@ -12,6 +12,16 @@ defmodule EbnisData do
 
   @authenticate_user_exception_header "\n\nException while authenticating user with username:"
 
+  @empty_relay_connection %{
+    edges: [],
+    page_info: %{
+      start_cursor: "",
+      end_cursor: "",
+      has_previous_page: false,
+      has_next_page: false
+    }
+  }
+
   def register(%{} = params) do
     Multi.new()
     |> Registration.create(params)
@@ -103,6 +113,10 @@ defmodule EbnisData do
     |> Repo.update()
   end
 
+  def get_empty_relay_connection do
+    @empty_relay_connection
+  end
+
   ################################## EXPERIENCES #############################
 
   defdelegate get_experience(id, user_id), to: ExperienceApi
@@ -115,7 +129,7 @@ defmodule EbnisData do
 
   defdelegate update_experience(update_args, user_id), to: ExperienceApi
 
-  defdelegate prefetch_experiences(args, user_id), to: ExperienceApi
+  defdelegate pre_fetch_experiences(args, user_id), to: ExperienceApi
 
   #########################  END  EXPERIENCES ###############################
 
@@ -128,6 +142,8 @@ defmodule EbnisData do
               to: EntryApi
 
   defdelegate get_entries(args), to: EntryApi
+
+  defdelegate get_experience_id_to_entry_connection_map(a, b), to: EntryApi
 
   ################################ END ENTRY SECTION #################
 end

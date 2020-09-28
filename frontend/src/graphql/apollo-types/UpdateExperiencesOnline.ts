@@ -84,7 +84,7 @@ export interface UpdateExperiencesOnline_updateExperiences_UpdateExperiencesSome
   __typename: "DataDefinition";
   id: string;
   /**
-   * Name of field e.g start, end, meal
+   * Name of field e.g start, end, meal 
    */
   name: string;
   /**

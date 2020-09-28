@@ -13,6 +13,7 @@ import {
   DELETE_EXPERIENCES_MUTATION,
   GET_EXPERIENCES_CONNECTION_MINI_QUERY,
   ON_EXPERIENCES_DELETED_SUBSCRIPTION,
+  PRE_FETCH_EXPERIENCES_QUERY,
 } from "../graphql/experience.gql";
 import { UpdateExperienceInput } from "../graphql/apollo-types/globalTypes";
 import {
@@ -54,6 +55,10 @@ import {
   GetEntries,
   GetEntriesVariables,
 } from "../graphql/apollo-types/GetEntries";
+import {
+  PreFetchExperiences,
+  PreFetchExperiencesVariables,
+} from "../graphql/apollo-types/PreFetchExperiences";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 
@@ -274,3 +279,13 @@ export type ExperiencesData = Readonly<{
   experiences: ExperienceMiniFragment[];
   pageInfo: PageInfoFragment;
 }>;
+
+export function preFetchExperiences(variables: PreFetchExperiencesVariables) {
+  const { client } = window.____ebnis;
+
+  return client.query<PreFetchExperiences, PreFetchExperiencesVariables>({
+    query: PRE_FETCH_EXPERIENCES_QUERY,
+    variables,
+    fetchPolicy: "network-only",
+  });
+}

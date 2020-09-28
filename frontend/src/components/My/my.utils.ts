@@ -50,6 +50,13 @@ import {
 } from "../../graphql/apollo-types/GetExperienceConnectionMini";
 import { getExperiencesMiniQuery } from "../../apollo/get-experiences-mini-query";
 import { scrollIntoView } from "../../utils/scroll-into-view";
+import { nonsenseId } from "../../utils/utils.dom";
+import { handlePreFetchExperiences } from "./my.injectables";
+import {
+  ExperienceConnectionFragment_edges,
+  ExperienceConnectionFragment_edges_node,
+} from "../../graphql/apollo-types/ExperienceConnectionFragment";
+import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 
 export enum ActionType {
   ACTIVATE_NEW_EXPERIENCE = "@my/activate-new-experience",
@@ -551,7 +558,11 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
         const sammelnErfahrungen = (data &&
           data.getExperiences) as GetExperienceConnectionMini_getExperiences;
 
-        const [ergebnisse, neuenErfahrung] = appendNewToGetExperiencesQuery(
+        const [
+          ergebnisse,
+          blätterZuId,
+          erfahrungenIds,
+        ] = appendNewToGetExperiencesQuery(
           !!paginationInput,
           sammelnErfahrungen,
           zwischengespeicherteErgebnis,
@@ -565,8 +576,22 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
         });
 
         if (paginationInput) {
-          scrollIntoView(neuenErfahrung.id);
+          scrollIntoView(blätterZuId);
         }
+
+        const idToExperienceMap = (sammelnErfahrungen.edges as ExperienceConnectionFragment_edges[]).reduce(
+          (acc, e) => {
+            const edge = e as ExperienceConnectionFragment_edges;
+            const node = edge.node as ExperienceConnectionFragment_edges_node;
+            acc[node.id] = node;
+            return acc;
+          },
+          {} as { [experienceId: string]: ExperienceFragment },
+        );
+
+        setTimeout(() => {
+          handlePreFetchExperiences(erfahrungenIds, idToExperienceMap);
+        });
       }
     } catch (error) {
       dispatch({
@@ -630,7 +655,7 @@ function appendNewToGetExperiencesQuery(
   istPaginierung: boolean,
   { edges, pageInfo }: GetExperienceConnectionMini_getExperiences,
   storeData?: GetExperienceConnectionMini_getExperiences | null,
-): [ExperiencesData, ExperienceMiniFragment] {
+): [ExperiencesData, string, string[]] {
   const previousEdges = ((storeData && storeData.edges) ||
     []) as GetExperienceConnectionMini_getExperiences_edges[];
 
@@ -645,9 +670,16 @@ function appendNewToGetExperiencesQuery(
     });
   }
 
-  const neuenErfahrüngen = newEdges.map((edge) => {
-    return edge.node as ExperienceMiniFragment;
-  });
+  const [neuenErfahrungen, erfahrungenIds] = newEdges.reduce(
+    ([neuenErfahrungen, erfahrungenIds], edge) => {
+      const node = edge.node as ExperienceMiniFragment;
+      neuenErfahrungen.push(node);
+      erfahrungenIds.push(node.id);
+
+      return [neuenErfahrungen, erfahrungenIds];
+    },
+    [[], []] as [ExperienceMiniFragment[], string[]],
+  );
 
   const zuletztErfahrüngen = previousEdges.map(
     (edge) => edge.node as ExperienceMiniFragment,
@@ -657,12 +689,14 @@ function appendNewToGetExperiencesQuery(
 
   return [
     {
-      experiences: zuletztErfahrüngen.concat(neuenErfahrüngen),
+      experiences: zuletztErfahrüngen.concat(neuenErfahrungen),
       pageInfo: pageInfo,
     },
     zuletztErfahrüngenLänge === 0
-      ? neuenErfahrüngen[0] || ({ id: "" } as ExperienceMiniFragment)
-      : zuletztErfahrüngen[zuletztErfahrüngenLänge - 1],
+      ? (neuenErfahrungen[0] || ({ id: nonsenseId } as ExperienceMiniFragment))
+          .id
+      : zuletztErfahrüngen[zuletztErfahrüngenLänge - 1].id,
+    erfahrungenIds,
   ];
 }
 

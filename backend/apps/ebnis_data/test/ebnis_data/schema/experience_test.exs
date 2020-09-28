@@ -2656,7 +2656,10 @@ defmodule EbnisData.Schema.ExperienceTest do
                  Query.vorholen_erfahrungen(),
                  Schema,
                  variables: %{
-                   "ids" => ["0"]
+                   "ids" => ["0"],
+                   "entryPagination" => %{
+                     "first" => 1
+                   }
                  }
                )
     end
@@ -2677,7 +2680,10 @@ defmodule EbnisData.Schema.ExperienceTest do
                      Query.vorholen_erfahrungen(),
                      Schema,
                      variables: %{
-                       "ids" => ["0"]
+                       "ids" => ["0"],
+                       "entryPagination" => %{
+                         "first" => 1
+                       }
                      },
                      context:
                        context(%{
@@ -2694,17 +2700,17 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "prefetchExperiences" => %{
-                    "experiences" => [],
-                    "entries" => []
-                  }
+                  "preFetchExperiences" => []
                 }
               }} =
                Absinthe.run(
                  Query.vorholen_erfahrungen(),
                  Schema,
                  variables: %{
-                   "ids" => [@bogus_id]
+                   "ids" => [@bogus_id],
+                   "entryPagination" => %{
+                     "first" => 1
+                   }
                  },
                  context:
                    context(%{
@@ -2740,9 +2746,9 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "prefetchExperiences" => %{
-                    "entries" => [
-                      %{
+                  "preFetchExperiences" => [
+                    %{
+                      "entries" => %{
                         "edges" => [
                           %{
                             "node" => %{
@@ -2757,26 +2763,25 @@ defmodule EbnisData.Schema.ExperienceTest do
                           }
                         ],
                         "pageInfo" => %{}
-                      }
-                    ],
-                    "experiences" => [
-                      %{
-                        "id" => ^experience_id,
-                        "dataDefinitions" => [
-                          %{
-                            "id" => _
-                          }
-                        ]
-                      }
-                    ]
-                  }
+                      },
+                      "id" => ^experience_id,
+                      "dataDefinitions" => [
+                        %{
+                          "id" => _
+                        }
+                      ]
+                    }
+                  ]
                 }
               }} =
                Absinthe.run(
                  Query.vorholen_erfahrungen(),
                  Schema,
                  variables: %{
-                   "ids" => [experience_id]
+                   "ids" => [experience_id],
+                   "entryPagination" => %{
+                     "first" => 1
+                   }
                  },
                  context: context(user)
                )
@@ -2816,9 +2821,9 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert {:ok,
               %{
                 data: %{
-                  "prefetchExperiences" => %{
-                    "entries" => [
-                      %{
+                  "preFetchExperiences" => [
+                    %{
+                      "entries" => %{
                         "edges" => [
                           %{
                             "node" => %{
@@ -2836,19 +2841,15 @@ defmodule EbnisData.Schema.ExperienceTest do
                           "hasPreviousPage" => false,
                           "hasNextPage" => true
                         }
-                      }
-                    ],
-                    "experiences" => [
-                      %{
-                        "id" => ^experience_id,
-                        "dataDefinitions" => [
-                          %{
-                            "id" => _
-                          }
-                        ]
-                      }
-                    ]
-                  }
+                      },
+                      "id" => ^experience_id,
+                      "dataDefinitions" => [
+                        %{
+                          "id" => _
+                        }
+                      ]
+                    }
+                  ]
                 }
               }} =
                Absinthe.run(
