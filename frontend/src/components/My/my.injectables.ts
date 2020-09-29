@@ -7,6 +7,7 @@ import { toGetEntriesSuccessQuery } from "../../graphql/utils.gql";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { EntryConnectionFragment } from "../../graphql/apollo-types/EntryConnectionFragment";
 
+// istanbul ignore next:
 export function handlePreFetchExperiences(
   erfahrungenIds: string[],
   idToExperienceMap: { [experienceId: string]: ExperienceFragment },

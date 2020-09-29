@@ -48,6 +48,10 @@ import { purgeExperiencesFromCache1 } from "../apollo/update-get-experiences-min
 import { AppPersistor } from "../utils/app-context";
 import { E2EWindowObject } from "../utils/types";
 import { BroadcastMessageType } from "../utils/observable-manager";
+import { handlePreFetchExperiences } from "../components/My/my.injectables";
+
+jest.mock("../components/My/my.injectables");
+const mockHandlePreFetchExperiences = handlePreFetchExperiences as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
 const mockPurgeExperiencesFromCache1 = purgeExperiencesFromCache1 as jest.Mock;
@@ -268,6 +272,16 @@ describe("component", () => {
 
     expect(document.getElementById(onlineId)).not.toBeNull();
     expect(document.getElementById("b")).toBeNull();
+    jest.runAllTimers();
+    expect(mockHandlePreFetchExperiences.mock.calls[0]).toEqual([
+      [onlineId],
+      {
+        [onlineId]: {
+          id: onlineId,
+          title: "a",
+        },
+      },
+    ]);
 
     mockGetExperiencesMiniQuery.mockReturnValue({
       edges: [
