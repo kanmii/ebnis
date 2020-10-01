@@ -22,7 +22,11 @@ defmodule Ebnis.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      extra_applications: [:logger, :runtime_tools]
+      mod: {Ebnis.Application, []},
+      extra_applications: [
+        :logger,
+        :runtime_tools
+      ]
     ]
   end
 
@@ -35,7 +39,8 @@ defmodule Ebnis.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:cortex, "~> 0.6.0", only: [:dev, :test]},
+      {:phoenix_pubsub, "~> 2.0"},
+      {:cortex, "~> 0.6.0", only: [:dev, :test]}
     ]
   end
 end

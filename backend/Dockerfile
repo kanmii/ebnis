@@ -4,7 +4,7 @@ ARG DOCKER_HOST_USER_NAME
 
 ENV APP_DEPS="openssl git ca-certificates inotify-tools curl" \
   HOME_VAR=/home/${DOCKER_HOST_USER_NAME} \
-  HOST_APP_HOME="backend"
+  HOST_APP_HOME="."
 
 RUN apt-get update \
   && apt-get install -y ${APP_DEPS} --no-install-recommends \
@@ -50,13 +50,15 @@ RUN mix do deps.get --only prod, compile \
 
 ############################### release image ###############################
 
-FROM debian:buster AS release
+FROM debian:buster AS prod
 
 ARG DOCKER_HOST_USER_NAME
 
-ENV APP_DEPS="openssl" \
+# we install 'libtinfo5' because of `beam.smtp` error
+ENV APP_DEPS="openssl libtinfo5 curl" \
+  HOME_VAR=/home/ebnis \
   LANG=C.UTF-8 \
-  HOST_APP_HOME="backend"
+  HOST_APP_HOME="."
 
 RUN apt-get update \
   && apt-get install -y ${APP_DEPS} --no-install-recommends \
@@ -64,23 +66,22 @@ RUN apt-get update \
   && rm -rf /usr/share/doc && rm -rf /usr/share/man \
   && apt-get clean \
   && groupadd ebnis \
-  && useradd -g ebnis ebnis \
-  && mkdir -p /ebnis-app \
-  && chown -R ebnis:ebnis /ebnis-app
+  && useradd -m -g ebnis ebnis
 
 COPY ${HOST_APP_HOME}/entrypoint.sh /usr/local/bin
 
 ADD https://raw.githubusercontent.com/humpangle/wait-until/v0.1.1/wait-until /usr/local/bin/
 
-RUN chmod 755 /usr/local/bin/entrypoint.sh \
-  && chmod 755 /usr/local/bin/wait-until
-
-WORKDIR /ebnis-app
+WORKDIR ${HOME_VAR}/app
 
 COPY --from=build --chown=ebnis:ebnis /home/${DOCKER_HOST_USER_NAME}/src/_build/prod/rel/ebnis ./
 
-USER ebnis
+RUN chown -R \
+  ebnis:ebnis \
+  ${HOME_VAR} \
+  && chmod 755 /usr/local/bin/entrypoint.sh \
+  && chmod 755 /usr/local/bin/wait-until
 
-ENV HOME=/ebnis-app
+USER ebnis
 
 CMD ["/bin/bash"]

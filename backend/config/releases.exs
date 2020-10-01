@@ -5,6 +5,7 @@
 import Config
 
 database_url = System.fetch_env!("DATABASE_URL")
+
 secret_key_base = System.fetch_env!("SECRET_KEY_BASE")
 
 database_ssl =

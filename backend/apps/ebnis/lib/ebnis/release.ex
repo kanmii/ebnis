@@ -1,8 +1,11 @@
 defmodule Ebnis.Release do
   @doc """
     use like so:
-    _build/prod/rel/release_name/bin/release_name eval "Ebnis.Release.migrate"
+    _build/prod/rel/release_name/bin/release_name eval "Module.Release.migrate"
   """
+
+  @app :ebnis_data
+
   def migrate do
     load_app()
 
@@ -38,7 +41,7 @@ defmodule Ebnis.Release do
 
   @doc """
     use like so:
-    _build/prod/rel/release_name/bin/release_name eval "Ebnis.Release.rollback(EbnisData.Repo, 20200426085025)"
+    _build/prod/rel/release_name/bin/release_name eval "Module.Release.rollback(Module.Repo, 20200426085025)"
   """
   def rollback(repo, version) do
     load_app()
@@ -51,14 +54,11 @@ defmodule Ebnis.Release do
   end
 
   defp repos do
-    Application.fetch_env!(:ebnis_data, :ecto_repos)
+    Application.fetch_env!(@app, :ecto_repos)
   end
 
   defp load_app do
     Application.ensure_all_started(:ssl)
-    # Application.load(:ebnis)
-    # this app defines the repo and must be started too, otherwise we can not
-    # work with repo
-    Application.load(:ebnis_data)
+    Application.load(@app)
   end
 end

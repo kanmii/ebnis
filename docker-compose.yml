@@ -15,12 +15,12 @@ services:
       retries: 5
       start_period: 10s
     volumes:
-      - "./docker/data/postgres-${MIX_ENV}:/var/lib/postgresql/data"
+      - "./docker/data/postgres-bla-${MIX_ENV}:/var/lib/postgresql/data"
 
   api:
     build:
-      context: .
-      target: dev
+      context: ./backend
+      target: "${MIX_ENV}"
       args:
         DOCKER_HOST_USER_NAME: "${DOCKER_HOST_USER_NAME}"
     image: "ebnis-be-${MIX_ENV}"
@@ -61,6 +61,7 @@ services:
     volumes:
       - "./frontend:/home/node/ebnis-web"
       - "not_used_node_modules:/home/node/ebnis-web/node_modules"
+
 volumes:
   not_used_build:
   not_used_node_modules:

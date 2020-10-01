@@ -48,16 +48,16 @@ config :ebnis_web, EbnisWeb.Endpoint,
   url: [
     host: host
   ],
-  http: [port: port],
+  http: [
+    port: port
+  ],
   secret_key_base: secret_key_base,
   render_errors: [
     view: EbnisWeb.ErrorView,
-    accepts: ~w(html json)
+    accepts: ~w(html json),
+    layout: false
   ],
-  pubsub: [
-    name: EbnisWeb.PubSub,
-    adapter: Phoenix.PubSub.PG2
-  ],
+  pubsub_server: Ebnis.PubSub,
   check_origin: false
 
 config :ebnis_web, EbnisWeb.Plug.Pipeline,

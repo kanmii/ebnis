@@ -38,8 +38,7 @@ defmodule EbnisWeb.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.4.9"},
-      {:phoenix_pubsub, "~> 1.1"},
+      {:phoenix, "~> 1.5.4"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_html, "~> 2.11"},
       {:gettext, "~> 0.11"},
@@ -47,7 +46,7 @@ defmodule EbnisWeb.MixProject do
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:absinthe_plug, "~> 1.5"},
-      {:absinthe_phoenix, "~> 1.5"},
+      {:absinthe_phoenix, "~> 2.0"},
       {:corsica, "~> 1.1"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
