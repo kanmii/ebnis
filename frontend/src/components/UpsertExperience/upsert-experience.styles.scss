@@ -1,6 +1,6 @@
 @import "../../styles/extensions";
 
-.component-new-experience {
+.component-upsert-experience {
   @extend %modal;
 
   .scroll-into-view {
@@ -82,5 +82,13 @@
 
   .fas {
     color: var(--app-color);
+  }
+}
+
+.upsert-experience {
+  &__title-small {
+    margin-top: 10px;
+    font-size: 0.7em;
+    font-style: italic;
   }
 }

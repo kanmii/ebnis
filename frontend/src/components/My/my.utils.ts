@@ -71,6 +71,7 @@ export enum ActionType {
   ON_DATA_RECEIVED = "@my/on-data-received",
   DATA_RE_FETCH_REQUEST = "@my/data-re-fetch-request",
   FETCH_NEXT_EXPERIENCES_PAGE = "@my/fetch-next=experiences-page",
+  EDIT_EXPERIENCE_REQUEST = "@my/edit-experience-request",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>

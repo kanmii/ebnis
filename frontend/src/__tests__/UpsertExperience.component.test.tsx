@@ -358,10 +358,15 @@ describe("components", () => {
 });
 
 describe("reducer", () => {
+  const props = {
+    createExperienceOffline: mockCreateOfflineExperience as any,
+    createExperiences: mockCreateExperiencesOnline as any,
+  } as Props;
+
   it("submits offline: success", async () => {
     mockIsConnected.mockReturnValue(false);
 
-    let state = initState();
+    let state = initState(props);
     state = formChangedTitle(state, "tt");
     state = formChangedDefinition(state, 0, "00", "name");
     state = formChangedDefinition(state, 0, DataTypes.DATE, "type");
@@ -369,10 +374,6 @@ describe("reducer", () => {
     state = reducer(state, {
       type: ActionType.SUBMISSION,
     });
-
-    const props = {
-      createExperienceOffline: mockCreateOfflineExperience as any,
-    } as Props;
 
     const effectArgs = {
       dispatch: mockDispatch,
@@ -418,7 +419,7 @@ describe("reducer", () => {
   it("submits offline: invalid response", async () => {
     mockIsConnected.mockReturnValue(false);
 
-    let state = initState();
+    let state = initState(props);
     state = formChangedTitle(state, "tt");
     state = formChangedDefinition(state, 0, "00", "name");
     state = formChangedDefinition(state, 0, DataTypes.DATE, "type");
@@ -426,10 +427,6 @@ describe("reducer", () => {
     state = reducer(state, {
       type: ActionType.SUBMISSION,
     });
-
-    const props = {
-      createExperienceOffline: mockCreateOfflineExperience as any,
-    } as Props;
 
     const effectArgs = {
       dispatch: mockDispatch,
@@ -467,7 +464,7 @@ describe("reducer", () => {
   it("submits offline: field errors", async () => {
     mockIsConnected.mockReturnValue(false);
 
-    let state = initState();
+    let state = initState(props);
     state = formChangedTitle(state, "tt");
     state = formChangedDefinition(state, 0, "00", "name");
     state = formChangedDefinition(state, 0, DataTypes.DATE, "type");
@@ -475,10 +472,6 @@ describe("reducer", () => {
     state = reducer(state, {
       type: ActionType.SUBMISSION,
     });
-
-    const props = {
-      createExperienceOffline: mockCreateOfflineExperience as any,
-    } as Props;
 
     const effectArgs = {
       dispatch: mockDispatch,
@@ -517,7 +510,7 @@ describe("reducer", () => {
   it("submits online: invalid server response", async () => {
     mockIsConnected.mockReturnValue(true);
 
-    let state = initState();
+    let state = initState(props);
     state = formChangedTitle(state, "tt");
     state = formChangedDefinition(state, 0, "00", "name");
     state = formChangedDefinition(state, 0, DataTypes.DATE, "type");
@@ -525,10 +518,6 @@ describe("reducer", () => {
     state = reducer(state, {
       type: ActionType.SUBMISSION,
     });
-
-    const props = {
-      createExperiences: mockCreateExperiencesOnline as any,
-    } as Props;
 
     const effectArgs = {
       dispatch: mockDispatch,
@@ -553,7 +542,7 @@ describe("reducer", () => {
   });
 
   it("server only field errors", () => {
-    let state = initState();
+    let state = initState(props);
     let commonErrors = (state.states.submission as SubmissionCommonErrors)
       .commonErrors;
     expect(commonErrors).not.toBeDefined();
@@ -574,7 +563,7 @@ describe("reducer", () => {
   });
 
   it("definition names must be unique", () => {
-    let state = initState();
+    let state = initState(props);
     state = formChangedTitle(state, "t"); // must be at least 2 chars
     state = formChangedDefinition(state, 0, "00", "name");
     state = formChangedDefinition(state, 0, DataTypes.DATE, "type");
@@ -631,7 +620,7 @@ describe("reducer", () => {
   });
 
   it("remove definition from the middle", () => {
-    let state = initState();
+    let state = initState(props);
 
     let defsList = defsStatesToList(state);
     expect(defsList.length).toBe(1);

@@ -14,6 +14,7 @@ import {
   GET_EXPERIENCES_CONNECTION_MINI_QUERY,
   ON_EXPERIENCES_DELETED_SUBSCRIPTION,
   PRE_FETCH_EXPERIENCES_QUERY,
+  GET_EXPERIENCE_QUERY,
 } from "../graphql/experience.gql";
 import { UpdateExperienceInput } from "../graphql/apollo-types/globalTypes";
 import {
@@ -59,6 +60,10 @@ import {
   PreFetchExperiences,
   PreFetchExperiencesVariables,
 } from "../graphql/apollo-types/PreFetchExperiences";
+import {
+  GetExperienceVariables,
+  GetExperience,
+} from "../graphql/apollo-types/GetExperience";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 
@@ -250,6 +255,17 @@ export function manuallyFetchEntries(variables: GetEntriesVariables) {
 }
 
 export type GetEntriesQueryResult = ApolloQueryResult<GetEntries>;
+
+export function manuallyFetchExperience(variables: GetExperienceVariables) {
+  const { client } = window.____ebnis;
+
+  return client.query<GetExperience, GetExperienceVariables>({
+    query: GET_EXPERIENCE_QUERY,
+    variables,
+  });
+}
+
+export type GetExperienceQueryResult = ApolloQueryResult<GetExperience>;
 
 ////////////////////////// END COMPLETE EXPERIENCE SECTION ////////////////////
 

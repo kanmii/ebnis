@@ -25,6 +25,7 @@ import {
   CreateExperiencesOnlineComponentProps,
   CreateExperiencesMutationFn,
   UpdateExperiencesOnlineComponentProps,
+  manuallyFetchExperience,
 } from "../../utils/experience.gql.types";
 import { getIsConnected } from "../../utils/connections";
 import {
@@ -50,28 +51,32 @@ import {
   ValidVal,
   InvalidVal,
   StateValue,
+  UpdateVal,
 } from "../../utils/types";
 import {
   CreateExperienceErrorsFragment,
   CreateExperienceErrorsFragment_errors,
 } from "../../graphql/apollo-types/CreateExperienceErrorsFragment";
 import { CreateExperienceSuccessFragment } from "../../graphql/apollo-types/CreateExperienceSuccessFragment";
+import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
+import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitionFragment";
 
 export const fieldTypeKeys = Object.values(DataTypes);
 
 export enum ActionType {
-  SUBMISSION = "@experience-definition/submission",
-  FORM_ERRORS = "@experience-definition/form-errors",
-  ON_COMMON_ERROR = "@experience-definition/on-common-error",
+  SUBMISSION = "@upsert-experience/submission",
+  FORM_ERRORS = "@upsert-experience/form-errors",
+  ON_COMMON_ERROR = "@upsert-experience/on-common-error",
   CLOSE_SUBMIT_NOTIFICATION = "@definition/close-submit-notification",
-  FORM_CHANGED = "@experience-definition/form-changed",
-  RESET_FORM_FIELDS = "@experience-definition/reset-form-fields",
-  ON_SERVER_ERRORS = "@experience-definition/on-server-errors",
-  ADD_DEFINITION = "@experience-definition/add-definition",
-  REMOVE_DEFINITION = "@experience-definition/remove-definition",
-  DOWN_DEFINITION = "@experience-definition/down-definition",
-  UP_DEFINITION = "@experience-definition/up-definition",
-  TOGGLE_DESCRIPTION = "@experience-definition/toggle-description",
+  FORM_CHANGED = "@upsert-experience/form-changed",
+  RESET_FORM_FIELDS = "@upsert-experience/reset-form-fields",
+  ON_SERVER_ERRORS = "@upsert-experience/on-server-errors",
+  ADD_DEFINITION = "@upsert-experience/add-definition",
+  REMOVE_DEFINITION = "@upsert-experience/remove-definition",
+  DOWN_DEFINITION = "@upsert-experience/down-definition",
+  UP_DEFINITION = "@upsert-experience/up-definition",
+  TOGGLE_DESCRIPTION = "@upsert-experience/toggle-description",
+  ON_EXPERIENCE_FETCHED_SUCCESS = "@upsert-experience/on-experience-fetched-success",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -82,6 +87,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
       return immer(prevState, (proxy) => {
         proxy.effects.general.value = StateValue.noEffect;
         delete proxy.effects.general[StateValue.hasEffects];
+
         switch (type) {
           case ActionType.FORM_CHANGED:
             handleFormChangedAction(proxy, payload as FormChangedPayload);
@@ -137,6 +143,13 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
           case ActionType.ON_SERVER_ERRORS:
             handleOnServerErrorsAction(proxy, payload as ServerErrorsPayload);
+            break;
+
+          case ActionType.ON_EXPERIENCE_FETCHED_SUCCESS:
+            handleOnExperienceFetchedSuccess(
+              proxy,
+              payload as ExperienceFragment,
+            );
             break;
         }
       });
@@ -330,63 +343,105 @@ type DefScrollToViewEffect = EffectDefinition<
   }
 >;
 
+const fetchExperienceEffect: DefFetchExperienceEffect["func"] = async (
+  { experienceId },
+  props,
+  effectArgs,
+) => {
+  const { dispatch } = effectArgs;
+
+  try {
+    const x = await manuallyFetchExperience({
+      id: experienceId,
+    });
+
+    const y = x && x.data && x.data.getExperience;
+
+    if (!y) {
+      return;
+    }
+
+    dispatch({
+      type: ActionType.ON_EXPERIENCE_FETCHED_SUCCESS,
+      ...y,
+    });
+  } catch (error) {}
+};
+
+type DefFetchExperienceEffect = EffectDefinition<
+  "fetchExperienceEffect",
+  {
+    experienceId: string;
+  }
+>;
+
 export const effectFunctions = {
   submissionEffect,
   scrollToViewEffect,
+  fetchExperienceEffect,
 };
 
 ////////////////////////// END EFFECTS SECTION /////////////////////////
 
 ////////////////////////// STATE UPDATE SECTION /////////////////
 
-function makeDataDefinitionFormField(index: number): DataDefinitionFormField {
-  return {
-    index,
-    id: v4(),
-    name: {
+export function initState(props: Props): StateMachine {
+  const { experienceId } = props;
+
+  const emptyDefinition = makeDataDefinitionFormField(0);
+
+  const fields = {
+    title: {
       states: {
         value: StateValue.unchanged,
       },
     },
-    type: {
-      states: {
-        value: StateValue.unchanged,
+    description: {
+      value: StateValue.active,
+      active: {
+        states: {
+          value: StateValue.unchanged,
+        },
       },
+    },
+    dataDefinitions: {
+      [emptyDefinition.id]: emptyDefinition,
     },
   };
-}
 
-export function initState(): StateMachine {
-  const definitionElProperties = makeDataDefinitionFormField(0);
+  const effects = experienceId
+    ? {
+        value: StateValue.hasEffects,
+        hasEffects: {
+          context: {
+            effects: [
+              {
+                key: "fetchExperienceEffect" as "fetchExperienceEffect",
+                ownArgs: {
+                  experienceId,
+                },
+              },
+            ],
+          },
+        },
+      }
+    : {
+        value: StateValue.noEffect,
+      };
 
   return {
     effects: {
-      general: {
-        value: StateValue.noEffect,
-      },
+      general: effects,
     },
     states: {
-      submission: { value: StateValue.inactive },
+      submission: {
+        value: StateValue.inactive,
+      },
       form: {
-        validity: { value: StateValue.initial },
-        fields: {
-          title: {
-            states: {
-              value: StateValue.unchanged,
-            },
-          },
-          description: {
-            value: StateValue.active,
-            active: {
-              states: {
-                value: StateValue.unchanged,
-              },
-            },
-          },
-          dataDefinitions: {
-            [definitionElProperties.id]: definitionElProperties,
-          },
+        validity: {
+          value: StateValue.initial,
         },
+        fields,
       },
     },
   };
@@ -395,6 +450,7 @@ export function initState(): StateMachine {
 function handleFormChangedAction(
   proxy: DraftState,
   payload: FormChangedPayload,
+  readonly?: boolean
 ) {
   const {
     states: {
@@ -430,7 +486,9 @@ function handleFormChangedAction(
   state.value = StateValue.changed;
 
   state.changed = state.changed || {
-    context: { formValue: value },
+    context: {
+      formValue: value,
+    },
     states: {
       value: StateValue.initial,
     },
@@ -1042,11 +1100,67 @@ function handleCloseSubmitNotificationAction(proxy: DraftState) {
   validity.value = StateValue.initial;
 }
 
+function handleOnExperienceFetchedSuccess(
+  proxy: DraftState,
+  payload: ExperienceFragment,
+) {
+  const { title, description, dataDefinitions } = payload;
+
+  handleFormChangedAction(proxy, {
+    key: "non-def",
+    fieldName: "title",
+    value: title,
+  });
+
+  handleFormChangedAction(proxy, {
+    key: "non-def",
+    fieldName: "description",
+    value: description || "",
+  });
+
+  dataDefinitions.forEach((d, index) => {
+    const { name, type } = d as DataDefinitionFragment;
+
+    handleFormChangedAction(proxy, {
+      key: "def",
+      fieldName: "name",
+      value: name,
+      index,
+    });
+
+    handleFormChangedAction(proxy, {
+      key: "def",
+      fieldName: "type",
+      value: type,
+      index,
+    });
+  });
+}
+
+function makeDataDefinitionFormField(index: number): DataDefinitionFormField {
+  return {
+    index,
+    id: v4(),
+    name: {
+      states: {
+        value: StateValue.unchanged,
+      },
+    },
+    type: {
+      states: {
+        value: StateValue.unchanged,
+      },
+    },
+  };
+}
+
 ////////////////////////// END STATE UPDATE SECTION ////////////
 
 ////////////////////////// TYPES SECTION ////////////////////////////
 
-export type CallerProps = MyChildDispatchProps;
+export type CallerProps = MyChildDispatchProps & {
+  experienceId?: string;
+};
 
 export type Props = CreateExperiencesOnlineComponentProps &
   CreateExperienceOfflineMutationComponentProps &
@@ -1089,7 +1203,10 @@ export type Action =
     } & FormChangedPayload)
   | {
       type: ActionType.RESET_FORM_FIELDS;
-    };
+    }
+  | ({
+      type: ActionType.ON_EXPERIENCE_FETCHED_SUCCESS;
+    } & ExperienceFragment);
 
 interface ServerErrorsPayload {
   errors: CreateExperiences_createExperiences_CreateExperienceErrors_errors;
@@ -1134,6 +1251,15 @@ export type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
       }>;
     }>;
   }>;
+
+type UpdateState = Readonly<{
+  value: UpdateVal;
+  update: Readonly<{
+    context: {
+      experience: ExperienceFragment;
+    };
+  }>;
+}>;
 
 export type FormValidity = Readonly<
   | {
@@ -1249,7 +1375,11 @@ type EffectDefinition<
   OwnArgs = {}
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
-type EffectType = DefScrollToViewEffect | DefSubmissionEffect;
+type EffectType =
+  | DefScrollToViewEffect
+  | DefSubmissionEffect
+  | DefFetchExperienceEffect;
+
 export type EffectState = GenericHasEffect<EffectType>;
 type EffectList = EffectType[];
 

@@ -64,7 +64,7 @@ import { useRunEffects } from "../../utils/use-run-effects";
 
 export function UpsertExperience(props: Props) {
   const { myDispatch: parentDispatch } = props;
-  const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
+  const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
   const {
     states: {
@@ -139,7 +139,7 @@ export function UpsertExperience(props: Props) {
 
   return (
     <form
-      className="form component-new-experience modal is-active"
+      className="form component-upsert-experience modal is-active"
       onSubmit={onSubmit}
       id={domPrefix}
     >
@@ -147,14 +147,18 @@ export function UpsertExperience(props: Props) {
 
       <div className="modal-card">
         <header className="modal-card-head">
-          <p className="modal-card-title">New Experience Definition</p>
+          <div className="modal-card-title">
+            <p>Create New Experience</p>
+            <p className="upsert-experience__title-small">something else</p>
+          </div>
+
           <button
             type="button"
             className="delete"
             aria-label="close"
             id={disposeComponentDomId}
             onClick={onDispose}
-          ></button>
+          />
         </header>
 
         <section className="modal-card-body">
