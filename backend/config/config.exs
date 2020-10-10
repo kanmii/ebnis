@@ -9,6 +9,8 @@
 # move said applications out of the umbrella.
 import Config
 
+###################### ENVIRONMENT VARIABLES ###############################
+
 database_url = System.get_env("DATABASE_URL", "")
 
 secret_key_base = System.get_env("SECRET_KEY_BASE", "")
@@ -23,6 +25,17 @@ pool_size =
   System.get_env("POOL_SIZE")
   |> Kernel.||("10")
   |> String.to_integer()
+
+smtp_relay = System.get_env("SMTP_RELAY")
+smtp_user = System.get_env("SMTP_USER")
+smtp_pass = System.get_env("SMTP_PASS")
+
+smtp_port =
+  System.get_env("SMTP_PORT")
+  |> Kernel.||("0")
+  |> String.to_integer()
+
+###################### END ENVIRONMENT VARIABLES ###########################
 
 config :ebnis,
   ecto_repos: [EbnisData.Repo],
@@ -72,15 +85,12 @@ config :logger, :console,
 config :ebnis_emails,
        EbEmails.DefaultImplementation.Mailer,
        adapter: Swoosh.Adapters.SMTP,
-       relay: System.get_env("SMTP_RELAY") || "smtp.ethereal.email",
-       username: System.get_env("SMTP_USER") || "loyal.farrell47@ethereal.email",
-       password: System.get_env("SMTP_PASS") || "BxXEwfa5B7zfDHY941",
+       relay: smtp_relay,
+       username: smtp_user,
+       password: smtp_pass,
        tls: :always,
        auth: :always,
-       port:
-         System.get_env("SMTP_PORT")
-         |> Kernel.||("587")
-         |> String.to_integer()
+       port: smtp_port
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
