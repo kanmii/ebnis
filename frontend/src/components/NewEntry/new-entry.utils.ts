@@ -21,7 +21,7 @@ import { scrollIntoViewNonFieldErrorDomId } from "./new-entry.dom";
 import {
   UpdateExperiencesOnlineComponentProps,
   updateExperiencesOnlineEffectHelperFunc,
-  CreateExperiencesComponentProps,
+  CreateExperiencesOnlineComponentProps,
 } from "../../utils/experience.gql.types";
 import {
   StringyErrorPayload,
@@ -895,7 +895,7 @@ export interface CallerProps extends DetailedExperienceChildDispatchProps {
 export type Props = CallerProps &
   UpdateExperiencesOnlineComponentProps &
   CreateOfflineEntryMutationComponentProps &
-  CreateExperiencesComponentProps;
+  CreateExperiencesOnlineComponentProps;
 
 export type FormObjVal = Date | string | number;
 

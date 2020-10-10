@@ -169,7 +169,7 @@ type UseCreateExperiencesMutation = [
 ];
 
 // component's props should extend this
-export interface CreateExperiencesComponentProps {
+export interface CreateExperiencesOnlineComponentProps {
   createExperiences: CreateExperiencesMutationFn;
 }
 

@@ -22,7 +22,7 @@ import {
 } from "../../utils/effects";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import {
-  CreateExperiencesComponentProps,
+  CreateExperiencesOnlineComponentProps,
   CreateExperiencesMutationFn,
 } from "../../utils/experience.gql.types";
 import { getIsConnected } from "../../utils/connections";
@@ -1047,7 +1047,7 @@ function handleCloseSubmitNotificationAction(proxy: DraftState) {
 
 export type CallerProps = MyChildDispatchProps;
 
-export type Props = CreateExperiencesComponentProps &
+export type Props = CreateExperiencesOnlineComponentProps &
   CreateExperienceOfflineMutationComponentProps &
   CallerProps;
 
