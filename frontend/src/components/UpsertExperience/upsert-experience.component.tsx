@@ -6,7 +6,7 @@ import React, {
   ChangeEvent,
 } from "react";
 import makeClassNames from "classnames";
-import "./new-experience.styles.scss";
+import "./upsert-experience.styles.scss";
 import {
   Props,
   initState,
@@ -21,7 +21,7 @@ import {
   DataDefinitionFieldsMap,
   DispatchType,
   CallerProps,
-} from "./new-experience.utils";
+} from "./upsert-experience.utils";
 import {
   scrollIntoViewDomId,
   titleInputDomId,
@@ -42,14 +42,17 @@ import {
   definitionContainerDomSelector,
   disposeComponentDomId,
   domPrefix,
-} from "./new-experience.dom";
-import { useCreateExperienceOfflineMutation } from "./new-experience.resolvers";
-import { useCreateExperiencesMutation } from "../../utils/experience.gql.types";
+} from "./upsert-experience.dom";
+import { useCreateExperienceOfflineMutation } from "./upsert-experience.resolvers";
+import {
+  useCreateExperiencesMutation,
+  useUpdateExperiencesOnlineMutation,
+} from "../../utils/experience.gql.types";
 import { DataTypes } from "../../graphql/apollo-types/globalTypes";
 import Loading from "../Loading/loading.component";
 import { FormCtrlError } from "../FormCtrlError/form-ctrl-error.component";
 import { FieldError } from "../../utils/common-errors";
-import { addResolvers } from "./new-experience.injectables";
+import { addResolvers } from "./upsert-experience.injectables";
 import {
   warningClassName,
   errorClassName, //
@@ -59,7 +62,7 @@ import { InputChangeEvent } from "../../utils/types";
 import { StateValue } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 
-export function NewExperience(props: Props) {
+export function UpsertExperience(props: Props) {
   const { myDispatch: parentDispatch } = props;
   const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
 
@@ -617,12 +620,14 @@ function DataDefinitions(props: DataDefinitionsProps) {
 export default (props: CallerProps) => {
   const [createExperienceOffline] = useCreateExperienceOfflineMutation();
   const [createExperiences] = useCreateExperiencesMutation();
+  const [updateExperiencesOnline] = useUpdateExperiencesOnlineMutation();
 
   return (
-    <NewExperience
+    <UpsertExperience
       {...props}
       createExperiences={createExperiences}
       createExperienceOffline={createExperienceOffline}
+      updateExperiencesOnline={updateExperiencesOnline}
     />
   );
 };

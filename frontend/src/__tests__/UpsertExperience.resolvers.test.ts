@@ -1,4 +1,4 @@
-import { experienceDefinitionResolvers } from "../components/NewExperience/new-experience.resolvers";
+import { experienceDefinitionResolvers } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { MUTATION_NAME_createExperienceOffline } from "../apollo/resolvers";
 import {
   CreateExperiencesVariables,

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ComponentType } from "react";
 import { render, cleanup, waitForElement, wait } from "@testing-library/react";
-import { NewExperience } from "../components/NewExperience/new-experience.component";
+import { UpsertExperience } from "../components/UpsertExperience/upsert-experience.component";
 import {
   Props,
   reducer,
@@ -15,7 +15,7 @@ import {
   FormInValid,
   SubmissionCommonErrors,
   EffectState,
-} from "../components/NewExperience/new-experience.utils";
+} from "../components/UpsertExperience/upsert-experience.utils";
 import {
   submitDomId,
   notificationCloseId,
@@ -31,7 +31,7 @@ import {
   moveDownDefinitionSelector,
   removeDefinitionSelector,
   disposeComponentDomId,
-} from "../components/NewExperience/new-experience.dom";
+} from "../components/UpsertExperience/upsert-experience.dom";
 import { warningClassName, errorClassName } from "../utils/utils.dom";
 import { fillField } from "../tests.utils";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
@@ -41,10 +41,10 @@ import { windowChangeUrl } from "../utils/global-window";
 import { AppPersistor } from "../utils/app-context";
 import { scrollIntoView } from "../utils/scroll-into-view";
 import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "../graphql/apollo-types/CreateExperiences";
-import { CreateExperienceOfflineMutationResult } from "../components/NewExperience/new-experience.resolvers";
+import { CreateExperienceOfflineMutationResult } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { E2EWindowObject } from "../utils/types";
 
-jest.mock("../components/NewExperience/new-experience.injectables");
+jest.mock("../components/UpsertExperience/upsert-experience.injectables");
 
 jest.mock("../utils/connections");
 const mockIsConnected = getIsConnected as jest.Mock;
@@ -59,6 +59,7 @@ const mockParentDispatch = jest.fn();
 const mockDispatch = jest.fn();
 const mockCreateOfflineExperience = jest.fn();
 const mockCreateExperiencesOnline = jest.fn();
+const mockUpdateExperiencesOnline = jest.fn();
 const mockPersistFn = jest.fn();
 const persistor = {
   persist: mockPersistFn as any,
@@ -665,14 +666,15 @@ describe("reducer", () => {
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
-const NewExperienceP = NewExperience as ComponentType<Partial<Props>>;
+const UpsertExperienceP = UpsertExperience as ComponentType<Partial<Props>>;
 
 function makeComp({ props = {} }: { props?: Partial<{}> } = {}) {
   return {
     ui: (
-      <NewExperienceP
+      <UpsertExperienceP
         createExperiences={mockCreateExperiencesOnline}
         createExperienceOffline={mockCreateOfflineExperience}
+        updateExperiencesOnline={mockUpdateExperiencesOnline}
         myDispatch={mockParentDispatch}
         {...props}
       />

@@ -57,7 +57,7 @@ import {
 } from "../../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
-import { createExperienceOnlineEffect } from "../NewExperience/new-experience.utils";
+import { createExperienceOnlineEffect } from "../UpsertExperience/upsert-experience.utils";
 import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitionFragment";
 import {
   putOrRemoveSyncingExperience,

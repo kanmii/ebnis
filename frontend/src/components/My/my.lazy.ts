@@ -2,5 +2,5 @@
 import { lazy } from "react";
 
 export const NewExperience = lazy(() =>
-  import("../NewExperience/new-experience.component"),
+  import("../UpsertExperience/upsert-experience.component"),
 );

@@ -1,5 +1,5 @@
 import { ApolloClient } from "@apollo/client";
-import { experienceDefinitionResolvers } from "./new-experience.resolvers";
+import { experienceDefinitionResolvers } from "./upsert-experience.resolvers";
 
 // istanbul ignore next:
 export function addResolvers(client: ApolloClient<{}>) {

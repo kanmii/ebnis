@@ -24,6 +24,7 @@ import { scrollIntoView } from "../../utils/scroll-into-view";
 import {
   CreateExperiencesOnlineComponentProps,
   CreateExperiencesMutationFn,
+  UpdateExperiencesOnlineComponentProps,
 } from "../../utils/experience.gql.types";
 import { getIsConnected } from "../../utils/connections";
 import {
@@ -31,8 +32,8 @@ import {
   CreateExperiences_createExperiences_CreateExperienceErrors_errors_dataDefinitions,
 } from "../../graphql/apollo-types/CreateExperiences";
 import { createExperiencesManualUpdate } from "../../apollo/create-experiences-manual-update";
-import { scrollIntoViewDomId } from "./new-experience.dom";
-import { CreateExperienceOfflineMutationComponentProps } from "./new-experience.resolvers";
+import { scrollIntoViewDomId } from "./upsert-experience.dom";
+import { CreateExperienceOfflineMutationComponentProps } from "./upsert-experience.resolvers";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { v4 } from "uuid";
@@ -1049,6 +1050,7 @@ export type CallerProps = MyChildDispatchProps;
 
 export type Props = CreateExperiencesOnlineComponentProps &
   CreateExperienceOfflineMutationComponentProps &
+  UpdateExperiencesOnlineComponentProps &
   CallerProps;
 
 export type Action =

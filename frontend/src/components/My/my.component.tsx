@@ -373,6 +373,20 @@ const ExperienceComponent = React.memo(
           <div className="dropdown-menu" role="menu">
             <div className="dropdown-content">
               <a
+                className="neutral-link edit-experience-menu-item"
+                style={{
+                  cursor: "pointer",
+                  display: "block",
+                }}
+                onClick={onDeleteExperience}
+                href="a"
+              >
+                Edit
+              </a>
+            </div>
+
+            <div className="dropdown-content">
+              <a
                 className="neutral-link delete-experience-menu-item"
                 style={{
                   cursor: "pointer",
