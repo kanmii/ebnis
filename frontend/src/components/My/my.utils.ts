@@ -57,11 +57,12 @@ import {
   ExperienceConnectionFragment_edges_node,
 } from "../../graphql/apollo-types/ExperienceConnectionFragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
+import { makeScrollToDomId } from "./my.dom";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
   CANCEL_UPSERT_EXPERIENCE = "@my/deactivate-upsert-experience",
-  ON_UPSERT_EXPERIENCE_SUCCESS = "@my/on-upsert-experience-success",
+  ON_UPDATE_EXPERIENCE_SUCCESS = "@my/on-update-experience-success",
   TOGGLE_SHOW_DESCRIPTION = "@my/toggle-show-description",
   TOGGLE_SHOW_OPTIONS_MENU = "@my/toggle-show-options-menu",
   CLOSE_ALL_OPTIONS_MENU = "@my/close-all-options-menu",
@@ -141,7 +142,14 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             break;
 
           case ActionType.FETCH_NEXT_EXPERIENCES_PAGE:
-            handleFetchPrevNextExperiencesPage(proxy);
+            handleFetchPrevNextExperiencesPageAction(proxy);
+            break;
+
+          case ActionType.ON_UPDATE_EXPERIENCE_SUCCESS:
+            handleOnUpdateExperienceSuccessAction(
+              proxy,
+              payload as WithExperiencePayload,
+            );
             break;
         }
       });
@@ -405,7 +413,7 @@ async function handleDataReFetchRequestAction(proxy: DraftState) {
   });
 }
 
-function handleFetchPrevNextExperiencesPage(proxy: DraftState) {
+function handleFetchPrevNextExperiencesPageAction(proxy: DraftState) {
   const { states } = proxy;
 
   // istanbul ignore else
@@ -423,6 +431,59 @@ function handleFetchPrevNextExperiencesPage(proxy: DraftState) {
         },
       },
     });
+  }
+}
+
+function handleOnUpdateExperienceSuccessAction(
+  proxy: DraftState,
+  { experience }: WithExperiencePayload,
+) {
+  const { states } = proxy;
+  const { id, title } = experience;
+
+  // istanbul ignore else
+  if (states.value === StateValue.data) {
+    const {
+      states: { experiences: experiencesState, upsertExperienceActivated },
+      context,
+    } = states.data;
+
+    const upsertExperienceUiInactive = upsertExperienceActivated;
+
+    if (upsertExperienceActivated.value === StateValue.active) {
+      upsertExperienceUiInactive.value = StateValue.inactive;
+    }
+
+    const state = experiencesState[id] || ({} as ExperienceState);
+    const showingUpdateSuccess = state.showingUpdateSuccess;
+    state.showingUpdateSuccess = !showingUpdateSuccess;
+    experiencesState[id] = state;
+
+    if (!showingUpdateSuccess) {
+      const { experiences, experiencesPrepared } = context;
+
+      for (let index = 0; index < experiences.length; index++) {
+        const iterExperience = experiences[index];
+
+        if (iterExperience.id === id) {
+          experiences[index] = experience;
+          const prepared = experiencesPrepared[index];
+          prepared.title = title;
+          prepared.target = fuzzysort.prepare(title) as Fuzzysort.Prepared;
+
+          const effects = getGeneralEffects(proxy);
+
+          effects.push({
+            key: "scrollToViewEffect",
+            ownArgs: {
+              id: makeScrollToDomId(id),
+            },
+          });
+
+          break;
+        }
+      }
+    }
   }
 }
 
@@ -639,9 +700,21 @@ type DefFetchExperiencesEffect = EffectDefinition<
   }
 >;
 
+const scrollToViewEffect: DefScrollToViewEffect["func"] = ({ id }) => {
+  scrollIntoView(id);
+};
+
+type DefScrollToViewEffect = EffectDefinition<
+  "scrollToViewEffect",
+  {
+    id: string;
+  }
+>;
+
 export const effectFunctions = {
   deletedExperienceRequestEffect,
   fetchExperiencesEffect,
+  scrollToViewEffect,
 };
 
 async function deleteExperienceProcessedEffectHelper({ dispatch }: EffectArgs) {
@@ -868,7 +941,14 @@ type Action =
     }
   | {
       type: ActionType.FETCH_NEXT_EXPERIENCES_PAGE;
-    };
+    }
+  | ({
+      type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS;
+    } & WithExperiencePayload);
+
+type WithExperiencePayload = {
+  experience: ExperienceMiniFragment;
+};
 
 type UpsertExperiencePayload = {
   experience?: ExperienceMiniFragment;
@@ -918,6 +998,7 @@ export interface ExperiencesMap {
 export interface ExperienceState {
   showingDescription: boolean;
   showingOptionsMenu: boolean;
+  showingUpdateSuccess?: boolean;
 }
 
 export type ExperiencesSearchPrepared = {
@@ -932,7 +1013,8 @@ export interface EffectArgs {
 
 export type EffectType =
   | DefDeleteExperienceRequestEffect
-  | DefFetchExperiencesEffect;
+  | DefFetchExperiencesEffect
+  | DefScrollToViewEffect;
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,

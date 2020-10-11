@@ -19,3 +19,7 @@ export const dropdownTriggerClassName = "dropdown-trigger media-right";
 export const dropdownIsActiveClassName = "is-active";
 export const onDeleteExperienceSuccessNotificationId = `${domPrefix}-on-delete-experience-success-notification`;
 export const onDeleteExperienceCancelledNotificationId = `${domPrefix}-on-delete-experience-cancelled-notification`;
+
+export function makeScrollToDomId(id: string) {
+  return `${id}-${domPrefix}-scroll-to`;
+}

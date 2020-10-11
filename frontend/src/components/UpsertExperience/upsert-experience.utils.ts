@@ -64,6 +64,7 @@ import {
 import { CreateExperienceSuccessFragment } from "../../graphql/apollo-types/CreateExperienceSuccessFragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitionFragment";
+import { getExperienceQuery } from "../../apollo/get-detailed-experience-query";
 
 export const fieldTypeKeys = Object.values(DataTypes);
 
@@ -386,20 +387,16 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
   props,
   effectArgs,
 ) => {
-  //
   if (getIsConnected()) {
-    const { updateExperiencesOnline } = props;
+    const { updateExperiencesOnline, onSuccess } = props;
     const { dispatch } = effectArgs;
 
     updateExperiencesOnlineEffectHelperFunc({
       input: [input],
       updateExperiencesOnline,
       onUpdateSuccess: (successArgs) => {
-        console.log(
-          `\n\t\tLogging start\n\n\n\n successArgs\n`,
-          successArgs,
-          `\n\n\n\n\t\tLogging ends\n`,
-        );
+        const x = getExperienceQuery(successArgs.experience.experienceId);
+        onSuccess(x as ExperienceFragment);
       },
       onError: (errors) => {
         if (errors) {
@@ -1329,7 +1326,7 @@ function mapDefinitionIdToDefinitionHelper(
 ////////////////////////// TYPES SECTION ////////////////////////////
 
 export type CallerProps = {
-  onSuccess?: (experience: ExperienceFragment) => void;
+  onSuccess: (experience: ExperienceFragment) => void;
   onClose: (e: ReactMouseAnchorEvent) => void;
   experience?: {
     id: string;

@@ -25,6 +25,7 @@ import {
   fetchErrorRetryDomId,
   onDeleteExperienceSuccessNotificationId,
   onDeleteExperienceCancelledNotificationId,
+  makeScrollToDomId,
 } from "./my.dom";
 import { setUpRoutePage } from "../../utils/global-window";
 import "./my.styles.scss";
@@ -179,6 +180,12 @@ function MyExperiences(
               <UpsertExperience
                 experience={upsertExperienceActivated.active.context.experience}
                 onClose={deactivateUpsertExperienceUiCb}
+                onSuccess={(experience) => {
+                  dispatch({
+                    type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
+                    experience,
+                  });
+                }}
               />
             </Suspense>
           </>
@@ -289,7 +296,12 @@ const ExperienceComponent = React.memo(
     const { title, description, id } = experience;
     const { isOffline, isPartOffline } = getOnlineStatus(experience);
     const detailPath = makeDetailedExperienceRoute(id);
-    const { showingDescription, showingOptionsMenu } = state;
+
+    const {
+      showingDescription,
+      showingOptionsMenu,
+      showingUpdateSuccess,
+    } = state;
 
     const onToggleShowMenuOptions = useCallback((e) => {
       e.preventDefault();
@@ -321,11 +333,21 @@ const ExperienceComponent = React.memo(
       /* eslint-disable-next-line react-hooks/exhaustive-deps*/
     }, []);
 
-    const updateExperience = useCallback((e) => {
+    const activateUpsertExperienceUi = useCallback((e) => {
       e.preventDefault();
 
       dispatch({
         type: ActionType.ACTIVATE_UPSERT_EXPERIENCE,
+        experience,
+      });
+      /* eslint-disable-next-line react-hooks/exhaustive-deps*/
+    }, []);
+
+    const deactivateUpsertExperienceUi = useCallback((e) => {
+      e.preventDefault();
+
+      dispatch({
+        type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
         experience,
       });
       /* eslint-disable-next-line react-hooks/exhaustive-deps*/
@@ -342,6 +364,21 @@ const ExperienceComponent = React.memo(
       >
         <div className="media-content">
           <div className="content">
+            <div
+              id={makeScrollToDomId(id)}
+              className="my-experience__scroll-to"
+            />
+
+            {showingUpdateSuccess && (
+              <div className="notification is-success">
+                <button
+                  onClick={deactivateUpsertExperienceUi}
+                  className="delete"
+                />
+                Updated successfully
+              </div>
+            )}
+
             <Link className="neutral-link experience__title" to={detailPath}>
               <strong>{title}</strong>
             </Link>
@@ -401,7 +438,7 @@ const ExperienceComponent = React.memo(
                   cursor: "pointer",
                   display: "block",
                 }}
-                onClick={updateExperience}
+                onClick={activateUpsertExperienceUi}
                 href="a"
               >
                 Edit
@@ -442,7 +479,9 @@ const ExperienceComponent = React.memo(
       prevProps.experienceState.showingDescription ===
         currProps.experienceState.showingDescription &&
       prevProps.experienceState.showingOptionsMenu ===
-        currProps.experienceState.showingOptionsMenu
+        currProps.experienceState.showingOptionsMenu &&
+      prevProps.experienceState.showingUpdateSuccess ===
+        currProps.experienceState.showingUpdateSuccess
     );
   },
 );

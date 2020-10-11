@@ -140,7 +140,16 @@
     text-align: center;
   }
 
-  &__next, &__prev {
+  &__next,
+  &__prev {
     font-weight: bolder;
+  }
+}
+
+.my-experience {
+  &__scroll-to {
+    @extend %visually-hidden;
+    position: relative;
+    top: -150px
   }
 }
