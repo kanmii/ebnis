@@ -99,11 +99,19 @@ export function My(props: Props) {
     };
   }, []);
 
-  const onNewExperienceActivated = useCallback((e) => {
+  const activateUpsertExperienceUiCb = useCallback((e) => {
     e.preventDefault();
 
     dispatch({
-      type: ActionType.UPSERT_EXPERIENCE,
+      type: ActionType.ACTIVATE_UPSERT_EXPERIENCE,
+    });
+  }, []);
+
+  const deactivateUpsertExperienceUiCb = useCallback((e) => {
+    e.preventDefault();
+
+    dispatch({
+      type: ActionType.CANCEL_UPSERT_EXPERIENCE,
     });
   }, []);
 
@@ -128,7 +136,8 @@ export function My(props: Props) {
           onCloseDeleteExperienceNotification={
             onCloseDeleteExperienceNotification
           }
-          onNewExperienceActivated={onNewExperienceActivated}
+          onUpsertExperienceActivated={activateUpsertExperienceUiCb}
+          deactivateUpsertExperienceUiCb={deactivateUpsertExperienceUiCb}
         />
       )}
     </>
@@ -154,8 +163,9 @@ function MyExperiences(
       context: { experiences, pageInfo },
     },
     dispatch,
-    onNewExperienceActivated,
+    onUpsertExperienceActivated: onNewExperienceActivated,
     onCloseDeleteExperienceNotification,
+    deactivateUpsertExperienceUiCb,
   } = props;
 
   const noExperiences = experiences.length === 0;
@@ -168,7 +178,7 @@ function MyExperiences(
             <Suspense fallback={<Loading />}>
               <UpsertExperience
                 experience={upsertExperienceActivated.active.context.experience}
-                myDispatch={dispatch}
+                onClose={deactivateUpsertExperienceUiCb}
               />
             </Suspense>
           </>
@@ -315,7 +325,7 @@ const ExperienceComponent = React.memo(
       e.preventDefault();
 
       dispatch({
-        type: ActionType.UPSERT_EXPERIENCE,
+        type: ActionType.ACTIVATE_UPSERT_EXPERIENCE,
         experience,
       });
       /* eslint-disable-next-line react-hooks/exhaustive-deps*/
@@ -617,6 +627,7 @@ interface DeleteExperienceNotificationProps {
 }
 
 type CallBacks = {
-  onNewExperienceActivated: (e: ReactMouseAnchorEvent) => void;
+  onUpsertExperienceActivated: (e: ReactMouseAnchorEvent) => void;
   onCloseDeleteExperienceNotification: () => void;
+  deactivateUpsertExperienceUiCb: (e: ReactMouseAnchorEvent) => void;
 };

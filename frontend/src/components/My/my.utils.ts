@@ -59,8 +59,9 @@ import {
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 
 export enum ActionType {
-  UPSERT_EXPERIENCE = "@my/upsert-experience",
+  ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
   CANCEL_UPSERT_EXPERIENCE = "@my/deactivate-upsert-experience",
+  ON_UPSERT_EXPERIENCE_SUCCESS = "@my/on-upsert-experience-success",
   TOGGLE_SHOW_DESCRIPTION = "@my/toggle-show-description",
   TOGGLE_SHOW_OPTIONS_MENU = "@my/toggle-show-options-menu",
   CLOSE_ALL_OPTIONS_MENU = "@my/close-all-options-menu",
@@ -83,7 +84,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
         delete proxy.effects.general[StateValue.hasEffects];
 
         switch (type) {
-          case ActionType.UPSERT_EXPERIENCE:
+          case ActionType.ACTIVATE_UPSERT_EXPERIENCE:
             handleActivateUpsertExperienceAction(
               proxy,
               payload as UpsertExperiencePayload,
@@ -833,7 +834,7 @@ interface MySearchResult {
 
 type Action =
   | ({
-      type: ActionType.UPSERT_EXPERIENCE;
+      type: ActionType.ACTIVATE_UPSERT_EXPERIENCE;
     } & UpsertExperiencePayload)
   | {
       type: ActionType.CANCEL_UPSERT_EXPERIENCE;

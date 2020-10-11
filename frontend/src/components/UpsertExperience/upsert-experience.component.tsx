@@ -57,13 +57,12 @@ import {
   warningClassName,
   errorClassName, //
 } from "../../utils/utils.dom";
-import { ActionType as ParentActionType } from "../My/my.utils";
 import { InputChangeEvent } from "../../utils/types";
 import { StateValue } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 
 export function UpsertExperience(props: Props) {
-  const { myDispatch: parentDispatch } = props;
+  const { onClose } = props;
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
   const {
@@ -131,13 +130,6 @@ export function UpsertExperience(props: Props) {
     });
   }, []);
 
-  const onDispose = useCallback(() => {
-    parentDispatch({
-      type: ParentActionType.CANCEL_UPSERT_EXPERIENCE,
-    });
-    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
-  }, []);
-
   return (
     <form
       className="form component-upsert-experience modal is-active"
@@ -158,7 +150,7 @@ export function UpsertExperience(props: Props) {
             className="delete"
             aria-label="close"
             id={disposeComponentDomId}
-            onClick={onDispose}
+            onClick={onClose}
           />
         </header>
 
