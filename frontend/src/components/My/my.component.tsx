@@ -45,7 +45,7 @@ import {
   effectFunctions,
   DataState,
 } from "./my.utils";
-import { NewExperience } from "./my.lazy";
+import { UpsertExperience } from "./my.lazy";
 import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMiniFragment";
 import makeClassNames from "classnames";
 import { Link } from "react-router-dom";
@@ -103,7 +103,7 @@ export function My(props: Props) {
     e.preventDefault();
 
     dispatch({
-      type: ActionType.ACTIVATE_NEW_EXPERIENCE,
+      type: ActionType.UPSERT_EXPERIENCE,
     });
   }, []);
 
@@ -146,7 +146,7 @@ function MyExperiences(
   const {
     states: {
       states: {
-        newExperienceActivated,
+        upsertExperienceActivated,
         experiences: descriptionsActive,
         search,
         deletedExperience: deleteExperienceState,
@@ -163,10 +163,13 @@ function MyExperiences(
   return (
     <>
       <div id={domPrefix} className="container my-component">
-        {newExperienceActivated.value === StateValue.active && (
+        {upsertExperienceActivated.value === StateValue.active && (
           <>
             <Suspense fallback={<Loading />}>
-              <NewExperience myDispatch={dispatch} />
+              <UpsertExperience
+                experience={upsertExperienceActivated.active.context.experience}
+                myDispatch={dispatch}
+              />
             </Suspense>
           </>
         )}
@@ -308,6 +311,16 @@ const ExperienceComponent = React.memo(
       /* eslint-disable-next-line react-hooks/exhaustive-deps*/
     }, []);
 
+    const updateExperience = useCallback((e) => {
+      e.preventDefault();
+
+      dispatch({
+        type: ActionType.UPSERT_EXPERIENCE,
+        experience,
+      });
+      /* eslint-disable-next-line react-hooks/exhaustive-deps*/
+    }, []);
+
     return (
       <article
         id={id}
@@ -378,7 +391,7 @@ const ExperienceComponent = React.memo(
                   cursor: "pointer",
                   display: "block",
                 }}
-                onClick={onDeleteExperience}
+                onClick={updateExperience}
                 href="a"
               >
                 Edit
@@ -393,7 +406,7 @@ const ExperienceComponent = React.memo(
                   display: "block",
                 }}
                 onClick={onDeleteExperience}
-                href="a"
+                href="b"
               >
                 Delete
               </a>

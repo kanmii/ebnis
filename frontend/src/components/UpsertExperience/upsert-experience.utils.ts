@@ -52,6 +52,7 @@ import {
   InvalidVal,
   StateValue,
   UpdateVal,
+  InsertVal,
 } from "../../utils/types";
 import {
   CreateExperienceErrorsFragment,
@@ -386,7 +387,8 @@ export const effectFunctions = {
 ////////////////////////// STATE UPDATE SECTION /////////////////
 
 export function initState(props: Props): StateMachine {
-  const { experienceId } = props;
+  const { title, id: experienceId } = (props.experience ||
+    {}) as ExperienceFragment;
 
   const emptyDefinition = makeDataDefinitionFormField(0);
 
@@ -433,6 +435,10 @@ export function initState(props: Props): StateMachine {
     effects: {
       general: effects,
     },
+    context: {
+      title,
+      header: title ? "Update Experience" : "Create New Experience",
+    },
     states: {
       submission: {
         value: StateValue.inactive,
@@ -443,6 +449,9 @@ export function initState(props: Props): StateMachine {
         },
         fields,
       },
+      mode: {
+        value: StateValue.insert,
+      },
     },
   };
 }
@@ -450,7 +459,6 @@ export function initState(props: Props): StateMachine {
 function handleFormChangedAction(
   proxy: DraftState,
   payload: FormChangedPayload,
-  readonly?: boolean
 ) {
   const {
     states: {
@@ -1104,6 +1112,12 @@ function handleOnExperienceFetchedSuccess(
   proxy: DraftState,
   payload: ExperienceFragment,
 ) {
+  const {
+    states: {
+      form: { fields },
+    },
+  } = proxy;
+
   const { title, description, dataDefinitions } = payload;
 
   handleFormChangedAction(proxy, {
@@ -1118,8 +1132,27 @@ function handleOnExperienceFetchedSuccess(
     value: description || "",
   });
 
+  const dataDefinitionMap = {} as DataDefinitionFieldsMap;
+
   dataDefinitions.forEach((d, index) => {
-    const { name, type } = d as DataDefinitionFragment;
+    const { name, type, id } = d as DataDefinitionFragment;
+
+    dataDefinitionMap[index] = {
+      index,
+      id,
+      name: {
+        states: {
+          value: StateValue.unchanged,
+        },
+      },
+      type: {
+        states: {
+          value: StateValue.unchanged,
+        },
+      },
+    };
+
+    fields.dataDefinitions = dataDefinitionMap;
 
     handleFormChangedAction(proxy, {
       key: "def",
@@ -1159,7 +1192,10 @@ function makeDataDefinitionFormField(index: number): DataDefinitionFormField {
 ////////////////////////// TYPES SECTION ////////////////////////////
 
 export type CallerProps = MyChildDispatchProps & {
-  experienceId?: string;
+  experience?: {
+    id: string;
+    title: string;
+  };
 };
 
 export type Props = CreateExperiencesOnlineComponentProps &
@@ -1239,6 +1275,10 @@ type DraftState = Draft<StateMachine>;
 
 export type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
   Readonly<{
+    context: Readonly<{
+      header: string;
+      title?: string;
+    }>;
     states: Readonly<{
       submission: Submission;
       form: Readonly<{
@@ -1249,6 +1289,11 @@ export type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
           dataDefinitions: DataDefinitionFieldsMap;
         }>;
       }>;
+      mode:
+        | Readonly<{
+            value: InsertVal;
+          }>
+        | UpdateState;
     }>;
   }>;
 

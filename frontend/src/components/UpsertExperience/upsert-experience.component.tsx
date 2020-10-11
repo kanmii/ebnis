@@ -79,6 +79,7 @@ export function UpsertExperience(props: Props) {
       },
     },
     effects: { general: generalEffects },
+    context: { header, title },
   } = stateMachine;
 
   useRunEffects(generalEffects, effectFunctions, props, { dispatch });
@@ -132,7 +133,7 @@ export function UpsertExperience(props: Props) {
 
   const onDispose = useCallback(() => {
     parentDispatch({
-      type: ParentActionType.DEACTIVATE_NEW_EXPERIENCE,
+      type: ParentActionType.CANCEL_UPSERT_EXPERIENCE,
     });
     /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
@@ -148,8 +149,8 @@ export function UpsertExperience(props: Props) {
       <div className="modal-card">
         <header className="modal-card-head">
           <div className="modal-card-title">
-            <p>Create New Experience</p>
-            <p className="upsert-experience__title-small">something else</p>
+            <p>{header}</p>
+            {title && <p className="upsert-experience__title-small">{title}</p>}
           </div>
 
           <button

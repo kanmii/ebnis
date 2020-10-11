@@ -59,8 +59,8 @@ import {
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 
 export enum ActionType {
-  ACTIVATE_NEW_EXPERIENCE = "@my/activate-new-experience",
-  DEACTIVATE_NEW_EXPERIENCE = "@my/deactivate-new-experience",
+  UPSERT_EXPERIENCE = "@my/upsert-experience",
+  CANCEL_UPSERT_EXPERIENCE = "@my/deactivate-upsert-experience",
   TOGGLE_SHOW_DESCRIPTION = "@my/toggle-show-description",
   TOGGLE_SHOW_OPTIONS_MENU = "@my/toggle-show-options-menu",
   CLOSE_ALL_OPTIONS_MENU = "@my/close-all-options-menu",
@@ -71,7 +71,6 @@ export enum ActionType {
   ON_DATA_RECEIVED = "@my/on-data-received",
   DATA_RE_FETCH_REQUEST = "@my/data-re-fetch-request",
   FETCH_NEXT_EXPERIENCES_PAGE = "@my/fetch-next=experiences-page",
-  EDIT_EXPERIENCE_REQUEST = "@my/edit-experience-request",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -84,11 +83,14 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
         delete proxy.effects.general[StateValue.hasEffects];
 
         switch (type) {
-          case ActionType.ACTIVATE_NEW_EXPERIENCE:
-            handleActivateNewExperienceAction(proxy);
+          case ActionType.UPSERT_EXPERIENCE:
+            handleActivateUpsertExperienceAction(
+              proxy,
+              payload as UpsertExperiencePayload,
+            );
             break;
 
-          case ActionType.DEACTIVATE_NEW_EXPERIENCE:
+          case ActionType.CANCEL_UPSERT_EXPERIENCE:
             handleDeactivateNewExperienceAction(proxy);
             break;
 
@@ -172,12 +174,25 @@ export function initState(): StateMachine {
   };
 }
 
-function handleActivateNewExperienceAction(proxy: DraftState) {
+function handleActivateUpsertExperienceAction(
+  proxy: DraftState,
+  payload: UpsertExperiencePayload,
+) {
   const { states } = proxy;
+  const { experience } = payload;
 
   // istanbul ignore else
   if (states.value === StateValue.data) {
-    states.data.states.newExperienceActivated.value = StateValue.active;
+    const upsertExperienceActivated = states.data.states
+      .upsertExperienceActivated as Draft<UpsertExperienceActiveState>;
+
+    upsertExperienceActivated.value = StateValue.active;
+
+    upsertExperienceActivated.active = {
+      context: {
+        experience,
+      },
+    };
   }
 }
 
@@ -186,7 +201,12 @@ function handleDeactivateNewExperienceAction(proxy: StateMachine) {
 
   // istanbul ignore else
   if (states.value === StateValue.data) {
-    states.data.states.newExperienceActivated.value = StateValue.inactive;
+    const upsertExperienceActivated = states.data.states
+      .upsertExperienceActivated as Draft<
+      DataState["data"]["states"]["upsertExperienceActivated"]
+    >;
+
+    upsertExperienceActivated.value = StateValue.inactive;
   }
 }
 
@@ -345,7 +365,7 @@ function handleOnDataReceivedAction(
             },
 
             states: {
-              newExperienceActivated: {
+              upsertExperienceActivated: {
                 value: StateValue.inactive,
               },
               experiences: {},
@@ -740,18 +760,23 @@ export type DataState = Readonly<{
   data: {
     context: DataStateContext;
     states: Readonly<{
-      newExperienceActivated:
-        | {
+      upsertExperienceActivated:
+        | Readonly<{
             value: InActiveVal;
-          }
-        | {
-            value: ActiveVal;
-          };
+          }>
+        | UpsertExperienceActiveState;
       experiences: ExperiencesMap;
       search: SearchState;
       deletedExperience: DeletedExperienceState;
     }>;
   };
+}>;
+
+type UpsertExperienceActiveState = Readonly<{
+  value: ActiveVal;
+  active: Readonly<{
+    context: Readonly<UpsertExperiencePayload>;
+  }>;
 }>;
 
 type DataStateContext = ExperiencesData &
@@ -807,11 +832,11 @@ interface MySearchResult {
 }
 
 type Action =
+  | ({
+      type: ActionType.UPSERT_EXPERIENCE;
+    } & UpsertExperiencePayload)
   | {
-      type: ActionType.ACTIVATE_NEW_EXPERIENCE;
-    }
-  | {
-      type: ActionType.DEACTIVATE_NEW_EXPERIENCE;
+      type: ActionType.CANCEL_UPSERT_EXPERIENCE;
     }
   | ({
       type: ActionType.TOGGLE_SHOW_DESCRIPTION;
@@ -843,6 +868,10 @@ type Action =
   | {
       type: ActionType.FETCH_NEXT_EXPERIENCES_PAGE;
     };
+
+type UpsertExperiencePayload = {
+  experience?: ExperienceMiniFragment;
+};
 
 type OnDataReceivedPayload =
   | {
