@@ -4,6 +4,8 @@ import {
   CreateExperienceInput,
   CreateDataDefinition,
   DataTypes,
+  UpdateExperienceInput,
+  UpdateDefinitionInput,
 } from "../../graphql/apollo-types/globalTypes";
 import { wrapReducer } from "../../logger";
 import {
@@ -26,6 +28,7 @@ import {
   CreateExperiencesMutationFn,
   UpdateExperiencesOnlineComponentProps,
   manuallyFetchExperience,
+  updateExperiencesOnlineEffectHelperFunc,
 } from "../../utils/experience.gql.types";
 import { getIsConnected } from "../../utils/connections";
 import {
@@ -161,10 +164,17 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 ////////////////////////// EFFECTS SECTION /////////////////////////
 
 const submissionEffect: DefSubmissionEffect["func"] = (
-  { input },
+  args,
   props,
   effectArgs,
 ) => {
+  const { input, experience } = args;
+
+  if (experience) {
+    updateExperienceEffectHelper(args, props, effectArgs);
+    return;
+  }
+
   if (getIsConnected()) {
     const { createExperiences } = props;
     const { dispatch } = effectArgs;
@@ -328,6 +338,7 @@ type DefSubmissionEffect = EffectDefinition<
   "submissionEffect",
   {
     input: CreateExperienceInput;
+    experience?: ExperienceFragment;
   }
 >;
 
@@ -381,6 +392,60 @@ export const effectFunctions = {
   scrollToViewEffect,
   fetchExperienceEffect,
 };
+
+function updateExperienceEffectHelper(
+  args: DefSubmissionEffect["ownArgs"],
+  props: Props,
+  effectArgs: EffectArgs,
+) {
+  return;
+  const { id } = args.experience as ExperienceFragment;
+  const input = {
+    ...args.input,
+    experienceId: id,
+  };
+
+  const x = {
+    experienceId: id,
+  } as UpdateExperienceInput;
+
+  const { title, description } = input;
+
+  if (title) {
+    x.ownFields = {
+      title,
+    };
+  }
+
+  if (description) {
+    const ownFields = x.ownFields || {};
+    ownFields.description = description;
+    x.ownFields = ownFields;
+  }
+
+  if (getIsConnected()) {
+    const { updateExperiencesOnline } = props;
+
+    updateExperiencesOnlineEffectHelperFunc({
+      input: [input],
+      updateExperiencesOnline,
+      onUpdateSuccess: (successArgs) => {
+        console.log(
+          `\n\t\tLogging start\n\n\n\n successArgs\n`,
+          successArgs,
+          `\n\n\n\n\t\tLogging ends\n`,
+        );
+      },
+      onError: (errorArgs) => {
+        console.log(
+          `\n\t\tLogging start\n\n\n\n errorArgs\n`,
+          errorArgs,
+          `\n\n\n\n\t\tLogging ends\n`,
+        );
+      },
+    });
+  }
+}
 
 ////////////////////////// END EFFECTS SECTION /////////////////////////
 
@@ -507,7 +572,7 @@ function handleFormChangedAction(
 
 function handleSubmissionAction(proxy: DraftState) {
   const {
-    states: { submission },
+    states: { submission, mode },
   } = proxy;
 
   const effects = getGeneralEffects<EffectType, DraftState>(proxy);
@@ -535,7 +600,13 @@ function handleSubmissionAction(proxy: DraftState) {
 
   effects.push({
     key: "submissionEffect",
-    ownArgs: { input },
+    ownArgs: {
+      input,
+      experience:
+        mode.value === StateValue.update
+          ? mode.update.context.experience
+          : undefined,
+    },
   });
 }
 
@@ -546,12 +617,24 @@ function validateForm(proxy: DraftState): CreateExperienceInput {
     states: {
       submission,
       form: { fields },
+      mode,
     },
   } = proxy;
 
   const submissionWarningState = submission as Draft<SubmissionWarning>;
 
-  const input = {} as CreateExperienceInput;
+  const insertInput = {} as CreateExperienceInput;
+  const updateInput = {} as UpdateExperienceInput;
+
+  const { title, description, dataDefinitions } = (mode.value ===
+  StateValue.update
+    ? mode.update.context.experience
+    : {}) as ExperienceFragment;
+
+  const unchangedDefinitions = mapDefinitionIdToDefinitionHelper(
+    dataDefinitions,
+  );
+
   let formUpdated = false;
   let hasErrors = false;
 
@@ -573,9 +656,14 @@ function validateForm(proxy: DraftState): CreateExperienceInput {
             formUpdated = true;
           }
 
-          if (formValue) {
-            formUpdated = true;
-            input.title = formValue;
+          if (title) {
+            if (title !== formValue) {
+              updateInput.ownFields = {
+                title: formValue,
+              };
+            }
+          } else {
+            insertInput.title = formValue;
           }
         }
         break;
@@ -600,9 +688,16 @@ function validateForm(proxy: DraftState): CreateExperienceInput {
             const value = formValue.trim();
             formUpdated = true;
 
-            /* istanbul ignore else*/
-            if (value) {
-              input.description = value;
+            if (description) {
+              if (description !== value) {
+                validityState.value = StateValue.valid;
+                const ownFields = updateInput.ownFields || {};
+                ownFields.description = value || null;
+                updateInput.ownFields = ownFields;
+              }
+            } else if (value) {
+              /* istanbul ignore else*/
+              insertInput.description = value;
               validityState.value = StateValue.valid;
             }
           }
@@ -612,65 +707,88 @@ function validateForm(proxy: DraftState): CreateExperienceInput {
       case "dataDefinitions":
         {
           const namesValuesMap: { [nameValue: string]: true } = {};
+
           const defsList = definitionFieldsMapToList(
             fieldState as DataDefinitionFieldsMap,
           );
 
-          defsList.forEach(({ name: nameState, type: typeState }, index) => {
-            let hasValidValue = false;
-            const dataDefinitions = input.dataDefinitions || [];
+          const updateDataDefinitionInputs: UpdateDefinitionInput[] = [];
 
-            const dataDefinition =
-              dataDefinitions[index] || ({} as CreateDataDefinition);
+          defsList.forEach(
+            ({ name: nameState, type: typeState, id }, index) => {
+              const unchangedDefinition = unchangedDefinitions[id];
+              let hasValidValue = false;
 
-            const [nameValue, nameUpdated] = validateFormStringValuesHelper(
-              proxy,
-              "field name",
-              nameState.states,
-            );
+              const [
+                nameValue,
+                nameUpdated,
+                hasNameErrors,
+              ] = validateFormStringValuesHelper(
+                proxy,
+                "field name",
+                nameState.states,
+              );
 
-            if (nameUpdated) {
-              formUpdated = true;
-            }
+              const insertDataDefinitionInputs =
+                insertInput.dataDefinitions || [];
 
-            if (nameValue) {
-              formUpdated = true;
+              const dataDefinition =
+                insertDataDefinitionInputs[index] ||
+                ({} as CreateDataDefinition);
 
-              if (namesValuesMap[nameValue]) {
-                putFormFieldErrorHelper(nameState.states, [
-                  ["field name", "has already been taken"],
-                ]);
+              if (nameUpdated) {
+                formUpdated = true;
+              }
 
+              if (hasNameErrors) {
                 hasErrors = true;
               } else {
-                namesValuesMap[nameValue] = true;
-                dataDefinition.name = nameValue;
+                if (namesValuesMap[nameValue]) {
+                  putFormFieldErrorHelper(nameState.states, [
+                    ["field name", "has already been taken"],
+                  ]);
+
+                  hasErrors = true;
+                } else {
+                  namesValuesMap[nameValue] = true;
+
+                  if (unchangedDefinition) {
+                    if (unchangedDefinition.name !== nameValue) {
+                      updateDataDefinitionInputs[index] = {
+                        id,
+                        name: nameValue,
+                      };
+                    }
+                  } else {
+                    dataDefinition.name = nameValue;
+                    hasValidValue = true;
+                  }
+                }
+              }
+
+              const [typeValue, isTypeUpdated] = validateFormStringValuesHelper(
+                proxy,
+                "data type",
+                typeState.states,
+                `${EMPTY_ERROR_TEXT}, please select one from dropdown`,
+              );
+
+              if (typeValue) {
+                dataDefinition.type = typeValue as DataTypes;
+                formUpdated = true;
                 hasValidValue = true;
               }
-            }
 
-            const [typeValue, isTypeUpdated] = validateFormStringValuesHelper(
-              proxy,
-              "data type",
-              typeState.states,
-              `${EMPTY_ERROR_TEXT}, please select one from dropdown`,
-            );
+              if (isTypeUpdated) {
+                formUpdated = true;
+              }
 
-            if (typeValue) {
-              dataDefinition.type = typeValue as DataTypes;
-              formUpdated = true;
-              hasValidValue = true;
-            }
-
-            if (isTypeUpdated) {
-              formUpdated = true;
-            }
-
-            if (hasValidValue) {
-              dataDefinitions[index] = dataDefinition;
-              input.dataDefinitions = dataDefinitions;
-            }
-          });
+              if (hasValidValue) {
+                insertDataDefinitionInputs[index] = dataDefinition;
+                insertInput.dataDefinitions = insertDataDefinitionInputs;
+              }
+            },
+          );
         }
         break;
     }
@@ -691,7 +809,7 @@ function validateForm(proxy: DraftState): CreateExperienceInput {
     };
   }
 
-  return input;
+  return insertInput;
 }
 
 function putFormFieldErrorHelper(
@@ -1120,6 +1238,15 @@ function handleOnExperienceFetchedSuccess(
 
   const { title, description, dataDefinitions } = payload;
 
+  proxy.states.mode = {
+    value: StateValue.update,
+    update: {
+      context: {
+        experience: payload,
+      },
+    },
+  };
+
   handleFormChangedAction(proxy, {
     key: "non-def",
     fieldName: "title",
@@ -1185,6 +1312,18 @@ function makeDataDefinitionFormField(index: number): DataDefinitionFormField {
       },
     },
   };
+}
+
+function mapDefinitionIdToDefinitionHelper(
+  dataDefinitions?: DataDefinitionFragment[],
+) {
+  return (dataDefinitions || ([] as DataDefinitionFragment[])).reduce(
+    (acc, d) => {
+      acc[d.id] = d;
+      return acc;
+    },
+    {} as { [definitionId: string]: DataDefinitionFragment },
+  );
 }
 
 ////////////////////////// END STATE UPDATE SECTION ////////////
