@@ -849,7 +849,7 @@ function handhabenEinträgeErhieltenHandlung(
           };
         } else {
           einträgeStatten.einträgeMitHolenFehler.context.holenFehler = parseStringError(
-            payload.fehler,
+            (payload as any).fehler,
           );
         }
         break;
