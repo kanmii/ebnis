@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.10.4-erlang-23.0.2-debian-stretch-20200511 AS dev
+FROM hexpm/elixir:1.11.0-erlang-22.3.4.7-ubuntu-focal-20200703 AS dev
 
 ARG DOCKER_HOST_USER_NAME
 

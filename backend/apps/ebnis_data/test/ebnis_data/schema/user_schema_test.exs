@@ -250,7 +250,7 @@ defmodule EbnisData.Schema.UserTest do
                   "login" => %{
                     "user" => %{
                       "id" => _,
-                      "name" => name,
+                      "name" => _name,
                       "email" => ^email,
                       "jwt" => jwt
                     }

@@ -55,8 +55,17 @@ defmodule EbnisData.DataType do
     parse(k, v)
   end
 
+  def parse(k, v, _) do
+    parse(k, v)
+  end
+
   defp parse("single_line_text", v) do
-    to_map("single_line_text", to_string(v))
+    to_map(
+      "single_line_text",
+      v
+      |> to_string()
+      |> String.slice(0..255)
+    )
   end
 
   defp parse("multi_line_text", v) do
@@ -103,6 +112,10 @@ defmodule EbnisData.DataType do
     end
   end
 
+  defp parse("date", %DateTime{} = v) do
+    to_map("date", DateTime.to_date(v))
+  end
+
   defp parse("datetime", %DateTime{} = v) do
     to_map("datetime", v)
   end
@@ -117,7 +130,15 @@ defmodule EbnisData.DataType do
     end
   end
 
+  defp parse("datetime", %Date{} = v) do
+    to_map("datetime", DateTime.new!(v, ~T[00:00:00.00]))
+  end
+
   defp parse(_, _), do: :error
+
+  def parse_float_to_int(val) when is_float(val) do
+    to_map("integer", trunc(val))
+  end
 
   defp to_map(key, val) when is_binary(key) do
     {:ok, Map.new([{key, val}])}

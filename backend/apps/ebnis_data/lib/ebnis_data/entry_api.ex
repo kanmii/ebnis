@@ -484,6 +484,13 @@ defmodule EbnisData.EntryApi do
     end
   end
 
+  @spec get_entries(
+          args :: %{
+            experience_id: binary(),
+            user_id: binary(),
+            pagination: map()
+          }
+        ) :: [Connection.t()]
   def get_entries(args) do
     experience_id = args.experience_id
     pagination_args = args.pagination
@@ -526,5 +533,28 @@ defmodule EbnisData.EntryApi do
       end)
 
       {:error, @experience_not_found_error}
+  end
+
+  def get_data_object(id) do
+    from(
+      d in DataObject,
+      where: d.id == ^id
+    )
+    |> Repo.all()
+    |> case do
+      nil ->
+        nil
+
+      [data] ->
+        data
+    end
+  end
+
+  def get_data_objects(ids) do
+    from(
+      d in DataObject,
+      where: d.id in ^ids
+    )
+    |> Repo.all()
   end
 end

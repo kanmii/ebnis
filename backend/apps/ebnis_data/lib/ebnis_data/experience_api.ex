@@ -11,6 +11,7 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.EntryApi
   alias Absinthe.Relay.Connection
   alias EbnisData.DataObject
+  alias EbnisData.DataType
 
   @get_experience_exception_header "\n\nException while getting experience with:"
   @bad_request "bad request"
@@ -397,31 +398,35 @@ defmodule EbnisData.ExperienceApi do
   defp update_experiences_update_definition(input, old_type) do
     id = input.id
 
-    validate_update_defintion_type(input, old_type)
-
-    IO.inspect(input, label: "
-    -----------update definition input------------
-    ")
-
-    with %{} = definition <- get_definition(id),
-         changeset <- DataDefinition.changeset(definition, input),
-         {:ok, definition} <- Repo.update(changeset) do
-      definition
-      |> IO.inspect(label: "
-      -----------updated definition------------
-      ")
-    else
-      nil ->
+    case validate_update_defintion_type(input, old_type) do
+      :error ->
         {
           :error,
           %{
             id: id,
-            error: "does not exist"
+            error: @bad_request
           }
         }
 
-      {:error, changeset} ->
-        {:error, changeset, id}
+      func ->
+        with %{} = definition <- get_definition(id),
+             changeset <- DataDefinition.changeset(definition, input),
+             {:ok, definition} <- Repo.update(changeset) do
+          func.()
+          definition
+        else
+          nil ->
+            {
+              :error,
+              %{
+                id: id,
+                error: "does not exist"
+              }
+            }
+
+          {:error, changeset} ->
+            {:error, changeset, id}
+        end
     end
   rescue
     error ->
@@ -446,39 +451,69 @@ defmodule EbnisData.ExperienceApi do
 
   defp validate_update_defintion_type(input, old_type) do
     id = input.id
+    new_type = input[:type]
 
-    case {input[:type], old_type} |> IO.inspect(label: "
-    -----------label------------
-    ") do
-      {nil, _} ->
+    case {old_type, new_type} do
+      {_, nil} ->
+        nil
+
+      {_, "multi_line_text"} ->
         :ok
 
-      {"multi_line_text", _} ->
+      {_, "single_line_text"} ->
         :ok
 
-      {"single_line_text", _} ->
+      {"decimal", "integer"} ->
         :ok
 
       {"integer", "decimal"} ->
         :ok
 
-      {"decimal", "integer"} ->
-        from(
-          d in DataObject,
-          where: d.definition_id == ^id
-        )
-        |> Repo.all()
-        |> IO.inspect(label: "
-        -----------data_objects------------
-        ")
-
+      {"datetime", "date"} ->
         :ok
 
       {"date", "datetime"} ->
         :ok
 
-      {"datetime", "date"} ->
-        :ok
+      _ ->
+        :error
+    end
+    |> case do
+      :ok ->
+        fn ->
+          from(
+            d in DataObject,
+            where: d.definition_id == ^id
+          )
+          |> Repo.all()
+          |> Enum.map(fn datum ->
+            [{_, v}] = Map.to_list(datum.data)
+
+            {:ok, new_data} =
+              case new_type do
+                "integer" ->
+                  DataType.parse_float_to_int(v)
+
+                _ ->
+                  DataType.parse(new_type, v, nil)
+              end
+
+            from(
+              d in DataObject,
+              where: d.id == ^datum.id,
+              update: [
+                set: [data: ^new_data]
+              ]
+            )
+            |> Repo.update_all([])
+          end)
+        end
+
+      nil ->
+        fn -> nil end
+
+      :error ->
+        :error
     end
   end
 

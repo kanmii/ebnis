@@ -1229,82 +1229,6 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert is_binary(definition_name_taken_error)
     end
 
-    test " erfolg: Definition Art" do
-      user = RegFactory.insert()
-
-      %{
-        id: experience_id,
-        data_definitions: [
-          %{
-            id: definition0_id,
-            name: definition0_type
-          }
-        ]
-      } =
-        experience =
-        Factory.insert(
-          %{user_id: user.id},
-          [
-            "integer"
-          ]
-        )
-
-      %{
-        id: _entry_id,
-        data_objects: _data_objects
-      } = _entry = EntryFactory.insert(%{}, experience)
-
-      definition0_type_updated = "DECIMAL"
-      refute definition0_type == String.downcase(definition0_type_updated)
-
-      definitions_variables = %{
-        "experienceId" => experience_id,
-        "updateDefinitions" => [
-          %{
-            "id" => definition0_id,
-            "type" => definition0_type_updated
-          }
-        ]
-      }
-
-      variables = %{
-        "input" => [
-          definitions_variables
-        ]
-      }
-
-      assert {
-               :ok,
-               %{
-                 data: %{
-                   "updateExperiences" => %{
-                     "experiences" => [
-                       %{
-                         "experience" => %{
-                           "experienceId" => ^experience_id,
-                           "updatedDefinitions" => [
-                             %{
-                               "definition" => %{
-                                 "id" => ^definition0_id,
-                                 "type" => ^definition0_type_updated
-                               }
-                             }
-                           ]
-                         }
-                       }
-                     ]
-                   }
-                 }
-               }
-             } =
-               Absinthe.run(
-                 Query.update_experiences(),
-                 Schema,
-                 variables: variables,
-                 context: context(user)
-               )
-    end
-
     test "scheitern: Eintrag nicht gefunden" do
       bogus_id = @bogus_id
       user = RegFactory.insert()
@@ -1611,7 +1535,7 @@ defmodule EbnisData.Schema.ExperienceTest do
                            ]
                          },
                          "experience" => %{
-                           "experienceId" => experience_id
+                           "experienceId" => ^experience_id
                          }
                        }
                      ]
@@ -1892,7 +1816,7 @@ defmodule EbnisData.Schema.ExperienceTest do
                                  "clientId" => "a",
                                  "dataObjects" => [
                                    %{
-                                     "definitionId" => definition0_id,
+                                     "definitionId" => ^definition0_id,
                                      "data" => ~s({"integer":1}),
                                      "clientId" => "x"
                                    }
@@ -2001,6 +1925,724 @@ defmodule EbnisData.Schema.ExperienceTest do
                )
 
       assert is_binary(deleted_entry_not_found_error)
+    end
+  end
+
+  describe "update data definition" do
+    # @tag :skip
+    test " erfolg: Definition Art, integer to decimal" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id,
+            type: definition0_type
+          }
+        ]
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      %{
+        id: _entry_id,
+        data_objects: [
+          %{
+            id: data_object0_id
+          }
+        ]
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      definition0_type_updated = "DECIMAL"
+      refute definition0_type == String.downcase(definition0_type_updated)
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => definition0_id,
+            "type" => definition0_type_updated
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "definition" => %{
+                                 "id" => ^definition0_id,
+                                 "type" => ^definition0_type_updated
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      %{data: data} = EbnisData.get_data_object(data_object0_id)
+      [{"decimal", value}] = Map.to_list(data)
+      assert is_float(value)
+    end
+
+    # @tag :skip
+    test " erfolg: Definition Art, decimal to integer" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id,
+            type: definition0_type
+          }
+        ]
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "decimal"
+          ]
+        )
+
+      %{
+        id: _entry_id,
+        data_objects: [
+          %{
+            id: data_object0_id
+          }
+        ]
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      definition0_type_updated = "INTEGER"
+      refute definition0_type == String.downcase(definition0_type_updated)
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => definition0_id,
+            "type" => definition0_type_updated
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "definition" => %{
+                                 "id" => ^definition0_id,
+                                 "type" => ^definition0_type_updated
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      %{data: data} = EbnisData.get_data_object(data_object0_id)
+      [{"integer", value}] = Map.to_list(data)
+      assert is_integer(value)
+    end
+
+    # @tag :skip
+    test " erfolg: Definition Art, date to datetime" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id,
+            type: definition0_type
+          }
+        ]
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "date"
+          ]
+        )
+
+      %{
+        id: _entry_id,
+        data_objects: [
+          %{
+            id: data_object0_id
+          }
+        ]
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      definition0_type_updated = "DATETIME"
+      refute definition0_type == String.downcase(definition0_type_updated)
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => definition0_id,
+            "type" => definition0_type_updated
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "definition" => %{
+                                 "id" => ^definition0_id,
+                                 "type" => ^definition0_type_updated
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      %{data: data} = EbnisData.get_data_object(data_object0_id)
+      assert [{"datetime", %DateTime{}}] = Map.to_list(data)
+    end
+
+    # @tag :skip
+    test " erfolg: Definition Art, datetime to date" do
+      user = RegFactory.insert()
+
+      current = "datetime"
+      new = "date"
+      definition0_type_updated = String.upcase(new)
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id,
+            type: definition0_type
+          }
+        ]
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            current
+          ]
+        )
+
+      %{
+        id: _entry_id,
+        data_objects: [
+          %{
+            id: data_object0_id
+          }
+        ]
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      refute definition0_type == new
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => definition0_id,
+            "type" => definition0_type_updated
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "definition" => %{
+                                 "id" => ^definition0_id,
+                                 "type" => ^definition0_type_updated
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      %{data: data} = EbnisData.get_data_object(data_object0_id)
+      assert [{new_from_db, %Date{}}] = Map.to_list(data)
+      assert new == new_from_db
+    end
+
+    # @tag :skip
+    test " erfolg: Definition Art, all to multi_line_text" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id,
+            type: definition0_type
+          },
+          %{
+            id: definition1_id,
+            type: definition1_type
+          },
+          %{
+            id: definition2_id,
+            type: definition2_type
+          },
+          %{
+            id: definition3_id,
+            type: definition3_type
+          },
+          %{
+            id: definition4_id,
+            type: definition4_type
+          }
+        ]
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "date",
+            "datetime",
+            "integer",
+            "decimal",
+            "single_line_text"
+          ]
+        )
+
+      %{
+        id: _entry_id,
+        data_objects: [
+          %{
+            id: data_object0_id
+          },
+          %{
+            id: data_object1_id
+          },
+          %{
+            id: data_object2_id
+          },
+          %{
+            id: data_object3_id
+          },
+          %{
+            id: data_object4_id
+          }
+        ]
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      definition_type_updated = "MULTI_LINE_TEXT"
+      definition_type_updated_lower = String.downcase(definition_type_updated)
+
+      refute definition0_type == definition_type_updated_lower
+      refute definition1_type == definition_type_updated_lower
+      refute definition2_type == definition_type_updated_lower
+      refute definition3_type == definition_type_updated_lower
+      refute definition4_type == definition_type_updated_lower
+
+      definition_ids = [
+        definition0_id,
+        definition1_id,
+        definition2_id,
+        definition3_id,
+        definition4_id
+      ]
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" =>
+          Enum.map(
+            definition_ids,
+            &%{
+              "id" => &1,
+              "type" => definition_type_updated
+            }
+          )
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => updated_definitions
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert Enum.map(updated_definitions, fn d ->
+               dd = d["definition"]
+               {dd["id"], dd["type"]}
+             end) == Enum.map(definition_ids, &{&1, definition_type_updated})
+
+      EbnisData.get_data_objects([
+        data_object0_id,
+        data_object1_id,
+        data_object2_id,
+        data_object3_id,
+        data_object4_id
+      ])
+      |> Enum.each(fn %{data: data} ->
+        assert [{"multi_line_text", v}] = Map.to_list(data)
+        assert is_binary(v)
+      end)
+    end
+
+    # @tag :skip
+    test " erfolg: Definition Art, all to single_line_text, except multi_line_text" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id,
+            type: definition0_type
+          },
+          %{
+            id: definition1_id,
+            type: definition1_type
+          },
+          %{
+            id: definition2_id,
+            type: definition2_type
+          },
+          %{
+            id: definition3_id,
+            type: definition3_type
+          }
+        ]
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "date",
+            "datetime",
+            "integer",
+            "decimal"
+          ]
+        )
+
+      %{
+        id: _entry_id,
+        data_objects: [
+          %{
+            id: data_object0_id
+          },
+          %{
+            id: data_object1_id
+          },
+          %{
+            id: data_object2_id
+          },
+          %{
+            id: data_object3_id
+          }
+        ]
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      definition_type_updated = "SINGLE_LINE_TEXT"
+      definition_type_updated_lower = String.downcase(definition_type_updated)
+
+      refute definition0_type == definition_type_updated_lower
+      refute definition1_type == definition_type_updated_lower
+      refute definition2_type == definition_type_updated_lower
+      refute definition3_type == definition_type_updated_lower
+
+      definition_ids = [
+        definition0_id,
+        definition1_id,
+        definition2_id,
+        definition3_id
+      ]
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" =>
+          Enum.map(
+            definition_ids,
+            &%{
+              "id" => &1,
+              "type" => definition_type_updated
+            }
+          )
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => updated_definitions
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      assert Enum.map(updated_definitions, fn d ->
+               dd = d["definition"]
+               {dd["id"], dd["type"]}
+             end) == Enum.map(definition_ids, &{&1, definition_type_updated})
+
+      EbnisData.get_data_objects([
+        data_object0_id,
+        data_object1_id,
+        data_object2_id,
+        data_object3_id
+      ])
+      |> Enum.each(fn %{data: data} ->
+        assert [{"single_line_text", v}] = Map.to_list(data)
+        assert is_binary(v)
+      end)
+    end
+
+    # @tag :skip
+    test " erfolg: Definition Art, multi_line_text to single_line_text" do
+      user = RegFactory.insert()
+
+      current = "multi_line_text"
+      new = "single_line_text"
+      definition0_type_updated = String.upcase(new)
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id,
+            type: definition0_type
+          }
+        ]
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            current
+          ]
+        )
+
+      # 260 chars
+      text =
+        "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+
+      %{
+        id: _entry_id,
+        data_objects: [
+          %{
+            id: data_object0_id,
+            data: current_data
+          }
+        ]
+      } =
+        _entry =
+        EntryFactory.insert(
+          %{
+            data_objects: [
+              %{
+                definition_id: definition0_id,
+                data: Map.new([{current, text}])
+              }
+            ]
+          },
+          experience
+        )
+
+      assert current_data[current] == text
+      refute definition0_type == new
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => definition0_id,
+            "type" => definition0_type_updated
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "definition" => %{
+                                 "id" => ^definition0_id,
+                                 "type" => ^definition0_type_updated
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      %{data: data} = EbnisData.get_data_object(data_object0_id)
+      assert [{new_from_db, value}] = Map.to_list(data)
+      assert new == new_from_db
+      assert String.length(value) == 256
     end
   end
 
@@ -2279,7 +2921,7 @@ defmodule EbnisData.Schema.ExperienceTest do
               %{
                 data: %{
                   "getExperiences" => %{
-                    "edges" => edges,
+                    "edges" => _edges,
                     "pageInfo" => %{
                       "hasNextPage" => true,
                       "hasPreviousPage" => false,

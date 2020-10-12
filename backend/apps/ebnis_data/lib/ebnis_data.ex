@@ -145,5 +145,9 @@ defmodule EbnisData do
 
   defdelegate get_experience_id_to_entry_connection_map(a, b), to: EntryApi
 
+  defdelegate get_data_object(id), to: EntryApi
+
+  defdelegate get_data_objects(ids), to: EntryApi
+
   ################################ END ENTRY SECTION #################
 end
