@@ -996,6 +996,21 @@ defmodule EbnisData.Schema.Experience do
 
       resolve(&ExperienceResolver.pre_fetch_experiences/2)
     end
+
+    @desc ~S"""
+      Get data objects by ID
+    """
+    field :get_data_objects, :data_object |> list_of() do
+      arg(
+        :ids,
+        :id
+        |> non_null()
+        |> list_of()
+        |> non_null()
+      )
+
+      resolve(&ExperienceResolver.get_data_objects/2)
+    end
   end
 
   ######################### END QUERIES SECTION ##########################

@@ -718,4 +718,15 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   def pre_fetch_experiences(_, _) do
     Resolver.unauthorized()
   end
+
+  def get_data_objects(
+        %{ids: ids},
+        %{context: %{current_user: _user}}
+      ) do
+    {:ok, EbnisData.get_data_objects(ids)}
+  end
+
+  def get_data_objects(_, _) do
+    Resolver.unauthorized()
+  end
 end

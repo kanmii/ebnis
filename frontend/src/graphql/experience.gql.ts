@@ -575,3 +575,16 @@ export const GET_ENTRIES_QUERY = gql`
 `;
 
 ////////////////////////// END GET EXPERIENCE DETAIL //////////////////
+
+////////////////////////// GET DATA OBJECTS //////////////////
+
+export const GET_DATA_OBJECTS_QUERY = gql`
+  query GetDataObjects($ids: [ID!]!) {
+    getDataObjects(ids: $ids) {
+      id
+      data
+    }
+  }
+`;
+
+////////////////////////// END GET DATA OBJECTS //////////////////

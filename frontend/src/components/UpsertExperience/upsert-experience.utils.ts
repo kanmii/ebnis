@@ -29,6 +29,7 @@ import {
   UpdateExperiencesOnlineComponentProps,
   manuallyFetchExperience,
   updateExperiencesOnlineEffectHelperFunc,
+  manuallyGetDataObjects,
 } from "../../utils/experience.gql.types";
 import { getIsConnected } from "../../utils/connections";
 import {
@@ -64,7 +65,13 @@ import {
 import { CreateExperienceSuccessFragment } from "../../graphql/apollo-types/CreateExperienceSuccessFragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitionFragment";
-import { getExperienceQuery } from "../../apollo/get-detailed-experience-query";
+import {
+  getExperienceQuery,
+  getEntriesQuerySuccess,
+} from "../../apollo/get-detailed-experience-query";
+import { EntryConnectionFragment_edges } from "../../graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
+import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
 
 export const fieldTypeKeys = Object.values(DataTypes);
 
@@ -395,9 +402,33 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
       input: [input],
       updateExperiencesOnline,
       onUpdateSuccess: (successArgs) => {
+        const { experienceId } = successArgs.experience;
+
         const updatedExperience = getExperienceQuery(
-          successArgs.experience.experienceId,
+          experienceId,
         ) as ExperienceFragment;
+
+        const inputChanged =
+          input.updateDefinitions &&
+          input.updateDefinitions.find((d) => !!d.type);
+
+        if (inputChanged) {
+          const entries = getEntriesQuerySuccess(experienceId)
+            .edges as EntryConnectionFragment_edges[];
+
+          if (entries.length) {
+            const dataObjectsIds = entries.flatMap((e) => {
+              const ds = (e.node as EntryFragment)
+                .dataObjects as DataObjectFragment[];
+
+              return ds.map((d) => d.id);
+            });
+
+            manuallyGetDataObjects({
+              ids: dataObjectsIds,
+            });
+          }
+        }
 
         onSuccess(updatedExperience);
       },
@@ -760,7 +791,7 @@ function validateForm(
               if (unchangedDefinition) {
                 if (unchangedDefinition.type !== typeValue) {
                   formUpdated = true;
-                  updateDefinitionInput.type = typeValue;
+                  updateDefinitionInput.type = typeValue as DataTypes;
                 }
               } else if (typeValue) {
                 insertDefinitionInput.type = typeValue as DataTypes;

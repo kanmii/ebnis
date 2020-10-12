@@ -15,6 +15,7 @@ import {
   ON_EXPERIENCES_DELETED_SUBSCRIPTION,
   PRE_FETCH_EXPERIENCES_QUERY,
   GET_EXPERIENCE_QUERY,
+  GET_DATA_OBJECTS_QUERY,
 } from "../graphql/experience.gql";
 import { UpdateExperienceInput } from "../graphql/apollo-types/globalTypes";
 import {
@@ -64,6 +65,10 @@ import {
   GetExperienceVariables,
   GetExperience,
 } from "../graphql/apollo-types/GetExperience";
+import {
+  GetDataObjectsVariables,
+  GetDataObjects,
+} from "../graphql/apollo-types/GetDataObjects";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 
@@ -301,6 +306,16 @@ export function preFetchExperiences(variables: PreFetchExperiencesVariables) {
 
   return client.query<PreFetchExperiences, PreFetchExperiencesVariables>({
     query: PRE_FETCH_EXPERIENCES_QUERY,
+    variables,
+    fetchPolicy: "network-only",
+  });
+}
+
+export function manuallyGetDataObjects(variables: GetDataObjectsVariables) {
+  const { client } = window.____ebnis;
+
+  return client.query<GetDataObjects, GetDataObjectsVariables>({
+    query: GET_DATA_OBJECTS_QUERY,
     variables,
     fetchPolicy: "network-only",
   });
