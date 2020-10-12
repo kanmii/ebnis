@@ -43,6 +43,8 @@ import makeClassNames from "classnames";
 import { useDeleteExperiencesMutation } from "./detail-experience.injectables";
 import { activeClassName } from "../../utils/utils.dom";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
+import { UpsertExperience } from "../My/my.lazy";
+import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 
 type DispatchContextValue = Readonly<{
   onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
@@ -51,6 +53,9 @@ type DispatchContextValue = Readonly<{
   onDeclineDeleteExperience: () => void;
   onConfirmDeleteExperience: () => void;
   onDeleteExperienceRequest: (e: ReactMouseAnchorEvent) => void;
+  requestEditExperienceUi: (e: ReactMouseAnchorEvent) => void;
+  cancelEditExperienceUiRequestCb: (e: ReactMouseAnchorEvent) => void;
+  onExperienceUpdatedSuccess: (e: ExperienceFragment) => void;
   onToggleMenu: () => void;
   onRefetchEntries: () => void;
   holenNächstenEinträge: () => void;
@@ -145,6 +150,26 @@ export function DetailExperience(props: Props) {
           type: ActionType.HOLEN_NÄCHSTE_EINTRÄGE,
         });
       },
+      requestEditExperienceUi: (e: ReactMouseAnchorEvent) => {
+        e.preventDefault();
+
+        dispatch({
+          type: ActionType.EDIT_EXPERIENCE_UI_REQUEST,
+        });
+      },
+      cancelEditExperienceUiRequestCb: (e: ReactMouseAnchorEvent) => {
+        e.preventDefault();
+
+        dispatch({
+          type: ActionType.EDIT_EXPERIENCE_UI_REQUEST,
+        });
+      },
+      onExperienceUpdatedSuccess: (experience: ExperienceFragment) => {
+        dispatch({
+          type: ActionType.EDIT_EXPERIENCE_UI_REQUEST,
+          experience,
+        });
+      },
     };
     /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
@@ -213,6 +238,8 @@ function ExperienceComponent() {
     onCloseEntriesErrorsNotification,
     onCloseNewEntryCreatedNotification,
     onRefetchEntries,
+    cancelEditExperienceUiRequestCb,
+    onExperienceUpdatedSuccess,
   } = useContext(DispatchContext);
 
   const {
@@ -223,6 +250,7 @@ function ExperienceComponent() {
       newEntryCreated,
       entriesErrors,
       einträge: einträgeStatten,
+      editExperienceUiActive,
     },
   } = useContext(DataStateContextC);
 
@@ -256,6 +284,16 @@ function ExperienceComponent() {
 
   return (
     <>
+      {editExperienceUiActive.value === StateValue.active && (
+        <Suspense fallback={<Loading />}>
+          <UpsertExperience
+            experience={experience}
+            onClose={cancelEditExperienceUiRequestCb}
+            onSuccess={onExperienceUpdatedSuccess}
+          />
+        </Suspense>
+      )}
+
       {deleteExperienceState.value === StateValue.active && (
         <DeleteExperienceModal />
       )}
@@ -284,6 +322,7 @@ function ExperienceComponent() {
             onCloseNewEntryCreatedNotification
           }
         />
+
         {einträgeStatten.wert === StateValue.erfolg && (
           <EntriesComponent state={einträgeStatten.erfolg} />
         )}
@@ -311,6 +350,7 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
     onOpenNewEntry,
     onToggleMenu,
     onDeleteExperienceRequest,
+    requestEditExperienceUi,
     holenNächstenEinträge,
   } = useContext(DispatchContext);
 
@@ -342,6 +382,7 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
             state={showingOptionsMenu}
             onToggleMenu={onToggleMenu}
             onDeleteExperienceRequest={onDeleteExperienceRequest}
+            requestEditExperienceUi={requestEditExperienceUi}
             className="no-entry-menu"
           />
         </div>
@@ -353,6 +394,7 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
             state={showingOptionsMenu}
             onToggleMenu={onToggleMenu}
             onDeleteExperienceRequest={onDeleteExperienceRequest}
+            requestEditExperienceUi={requestEditExperienceUi}
           />
 
           <div className="entries">
@@ -596,6 +638,7 @@ function Menu(props: MenuProps) {
     state,
     onToggleMenu,
     onDeleteExperienceRequest,
+    requestEditExperienceUi,
     className = "",
   } = props;
 
@@ -608,6 +651,17 @@ function Menu(props: MenuProps) {
         })}
       >
         <div className="dropdown-menu detailed-menu__menu" role="menu">
+          <a
+            className="dropdown-content neutral-link detailed__edit-experience-link"
+            onClick={requestEditExperienceUi}
+            href="*"
+            style={{
+              display: "block",
+            }}
+          >
+            <div className="detailed-menu__content">Edit</div>
+          </a>
+
           <a
             className="dropdown-content neutral-link delete-experience-link"
             onClick={onDeleteExperienceRequest}
@@ -652,4 +706,5 @@ interface MenuProps {
   onToggleMenu: () => void;
   onDeleteExperienceRequest: (event: ReactMouseAnchorEvent) => void;
   className?: string;
+  requestEditExperienceUi: (event: ReactMouseAnchorEvent) => void;
 }

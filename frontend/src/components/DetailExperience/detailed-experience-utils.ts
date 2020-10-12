@@ -23,6 +23,7 @@ import {
   ErfolgWert,
   VersagenWert,
   EinträgeMitHolenFehlerWert,
+  ReFetchOnly as ReFetchOnlyVal,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -79,6 +80,7 @@ import { ApolloError } from "@apollo/client";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { nonsenseId } from "../../utils/utils.dom";
 import { toGetEntriesSuccessQuery } from "../../graphql/utils.gql";
+import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitionFragment";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -95,6 +97,7 @@ export enum ActionType {
   RE_FETCH_ENTRIES = "@detailed-experience/re-fetch-entries",
   HOLEN_NÄCHSTE_EINTRÄGE = "@detailed-experience/holen-nächste-einträge",
   AUF_EINTRÄGE_ERHIELTEN = "@detailed-experience/on-entries-received",
+  EDIT_EXPERIENCE_UI_REQUEST = "@detailed-experience/edit-experience-ui-request",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -179,6 +182,13 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
           case ActionType.HOLEN_NÄCHSTE_EINTRÄGE:
             handhabenHolenNächsteEinträgeHandlung(proxy);
+            break;
+
+          case ActionType.EDIT_EXPERIENCE_UI_REQUEST:
+            handleEditExperienceUiRequestAction(
+              proxy,
+              payload as WithMayBeExperiencePayload,
+            );
             break;
         }
       });
@@ -623,15 +633,14 @@ function handhabenGeholteErfahrungDaten(
         context.experience = erfahrung;
         const { id: erfahrungId } = erfahrung;
 
-        context.dataDefinitionIdToNameMap = erfahrung.dataDefinitions.reduce(
-          (acc, d) => {
-            acc[d.id] = d.name;
-            return acc;
-          },
-          {} as DataDefinitionIdToNameMap,
+        context.dataDefinitionIdToNameMap = makeDataDefinitionIdToNameMap(
+          erfahrung.dataDefinitions,
         );
 
         dataStateData.states = {
+          editExperienceUiActive: {
+            value: StateValue.inactive,
+          },
           newEntryActive: {
             value: StateValue.inactive,
           },
@@ -761,7 +770,7 @@ function handhabenHolenNächsteEinträgeHandlung(proxy: DraftStateMachine) {
 
 function handhabenEinträgeErhieltenHandlung(
   proxy: DraftStateMachine,
-  payload: VerarbeitenEinträgeAbfrageZurückgegebenerWert,
+  payload: VerarbeitenEinträgeAbfrageZurückgegebenerWert | ReFetchOnlyPayload,
 ) {
   const { states: globalStates } = proxy;
 
@@ -775,11 +784,34 @@ function handhabenEinträgeErhieltenHandlung(
         {
           const { context } = einträgeStatten.erfolg;
 
-          if (payload.schlüssel === StateValue.erfolg) {
-            context.seiteInfo = payload.seiteInfo;
-            context.einträge = [...context.einträge, ...payload.einträge];
-          } else {
-            context.paginierungFehler = parseStringError(payload.fehler);
+          switch (payload.schlüssel) {
+            case StateValue.erfolg:
+              context.seiteInfo = payload.seiteInfo;
+              context.einträge = [...context.einträge, ...payload.einträge];
+              break;
+
+            case StateValue.reFetchOnly:
+              const { entries } = payload;
+              const idToEntryMap = (entries.edges as EntryConnectionFragment_edges[]).reduce(
+                (acc, edge) => {
+                  const entry = edge.node as EntryFragment;
+                  acc[entry.id] = entry;
+                  return acc;
+                },
+                {} as { [entryId: string]: EntryFragment },
+              );
+
+              context.einträge = context.einträge.map((val) => {
+                const oldEntry = val.eintragDaten;
+                val.eintragDaten = idToEntryMap[oldEntry.id];
+                return val;
+              });
+
+              break;
+
+            case StateValue.versagen:
+              context.paginierungFehler = parseStringError(payload.fehler);
+              break;
           }
         }
         break;
@@ -825,6 +857,49 @@ function handhabenEinträgeErhieltenHandlung(
   }
 }
 
+function handleEditExperienceUiRequestAction(
+  proxy: DraftStateMachine,
+  { experience }: WithMayBeExperiencePayload,
+) {
+  const { states: globalStates } = proxy;
+
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const {
+      context,
+      states: { editExperienceUiActive: state },
+    } = globalStates.data;
+
+    if (experience) {
+      state.value = StateValue.inactive;
+      context.experience = experience;
+
+      context.dataDefinitionIdToNameMap = makeDataDefinitionIdToNameMap(
+        experience.dataDefinitions,
+      );
+
+      const effects = getGeneralEffects(proxy);
+
+      effects.push({
+        key: "holenEinträgeWirkung",
+        ownArgs: {
+          reFetchFromCache: true,
+        },
+      });
+
+      return;
+    }
+
+    const modifiedState = state;
+
+    if (state.value === StateValue.inactive) {
+      modifiedState.value = StateValue.active;
+    } else {
+      modifiedState.value = StateValue.inactive;
+    }
+  }
+}
+
 function getExperienceId(props: Props) {
   return (props.match as Match).params.experienceId;
 }
@@ -856,6 +931,13 @@ function verarbeitenEinträgeContext(
         : daten;
     });
   }
+}
+
+function makeDataDefinitionIdToNameMap(definitions: DataDefinitionFragment[]) {
+  return definitions.reduce((acc, d) => {
+    acc[d.id] = d.name;
+    return acc;
+  }, {} as DataDefinitionIdToNameMap);
 }
 
 ////////////////////////// END STATE UPDATE ////////////////////////////
@@ -1168,7 +1250,7 @@ type DefFetchDetailedExperienceEffect = EffectDefinition<
 >;
 
 const holenEinträgeWirkung: DefHolenEinträgeWirkung["func"] = async (
-  { pagination },
+  { pagination, reFetchFromCache },
   props,
   effectArgs,
 ) => {
@@ -1183,6 +1265,16 @@ const holenEinträgeWirkung: DefHolenEinträgeWirkung["func"] = async (
   };
 
   const zuletztEinträge = getEntriesQuerySuccess(erfahrungId);
+
+  if (reFetchFromCache && zuletztEinträge) {
+    dispatch({
+      type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
+      schlüssel: StateValue.reFetchOnly,
+      entries: zuletztEinträge,
+    });
+
+    return;
+  }
 
   try {
     const { data, error } =
@@ -1231,7 +1323,8 @@ const holenEinträgeWirkung: DefHolenEinträgeWirkung["func"] = async (
 type DefHolenEinträgeWirkung = EffectDefinition<
   "holenEinträgeWirkung",
   {
-    pagination: PaginationInput;
+    pagination?: PaginationInput;
+    reFetchFromCache?: boolean;
   }
 >;
 
@@ -1422,7 +1515,6 @@ type VerarbeitenEinträgeAbfrageZurückgegebenerWert =
       schlüssel: ErfolgWert;
       einträge: DataStateContextEntries;
       seiteInfo: PageInfoFragment;
-      // paginierungFehler?: string;
     }
   | {
       schlüssel: VersagenWert;
@@ -1510,6 +1602,15 @@ export type DataState = Readonly<{
       showingOptionsMenu: ShowingOptionsMenuState;
 
       einträge: EinträgeDaten;
+
+      editExperienceUiActive: Readonly<
+        | {
+            value: InActiveVal;
+          }
+        | {
+            value: ActiveVal;
+          }
+      >;
     }>;
   }>;
 }>;
@@ -1623,10 +1724,22 @@ type Action =
     }
   | ({
       type: ActionType.AUF_EINTRÄGE_ERHIELTEN;
-    } & VerarbeitenEinträgeAbfrageZurückgegebenerWert)
+    } & (VerarbeitenEinträgeAbfrageZurückgegebenerWert | ReFetchOnlyPayload))
   | {
       type: ActionType.HOLEN_NÄCHSTE_EINTRÄGE;
-    };
+    }
+  | ({
+      type: ActionType.EDIT_EXPERIENCE_UI_REQUEST;
+    } & WithMayBeExperiencePayload);
+
+type ReFetchOnlyPayload = {
+  schlüssel: ReFetchOnlyVal;
+  entries: GetEntries_getEntries_GetEntriesSuccess_entries;
+};
+
+type WithMayBeExperiencePayload = {
+  experience?: ExperienceFragment;
+};
 
 type NewEntryActivePayload = {
   bearbeitenEintrag?: EntryFragment;

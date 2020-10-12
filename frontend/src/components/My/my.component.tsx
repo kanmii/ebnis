@@ -175,20 +175,18 @@ function MyExperiences(
     <>
       <div id={domPrefix} className="container my-component">
         {upsertExperienceActivated.value === StateValue.active && (
-          <>
-            <Suspense fallback={<Loading />}>
-              <UpsertExperience
-                experience={upsertExperienceActivated.active.context.experience}
-                onClose={deactivateUpsertExperienceUiCb}
-                onSuccess={(experience) => {
-                  dispatch({
-                    type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
-                    experience,
-                  });
-                }}
-              />
-            </Suspense>
-          </>
+          <Suspense fallback={<Loading />}>
+            <UpsertExperience
+              experience={upsertExperienceActivated.active.context.experience}
+              onClose={deactivateUpsertExperienceUiCb}
+              onSuccess={(experience) => {
+                dispatch({
+                  type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
+                  experience,
+                });
+              }}
+            />
+          </Suspense>
         )}
 
         {noExperiences ? (

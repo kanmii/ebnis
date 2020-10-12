@@ -401,7 +401,7 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
     updateExperiencesOnlineEffectHelperFunc({
       input: [input],
       updateExperiencesOnline,
-      onUpdateSuccess: (successArgs) => {
+      onUpdateSuccess: async (successArgs) => {
         const { experienceId } = successArgs.experience;
 
         const updatedExperience = getExperienceQuery(
@@ -424,7 +424,7 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
               return ds.map((d) => d.id);
             });
 
-            manuallyGetDataObjects({
+            await manuallyGetDataObjects({
               ids: dataObjectsIds,
             });
           }

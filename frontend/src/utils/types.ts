@@ -117,6 +117,7 @@ export type VersagenWert = "versagen";
 export type EinträgeMitHolenFehlerWert = "einträgeMitHolenFehler";
 export type UpdateVal = "update";
 export type InsertVal = "insert";
+export type ReFetchOnly = "re-fetch-only";
 
 export const StateValue = {
   noEffect: "noEffect" as NoEffectVal,
@@ -143,6 +144,7 @@ export const StateValue = {
   einträgeMitHolenFehler: "einträgeMitHolenFehler" as EinträgeMitHolenFehlerWert,
   update: "update" as UpdateVal,
   insert: "insert" as InsertVal,
+  reFetchOnly: "re-fecht-only" as ReFetchOnly,
 } as const;
 
 export type LoadingState = Readonly<{
