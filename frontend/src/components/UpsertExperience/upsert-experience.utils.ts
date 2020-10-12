@@ -395,8 +395,11 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
       input: [input],
       updateExperiencesOnline,
       onUpdateSuccess: (successArgs) => {
-        const x = getExperienceQuery(successArgs.experience.experienceId);
-        onSuccess(x as ExperienceFragment);
+        const updatedExperience = getExperienceQuery(
+          successArgs.experience.experienceId,
+        ) as ExperienceFragment;
+
+        onSuccess(updatedExperience);
       },
       onError: (errors) => {
         if (errors) {
@@ -757,8 +760,7 @@ function validateForm(
               if (unchangedDefinition) {
                 if (unchangedDefinition.type !== typeValue) {
                   formUpdated = true;
-                  // TODO: os far we are only updating name
-                  // updateDefinitionInput.type = typeValue
+                  updateDefinitionInput.type = typeValue;
                 }
               } else if (typeValue) {
                 insertDefinitionInput.type = typeValue as DataTypes;

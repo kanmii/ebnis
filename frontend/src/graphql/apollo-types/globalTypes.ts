@@ -97,7 +97,8 @@ export interface UpdateDataObjectInput {
  */
 export interface UpdateDefinitionInput {
   id: string;
-  name: string;
+  name?: string | null;
+  type?: DataTypes | null;
   updatedAt?: any | null;
 }
 
