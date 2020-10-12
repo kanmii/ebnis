@@ -10,6 +10,7 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.DataDefinition
   alias EbnisData.EntryApi
   alias Absinthe.Relay.Connection
+  alias EbnisData.DataObject
 
   @get_experience_exception_header "\n\nException while getting experience with:"
   @bad_request "bad request"
@@ -331,6 +332,13 @@ defmodule EbnisData.ExperienceApi do
          {:update_definitions, inputs},
          experience
        ) do
+    id_to_definition_type_map =
+      Enum.reduce(
+        experience.data_definitions,
+        %{},
+        &Map.put(&2, &1.id, &1.type)
+      )
+
     bearbeitet_erfahrung_komponenten_1 =
       Map.merge(
         bearbeitet_erfahrung_komponenten,
@@ -339,7 +347,10 @@ defmodule EbnisData.ExperienceApi do
           updated_definitions:
             Enum.map(
               inputs,
-              &update_experiences_update_definition/1
+              &update_experiences_update_definition(
+                &1,
+                id_to_definition_type_map[&1.id]
+              )
             )
         }
       )
@@ -383,13 +394,22 @@ defmodule EbnisData.ExperienceApi do
     {bearbeitet_erfahrung_komponenten_1, einträge_komponenten}
   end
 
-  defp update_experiences_update_definition(input) do
+  defp update_experiences_update_definition(input, old_type) do
     id = input.id
+
+    validate_update_defintion_type(input, old_type)
+
+    IO.inspect(input, label: "
+    -----------update definition input------------
+    ")
 
     with %{} = definition <- get_definition(id),
          changeset <- DataDefinition.changeset(definition, input),
          {:ok, definition} <- Repo.update(changeset) do
       definition
+      |> IO.inspect(label: "
+      -----------updated definition------------
+      ")
     else
       nil ->
         {
@@ -422,6 +442,44 @@ defmodule EbnisData.ExperienceApi do
           error: @bad_request
         }
       }
+  end
+
+  defp validate_update_defintion_type(input, old_type) do
+    id = input.id
+
+    case {input[:type], old_type} |> IO.inspect(label: "
+    -----------label------------
+    ") do
+      {nil, _} ->
+        :ok
+
+      {"multi_line_text", _} ->
+        :ok
+
+      {"single_line_text", _} ->
+        :ok
+
+      {"integer", "decimal"} ->
+        :ok
+
+      {"decimal", "integer"} ->
+        from(
+          d in DataObject,
+          where: d.definition_id == ^id
+        )
+        |> Repo.all()
+        |> IO.inspect(label: "
+        -----------data_objects------------
+        ")
+
+        :ok
+
+      {"date", "datetime"} ->
+        :ok
+
+      {"datetime", "date"} ->
+        :ok
+    end
   end
 
   @spec create_experience(attrs: %{}) ::

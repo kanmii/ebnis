@@ -186,7 +186,7 @@ defmodule EbnisData.EntryApi do
   @spec get_experience_id_to_entry_connection_map(
           [{integer() | binary(), map()}],
           list()
-        ) :: %{required(binary()) => Connection.t()}
+        ) :: {map(), [binary()], non_neg_integer(), non_neg_integer()}
   def get_experience_id_to_entry_connection_map(
         experiences_ids_pagination_args,
         repo_opts

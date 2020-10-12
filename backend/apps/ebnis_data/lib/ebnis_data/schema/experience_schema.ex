@@ -846,10 +846,14 @@ defmodule EbnisData.Schema.Experience do
     field(:id, non_null(:id))
 
     @desc """
-      Well the essence of updating the definition is to rename it. So if you
-      are not renaming the definition, please do not update the definition!
+      Update data definition name
     """
-    field(:name, non_null(:string))
+    field(:name, :string)
+
+    @desc """
+      Update data definition type
+    """
+    field(:type, :data_types)
 
     @desc """
       If the update was done offline, then it's proper to allow the update

@@ -1229,6 +1229,82 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert is_binary(definition_name_taken_error)
     end
 
+    test " erfolg: Definition Art" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id,
+            name: definition0_type
+          }
+        ]
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      %{
+        id: _entry_id,
+        data_objects: _data_objects
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      definition0_type_updated = "DECIMAL"
+      refute definition0_type == String.downcase(definition0_type_updated)
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => definition0_id,
+            "type" => definition0_type_updated
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "definition" => %{
+                                 "id" => ^definition0_id,
+                                 "type" => ^definition0_type_updated
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
     test "scheitern: Eintrag nicht gefunden" do
       bogus_id = @bogus_id
       user = RegFactory.insert()
