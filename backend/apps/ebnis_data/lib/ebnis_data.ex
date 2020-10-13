@@ -135,7 +135,7 @@ defmodule EbnisData do
 
   ################################ START ENTRY SECTION #########
 
-  defdelegate get_paginated_entries(
+  defdelegate data_loader_get_entries(
                 experiences_ids_pagination_args_tuples,
                 repo_opts
               ),
@@ -148,6 +148,13 @@ defmodule EbnisData do
   defdelegate get_data_object(id), to: EntryApi
 
   defdelegate get_data_objects(ids), to: EntryApi
+
+  defdelegate get_paginated_entries(
+                experiences_ids,
+                pagination_args,
+                repo_opts
+              ),
+              to: EntryApi
 
   ################################ END ENTRY SECTION #################
 end

@@ -51,7 +51,7 @@ defmodule EbnisData.Schema do
         experiences_ids_pagination_args,
         repo_opts
       ) do
-    EbnisData.get_paginated_entries(
+    EbnisData.data_loader_get_entries(
       experiences_ids_pagination_args,
       repo_opts
     )

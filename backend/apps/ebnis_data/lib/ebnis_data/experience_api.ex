@@ -111,8 +111,7 @@ defmodule EbnisData.ExperienceApi do
   defp query_data_definitions(%{id: experience_id}) do
     from(
       d in DataDefinition,
-      where: d.experience_id == ^experience_id,
-      order_by: [asc: d.id]
+      where: d.experience_id == ^experience_id
     )
   end
 
@@ -758,14 +757,14 @@ defmodule EbnisData.ExperienceApi do
               }
           end
 
-        {experience_id_to_entry_map, _experience_ids, limit, offset} =
-          EbnisData.get_experience_id_to_entry_connection_map(
-            Enum.map(
-              ids,
-              &{&1, pagination_args}
-            ),
+        {data, limit, offset} =
+          EbnisData.get_paginated_entries(
+            ids,
+            pagination_args,
             []
           )
+
+        experience_id_to_entry_map = Enum.group_by(data, & &1.experience_id)
 
         Enum.map(
           experiences,

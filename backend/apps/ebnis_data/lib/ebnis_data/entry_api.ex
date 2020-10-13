@@ -4,7 +4,6 @@ defmodule EbnisData.EntryApi do
 
   alias EbnisData.Repo
   alias EbnisData.Entry
-  alias EbnisData.Experience
   alias EbnisData.DataObject
   alias Ecto.Changeset
   alias Ecto.Multi
@@ -223,15 +222,20 @@ defmodule EbnisData.EntryApi do
           paginated_entries in subquery(
             from(ent1 in Entry,
               where: [experience_id: parent_as(:exs).id],
+              order_by: [desc: ent1.inserted_at],
               limit: ^(limit + 1),
-              offset: ^offset,
-              order_by: [desc: ent1.inserted_at, desc: ent1.id]
+              offset: ^offset
             )
           ),
         on: paginated_entries.id == ent.id,
         order_by: [desc: ent.inserted_at, desc: ent.id],
-        join: d0 in assoc(ent, :data_objects),
-        preload: [data_objects: d0]
+        preload: [
+          data_objects:
+            ^from(
+              d in DataObject,
+              order_by: :definition_id
+            )
+        ]
       )
       |> Repo.all(repo_opts)
       |> case do
@@ -246,19 +250,27 @@ defmodule EbnisData.EntryApi do
     {data, experience_ids, limit, offset}
   end
 
-  @spec get_paginated_entries(
+  @spec data_loader_get_entries(
           [{integer() | binary(), map()}],
           list()
         ) :: [Connection.t()]
-  def get_paginated_entries(
+  def data_loader_get_entries(
         experiences_ids_pagination_args,
         repo_opts
       ) do
-    {experience_id_to_entry_map, experience_ids, limit, offset} =
-      get_experience_id_to_entry_connection_map(
+    [
+      {_experience_id, pagination_args} = _head | _tail
+    ] = experiences_ids_pagination_args
+
+    experience_ids =
+      Enum.map(
         experiences_ids_pagination_args,
-        repo_opts
+        fn {id, _} -> id end
       )
+
+    pagination = pagination_args[:pagination] || %{first: 100}
+    {data, limit, offset} = get_paginated_entries(experience_ids, pagination, repo_opts)
+    experience_id_to_entry_map = Enum.group_by(data, & &1.experience_id)
 
     Enum.map(
       experience_ids,
@@ -484,6 +496,45 @@ defmodule EbnisData.EntryApi do
     end
   end
 
+  @spec get_paginated_entries(experience_ids :: [binary()], map(), list()) ::
+          [Connection.t()]
+  def get_paginated_entries(experience_ids, pagination, repo_opts) do
+    {
+      :ok,
+      offset,
+      limit
+    } = Connection.offset_and_limit_for_query(pagination, [])
+
+    data =
+      from(ent in Entry,
+        as: :ents,
+        join: ex in assoc(ent, :experience),
+        as: :exs,
+        where: ex.id in ^experience_ids,
+        inner_lateral_join:
+          paginated_entries in subquery(
+            from(ent1 in Entry,
+              where: [experience_id: parent_as(:exs).id],
+              order_by: [desc: ent1.inserted_at, desc: ent1.id],
+              limit: ^(limit + 1),
+              offset: ^offset
+            )
+          ),
+        on: paginated_entries.id == ent.id,
+        order_by: [desc: ent.inserted_at, desc: ent.id],
+        preload: [
+          data_objects:
+            ^from(
+              d in DataObject,
+              order_by: :definition_id
+            )
+        ]
+      )
+      |> Repo.all(repo_opts)
+
+    {data, limit, offset}
+  end
+
   @spec get_entries(
           args :: %{
             experience_id: binary(),
@@ -493,32 +544,17 @@ defmodule EbnisData.EntryApi do
         ) :: [Connection.t()]
   def get_entries(args) do
     experience_id = args.experience_id
-    pagination_args = args.pagination
+    pagination = args.pagination
 
-    from(
-      exp in Experience,
-      where: exp.id == ^experience_id
+    {data, limit, offset} = get_paginated_entries([experience_id], pagination, [])
+
+    Connection.from_slice(
+      data
+      |> Enum.take(limit),
+      offset,
+      has_previous_page: offset > 0,
+      has_next_page: length(data) > limit
     )
-    |> Repo.all()
-    |> case do
-      [_] ->
-        from(
-          ent in Entry,
-          join: ex in assoc(ent, :experience),
-          where: ent.experience_id == ^experience_id,
-          where: ex.user_id == ^args.user_id,
-          join: dd in assoc(ent, :data_objects),
-          preload: [data_objects: dd],
-          order_by: [desc: ent.inserted_at, desc: ent.id]
-        )
-        |> Absinthe.Relay.Connection.from_query(
-          &Repo.all(&1),
-          pagination_args
-        )
-
-      _ ->
-        {:error, @experience_not_found_error}
-    end
   rescue
     error ->
       Logger.error(fn ->
