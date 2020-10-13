@@ -6,6 +6,7 @@ import fuzzysort from "fuzzysort";
 import { RouteChildrenProps } from "react-router-dom";
 import {
   StateValue,
+  Timeouts,
   InActiveVal,
   ActiveVal,
   DeletedVal,
@@ -73,6 +74,7 @@ export enum ActionType {
   ON_DATA_RECEIVED = "@my/on-data-received",
   DATA_RE_FETCH_REQUEST = "@my/data-re-fetch-request",
   FETCH_NEXT_EXPERIENCES_PAGE = "@my/fetch-next=experiences-page",
+  SET_TIMEOUT = "@my/set-timeout",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -151,6 +153,10 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
               payload as WithExperiencePayload,
             );
             break;
+
+          case ActionType.SET_TIMEOUT:
+            handleSetTimeoutAction(proxy, payload as SetTimeoutPayload);
+            break;
         }
       });
     },
@@ -161,6 +167,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
 export function initState(): StateMachine {
   return {
+    timeouts: {},
     effects: {
       general: {
         value: StateValue.hasEffects,
@@ -438,7 +445,7 @@ function handleOnUpdateExperienceSuccessAction(
   proxy: DraftState,
   { experience }: WithExperiencePayload,
 ) {
-  const { states } = proxy;
+  const { states, timeouts } = proxy;
   const { id, title } = experience;
 
   // istanbul ignore else
@@ -459,7 +466,19 @@ function handleOnUpdateExperienceSuccessAction(
     state.showingUpdateSuccess = !showingUpdateSuccess;
     experiencesState[id] = state;
 
-    if (!showingUpdateSuccess) {
+    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+
+    if (showingUpdateSuccess) {
+      effects.push({
+        key: "timeoutsEffect",
+        ownArgs: {
+          clear: timeouts.genericTimeout,
+        },
+      });
+
+      delete timeouts.genericTimeout;
+      return;
+    } else {
       const { experiences, experiencesPrepared } = context;
 
       for (let index = 0; index < experiences.length; index++) {
@@ -471,20 +490,37 @@ function handleOnUpdateExperienceSuccessAction(
           prepared.title = title;
           prepared.target = fuzzysort.prepare(title) as Fuzzysort.Prepared;
 
-          const effects = getGeneralEffects(proxy);
-
-          effects.push({
-            key: "scrollToViewEffect",
-            ownArgs: {
-              id: makeScrollToDomId(id),
+          effects.push(
+            {
+              key: "scrollToViewEffect",
+              ownArgs: {
+                id: makeScrollToDomId(id),
+              },
             },
-          });
+            {
+              key: "timeoutsEffect",
+              ownArgs: {
+                set: {
+                  key: "set-close-upsert-experience-success-notification",
+                  experience,
+                },
+              },
+            },
+          );
 
           break;
         }
       }
     }
   }
+}
+
+function handleSetTimeoutAction(proxy: DraftState, payload: SetTimeoutPayload) {
+  const { timeouts } = proxy;
+
+  Object.entries(payload).forEach(([key, val]) => {
+    timeouts[key] = val;
+  });
 }
 
 function handleOnDeleteExperienceProcessedHelper(
@@ -711,10 +747,57 @@ type DefScrollToViewEffect = EffectDefinition<
   }
 >;
 
+const timeoutsEffect: DefTimeoutsEffect["func"] = (
+  { set, clear },
+  __,
+  effectArgs,
+) => {
+  const { dispatch } = effectArgs;
+
+  if (clear) {
+    clearTimeout(clear);
+  }
+
+  if (set) {
+    const timeout = 10 * 1000;
+    let timeoutCb = (undefined as unknown) as () => void;
+
+    switch (set.key) {
+      case "set-close-upsert-experience-success-notification":
+        timeoutCb = () => {
+          dispatch({
+            type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
+            experience: set.experience,
+          });
+        };
+
+        break;
+    }
+
+    const timeoutId = setTimeout(timeoutCb, timeout);
+
+    dispatch({
+      type: ActionType.SET_TIMEOUT,
+      genericTimeout: timeoutId,
+    });
+  }
+};
+
+type DefTimeoutsEffect = EffectDefinition<
+  "timeoutsEffect",
+  {
+    set?: {
+      key: "set-close-upsert-experience-success-notification";
+    } & WithExperiencePayload;
+    clear?: NodeJS.Timeout;
+  }
+>;
+
 export const effectFunctions = {
   deletedExperienceRequestEffect,
   fetchExperiencesEffect,
   scrollToViewEffect,
+  timeoutsEffect,
 };
 
 async function deleteExperienceProcessedEffectHelper({ dispatch }: EffectArgs) {
@@ -822,6 +905,7 @@ type DraftState = Draft<StateMachine>;
 export type StateMachine = GenericGeneralEffect<EffectType> &
   Readonly<{
     states: LoadingState | ErrorState | DataState;
+    timeouts: Readonly<Timeouts>;
   }>;
 
 type ErrorState = Readonly<{
@@ -944,7 +1028,14 @@ type Action =
     }
   | ({
       type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS;
-    } & WithExperiencePayload);
+    } & WithExperiencePayload)
+  | ({
+      type: ActionType.SET_TIMEOUT;
+    } & SetTimeoutPayload);
+
+type SetTimeoutPayload = {
+  [k in keyof Timeouts]: NodeJS.Timeout;
+};
 
 type WithExperiencePayload = {
   experience: ExperienceMiniFragment;
@@ -1014,7 +1105,8 @@ export interface EffectArgs {
 export type EffectType =
   | DefDeleteExperienceRequestEffect
   | DefFetchExperiencesEffect
-  | DefScrollToViewEffect;
+  | DefScrollToViewEffect
+  | DefTimeoutsEffect;
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,

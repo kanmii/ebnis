@@ -941,10 +941,25 @@ function handleResetFormFieldsAction(proxy: DraftState) {
     states: {
       submission,
       form: { fields },
+      mode,
     },
   } = proxy;
 
   submission.value = StateValue.inactive;
+
+  const effects = getGeneralEffects(proxy);
+
+  effects.push({
+    key: "scrollToViewEffect",
+    ownArgs: {
+      id: scrollIntoViewDomId,
+    },
+  });
+
+  if (mode.value === StateValue.update) {
+    handleOnExperienceFetchedSuccess(proxy, mode.update.context.experience);
+    return;
+  }
 
   Object.entries(fields).forEach(([fieldName, fieldState]) => {
     switch (fieldName) {
@@ -977,15 +992,6 @@ function handleResetFormFieldsAction(proxy: DraftState) {
         }
         break;
     }
-  });
-
-  const effects = getGeneralEffects(proxy);
-
-  effects.push({
-    key: "scrollToViewEffect",
-    ownArgs: {
-      id: scrollIntoViewDomId,
-    },
   });
 }
 

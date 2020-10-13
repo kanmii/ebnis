@@ -93,6 +93,10 @@ export type IEnum<T extends object> = T[keyof T];
 
 export type InputChangeEvent = ChangeEvent<HTMLInputElement>;
 
+export type Timeouts = {
+  genericTimeout?: NodeJS.Timeout;
+};
+
 export type NoEffectVal = "noEffect";
 export type HasEffectsVal = "hasEffects";
 export type ActiveVal = "active";

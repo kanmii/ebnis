@@ -31,7 +31,7 @@ import {
   GenericEffectDefinition,
 } from "../../utils/effects";
 import { scrollDocumentToTop } from "./detail-experience.injectables";
-import { StateValue } from "../../utils/types";
+import { StateValue, Timeouts } from "../../utils/types";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import {
   getSyncingExperience,
@@ -97,7 +97,7 @@ export enum ActionType {
   RE_FETCH_ENTRIES = "@detailed-experience/re-fetch-entries",
   HOLEN_NÄCHSTE_EINTRÄGE = "@detailed-experience/holen-nächste-einträge",
   AUF_EINTRÄGE_ERHIELTEN = "@detailed-experience/on-entries-received",
-  EDIT_EXPERIENCE_UI_REQUEST = "@detailed-experience/edit-experience-ui-request",
+  REQUEST_UPDATE_EXPERIENCE_UI = "@detailed-experience/request-update-experience-ui",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -184,8 +184,8 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             handhabenHolenNächsteEinträgeHandlung(proxy);
             break;
 
-          case ActionType.EDIT_EXPERIENCE_UI_REQUEST:
-            handleEditExperienceUiRequestAction(
+          case ActionType.REQUEST_UPDATE_EXPERIENCE_UI:
+            handleUpdateExperienceUiRequestAction(
               proxy,
               payload as WithMayBeExperiencePayload,
             );
@@ -219,7 +219,6 @@ export function initState(): StateMachine {
     states: {
       value: StateValue.loading,
     },
-
     timeouts: {},
   };
 
@@ -337,9 +336,12 @@ function handleMaybeNewEntryCreatedHelper(
     const { newEntryCreated, einträge: einträgeStatten } = states;
 
     const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
+
     effects.push({
-      key: "autoCloseNotificationEffect",
-      ownArgs: {},
+      key: "timeoutsEffect",
+      ownArgs: {
+        set: "set-close-new-entry-created-notification",
+      },
     });
 
     const neuErstellteEintragFehler =
@@ -480,12 +482,23 @@ function handleMaybeEntriesErrorsHelper(
 }
 
 function handleOnCloseNewEntryCreatedNotification(proxy: DraftStateMachine) {
-  const { states: globalStates } = proxy;
+  const { states: globalStates, timeouts } = proxy;
 
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const { states } = globalStates.data;
     states.newEntryCreated.value = StateValue.inactive;
+
+    const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
+
+    effects.push({
+      key: "timeoutsEffect",
+      ownArgs: {
+        clear: timeouts.genericTimeout,
+      },
+    });
+
+    delete timeouts.genericTimeout;
   }
 }
 
@@ -638,7 +651,7 @@ function handhabenGeholteErfahrungDaten(
         );
 
         dataStateData.states = {
-          editExperienceUiActive: {
+          updateExperienceUiActive: {
             value: StateValue.inactive,
           },
           newEntryActive: {
@@ -857,40 +870,63 @@ function handhabenEinträgeErhieltenHandlung(
   }
 }
 
-function handleEditExperienceUiRequestAction(
+function handleUpdateExperienceUiRequestAction(
   proxy: DraftStateMachine,
   { experience }: WithMayBeExperiencePayload,
 ) {
-  const { states: globalStates } = proxy;
+  const { states: globalStates, timeouts } = proxy;
 
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const {
       context,
-      states: { editExperienceUiActive: state },
+      states: { updateExperienceUiActive: state },
     } = globalStates.data;
 
+    const modifiedState = state;
+    const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
+
+    if (state.value === StateValue.erfolg) {
+      modifiedState.value = StateValue.inactive;
+
+      effects.push({
+        key: "timeoutsEffect",
+        ownArgs: {
+          clear: timeouts.genericTimeout,
+        },
+      });
+
+      delete timeouts.genericTimeout;
+
+      return;
+    }
+
     if (experience) {
-      state.value = StateValue.inactive;
+      modifiedState.value = StateValue.erfolg;
       context.experience = experience;
 
       context.dataDefinitionIdToNameMap = makeDataDefinitionIdToNameMap(
         experience.dataDefinitions,
       );
 
-      const effects = getGeneralEffects(proxy);
-
-      effects.push({
-        key: "holenEinträgeWirkung",
-        ownArgs: {
-          reFetchFromCache: true,
+      effects.push(
+        {
+          key: "holenEinträgeWirkung",
+          ownArgs: {
+            reFetchFromCache: true,
+          },
         },
-      });
+
+        {
+          key: "timeoutsEffect",
+          ownArgs: {
+            set: "set-close-update-experience-success-notification",
+          },
+        },
+      );
 
       return;
     }
-
-    const modifiedState = state;
 
     if (state.value === StateValue.inactive) {
       modifiedState.value = StateValue.active;
@@ -950,28 +986,58 @@ const scrollDocToTopEffect: DefScrollDocToTopEffect["func"] = () => {
 
 type DefScrollDocToTopEffect = EffectDefinition<"scrollDocToTopEffect">;
 
-const autoCloseNotificationEffect: DefAutoCloseNotificationEffect["func"] = (
-  _,
+const timeoutsEffect: DefTimeoutsEffect["func"] = (
+  { set, clear },
   __,
   effectArgs,
 ) => {
   const { dispatch } = effectArgs;
-  const timeout = 10 * 1000;
 
-  const timeoutId = setTimeout(() => {
+  if (clear) {
+    clearTimeout(clear);
+  }
+
+  if (set) {
+    const timeout = 10 * 1000;
+    let timeoutCb = (undefined as unknown) as () => void;
+
+    switch (set) {
+      case "set-close-new-entry-created-notification":
+        timeoutCb = () => {
+          dispatch({
+            type: ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION,
+          });
+        };
+
+        break;
+
+      case "set-close-update-experience-success-notification":
+        timeoutCb = () => {
+          dispatch({
+            type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI,
+          });
+        };
+
+        break;
+    }
+
+    const timeoutId = setTimeout(timeoutCb, timeout);
+
     dispatch({
-      type: ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION,
+      type: ActionType.SET_TIMEOUT,
+      genericTimeout: timeoutId,
     });
-  }, timeout);
-
-  dispatch({
-    type: ActionType.SET_TIMEOUT,
-    autoCloseNotification: timeoutId,
-  });
+  }
 };
 
-type DefAutoCloseNotificationEffect = EffectDefinition<
-  "autoCloseNotificationEffect"
+type DefTimeoutsEffect = EffectDefinition<
+  "timeoutsEffect",
+  {
+    set?:
+      | "set-close-new-entry-created-notification"
+      | "set-close-update-experience-success-notification";
+    clear?: NodeJS.Timeout;
+  }
 >;
 
 const onOfflineExperienceSyncedEffect: DefOnOfflineExperienceSyncedEffect["func"] = (
@@ -1330,7 +1396,7 @@ type DefHolenEinträgeWirkung = EffectDefinition<
 
 export const effectFunctions = {
   scrollDocToTopEffect,
-  autoCloseNotificationEffect,
+  timeoutsEffect,
   onOfflineExperienceSyncedEffect,
   putEntriesErrorsInLedgerEffect,
   cancelDeleteExperienceEffect,
@@ -1493,13 +1559,8 @@ type DraftStateMachine = Draft<StateMachine>;
 export type StateMachine = GenericGeneralEffect<EffectType> &
   Readonly<{
     states: LoadingState | ErrorState | DataState;
-
-    timeouts: Timeouts;
+    timeouts: Readonly<Timeouts>;
   }>;
-
-type Timeouts = Readonly<{
-  autoCloseNotification?: NodeJS.Timeout;
-}>;
 
 type ErrorState = Readonly<{
   value: ErrorsVal;
@@ -1603,12 +1664,15 @@ export type DataState = Readonly<{
 
       einträge: EinträgeDaten;
 
-      editExperienceUiActive: Readonly<
+      updateExperienceUiActive: Readonly<
         | {
             value: InActiveVal;
           }
         | {
             value: ActiveVal;
+          }
+        | {
+            value: ErfolgWert;
           }
       >;
     }>;
@@ -1729,7 +1793,7 @@ type Action =
       type: ActionType.HOLEN_NÄCHSTE_EINTRÄGE;
     }
   | ({
-      type: ActionType.EDIT_EXPERIENCE_UI_REQUEST;
+      type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI;
     } & WithMayBeExperiencePayload);
 
 type ReFetchOnlyPayload = {
@@ -1800,13 +1864,14 @@ type EffectDefinition<
 
 export type EffectType =
   | DefScrollDocToTopEffect
-  | DefAutoCloseNotificationEffect
+  | DefTimeoutsEffect
   | DefOnOfflineExperienceSyncedEffect
   | DefPutEntriesErrorsInLedgerEffect
   | DefCancelDeleteExperienceEffect
   | DefDeleteExperienceRequestedEffect
   | DefDeleteExperienceEffect
-  | DefFetchDetailedExperienceEffect;
+  | DefFetchDetailedExperienceEffect
+  | DefHolenEinträgeWirkung;
 
 // [index/label, [errorKey, errorValue][]][]
 export type EintragFehlerAlsListe = [string | number, [string, string][]][];
