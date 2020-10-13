@@ -749,12 +749,10 @@ defmodule EbnisData.ExperienceApi do
         pagination_args =
           case args[:entry_pagination] do
             nil ->
-              %{}
+              %{first: 10}
 
             pagination ->
-              %{
-                pagination: pagination
-              }
+              pagination
           end
 
         {data, limit, offset} =
