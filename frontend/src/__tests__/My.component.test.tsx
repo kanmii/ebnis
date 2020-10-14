@@ -5,7 +5,6 @@ import { My } from "../components/My/my.component";
 import {
   Props,
   initState,
-  MyChildDispatchProps,
   EffectType,
   effectFunctions,
 } from "../components/My/my.utils";
@@ -49,6 +48,7 @@ import { AppPersistor } from "../utils/app-context";
 import { E2EWindowObject } from "../utils/types";
 import { BroadcastMessageType } from "../utils/observable-manager";
 import { handlePreFetchExperiences } from "../components/My/my.injectables";
+import { act } from "react-dom/test-utils";
 
 jest.mock("../components/My/my.injectables");
 const mockHandlePreFetchExperiences = handlePreFetchExperiences as jest.Mock;
@@ -70,15 +70,20 @@ jest.mock("../components/Header/header.component", () => () => null);
 jest.mock("../utils/global-window");
 
 const mockNewExperienceId = "new-experience";
-const mockActionType = require("../components/My/my.utils").ActionType;
+
 jest.mock("../components/My/my.lazy", () => ({
-  NewExperience: ({ myDispatch }: MyChildDispatchProps) => {
+  UpsertExperience: ({
+    onSuccess,
+  }: {
+    onSuccess: (experience: any) => void;
+  }) => {
     return (
       <div
         id={mockNewExperienceId}
         onClick={() => {
-          myDispatch({
-            type: mockActionType.DEACTIVATE_NEW_EXPERIENCE,
+          onSuccess({
+            id: "1",
+            title: "yo",
           });
         }}
       />
@@ -152,7 +157,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.runAllTimers();
   cleanup();
   jest.clearAllTimers();
   jest.resetAllMocks();
@@ -168,6 +172,7 @@ describe("component", () => {
 
   it("verbunden/sammeln Erfahrüngen Fehler/wiederholen aber kein Erfahrung/erstellen eine Erfahrung aktivieren/deaktivieren", async () => {
     mockGetIsConnected.mockResolvedValue(true);
+    mockUseWithSubscriptionContext.mockReturnValue({});
 
     mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
       error: new Error("a"),
@@ -211,13 +216,15 @@ describe("component", () => {
       mockNewExperienceId,
     ) as HTMLElement;
 
-    expect(neuenErfahrungEl).not.toBeNull();
+    act(() => {
+      neuenErfahrungEl.click(); // exists
+      jest.runAllTimers();
+    });
 
-    neuenErfahrungEl.click();
     expect(document.getElementById(mockNewExperienceId)).toBeNull();
   });
 
-  it("Holenerfahrungen erzeuge Ausnahme / es gibt zwischengespeicherte Erfahrungen / wiederholen ErfahrungenAnforderung", async () => {
+  it("Holen Erfahrungen erzeuge Ausnahme / es gibt zwischengespeicherte Erfahrungen / wiederholen ErfahrungenAnforderung", async () => {
     mockGetIsConnected.mockResolvedValue(true);
     mockUseWithSubscriptionContext.mockReturnValue({
       connected: true,

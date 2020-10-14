@@ -59,6 +59,7 @@ import {
 } from "../../graphql/apollo-types/ExperienceConnectionFragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { makeScrollToDomId } from "./my.dom";
+import {emptyPageInfo} from "../../graphql/utils.gql";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
@@ -481,35 +482,46 @@ function handleOnUpdateExperienceSuccessAction(
     } else {
       const { experiences, experiencesPrepared } = context;
 
-      for (let index = 0; index < experiences.length; index++) {
-        const iterExperience = experiences[index];
+      effects.push({
+        key: "timeoutsEffect",
+        ownArgs: {
+          set: {
+            key: "set-close-upsert-experience-success-notification",
+            experience,
+          },
+        },
+      });
 
-        if (iterExperience.id === id) {
-          experiences[index] = experience;
-          const prepared = experiencesPrepared[index];
-          prepared.title = title;
-          prepared.target = fuzzysort.prepare(title) as Fuzzysort.Prepared;
+      if (experiences.length) {
+        for (let index = 0; index < experiences.length; index++) {
+          const iterExperience = experiences[index];
 
-          effects.push(
-            {
+          if (iterExperience.id === id) {
+            experiences[index] = experience;
+            const prepared = experiencesPrepared[index];
+            prepared.title = title;
+            prepared.target = fuzzysort.prepare(title) as Fuzzysort.Prepared;
+
+            effects.push({
               key: "scrollToViewEffect",
               ownArgs: {
                 id: makeScrollToDomId(id),
               },
-            },
-            {
-              key: "timeoutsEffect",
-              ownArgs: {
-                set: {
-                  key: "set-close-upsert-experience-success-notification",
-                  experience,
-                },
-              },
-            },
-          );
+            });
 
-          break;
+            break;
+          }
         }
+      } else {
+        experiences.push(experience);
+
+        experiencesPrepared.push({
+          id,
+          title,
+          target: fuzzysort.prepare(title) as Fuzzysort.Prepared,
+        });
+
+        context.pageInfo = emptyPageInfo
       }
     }
   }
@@ -1068,10 +1080,6 @@ interface SetSearchTextPayload {
 }
 
 export type DispatchType = Dispatch<Action>;
-
-export interface MyChildDispatchProps {
-  myDispatch: DispatchType;
-}
 
 export type CallerProps = RouteChildrenProps<
   {},
