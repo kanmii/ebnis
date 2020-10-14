@@ -438,6 +438,7 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
         onSuccess(updatedExperience);
       },
       onError: (errors) => {
+        // istanbul ignore else:
         if (errors) {
           dispatch({
             type: ActionType.ON_COMMON_ERROR,

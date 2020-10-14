@@ -54,6 +54,7 @@ import {
   getExperienceQuery,
   getEntriesQuerySuccess,
 } from "../apollo/get-detailed-experience-query";
+import { act } from "react-dom/test-utils";
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockGetEntriesQuery = getExperienceQuery as jest.Mock;
@@ -410,7 +411,7 @@ describe("components", () => {
       },
     });
 
-    const { debug } = render(ui);
+    render(ui);
 
     const titleInputEl = getTitleInputEl();
     const descriptionInputEl = getDescriptionInputEl();
@@ -479,9 +480,10 @@ describe("components", () => {
     submitEl.click();
     await wait(() => true);
 
-    const func =
-      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0]
-        .onUpdateSuccess;
+    const {
+      onUpdateSuccess,
+      onError,
+    } = mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0];
 
     const x = { id: "a" };
     mockGetEntriesQuery.mockReturnValue(x);
@@ -499,10 +501,14 @@ describe("components", () => {
       ],
     });
 
-    await func({ experience: { experienceId: onlineId } });
+    await onUpdateSuccess({ experience: { experienceId: onlineId } });
 
     expect(mockManuallyGetDataObjects.mock.calls[0][0].ids[0]).toBe("xx");
     expect(mockOnSuccess).toHaveBeenCalledWith(x);
+
+    act(() => {
+      onError("a");
+    });
   });
 });
 
@@ -824,30 +830,6 @@ describe("reducer", () => {
     await effectFn(effect.ownArgs as any, props, effectArgs);
     expect(mockOnError.mock.calls).toHaveLength(2);
   });
-
-  it("calls onError callback when updating experience errors", async () => {
-    const props = {
-      experience: {
-        id: onlineId,
-        title: onlineTitle,
-      },
-      onError: mockOnError as any,
-    } as Props;
-
-    let state = initState(props);
-
-    const effect = (state.effects.general as EffectState).hasEffects.context
-      .effects[0];
-
-    const effectFn = effectFunctions[effect.key];
-
-    await effectFn(effect.ownArgs as any, props, effectArgs);
-    expect(mockOnError.mock.calls).toHaveLength(1);
-
-    mockManuallyFetchExperience.mockRejectedValue("");
-    await effectFn(effect.ownArgs as any, props, effectArgs);
-    expect(mockOnError.mock.calls).toHaveLength(2);
-  });
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
@@ -932,6 +914,15 @@ function formChangedTitle(state: StateMachine, value: string) {
     key: "non-def",
     value,
     fieldName: "title",
+  });
+}
+
+function formChangedDescription(state: StateMachine, value: string) {
+  return reducer(state, {
+    type: ActionType.FORM_CHANGED,
+    key: "non-def",
+    value,
+    fieldName: "description",
   });
 }
 
