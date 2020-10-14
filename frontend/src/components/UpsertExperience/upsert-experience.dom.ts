@@ -1,6 +1,6 @@
 import { DataTypes } from "../../graphql/apollo-types/globalTypes";
 
-export const domPrefix = "experience-definition";
+export const domPrefix = "upsert-experience-component";
 
 export const scrollIntoViewDomId = `${domPrefix}-scroll-into-view`;
 export const titleInputDomId = `${domPrefix}-title-input`;

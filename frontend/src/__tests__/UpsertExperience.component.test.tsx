@@ -36,13 +36,33 @@ import { warningClassName, errorClassName } from "../utils/utils.dom";
 import { fillField } from "../tests.utils";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
 import { getIsConnected } from "../utils/connections";
-import { CreateExperiencesMutationResult } from "../utils/experience.gql.types";
+import {
+  CreateExperiencesMutationResult,
+  manuallyFetchExperience,
+  GetExperienceQueryResult,
+  updateExperiencesOnlineEffectHelperFunc,
+  manuallyGetDataObjects,
+} from "../utils/experience.gql.types";
 import { windowChangeUrl } from "../utils/global-window";
 import { AppPersistor } from "../utils/app-context";
 import { scrollIntoView } from "../utils/scroll-into-view";
 import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "../graphql/apollo-types/CreateExperiences";
 import { CreateExperienceOfflineMutationResult } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { E2EWindowObject } from "../utils/types";
+import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
+import {
+  getExperienceQuery,
+  getEntriesQuerySuccess,
+} from "../apollo/get-detailed-experience-query";
+
+jest.mock("../apollo/get-detailed-experience-query");
+const mockGetEntriesQuery = getExperienceQuery as jest.Mock;
+const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
+
+jest.mock("../utils/experience.gql.types");
+const mockManuallyFetchExperience = manuallyFetchExperience as jest.Mock;
+const mockUpdateExperiencesOnlineEffectHelperFunc = updateExperiencesOnlineEffectHelperFunc as jest.Mock;
+const mockManuallyGetDataObjects = manuallyGetDataObjects as jest.Mock;
 
 jest.mock("../components/UpsertExperience/upsert-experience.injectables");
 
@@ -55,7 +75,9 @@ const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
 jest.mock("../utils/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
 
-const mockParentDispatch = jest.fn();
+const mockOnClose = jest.fn();
+const mockOnError = jest.fn();
+const mockOnSuccess = jest.fn();
 const mockDispatch = jest.fn();
 const mockCreateOfflineExperience = jest.fn();
 const mockCreateExperiencesOnline = jest.fn();
@@ -89,8 +111,15 @@ const descriptionToggleClassName = "form__label-description-toggle";
 const descriptionHideClass = "form__label-description-hide";
 const descriptionShowClass = "form__label-description-show";
 
+const onlineId = "1";
+const onlineTitle = "aa";
+const onlineExperience = {
+  id: onlineId,
+  title: onlineTitle,
+} as ExperienceFragment;
+
 describe("components", () => {
-  it("submit empty form/reset/form errors/success", async () => {
+  it("create experience/submit empty form/reset/form errors/success", async () => {
     const { ui } = makeComp();
     render(ui);
 
@@ -208,7 +237,7 @@ describe("components", () => {
     expect(definition0TypeFieldEl.classList).not.toContain(formFieldErrorClass);
     // description should be revealed
     expect(descriptionInputEl.classList).not.toContain(formControlHiddenClass);
-    // and close notification
+    // and close notification should be hidden
     expect(getNotificationCloseEl()).toBeNull();
 
     // let's complete the form and submit
@@ -351,9 +380,129 @@ describe("components", () => {
     definitionsEls = getDefinitionContainerEls();
     expect(definitionsEls.length).toBe(1);
 
-    expect(mockParentDispatch).not.toHaveBeenCalled();
+    expect(mockOnClose).not.toHaveBeenCalled();
     getDisposeEl().click();
-    expect(mockParentDispatch).toHaveBeenCalled();
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it("updates experience online", async () => {
+    mockIsConnected.mockReturnValue(true);
+    const nameValue = "bb";
+
+    mockManuallyFetchExperience.mockResolvedValueOnce({
+      data: {
+        getExperience: {
+          ...onlineExperience,
+          dataDefinitions: [
+            {
+              id: "1",
+              name: nameValue,
+              type: DataTypes.INTEGER,
+            },
+          ],
+        },
+      },
+    } as GetExperienceQueryResult);
+
+    const { ui } = makeComp({
+      props: {
+        experience: onlineExperience,
+      },
+    });
+
+    const { debug } = render(ui);
+
+    const titleInputEl = getTitleInputEl();
+    const descriptionInputEl = getDescriptionInputEl();
+
+    let definitionsEls = getDefinitionContainerEls();
+    let definition0El = definitionsEls.item(0) as HTMLElement;
+    let definition0NameEl = getDefinitionNameControlEl(definition0El);
+    let definition0TypeEl = getDefinitionTypeControlEl(definition0El);
+
+    // we initially render an empty form
+    expect(titleInputEl.value).toBe("");
+    expect(definition0NameEl.value).toBe("");
+    expect(definition0TypeEl.value).toBe("");
+
+    await wait(() => true);
+
+    // form is now pre filled with values from experience we wish to update
+    expect(titleInputEl.value).toBe(onlineTitle);
+    expect(descriptionInputEl.value).toEqual("");
+
+    definitionsEls = getDefinitionContainerEls();
+    definition0El = definitionsEls.item(0) as HTMLElement;
+    definition0NameEl = getDefinitionNameControlEl(definition0El);
+    definition0TypeEl = getDefinitionTypeControlEl(definition0El);
+
+    expect(definition0NameEl.value).toBe(nameValue);
+    expect(definition0TypeEl.value).toBe(DataTypes.INTEGER);
+
+    // we submit an unmodified form
+    const submitEl = getSubmitEl();
+    submitEl.click();
+
+    // get a warning
+    let notificationCloseEl = getNotificationCloseEl();
+    let notificationEl = getNotificationEl(notificationCloseEl);
+    expect(notificationEl.classList).toContain(warningClassName);
+
+    notificationCloseEl.click();
+    expect(getNotificationCloseEl()).toBeNull();
+
+    // let's update the form
+    fillField(titleInputEl, "tt");
+    fillField(descriptionInputEl, "dd");
+    fillField(definition0NameEl, "nn");
+    fillField(definition0TypeEl, DataTypes.DATE);
+
+    // confirm update
+    expect(titleInputEl.value).toBe("tt");
+    expect(descriptionInputEl.value).toBe("dd");
+    expect(definition0NameEl.value).toBe("nn");
+    expect(definition0TypeEl.value).toBe(DataTypes.DATE);
+
+    const resetEl = getResetEl();
+    resetEl.click();
+
+    expect(titleInputEl.value).toBe(onlineTitle);
+    expect(descriptionInputEl.value).toEqual("");
+    expect(definition0NameEl.value).toBe(nameValue);
+    expect(definition0TypeEl.value).toBe(DataTypes.INTEGER);
+
+    // update and submit
+    fillField(titleInputEl, "tt");
+    fillField(descriptionInputEl, "dd");
+    fillField(definition0NameEl, "nn");
+    fillField(definition0TypeEl, DataTypes.DATE);
+    submitEl.click();
+    await wait(() => true);
+
+    const func =
+      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0]
+        .onUpdateSuccess;
+
+    const x = { id: "a" };
+    mockGetEntriesQuery.mockReturnValue(x);
+    mockGetEntriesQuerySuccess.mockReturnValue({
+      edges: [
+        {
+          node: {
+            dataObjects: [
+              {
+                id: "xx",
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    await func({ experience: { experienceId: onlineId } });
+
+    expect(mockManuallyGetDataObjects.mock.calls[0][0].ids[0]).toBe("xx");
+    expect(mockOnSuccess).toHaveBeenCalledWith(x);
   });
 });
 
@@ -362,6 +511,10 @@ describe("reducer", () => {
     createExperienceOffline: mockCreateOfflineExperience as any,
     createExperiences: mockCreateExperiencesOnline as any,
   } as Props;
+
+  const effectArgs = {
+    dispatch: mockDispatch,
+  } as EffectArgs;
 
   it("submits offline: success", async () => {
     mockIsConnected.mockReturnValue(false);
@@ -374,10 +527,6 @@ describe("reducer", () => {
     state = reducer(state, {
       type: ActionType.SUBMISSION,
     });
-
-    const effectArgs = {
-      dispatch: mockDispatch,
-    } as EffectArgs;
 
     const effect = (state.effects.general as EffectState).hasEffects.context
       .effects[0];
@@ -651,6 +800,54 @@ describe("reducer", () => {
     expect(ownArgs.id).toEqual(def11.id);
     expect(ownArgs.id).not.toEqual(def10.id);
   });
+
+  it("calls onError callback when fetch experience returns empty result or throws exception", async () => {
+    const props = {
+      experience: {
+        id: onlineId,
+        title: onlineTitle,
+      },
+      onError: mockOnError as any,
+    } as Props;
+
+    let state = initState(props);
+
+    const effect = (state.effects.general as EffectState).hasEffects.context
+      .effects[0];
+
+    const effectFn = effectFunctions[effect.key];
+
+    await effectFn(effect.ownArgs as any, props, effectArgs);
+    expect(mockOnError.mock.calls).toHaveLength(1);
+
+    mockManuallyFetchExperience.mockRejectedValue("");
+    await effectFn(effect.ownArgs as any, props, effectArgs);
+    expect(mockOnError.mock.calls).toHaveLength(2);
+  });
+
+  it("calls onError callback when updating experience errors", async () => {
+    const props = {
+      experience: {
+        id: onlineId,
+        title: onlineTitle,
+      },
+      onError: mockOnError as any,
+    } as Props;
+
+    let state = initState(props);
+
+    const effect = (state.effects.general as EffectState).hasEffects.context
+      .effects[0];
+
+    const effectFn = effectFunctions[effect.key];
+
+    await effectFn(effect.ownArgs as any, props, effectArgs);
+    expect(mockOnError.mock.calls).toHaveLength(1);
+
+    mockManuallyFetchExperience.mockRejectedValue("");
+    await effectFn(effect.ownArgs as any, props, effectArgs);
+    expect(mockOnError.mock.calls).toHaveLength(2);
+  });
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
@@ -664,7 +861,9 @@ function makeComp({ props = {} }: { props?: Partial<{}> } = {}) {
         createExperiences={mockCreateExperiencesOnline}
         createExperienceOffline={mockCreateOfflineExperience}
         updateExperiencesOnline={mockUpdateExperiencesOnline}
-        myDispatch={mockParentDispatch}
+        onClose={mockOnClose}
+        onError={mockOnError}
+        onSuccess={mockOnSuccess}
         {...props}
       />
     ),

@@ -59,7 +59,6 @@ import {
 } from "../../graphql/apollo-types/ExperienceConnectionFragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { makeScrollToDomId } from "./my.dom";
-import { emptyPageInfo } from "../../graphql/utils.gql";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",

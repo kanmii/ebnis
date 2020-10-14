@@ -163,15 +163,18 @@ export function UpsertExperience(props: Props) {
             onCloseNotification={onCloseNotification}
           />
 
-          <Title state={titleState} onTitleChanged={onTitleChanged} />
+          <TitleComponent state={titleState} onTitleChanged={onTitleChanged} />
 
-          <Description
+          <DescriptionComponent
             state={descriptionState}
             onToggleDescription={onToggleDescription}
             onDescriptionChanged={onDescriptionChanged}
           />
 
-          <DataDefinitions states={dataDefinitionsStates} dispatch={dispatch} />
+          <DataDefinitionsComponent
+            states={dataDefinitionsStates}
+            dispatch={dispatch}
+          />
         </section>
 
         <footer className="modal-card-foot">
@@ -256,7 +259,7 @@ function ErrorOrWarning({
   ) : null;
 }
 
-function Title(props: TitleProps) {
+function TitleComponent(props: TitleProps) {
   const { state, onTitleChanged } = props;
 
   let titleValue = "";
@@ -314,7 +317,7 @@ function Title(props: TitleProps) {
   );
 }
 
-function Description(props: DescriptionProps) {
+function DescriptionComponent(props: DescriptionProps) {
   const { state, onToggleDescription, onDescriptionChanged } = props;
   let descriptionValue = "";
   let descriptionActive = false;
@@ -364,12 +367,7 @@ function Description(props: DescriptionProps) {
   );
 }
 
-interface DataDefinitionsProps {
-  states: DataDefinitionFieldsMap;
-  dispatch: DispatchType;
-}
-
-function DataDefinitions(props: DataDefinitionsProps) {
+function DataDefinitionsComponent(props: DataDefinitionsProps) {
   const { states, dispatch } = props;
   const dataDefinitionsAttributesList = Object.entries(states);
   const definitionsLen = dataDefinitionsAttributesList.length;
@@ -638,4 +636,9 @@ interface DescriptionProps {
 interface TitleProps {
   state: FormField;
   onTitleChanged: (e: InputChangeEvent) => void;
+}
+
+interface DataDefinitionsProps {
+  states: DataDefinitionFieldsMap;
+  dispatch: DispatchType;
 }

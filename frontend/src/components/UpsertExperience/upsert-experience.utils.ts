@@ -158,7 +158,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             break;
 
           case ActionType.ON_EXPERIENCE_FETCHED_SUCCESS:
-            handleOnExperienceFetchedSuccess(
+            handleOnExperienceFetchedSuccessAction(
               proxy,
               payload as ExperienceFragment,
             );
@@ -359,7 +359,7 @@ type DefScrollToViewEffect = EffectDefinition<
 
 const fetchExperienceEffect: DefFetchExperienceEffect["func"] = async (
   { experienceId },
-  props,
+  { onError },
   effectArgs,
 ) => {
   const { dispatch } = effectArgs;
@@ -372,6 +372,7 @@ const fetchExperienceEffect: DefFetchExperienceEffect["func"] = async (
     const y = x && x.data && x.data.getExperience;
 
     if (!y) {
+      onError(GENERIC_SERVER_ERROR);
       return;
     }
 
@@ -379,7 +380,9 @@ const fetchExperienceEffect: DefFetchExperienceEffect["func"] = async (
       type: ActionType.ON_EXPERIENCE_FETCHED_SUCCESS,
       ...y,
     });
-  } catch (error) {}
+  } catch (error) {
+    onError(parseStringError(error));
+  }
 };
 
 type DefFetchExperienceEffect = EffectDefinition<
@@ -412,10 +415,12 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
           input.updateDefinitions &&
           input.updateDefinitions.find((d) => !!d.type);
 
+        // istanbul ignore else:
         if (inputChanged) {
           const entries = getEntriesQuerySuccess(experienceId)
             .edges as EntryConnectionFragment_edges[];
 
+          // istanbul ignore else:
           if (entries.length) {
             const dataObjectsIds = entries.flatMap((e) => {
               const ds = (e.node as EntryFragment)
@@ -688,7 +693,7 @@ function validateForm(
                 title: formValue,
               };
             }
-          } else {
+          } else if (formValue) {
             formUpdated = true;
             insertInput.title = formValue;
           }
@@ -715,14 +720,22 @@ function validateForm(
             const value = formValue.trim();
 
             if (isUpdating) {
-              if (description !== value) {
+              if ((description || "") !== value) {
                 formUpdated = true;
                 validityState.value = StateValue.valid;
-                const ownFields = updateInput.ownFields || {};
-                ownFields.description = value || null;
+                const ownFields =
+                  updateInput.ownFields ||
+                  // istanbul ignore next:
+                  {};
+                ownFields.description =
+                  value ||
+                  // istanbul ignore next:
+                  null;
                 updateInput.ownFields = ownFields;
               }
-            } else if (value) {
+            }
+            // istanbul ignore else:
+            else if (value) {
               formUpdated = true;
               insertInput.description = value;
               validityState.value = StateValue.valid;
@@ -957,7 +970,10 @@ function handleResetFormFieldsAction(proxy: DraftState) {
   });
 
   if (mode.value === StateValue.update) {
-    handleOnExperienceFetchedSuccess(proxy, mode.update.context.experience);
+    handleOnExperienceFetchedSuccessAction(
+      proxy,
+      mode.update.context.experience,
+    );
     return;
   }
 
@@ -1260,7 +1276,7 @@ function handleCloseSubmitNotificationAction(proxy: DraftState) {
   validity.value = StateValue.initial;
 }
 
-function handleOnExperienceFetchedSuccess(
+function handleOnExperienceFetchedSuccessAction(
   proxy: DraftState,
   payload: ExperienceFragment,
 ) {
@@ -1371,6 +1387,7 @@ export type CallerProps = {
     id: string;
     title: string;
   };
+  onError: (error: String) => void;
 };
 
 export type Props = CreateExperiencesOnlineComponentProps &
