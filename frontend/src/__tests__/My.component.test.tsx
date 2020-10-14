@@ -22,6 +22,8 @@ import {
   fetchErrorRetryDomId,
   onDeleteExperienceSuccessNotificationId,
   onDeleteExperienceCancelledNotificationId,
+  updateExperienceMenuItemId,
+  updateExperienceSuccessNotificationCloseClassName,
 } from "../components/My/my.dom";
 import { makeOfflineId } from "../utils/offlines";
 import { fillField } from "../tests.utils";
@@ -69,29 +71,39 @@ jest.mock("../apollo/delete-experience-cache");
 jest.mock("../components/Header/header.component", () => () => null);
 jest.mock("../utils/global-window");
 
-const mockNewExperienceId = "new-experience";
-
+const mockActivateUpsertExperienceUiId = "activate-upsert-experience-ui";
+const mockCloseUpsertExperienceUiId = "close-upsert-experience-ui";
+const mockOnUpsertExperienceSuccessUiId = "con-upsert-experience-success-ui";
+const mockOnlineId = "1";
+const mockTitle = "yo";
 jest.mock("../components/My/my.lazy", () => ({
   UpsertExperience: ({
     onSuccess,
+    onClose,
   }: {
     onSuccess: (experience: any) => void;
+    onClose: () => void;
   }) => {
     return (
-      <div
-        id={mockNewExperienceId}
-        onClick={() => {
-          onSuccess({
-            id: "1",
-            title: "yo",
-          });
-        }}
-      />
+      <div>
+        <button id={mockActivateUpsertExperienceUiId} />
+
+        <button
+          id={mockOnUpsertExperienceSuccessUiId}
+          onClick={() => {
+            onSuccess({
+              id: mockOnlineId,
+              title: mockTitle,
+            });
+          }}
+        />
+
+        <button id={mockCloseUpsertExperienceUiId} onClick={onClose} />
+      </div>
     );
   },
 }));
 
-const onlineId = "1";
 const mockPartOnlineId = "2";
 const offlineId = makeOfflineId(3);
 
@@ -208,20 +220,22 @@ describe("component", () => {
       ) as HTMLElement;
     });
 
-    expect(document.getElementById(mockNewExperienceId)).toBeNull();
+    expect(
+      document.getElementById(mockActivateUpsertExperienceUiId),
+    ).toBeNull();
 
     aktivierenNeueErfahrungTaste.click();
 
     const neuenErfahrungEl = document.getElementById(
-      mockNewExperienceId,
+      mockCloseUpsertExperienceUiId,
     ) as HTMLElement;
 
-    act(() => {
-      neuenErfahrungEl.click(); // exists
-      jest.runAllTimers();
-    });
+    neuenErfahrungEl.click(); // exists
+    jest.runAllTimers();
 
-    expect(document.getElementById(mockNewExperienceId)).toBeNull();
+    expect(
+      document.getElementById(mockActivateUpsertExperienceUiId),
+    ).toBeNull();
   });
 
   it("Holen Erfahrungen erzeuge Ausnahme / es gibt zwischengespeicherte Erfahrungen / wiederholen ErfahrungenAnforderung", async () => {
@@ -250,7 +264,7 @@ describe("component", () => {
           edges: [
             {
               node: {
-                id: onlineId,
+                id: mockOnlineId,
                 title: "a",
               },
             },
@@ -277,14 +291,14 @@ describe("component", () => {
         .item(0) as HTMLDivElement;
     });
 
-    expect(document.getElementById(onlineId)).not.toBeNull();
+    expect(document.getElementById(mockOnlineId)).not.toBeNull();
     expect(document.getElementById("b")).toBeNull();
     jest.runAllTimers();
     expect(mockHandlePreFetchExperiences.mock.calls[0]).toEqual([
-      [onlineId],
+      [mockOnlineId],
       {
-        [onlineId]: {
-          id: onlineId,
+        [mockOnlineId]: {
+          id: mockOnlineId,
           title: "a",
         },
       },
@@ -294,7 +308,7 @@ describe("component", () => {
       edges: [
         {
           node: {
-            id: onlineId,
+            id: mockOnlineId,
             title: "a",
           },
         },
@@ -331,7 +345,7 @@ describe("component", () => {
       document.getElementsByClassName("my-experiences__next").item(0),
     ).toBeNull();
 
-    expect(document.getElementById(onlineId)).not.toBeNull();
+    expect(document.getElementById(mockOnlineId)).not.toBeNull();
     jest.runAllTimers();
   });
 
@@ -403,6 +417,8 @@ describe("component", () => {
     expect(
       descriptionEl2.getElementsByClassName(descriptionFullClassName).length,
     ).toBe(1);
+
+    jest.runAllTimers();
   });
 
   it("Optionen Menü", async () => {
@@ -457,6 +473,8 @@ describe("component", () => {
     );
 
     expect(mockHistoryPush).toHaveBeenCalled();
+
+    jest.runAllTimers();
   });
 
   it("Suchen", async () => {
@@ -465,7 +483,7 @@ describe("component", () => {
       edges: [
         {
           node: {
-            id: onlineId,
+            id: mockOnlineId,
             title: "aa",
           },
         },
@@ -477,7 +495,7 @@ describe("component", () => {
     render(ui);
 
     await waitForElement(() => {
-      return document.getElementById(onlineId) as HTMLElement;
+      return document.getElementById(mockOnlineId) as HTMLElement;
     });
 
     const searchLinkClassName = "search__link";
@@ -495,7 +513,7 @@ describe("component", () => {
       .getElementsByClassName(searchLinkClassName)
       .item(0) as HTMLAnchorElement;
 
-    expect(searchLinkEl.href).toContain(onlineId);
+    expect(searchLinkEl.href).toContain(mockOnlineId);
 
     expect(
       document.getElementsByClassName(searchNoResultClassName).length,
@@ -514,6 +532,8 @@ describe("component", () => {
     expect(
       document.getElementsByClassName(searchNoResultClassName).length,
     ).toBe(0);
+        jest.runAllTimers();
+
   });
 
   it("Löschen ErfahrungAnforderung Gelingen", async () => {
@@ -523,7 +543,7 @@ describe("component", () => {
       edges: [
         {
           node: {
-            id: onlineId,
+            id: mockOnlineId,
             title: "aa",
           },
         },
@@ -532,7 +552,7 @@ describe("component", () => {
     } as GetExperienceConnectionMini_getExperiences);
 
     mockGetDeleteExperienceLedger.mockReturnValue({
-      id: onlineId,
+      id: mockOnlineId,
       key: StateValue.deleted,
       title: "aa",
     } as DeletedExperienceLedger);
@@ -547,13 +567,15 @@ describe("component", () => {
     });
 
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
-    expect(mockPurgeExperiencesFromCache1.mock.calls[0][0][0]).toBe(onlineId);
-    expect(mockEvictFn.mock.calls[0][0].id).toEqual(onlineId);
+    expect(mockPurgeExperiencesFromCache1.mock.calls[0][0][0]).toBe(
+      mockOnlineId,
+    );
+    expect(mockEvictFn.mock.calls[0][0].id).toEqual(mockOnlineId);
     expect(mockPersistFn).toHaveBeenCalled();
     expect(mockPostMsg.mock.calls[0][0]).toMatchObject({
       type: BroadcastMessageType.experienceDeleted,
       payload: {
-        id: onlineId,
+        id: mockOnlineId,
         title: "aa",
       },
     });
@@ -563,6 +585,8 @@ describe("component", () => {
     expect(
       document.getElementById(onDeleteExperienceSuccessNotificationId),
     ).toBeNull();
+        jest.runAllTimers();
+
   });
 
   it("Löschen ErfahrungAnforderung storniert", async () => {
@@ -572,7 +596,7 @@ describe("component", () => {
       edges: [
         {
           node: {
-            id: onlineId,
+            id: mockOnlineId,
             title: "aa",
           },
         },
@@ -606,6 +630,92 @@ describe("component", () => {
 
     expect(
       document.getElementById(onDeleteExperienceCancelledNotificationId),
+    ).toBeNull();
+
+    jest.runAllTimers();
+  });
+
+  it("update experience", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+    mockGetExperiencesMiniQuery.mockReturnValue({
+      edges: [
+        {
+          node: {
+            id: mockOnlineId,
+            title: mockTitle,
+          },
+        },
+      ] as GetExperienceConnectionMini_getExperiences_edges[],
+      pageInfo: {},
+    } as GetExperienceConnectionMini_getExperiences);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    const updateEl = await waitForElement(() => {
+      return document
+        .getElementsByClassName(updateExperienceMenuItemId)
+        .item(0) as HTMLElement;
+    });
+
+    updateEl.click();
+
+    let updateSuccessEl = document.getElementById(
+      mockOnUpsertExperienceSuccessUiId,
+    ) as HTMLElement;
+
+    updateSuccessEl.click();
+
+    expect(
+      document.getElementById(mockOnUpsertExperienceSuccessUiId),
+    ).toBeNull();
+
+    const closeSuccessNotificationEl = document
+      .getElementsByClassName(updateExperienceSuccessNotificationCloseClassName)
+      .item(0) as HTMLElement;
+
+    closeSuccessNotificationEl.click();
+
+    expect(
+      document
+        .getElementsByClassName(
+          updateExperienceSuccessNotificationCloseClassName,
+        )
+        .item(0),
+    ).toBeNull();
+
+    ////////////////////////// 2nd update ////////////////////////////
+
+    updateEl.click();
+
+    updateSuccessEl = document.getElementById(
+      mockOnUpsertExperienceSuccessUiId,
+    ) as HTMLElement;
+
+    updateSuccessEl.click();
+
+    expect(
+      document.getElementById(mockOnUpsertExperienceSuccessUiId),
+    ).toBeNull();
+
+    expect(
+      document
+        .getElementsByClassName(
+          updateExperienceSuccessNotificationCloseClassName,
+        )
+        .item(0),
+    ).not.toBeNull();
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    expect(
+      document
+        .getElementsByClassName(
+          updateExperienceSuccessNotificationCloseClassName,
+        )
+        .item(0),
     ).toBeNull();
   });
 });

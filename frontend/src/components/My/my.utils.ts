@@ -59,7 +59,7 @@ import {
 } from "../../graphql/apollo-types/ExperienceConnectionFragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { makeScrollToDomId } from "./my.dom";
-import {emptyPageInfo} from "../../graphql/utils.gql";
+import { emptyPageInfo } from "../../graphql/utils.gql";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
@@ -492,36 +492,25 @@ function handleOnUpdateExperienceSuccessAction(
         },
       });
 
-      if (experiences.length) {
-        for (let index = 0; index < experiences.length; index++) {
-          const iterExperience = experiences[index];
+      for (let index = 0; index < experiences.length; index++) {
+        const iterExperience = experiences[index];
 
-          if (iterExperience.id === id) {
-            experiences[index] = experience;
-            const prepared = experiencesPrepared[index];
-            prepared.title = title;
-            prepared.target = fuzzysort.prepare(title) as Fuzzysort.Prepared;
+        // istanbul ignore else:
+        if (iterExperience.id === id) {
+          experiences[index] = experience;
+          const prepared = experiencesPrepared[index];
+          prepared.title = title;
+          prepared.target = fuzzysort.prepare(title) as Fuzzysort.Prepared;
 
-            effects.push({
-              key: "scrollToViewEffect",
-              ownArgs: {
-                id: makeScrollToDomId(id),
-              },
-            });
+          effects.push({
+            key: "scrollToViewEffect",
+            ownArgs: {
+              id: makeScrollToDomId(id),
+            },
+          });
 
-            break;
-          }
+          break;
         }
-      } else {
-        experiences.push(experience);
-
-        experiencesPrepared.push({
-          id,
-          title,
-          target: fuzzysort.prepare(title) as Fuzzysort.Prepared,
-        });
-
-        context.pageInfo = emptyPageInfo
       }
     }
   }

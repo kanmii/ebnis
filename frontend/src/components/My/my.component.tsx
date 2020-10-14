@@ -29,6 +29,8 @@ import {
   onDeleteExperienceSuccessNotificationId,
   onDeleteExperienceCancelledNotificationId,
   makeScrollToDomId,
+  updateExperienceMenuItemId,
+  updateExperienceSuccessNotificationCloseClassName,
 } from "./my.dom";
 import { setUpRoutePage } from "../../utils/global-window";
 import "./my.styles.scss";
@@ -363,10 +365,12 @@ const ExperienceComponent = React.memo(
             />
 
             {showingUpdateSuccess && (
-              <div className="notification is-success">
+              <div
+                className="notification is-success"
+              >
                 <button
                   onClick={deactivateUpsertExperienceUi}
-                  className="delete"
+                  className={updateExperienceSuccessNotificationCloseClassName}
                 />
                 Updated successfully
               </div>
@@ -426,7 +430,7 @@ const ExperienceComponent = React.memo(
           <div className="dropdown-menu" role="menu">
             <div className="dropdown-content">
               <a
-                className="neutral-link edit-experience-menu-item"
+                className={`neutral-link edit-experience-menu-item ${updateExperienceMenuItemId}`}
                 style={{
                   cursor: "pointer",
                   display: "block",
