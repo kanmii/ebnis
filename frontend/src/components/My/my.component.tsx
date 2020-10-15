@@ -69,6 +69,7 @@ type DispatchContextValue = Readonly<{
   deactivateUpsertExperienceUiCb: (e: ReactMouseAnchorEvent) => void;
   onExperienceUpsertSuccess: (e: ExperienceFragment) => void;
   nächsteSeiteAbrufen: () => void;
+  onUpdateExperienceError: (error: string) => void;
 }>;
 const DispatchContext = createContext<DispatchContextValue>(
   {} as DispatchContextValue,
@@ -162,6 +163,9 @@ export function My(props: Props) {
           type: ActionType.FETCH_NEXT_EXPERIENCES_PAGE,
         });
       },
+      onUpdateExperienceError() {
+        //
+      },
     };
     /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
@@ -192,6 +196,7 @@ function MyExperiences() {
     onUpsertExperienceActivated,
     deactivateUpsertExperienceUiCb,
     onExperienceUpsertSuccess,
+    onUpdateExperienceError,
   } = useContext(DispatchContext);
 
   const {
@@ -210,6 +215,7 @@ function MyExperiences() {
               experience={upsertExperienceActivated.active.context.experience}
               onClose={deactivateUpsertExperienceUiCb}
               onSuccess={onExperienceUpsertSuccess}
+              onError={onUpdateExperienceError}
             />
           </Suspense>
         )}
@@ -365,12 +371,10 @@ const ExperienceComponent = React.memo(
             />
 
             {showingUpdateSuccess && (
-              <div
-                className="notification is-success"
-              >
+              <div className="notification is-success">
                 <button
                   onClick={deactivateUpsertExperienceUi}
-                  className={updateExperienceSuccessNotificationCloseClassName}
+                  className={`${updateExperienceSuccessNotificationCloseClassName} delete`}
                 />
                 Updated successfully
               </div>

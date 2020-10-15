@@ -61,6 +61,7 @@ type DispatchContextValue = Readonly<{
   onRefetchEntries: () => void;
   holenNächstenEinträge: () => void;
   dispatch: DispatchType;
+  onUpdateExperienceError: (error: string) => void;
 }>;
 const DispatchContext = createContext<DispatchContextValue>(
   {} as DispatchContextValue,
@@ -169,6 +170,9 @@ export function DetailExperience(props: Props) {
           experience,
         });
       },
+      onUpdateExperienceError() {
+        //
+      },
     };
     /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
@@ -239,6 +243,7 @@ function ExperienceComponent() {
     onRefetchEntries,
     cancelEditExperienceUiRequestCb,
     onExperienceUpdatedSuccess,
+    onUpdateExperienceError,
   } = useContext(DispatchContext);
 
   const {
@@ -289,6 +294,7 @@ function ExperienceComponent() {
             experience={experience}
             onClose={cancelEditExperienceUiRequestCb}
             onSuccess={onExperienceUpdatedSuccess}
+            onError={onUpdateExperienceError}
           />
         </Suspense>
       )}

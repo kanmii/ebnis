@@ -1,7 +1,16 @@
 export const OFFLINE_ID_PREFIX = "eu-"; // ebnis-unsaved
 
-export function makeOfflineId(id: string | number = new Date().getTime()) {
+export function makeOfflineId(id?: string | number) {
+  if (!id) {
+    id = new Date().getTime();
+  }
+
   return OFFLINE_ID_PREFIX + id;
+}
+
+export function getIdFromOfflineId(offlineId: string) {
+  const [, id] = offlineId.split("-");
+  return id;
 }
 
 export function isOfflineId(id?: string) {

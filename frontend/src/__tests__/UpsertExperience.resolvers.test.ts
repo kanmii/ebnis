@@ -1,4 +1,4 @@
-import { experienceDefinitionResolvers } from "../components/UpsertExperience/upsert-experience.resolvers";
+import { upsertExperienceResolvers } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { MUTATION_NAME_createExperienceOffline } from "../apollo/resolvers";
 import {
   CreateExperiencesVariables,
@@ -40,7 +40,7 @@ afterEach(() => {
 });
 
 const createOfflineExperienceResolver =
-  experienceDefinitionResolvers.Mutation[MUTATION_NAME_createExperienceOffline];
+  upsertExperienceResolvers.Mutation[MUTATION_NAME_createExperienceOffline];
 
 it("creates offline experience/success", () => {
   expect(

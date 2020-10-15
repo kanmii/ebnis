@@ -63,54 +63,55 @@ export function writeUpdatedExperienceToCache(
         const unsynced = (getUnsyncedExperience(experienceId) ||
           {}) as UnsyncedModifiedExperience;
 
+        const toBeModified: ToBeModified = [
+          experience,
+          unsynced,
+          getEntriesQuery,
+        ];
+
+        const modified = immer<ToBeModified>(toBeModified, (modifications) => {
+          const [
+            experienceProxy,
+            unsyncedExperienceProxy,
+            getEntriesQueryProxy,
+          ] = modifications;
+
+          ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
+            experienceProxy,
+            unsyncedExperienceProxy,
+            experienceResult,
+          );
+
+          definitionsApplyUpdatesAndCleanUpUnsyncedData(
+            experienceProxy,
+            unsyncedExperienceProxy,
+            experienceResult,
+          );
+
+          applyNewEntriesUpdateAndCleanUpUnsyncedData(
+            getEntriesQueryProxy,
+            unsyncedExperienceProxy,
+            entriesResult,
+          );
+
+          applyUpdatedEntriesAndCleanUpUnsyncedData(
+            getEntriesQueryProxy,
+            unsyncedExperienceProxy,
+            entriesResult,
+          );
+
+          const entriesErrors = unsyncedExperienceProxy.entriesErrors;
+
+          if (entriesErrors && !Object.keys(entriesErrors).length) {
+            delete unsyncedExperienceProxy.entriesErrors;
+          }
+        });
+
         const [
           updatedExperience,
           updatedUnsyncedExperience,
           updatedGetEntriesQuery,
-        ] = immer<
-          [
-            ExperienceFragment,
-            UnsyncedModifiedExperience,
-            GetEntriesUnionFragment_GetEntriesSuccess_entries,
-          ]
-        >(
-          [experience, unsynced, getEntriesQuery],
-          ([
-            experienceProxy,
-            unsyncedExperienceProxy,
-            getEntriesQueryProxy,
-          ]) => {
-            ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
-              experienceProxy,
-              unsyncedExperienceProxy,
-              experienceResult,
-            );
-
-            definitionsApplyUpdatesAndCleanUpUnsyncedData(
-              experienceProxy,
-              unsyncedExperienceProxy,
-              experienceResult,
-            );
-
-            applyNewEntriesUpdateAndCleanUpUnsyncedData(
-              getEntriesQueryProxy,
-              unsyncedExperienceProxy,
-              entriesResult,
-            );
-
-            applyUpdatedEntriesAndCleanUpUnsyncedData(
-              getEntriesQueryProxy,
-              unsyncedExperienceProxy,
-              entriesResult,
-            );
-
-            const entriesErrors = unsyncedExperienceProxy.entriesErrors;
-
-            if (entriesErrors && !Object.keys(entriesErrors).length) {
-              delete unsyncedExperienceProxy.entriesErrors;
-            }
-          },
-        );
+        ] = modified;
 
         updatedIds[updatedExperience.id] = 1;
         writeExperienceFragmentToCache(updatedExperience);
@@ -353,3 +354,9 @@ interface EntryIdToDataObjectMap {
 interface IdToOfflineEntrySynced {
   [clientId: string]: EntryFragment;
 }
+
+type ToBeModified = [
+  ExperienceFragment,
+  UnsyncedModifiedExperience,
+  GetEntriesUnionFragment_GetEntriesSuccess_entries,
+];

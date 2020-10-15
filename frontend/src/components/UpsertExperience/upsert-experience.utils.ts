@@ -38,7 +38,10 @@ import {
 } from "../../graphql/apollo-types/CreateExperiences";
 import { createExperiencesManualUpdate } from "../../apollo/create-experiences-manual-update";
 import { scrollIntoViewDomId } from "./upsert-experience.dom";
-import { CreateExperienceOfflineMutationComponentProps } from "./upsert-experience.resolvers";
+import {
+  CreateExperienceOfflineMutationComponentProps,
+  updateExperienceOfflineFn,
+} from "./upsert-experience.resolvers";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { v4 } from "uuid";
@@ -397,8 +400,8 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
   props,
   effectArgs,
 ) => {
+  const { updateExperiencesOnline, onSuccess } = props;
   if (getIsConnected()) {
-    const { updateExperiencesOnline, onSuccess } = props;
     const { dispatch } = effectArgs;
 
     updateExperiencesOnlineEffectHelperFunc({
@@ -447,6 +450,9 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
         }
       },
     });
+  } else {
+    const updatedExperience = updateExperienceOfflineFn(input);
+    onSuccess(updatedExperience as ExperienceFragment);
   }
 };
 
@@ -1388,7 +1394,7 @@ export type CallerProps = {
     id: string;
     title: string;
   };
-  onError: (error: String) => void;
+  onError: (error: string) => void;
 };
 
 export type Props = CreateExperiencesOnlineComponentProps &

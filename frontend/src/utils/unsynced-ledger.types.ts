@@ -10,7 +10,7 @@ export type UnsyncedLedgerItem =
 
 export interface UnsyncedModifiedDefinition {
   name?: true;
-  // type?: true;
+  type?: true;
 }
 
 export interface UnsyncedModifiedExperience {
@@ -28,6 +28,7 @@ export interface UnsyncedModifiedExperience {
     };
   };
   entriesErrors?: UnsyncableEntriesErrors;
+  deletedEntries?: string[];
 }
 
 export interface UnsyncableEntriesErrors {

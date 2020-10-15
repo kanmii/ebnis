@@ -1,5 +1,5 @@
 import { ApolloClient } from "@apollo/client";
-import { experienceDefinitionResolvers } from "./upsert-experience.resolvers";
+import { upsertExperienceResolvers } from "./upsert-experience.resolvers";
 
 // istanbul ignore next:
 export function addResolvers(client: ApolloClient<{}>) {
@@ -7,6 +7,6 @@ export function addResolvers(client: ApolloClient<{}>) {
     return;
   }
 
-  client.addResolvers(experienceDefinitionResolvers);
+  client.addResolvers(upsertExperienceResolvers);
   window.____ebnis.experienceDefinitionResolversAdded = true;
 }

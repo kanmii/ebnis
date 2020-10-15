@@ -316,15 +316,25 @@ function purgeEntries(entries: EntryConnectionFragment, data: any) {
 
   edges.forEach((edge, index) => {
     const entry = (edge && edge.node) as EntryFragment;
-    const entryId = entry.id;
-
-    entry.dataObjects.forEach((d) => {
-      const id = (d as DataObjectFragment).id;
-      delete data[`DataObject:${id}`];
-    });
-
-    delete data[`Entry:${entryId}`];
+    purgeEntry(entry);
   });
+}
+
+export function purgeEntry(entry: EntryFragment, data?: any) {
+  if (!data) {
+    const { cache } = window.____ebnis;
+    const dataProxy = cache as any;
+    data = dataProxy.data.data;
+  }
+
+  const entryId = entry.id;
+
+  entry.dataObjects.forEach((d) => {
+    const id = (d as DataObjectFragment).id;
+    delete data[`DataObject:${id}`];
+  });
+
+  delete data[`Entry:${entryId}`];
 }
 
 export function deleteCacheKeys({

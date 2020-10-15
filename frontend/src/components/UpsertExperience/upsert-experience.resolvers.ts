@@ -4,8 +4,12 @@ import {
   LocalResolverFn,
   MUTATION_NAME_createExperienceOffline,
 } from "../../apollo/resolvers";
-import { CreateDataDefinition } from "../../graphql/apollo-types/globalTypes";
-import { makeOfflineId } from "../../utils/offlines";
+import {
+  CreateDataDefinition,
+  UpdateExperienceInput,
+  UpdateDefinitionInput,
+} from "../../graphql/apollo-types/globalTypes";
+import { makeOfflineId, isOfflineId } from "../../utils/offlines";
 import {
   ExperienceFragment_dataDefinitions,
   ExperienceFragment,
@@ -14,8 +18,15 @@ import {
   EXPERIENCE_FRAGMENT,
   GET_COMPLETE_EXPERIENCE_QUERY,
 } from "../../graphql/experience.gql";
-import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "../../apollo/update-get-experiences-mini-query";
-import { writeUnsyncedExperience } from "../../apollo/unsynced-ledger";
+import {
+  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery,
+  purgeEntry,
+  floatExperienceToTheTopInGetExperiencesMiniQuery,
+} from "../../apollo/update-get-experiences-mini-query";
+import {
+  writeUnsyncedExperience,
+  getUnsyncedExperience,
+} from "../../apollo/unsynced-ledger";
 import {
   MutationFunction,
   MutationFunctionOptions,
@@ -39,7 +50,23 @@ import {
   GetDetailExperience,
   GetDetailExperienceVariables,
 } from "../../graphql/apollo-types/GetDetailExperience";
-import { emptyGetEntries } from "../../graphql/utils.gql";
+import {
+  emptyGetEntries,
+  toGetEntriesSuccessQuery,
+} from "../../graphql/utils.gql";
+import immer from "immer";
+import {
+  writeExperienceFragmentToCache,
+  getEntriesQuerySuccess,
+  writeGetEntriesQuery,
+  readExperienceFragment,
+} from "../../apollo/get-detailed-experience-query";
+import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitionFragment";
+import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
+import { EntryConnectionFragment_edges } from "../../graphql/apollo-types/EntryConnectionFragment";
+import { UnsyncedModifiedExperience } from "../../utils/unsynced-ledger.types";
+
+////////////////////////// CREATE ////////////////////////////
 
 const createOfflineExperienceResolver: LocalResolverFn<
   CreateExperiencesVariables,
@@ -153,36 +180,36 @@ export const CREATE_OFFLINE_EXPERIENCE_MUTATION = gql`
   ${EXPERIENCE_FRAGMENT}
 `;
 
-export interface CreateExperienceOfflineMutation {
+export interface CreateExperienceOfflineMutationReturned {
   createOfflineExperience: CreateExperiences_createExperiences;
 }
 
 // istanbul ignore next:
 export function useCreateExperienceOfflineMutation() {
   return useMutation<
-    CreateExperienceOfflineMutation,
+    CreateExperienceOfflineMutationReturned,
     CreateExperiencesVariables
   >(CREATE_OFFLINE_EXPERIENCE_MUTATION);
 }
 
 export type CreateExperienceOfflineMutationResult = ExecutionResult<
-  CreateExperienceOfflineMutation
+  CreateExperienceOfflineMutationReturned
 >;
 
 export type CreateExperienceOfflineMutationFn = MutationFunction<
-  CreateExperienceOfflineMutation,
+  CreateExperienceOfflineMutationReturned,
   CreateExperiencesVariables
 >;
 
 // used to type check test mock calls
 export type CreateOfflineExperienceMutationFnOptions = MutationFunctionOptions<
-  CreateExperienceOfflineMutation,
+  CreateExperienceOfflineMutationReturned,
   CreateExperiencesVariables
 >;
 
 export type UseCreateExperienceOfflineMutation = [
   CreateExperienceOfflineMutationFn,
-  MutationResult<CreateExperienceOfflineMutation>,
+  MutationResult<CreateExperienceOfflineMutationReturned>,
 ];
 
 // component's props should extend this
@@ -190,7 +217,155 @@ export interface CreateExperienceOfflineMutationComponentProps {
   createExperienceOffline: CreateExperienceOfflineMutationFn;
 }
 
-export const experienceDefinitionResolvers = {
+////////////////////////// END CREATE ////////////////////////////
+
+////////////////////////// UPDATE ////////////////////////////
+
+export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
+  const { experienceId } = input;
+
+  const experience = readExperienceFragment(experienceId);
+
+  if (!experience) {
+    return;
+  }
+
+  const unsyncedExperience = (getUnsyncedExperience(experienceId) ||
+    // istanbul ignore else:
+    {}) as UnsyncedModifiedExperience;
+
+  const immerUpdate: ImmerUpdate = [experience, unsyncedExperience];
+
+  const [updatedExperience, updatedUnsyncedExperience] = immer<ImmerUpdate>(
+    immerUpdate,
+    ([proxy, immerUnsyncedExperience]) => {
+      const modifiedOwnFields = immerUnsyncedExperience.ownFields || {};
+      const modifiedDefinitions = immerUnsyncedExperience.definitions || {};
+      const modifiedEntries = immerUnsyncedExperience.modifiedEntries || {};
+      const deletedEntries = immerUnsyncedExperience.deletedEntries || [];
+
+      const {
+        ownFields,
+        updateDefinitions,
+        updatedEntry,
+        deletedEntry,
+      } = input;
+      const { title, description } = ownFields || {};
+
+      if (title) {
+        proxy.title = title;
+        modifiedOwnFields.title = true;
+        immerUnsyncedExperience.ownFields = modifiedOwnFields;
+      }
+
+      if (description !== undefined) {
+        proxy.description = description;
+        modifiedOwnFields.description = true;
+        immerUnsyncedExperience.ownFields = modifiedOwnFields;
+      }
+
+      if (updateDefinitions) {
+        immerUnsyncedExperience.definitions = modifiedDefinitions;
+
+        const idToDefinitionUpdateMap = updateDefinitions.reduce((acc, d) => {
+          acc[d.id] = d;
+          return acc;
+        }, {} as { [key: string]: UpdateDefinitionInput });
+
+        proxy.dataDefinitions = proxy.dataDefinitions.map((d) => {
+          const definition = d as DataDefinitionFragment;
+          const { id } = definition;
+          const updates = idToDefinitionUpdateMap[id];
+
+          if (updates) {
+            const modifiedDefinition = modifiedDefinitions[id] || {};
+            modifiedDefinitions[id] = modifiedDefinition;
+            const { name, type } = updates;
+
+            if (name) {
+              definition.name = name;
+              modifiedDefinition.name = true;
+            }
+
+            if (type) {
+              modifiedDefinition.type = true;
+              definition.type = type;
+            }
+
+            return definition;
+          }
+
+          return definition;
+        });
+      }
+
+      if (updatedEntry || deletedEntry) {
+        const { edges, ...rest } = getEntriesQuerySuccess(experienceId);
+
+        const newEdges = (edges as EntryConnectionFragment_edges[]).filter(
+          (edge) => {
+            const entry = edge.node as EntryFragment;
+            const { id: entryId } = entry;
+
+            if (updatedEntry && updatedEntry.entry.id === entryId) {
+              edge.node = updatedEntry.entry;
+
+              const modifiedEntry = modifiedEntries[entryId] || {};
+
+              updatedEntry.dataObjectsIds.forEach((dataObjectId) => {
+                modifiedEntry[dataObjectId] = true;
+              });
+
+              modifiedEntries[entryId] = modifiedEntry;
+              immerUnsyncedExperience.modifiedEntries = modifiedEntries;
+
+              return true;
+            }
+
+            if (deletedEntry && deletedEntry.id === entryId) {
+              deletedEntries.push(entryId);
+              immerUnsyncedExperience.deletedEntries = deletedEntries;
+              purgeEntry(entry);
+              return false;
+            }
+
+            return true;
+          },
+        );
+
+        const entries = {
+          ...rest,
+          edges: newEdges,
+        };
+
+        writeGetEntriesQuery(experienceId, toGetEntriesSuccessQuery(entries));
+      }
+    },
+  );
+
+  if (!isOfflineId(experienceId)) {
+    writeUnsyncedExperience(experienceId, updatedUnsyncedExperience);
+  }
+
+  floatExperienceToTheTopInGetExperiencesMiniQuery(updatedExperience);
+  writeExperienceFragmentToCache(updatedExperience);
+
+  return updatedExperience;
+}
+
+export type UpdateExperienceOfflineInput = UpdateExperienceInput & {
+  updatedEntry?: {
+    entry: EntryFragment;
+    dataObjectsIds: string[];
+  };
+  deletedEntry?: EntryFragment;
+};
+
+type ImmerUpdate = [ExperienceFragment, UnsyncedModifiedExperience];
+
+////////////////////////// END UPDATE ////////////////////////////
+
+export const upsertExperienceResolvers = {
   Mutation: {
     [MUTATION_NAME_createExperienceOffline]: createOfflineExperienceResolver,
   },

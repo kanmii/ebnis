@@ -917,15 +917,6 @@ function formChangedTitle(state: StateMachine, value: string) {
   });
 }
 
-function formChangedDescription(state: StateMachine, value: string) {
-  return reducer(state, {
-    type: ActionType.FORM_CHANGED,
-    key: "non-def",
-    value,
-    fieldName: "description",
-  });
-}
-
 function formChangedDefinition(
   state: StateMachine,
   index: number,
