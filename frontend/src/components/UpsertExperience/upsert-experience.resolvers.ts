@@ -8,6 +8,7 @@ import {
   CreateDataDefinition,
   UpdateExperienceInput,
   UpdateDefinitionInput,
+  DataTypes,
 } from "../../graphql/apollo-types/globalTypes";
 import { makeOfflineId, isOfflineId } from "../../utils/offlines";
 import {
@@ -65,6 +66,12 @@ import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitio
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { EntryConnectionFragment_edges } from "../../graphql/apollo-types/EntryConnectionFragment";
 import { UnsyncedModifiedExperience } from "../../utils/unsynced-ledger.types";
+import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
+import {
+  parseDataObjectData,
+  stringifyDataObjectData,
+} from "../NewEntry/new-entry.utils";
+import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/apollo-types/GetEntries";
 
 ////////////////////////// CREATE ////////////////////////////
 
@@ -234,15 +241,20 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
     // istanbul ignore else:
     {}) as UnsyncedModifiedExperience;
 
-  const immerUpdate: ImmerUpdate = [experience, unsyncedExperience];
+  let entriesUpdated = false;
+  const entries = getEntriesQuerySuccess(experienceId);
+
+  const immerUpdate: ImmerUpdate = [experience, unsyncedExperience, entries];
 
   const [updatedExperience, updatedUnsyncedExperience] = immer<ImmerUpdate>(
     immerUpdate,
-    ([proxy, immerUnsyncedExperience]) => {
+    ([proxy, immerUnsyncedExperience, immerEntries]) => {
       const modifiedOwnFields = immerUnsyncedExperience.ownFields || {};
       const modifiedDefinitions = immerUnsyncedExperience.definitions || {};
       const modifiedEntries = immerUnsyncedExperience.modifiedEntries || {};
       const deletedEntries = immerUnsyncedExperience.deletedEntries || [];
+
+      const { edges: entriesEdges, ...rest } = immerEntries;
 
       const {
         ownFields,
@@ -264,6 +276,42 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
         immerUnsyncedExperience.ownFields = modifiedOwnFields;
       }
 
+      let newEdges: EntryConnectionFragment_edges[] = [];
+
+      // entry must be updated before definitions.type update
+      if (updatedEntry || deletedEntry) {
+        (entriesEdges as EntryConnectionFragment_edges[]).forEach((edge) => {
+          let shouldAppend = true;
+          const entry = edge.node as EntryFragment;
+          const { id: entryId } = entry;
+
+          if (updatedEntry && updatedEntry.entry.id === entryId) {
+            edge.node = updatedEntry.entry;
+
+            const modifiedEntry = modifiedEntries[entryId] || {};
+
+            updatedEntry.dataObjectsIds.forEach((dataObjectId) => {
+              modifiedEntry[dataObjectId] = true;
+            });
+
+            modifiedEntries[entryId] = modifiedEntry;
+            immerUnsyncedExperience.modifiedEntries = modifiedEntries;
+            entriesUpdated = true;
+          }
+
+          if (deletedEntry && deletedEntry.id === entryId) {
+            deletedEntries.push(entryId);
+            immerUnsyncedExperience.deletedEntries = deletedEntries;
+            purgeEntry(entry);
+            shouldAppend = false;
+          }
+
+          if (shouldAppend) {
+            newEdges.push(edge);
+          }
+        });
+      }
+
       if (updateDefinitions) {
         immerUnsyncedExperience.definitions = modifiedDefinitions;
 
@@ -271,6 +319,9 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
           acc[d.id] = d;
           return acc;
         }, {} as { [key: string]: UpdateDefinitionInput });
+
+        const definitionIdToTypeMap: { [definitionId: string]: DataTypes } = {};
+        let hasTypeUpdate = false;
 
         proxy.dataDefinitions = proxy.dataDefinitions.map((d) => {
           const definition = d as DataDefinitionFragment;
@@ -288,8 +339,11 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
             }
 
             if (type) {
+              definitionIdToTypeMap[id] = type;
               modifiedDefinition.type = true;
               definition.type = type;
+              entriesUpdated = true;
+              hasTypeUpdate = true;
             }
 
             return definition;
@@ -297,42 +351,26 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
 
           return definition;
         });
+
+        if (hasTypeUpdate) {
+          newEdges.forEach((edge) => {
+            const entry = edge.node as EntryFragment;
+
+            entry.dataObjects.forEach((d) => {
+              const dataObject = d as DataObjectFragment;
+              const type = definitionIdToTypeMap[dataObject.id];
+
+              if (type) {
+                const { data } = dataObject;
+                const parsedData = parseDataObjectData(data);
+                dataObject.data = stringifyDataObjectData(type, parsedData);
+              }
+            });
+          });
+        }
       }
 
-      if (updatedEntry || deletedEntry) {
-        const { edges, ...rest } = getEntriesQuerySuccess(experienceId);
-
-        const newEdges = (edges as EntryConnectionFragment_edges[]).filter(
-          (edge) => {
-            const entry = edge.node as EntryFragment;
-            const { id: entryId } = entry;
-
-            if (updatedEntry && updatedEntry.entry.id === entryId) {
-              edge.node = updatedEntry.entry;
-
-              const modifiedEntry = modifiedEntries[entryId] || {};
-
-              updatedEntry.dataObjectsIds.forEach((dataObjectId) => {
-                modifiedEntry[dataObjectId] = true;
-              });
-
-              modifiedEntries[entryId] = modifiedEntry;
-              immerUnsyncedExperience.modifiedEntries = modifiedEntries;
-
-              return true;
-            }
-
-            if (deletedEntry && deletedEntry.id === entryId) {
-              deletedEntries.push(entryId);
-              immerUnsyncedExperience.deletedEntries = deletedEntries;
-              purgeEntry(entry);
-              return false;
-            }
-
-            return true;
-          },
-        );
-
+      if (entriesUpdated) {
         const entries = {
           ...rest,
           edges: newEdges,
@@ -361,7 +399,11 @@ export type UpdateExperienceOfflineInput = UpdateExperienceInput & {
   deletedEntry?: EntryFragment;
 };
 
-type ImmerUpdate = [ExperienceFragment, UnsyncedModifiedExperience];
+type ImmerUpdate = [
+  ExperienceFragment,
+  UnsyncedModifiedExperience,
+  GetEntries_getEntries_GetEntriesSuccess_entries,
+];
 
 ////////////////////////// END UPDATE ////////////////////////////
 

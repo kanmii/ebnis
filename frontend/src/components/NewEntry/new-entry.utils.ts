@@ -116,11 +116,11 @@ export function formObjToString(type: DataTypes, val: FormObjVal) {
       break;
 
     case DataTypes.SINGLE_LINE_TEXT:
-      toString = val;
+      toString = "" + val;
       break;
 
     case DataTypes.MULTI_LINE_TEXT:
-      toString = (val as string).replace(NEW_LINE_REGEX, "\\\\n");
+      toString = (("" + val) as string).replace(NEW_LINE_REGEX, "\\\\n");
       break;
   }
 
@@ -790,10 +790,7 @@ function dataObjectsFromFormValues(
 
       const { type, id: definitionId } = definition;
 
-      const data = `{"${type.toLowerCase()}":"${formObjToString(
-        type,
-        context.value,
-      )}"}`;
+      const data = stringifyDataObjectData(type, context.value);
 
       acc.push({
         definitionId,
@@ -883,6 +880,30 @@ function handleOnSyncOfflineExperienceErrors(
     },
   });
 }
+
+export function stringifyDataObjectData(type: DataTypes, parsedData: any) {
+  return `{"${type.toLowerCase()}":"${formObjToString(type, parsedData)}"}`;
+}
+
+export function parseDataObjectData(datum: string) {
+  const toObject = JSON.parse(datum);
+  const [[k, value]] = Object.entries(toObject);
+  const key = k.toUpperCase();
+
+  switch (key) {
+    case DataTypes.DATE:
+    case DataTypes.DATETIME:
+      return new Date(value);
+
+    case DataTypes.DECIMAL:
+    case DataTypes.INTEGER:
+      return Number(value);
+
+    default:
+      return value;
+  }
+}
+
 ////////////////////////// END STATE UPDATE SECTION /////////////////////
 
 ////////////////////////// TYPES SECTION ////////////////////////////
