@@ -806,9 +806,11 @@ function validateForm(
                 }
               }
 
+              const typeFieldName = "data type";
+
               const [typeValue, hasTypeErrors] = validateFormStringValuesHelper(
                 proxy,
-                "data type",
+                typeFieldName,
                 typeState.states,
                 `${EMPTY_ERROR_TEXT}, please select one from dropdown`,
               );
@@ -816,9 +818,19 @@ function validateForm(
               hasErrors = hasErrors || hasTypeErrors;
 
               if (unchangedDefinition) {
-                if (unchangedDefinition.type !== typeValue) {
+                const oldType = unchangedDefinition.type;
+
+                if (oldType !== typeValue) {
                   formUpdated = true;
-                  updateDefinitionInput.type = typeValue as DataTypes;
+
+                  const isValid = validateDefinitionType(oldType, typeValue);
+
+                  if (isValid === true) {
+                    updateDefinitionInput.type = typeValue as DataTypes;
+                  } else {
+                    hasErrors = true;
+                    putFormFieldErrorHelper(typeState.states, [["", isValid]]);
+                  }
                 }
               } else if (typeValue) {
                 insertDefinitionInput.type = typeValue as DataTypes;
@@ -867,6 +879,23 @@ function validateForm(
   }
 
   return [insertInput, updateInput];
+}
+
+function validateDefinitionType(old: string, newType: string) {
+  if (
+    newType === DataTypes.SINGLE_LINE_TEXT ||
+    newType === DataTypes.MULTI_LINE_TEXT
+  ) {
+    return true;
+  }
+
+  const validChangeType = definition_type_to_changes_map[old];
+
+  if (validChangeType === newType) {
+    return true;
+  }
+
+  return `${old} can only be changed to ${validChangeType}, ${DataTypes.SINGLE_LINE_TEXT} and ${DataTypes.MULTI_LINE_TEXT}`;
 }
 
 function putFormFieldErrorHelper(
