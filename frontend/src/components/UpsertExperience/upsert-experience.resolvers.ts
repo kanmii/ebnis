@@ -159,7 +159,9 @@ const createOfflineExperienceResolver: LocalResolverFn<
     [experienceId, experience],
   ]);
 
-  writeUnsyncedExperience(experienceId, true);
+  writeUnsyncedExperience(experienceId, {
+    isOffline: true,
+  });
 
   return {
     __typename: "ExperienceSuccess",
@@ -226,7 +228,7 @@ export interface CreateExperienceOfflineMutationComponentProps {
 
 ////////////////////////// END CREATE ////////////////////////////
 
-////////////////////////// UPDATE ////////////////////////////
+////////////////////////// START UPDATE ////////////////////////////
 
 export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
   const { experienceId } = input;
@@ -246,7 +248,11 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
 
   const immerUpdate: ImmerUpdate = [experience, unsyncedExperience, entries];
 
-  const [updatedExperience, updatedUnsyncedExperience] = immer<ImmerUpdate>(
+  const [
+    updatedExperience,
+    fromImmerUnsyncedExperience,
+    fromImmerEntries,
+  ] = immer<ImmerUpdate>(
     immerUpdate,
     ([proxy, immerUnsyncedExperience, immerEntries]) => {
       const modifiedOwnFields = immerUnsyncedExperience.ownFields || {};
@@ -254,7 +260,7 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
       const modifiedEntries = immerUnsyncedExperience.modifiedEntries || {};
       const deletedEntries = immerUnsyncedExperience.deletedEntries || [];
 
-      const { edges: entriesEdges, ...rest } = immerEntries;
+      const { edges: entriesEdges } = immerEntries;
 
       const {
         ownFields,
@@ -312,6 +318,11 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
         });
       }
 
+      // If we did not update entries and hence edges, we revert to default
+      newEdges = newEdges.length
+        ? newEdges
+        : (entriesEdges as EntryConnectionFragment_edges[]);
+
       if (updateDefinitions) {
         immerUnsyncedExperience.definitions = modifiedDefinitions;
 
@@ -358,7 +369,7 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
 
             entry.dataObjects.forEach((d) => {
               const dataObject = d as DataObjectFragment;
-              const type = definitionIdToTypeMap[dataObject.id];
+              const type = definitionIdToTypeMap[dataObject.definitionId];
 
               if (type) {
                 const { data } = dataObject;
@@ -371,18 +382,20 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
       }
 
       if (entriesUpdated) {
-        const entries = {
-          ...rest,
-          edges: newEdges,
-        };
-
-        writeGetEntriesQuery(experienceId, toGetEntriesSuccessQuery(entries));
+        immerEntries.edges = newEdges;
       }
     },
   );
 
   if (!isOfflineId(experienceId)) {
-    writeUnsyncedExperience(experienceId, updatedUnsyncedExperience);
+    writeUnsyncedExperience(experienceId, fromImmerUnsyncedExperience);
+  }
+
+  if (entriesUpdated) {
+    writeGetEntriesQuery(
+      experienceId,
+      toGetEntriesSuccessQuery(fromImmerEntries),
+    );
   }
 
   floatExperienceToTheTopInGetExperiencesMiniQuery(updatedExperience);

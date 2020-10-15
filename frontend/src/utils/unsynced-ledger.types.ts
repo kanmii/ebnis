@@ -1,12 +1,8 @@
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
 
 export interface UnsyncedLedger {
-  [experienceId: string]: UnsyncedLedgerItem;
+  [experienceId: string]: UnsyncedModifiedExperience;
 }
-
-export type UnsyncedLedgerItem =
-  | IsNewOfflineExperience
-  | UnsyncedModifiedExperience;
 
 export interface UnsyncedModifiedDefinition {
   name?: true;
@@ -29,10 +25,9 @@ export interface UnsyncedModifiedExperience {
   };
   entriesErrors?: UnsyncableEntriesErrors;
   deletedEntries?: string[];
+  isOffline?: true
 }
 
 export interface UnsyncableEntriesErrors {
   [entryClientId: string]: CreateEntryErrorFragment;
 }
-
-type IsNewOfflineExperience = true;

@@ -3,9 +3,8 @@ import gql from "graphql-tag";
 import { FieldPolicy } from "@apollo/client/cache/inmemory/policies";
 import {
   UnsyncedLedger,
-  UnsyncedLedgerItem,
-  UnsyncableEntriesErrors,
   UnsyncedModifiedExperience,
+  UnsyncableEntriesErrors,
 } from "../utils/unsynced-ledger.types";
 
 const UNSYNCED_LEDGER_QUERY = gql`
@@ -14,10 +13,13 @@ const UNSYNCED_LEDGER_QUERY = gql`
   }
 `;
 
-export function writeUnsyncedExperience(id: string, data: UnsyncedLedgerItem) {
+export function writeUnsyncedExperience(
+  id: string,
+  data: UnsyncedModifiedExperience,
+) {
   const unsyncedLedger = { ...getUnsyncedLedger() };
 
-  if (data === true || Object.keys(data).length) {
+  if (Object.keys(data).length) {
     unsyncedLedger[id] = data;
   } else {
     delete unsyncedLedger[id];
@@ -26,7 +28,9 @@ export function writeUnsyncedExperience(id: string, data: UnsyncedLedgerItem) {
   writeUnsyncedLedger(unsyncedLedger);
 }
 
-export function getUnsyncedExperience(id: string): UnsyncedLedgerItem | null {
+export function getUnsyncedExperience(
+  id: string,
+): UnsyncedModifiedExperience | null {
   const unsyncedLedger = getUnsyncedLedger();
   return unsyncedLedger[id] || null;
 }
