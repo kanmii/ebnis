@@ -252,56 +252,7 @@ defmodule EbnisData.ExperienceApi do
       {:error, "experience not found"}
   end
 
-  defp update_experience_p(
-         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
-         {:add_entries, inputs},
-         experience
-       ) do
-    bearbeitet_erfahrung_komponenten_1 =
-      Map.merge(
-        bearbeitet_erfahrung_komponenten,
-        %{
-          updated_at: experience.updated_at
-        }
-      )
-
-    neue_einträge = Enum.map(inputs, &EntryApi.create_entry(&1, experience))
-
-    einträge_komponenten_1 = [
-      {:neue_einträge, neue_einträge}
-      | einträge_komponenten
-    ]
-
-    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
-  end
-
-  defp update_experience_p(
-         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
-         {:update_entries, inputs},
-         experience
-       ) do
-    bearbeitet_erfahrung_komponenten_1 =
-      Map.merge(
-        bearbeitet_erfahrung_komponenten,
-        %{
-          updated_at: experience.updated_at
-        }
-      )
-
-    bearbeitet_einträge =
-      Enum.map(
-        inputs,
-        &EntryApi.update_entry(&1, experience)
-      )
-
-    einträge_komponenten_1 = [
-      {:bearbeitet_einträge, bearbeitet_einträge}
-      | einträge_komponenten
-    ]
-
-    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
-  end
-
+  # Delete entries
   defp update_experience_p(
          {bearbeitet_erfahrung_komponenten, einträge_komponenten},
          {:delete_entries, ids},
@@ -327,6 +278,7 @@ defmodule EbnisData.ExperienceApi do
     {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
   end
 
+  # update definitions
   defp update_experience_p(
          {bearbeitet_erfahrung_komponenten, einträge_komponenten},
          {:update_definitions, inputs},
@@ -358,6 +310,35 @@ defmodule EbnisData.ExperienceApi do
     {bearbeitet_erfahrung_komponenten_1, einträge_komponenten}
   end
 
+  # Update entries
+  defp update_experience_p(
+         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
+         {:update_entries, inputs},
+         experience
+       ) do
+    bearbeitet_erfahrung_komponenten_1 =
+      Map.merge(
+        bearbeitet_erfahrung_komponenten,
+        %{
+          updated_at: experience.updated_at
+        }
+      )
+
+    bearbeitet_einträge =
+      Enum.map(
+        inputs,
+        &EntryApi.update_entry(&1, experience)
+      )
+
+    einträge_komponenten_1 = [
+      {:bearbeitet_einträge, bearbeitet_einträge}
+      | einträge_komponenten
+    ]
+
+    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
+  end
+
+  # Update own_fields
   defp update_experience_p(
          {bearbeitet_erfahrung_komponenten, einträge_komponenten},
          {:own_fields, attrs},
@@ -392,6 +373,31 @@ defmodule EbnisData.ExperienceApi do
       end
 
     {bearbeitet_erfahrung_komponenten_1, einträge_komponenten}
+  end
+
+  # Add entries
+  # we must update definitions before adding entries
+  defp update_experience_p(
+         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
+         {:add_entries, inputs},
+         experience
+       ) do
+    bearbeitet_erfahrung_komponenten_1 =
+      Map.merge(
+        bearbeitet_erfahrung_komponenten,
+        %{
+          updated_at: experience.updated_at
+        }
+      )
+
+    neue_einträge = Enum.map(inputs, &EntryApi.create_entry(&1, experience))
+
+    einträge_komponenten_1 = [
+      {:neue_einträge, neue_einträge}
+      | einträge_komponenten
+    ]
+
+    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
   end
 
   defp update_experiences_update_definition(input, old_type) do
@@ -486,7 +492,12 @@ defmodule EbnisData.ExperienceApi do
           )
           |> Repo.all()
           |> Enum.map(fn datum ->
-            [{_, v}] = Map.to_list(datum.data)
+            [{_data_object_type, v}] = Map.to_list(datum.data)
+
+            # It is possible for client to have already sent the data object for
+            # update with the new data type, in that case
+            # `data_object_type == new_type` and we can thus skip the update
+            # of this particular data obejct.
 
             {:ok, new_data} =
               case new_type do

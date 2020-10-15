@@ -642,6 +642,13 @@ function handleSubmissionAction(proxy: DraftState) {
 
 const EMPTY_ERROR_TEXT = "is a required field";
 
+const definition_type_to_changes_map = {
+  [DataTypes.DATE]: DataTypes.DATETIME,
+  [DataTypes.DATETIME]: DataTypes.DATE,
+  [DataTypes.DECIMAL]: DataTypes.INTEGER,
+  [DataTypes.INTEGER]: DataTypes.DECIMAL,
+};
+
 function validateForm(
   proxy: DraftState,
 ): [CreateExperienceInput, UpdateExperienceInput] {

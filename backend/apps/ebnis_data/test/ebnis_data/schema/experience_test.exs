@@ -1930,7 +1930,7 @@ defmodule EbnisData.Schema.ExperienceTest do
 
   describe "update data definition" do
     # @tag :skip
-    test " erfolg: Definition Art, integer to decimal" do
+    test " erfolg: integer to decimal" do
       user = RegFactory.insert()
 
       %{
@@ -2015,7 +2015,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test " erfolg: Definition Art, decimal to integer" do
+    test " erfolg: decimal to integer" do
       user = RegFactory.insert()
 
       %{
@@ -2100,7 +2100,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test " erfolg: Definition Art, date to datetime" do
+    test " erfolg: date to datetime" do
       user = RegFactory.insert()
 
       %{
@@ -2184,7 +2184,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test " erfolg: Definition Art, datetime to date" do
+    test " erfolg: datetime to date" do
       user = RegFactory.insert()
 
       current = "datetime"
@@ -2272,7 +2272,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test " erfolg: Definition Art, all to multi_line_text" do
+    test " erfolg: all to multi_line_text" do
       user = RegFactory.insert()
 
       %{
@@ -2411,7 +2411,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test " erfolg: Definition Art, all to single_line_text, except multi_line_text" do
+    test " erfolg: all to single_line_text, except multi_line_text" do
       user = RegFactory.insert()
 
       %{
@@ -2539,7 +2539,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test " erfolg: Definition Art, multi_line_text to single_line_text" do
+    test " erfolg: multi_line_text to single_line_text" do
       user = RegFactory.insert()
 
       current = "multi_line_text"
@@ -2643,6 +2643,129 @@ defmodule EbnisData.Schema.ExperienceTest do
       assert [{new_from_db, value}] = Map.to_list(data)
       assert new == new_from_db
       assert String.length(value) == 256
+    end
+
+    # @tag :skip
+    test " erfolg: decimal to integer, but with data object already updated by client" do
+      user = RegFactory.insert()
+
+      definition_type_updated = "INTEGER"
+      definition_type_updated_lower = String.downcase(definition_type_updated)
+      new_data_value = 1
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id,
+            type: definition0_type
+          }
+        ]
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "decimal"
+          ]
+        )
+
+      %{
+        id: entry_id,
+        data_objects: [
+          %{
+            id: data_object0_id
+          }
+        ]
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      refute definition0_type == definition_type_updated_lower
+
+      new_data_for_update = ~s({"#{definition_type_updated_lower}":#{new_data_value}})
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => definition0_id,
+            "type" => definition_type_updated
+          }
+        ],
+        "updateEntries" => [
+          %{
+            "entryId" => entry_id,
+            "dataObjects" => [
+              %{
+                "id" => data_object0_id,
+                "data" => new_data_for_update
+              }
+            ]
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "definition" => %{
+                                 "id" => ^definition0_id,
+                                 "type" => ^definition_type_updated
+                               }
+                             }
+                           ]
+                         },
+                         "entries" => %{
+                           "updatedEntries" => [
+                             %{
+                               "entry" => %{
+                                 "entryId" => ^entry_id,
+                                 "dataObjects" => [
+                                   %{
+                                     "dataObject" => %{
+                                       "id" => ^data_object0_id,
+                                       "data" => ^new_data_for_update
+                                     }
+                                   }
+                                 ]
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      new_data_from_db =
+        Map.new([
+          {definition_type_updated_lower, new_data_value}
+        ])
+
+      assert %{
+               data: ^new_data_from_db
+             } = EbnisData.get_data_object(data_object0_id)
     end
   end
 
