@@ -8,8 +8,6 @@ import {
   DataTypes,
   CreateEntryInput,
   CreateDataObject,
-  CreateExperienceInput,
-  CreateDataDefinition,
 } from "../../graphql/apollo-types/globalTypes";
 import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
@@ -51,14 +49,9 @@ import {
   getGeneralEffects,
 } from "../../utils/effects";
 import { isOfflineId } from "../../utils/offlines";
-import {
-  EntryConnectionFragment,
-  EntryConnectionFragment_edges,
-} from "../../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
 import { createExperienceOnlineEffect } from "../UpsertExperience/upsert-experience.utils";
-import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitionFragment";
 import {
   putOrRemoveSyncingExperience,
   SyncingExperience,
@@ -73,7 +66,7 @@ import {
   removeUnsyncedExperiences,
   getUnSyncEntriesErrorsLedger,
 } from "../../apollo/unsynced-ledger";
-import { getEntriesQuerySuccess } from "../../apollo/get-detailed-experience-query";
+import { experienceToCreateInput } from "./new-entry.helpers";
 
 const NEW_LINE_REGEX = /\n/g;
 export const ISO_DATE_FORMAT = "yyyy-MM-dd";
@@ -316,63 +309,6 @@ async function syncOfflineExperienceCreateEntryEffectHelper(
       error,
     });
   }
-}
-
-function experienceToCreateInput(experience: ExperienceFragment) {
-  const { id: experienceId, description, title, dataDefinitions } = experience;
-
-  const createExperienceInput = {
-    clientId: experienceId,
-    description: description,
-    title: title,
-    insertedAt: experience.insertedAt,
-    updatedAt: experience.updatedAt,
-    dataDefinitions: (dataDefinitions as DataDefinitionFragment[]).map((d) => {
-      const input = {
-        clientId: d.id,
-        name: d.name,
-        type: d.type,
-      } as CreateDataDefinition;
-      return input;
-    }),
-  } as CreateExperienceInput;
-
-  const createEntriesInput = entriesConnectionToCreateInput(
-    getEntriesQuerySuccess(experienceId),
-  );
-
-  // istanbul ignore else:
-  if (createEntriesInput.length) {
-    createExperienceInput.entries = createEntriesInput;
-  }
-
-  return createExperienceInput;
-}
-
-function entriesConnectionToCreateInput(entries: EntryConnectionFragment) {
-  return ((entries.edges ||
-    // istanbul ignore next:
-    []) as EntryConnectionFragment_edges[]).map((edge) => {
-    const entry = edge.node as EntryFragment;
-    const input = {
-      clientId: entry.id,
-      experienceId: entry.experienceId,
-      insertedAt: entry.insertedAt,
-      updatedAt: entry.updatedAt,
-      dataObjects: (entry.dataObjects as DataObjectFragment[]).map((d) => {
-        const input = {
-          clientId: d.id,
-          data: d.data,
-          definitionId: d.definitionId,
-          insertedAt: d.insertedAt,
-          updatedAt: d.updatedAt,
-        } as CreateDataObject;
-        return input;
-      }),
-    } as CreateEntryInput;
-
-    return input;
-  });
 }
 
 async function createOnlineEntryEffect(

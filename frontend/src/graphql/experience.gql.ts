@@ -315,30 +315,37 @@ const UPDATE_EXPERIENCE_SOME_SUCCESS_FRAGMENT = gql`
   ${CREATE_ENTRY_ERRORS_FRAGMENT}
 `;
 
-export const UPDATE_EXPERIENCES_ONLINE_MUTATION = gql`
-  mutation UpdateExperiencesOnline($input: [UpdateExperienceInput!]!) {
-    updateExperiences(input: $input) {
-      __typename
-      ... on UpdateExperiencesAllFail {
-        error
-      }
-      ... on UpdateExperiencesSomeSuccess {
-        experiences {
-          __typename
-          ... on UpdateExperienceErrors {
-            errors {
-              ...ExperienceErrorFragment
-            }
+const UPDATE_EXPERIENCES_ONLINE_FRAGMENT = gql`
+  fragment UpdateExperiencesOnlineFragment on UpdateExperiencesUnion {
+    __typename
+    ... on UpdateExperiencesAllFail {
+      error
+    }
+    ... on UpdateExperiencesSomeSuccess {
+      experiences {
+        __typename
+        ... on UpdateExperienceErrors {
+          errors {
+            ...ExperienceErrorFragment
           }
-          ... on UpdateExperienceSomeSuccess {
-            ...UpdateExperienceSomeSuccessFragment
-          }
+        }
+        ... on UpdateExperienceSomeSuccess {
+          ...UpdateExperienceSomeSuccessFragment
         }
       }
     }
   }
   ${EXPERIENCE_ERROR_FRAGMENT}
   ${UPDATE_EXPERIENCE_SOME_SUCCESS_FRAGMENT}
+`;
+
+export const UPDATE_EXPERIENCES_ONLINE_MUTATION = gql`
+  mutation UpdateExperiencesOnline($input: [UpdateExperienceInput!]!) {
+    updateExperiences(input: $input) {
+      ...UpdateExperiencesOnlineFragment
+    }
+  }
+  ${UPDATE_EXPERIENCES_ONLINE_FRAGMENT}
 `;
 
 ////////////////////////// END UPDATE EXPERIENCES SECTION //////////////////
@@ -390,20 +397,27 @@ const CREATE_EXPERIENCE_ERRORS_FRAGMENT = gql`
   }
 `;
 
-export const CREATE_EXPERIENCES_MUTATION = gql`
-  mutation CreateExperiences($input: [CreateExperienceInput!]!) {
-    createExperiences(input: $input) {
-      __typename
-      ... on ExperienceSuccess {
-        ...CreateExperienceSuccessFragment
-      }
-      ... on CreateExperienceErrors {
-        ...CreateExperienceErrorsFragment
-      }
+const CREATE_EXPERIENCES_FRAGMENT = gql`
+  fragment CreateExperiencesFragment on CreateExperienceUnion {
+    __typename
+    ... on ExperienceSuccess {
+      ...CreateExperienceSuccessFragment
+    }
+    ... on CreateExperienceErrors {
+      ...CreateExperienceErrorsFragment
     }
   }
   ${CREATE_EXPERIENCE_SUCCESS_FRAGMENT}
   ${CREATE_EXPERIENCE_ERRORS_FRAGMENT}
+`;
+
+export const CREATE_EXPERIENCES_MUTATION = gql`
+  mutation CreateExperiences($input: [CreateExperienceInput!]!) {
+    createExperiences(input: $input) {
+      ...CreateExperiencesFragment
+    }
+  }
+  ${CREATE_EXPERIENCES_FRAGMENT}
 `;
 
 ////////////////////////// END CREATE EXPERIENCES SECTION ////////////////
@@ -588,3 +602,24 @@ export const GET_DATA_OBJECTS_QUERY = gql`
 `;
 
 ////////////////////////// END GET DATA OBJECTS //////////////////
+
+////////////////////////// START SYNC_TO_SERVER ////////////////////////////
+
+export const SYNC_TO_SERVER_MUTATION = gql`
+  mutation SyncToServer(
+    $updateInput: [UpdateExperienceInput!]!
+    $createInput: [CreateExperienceInput!]!
+  ) {
+    updateExperiences(input: $updateInput) {
+      ...UpdateExperiencesOnlineFragment
+    }
+
+    createExperiences(input: $createInput) {
+      ...CreateExperiencesFragment
+    }
+  }
+  ${UPDATE_EXPERIENCES_ONLINE_FRAGMENT}
+  ${CREATE_EXPERIENCES_FRAGMENT}
+`;
+
+////////////////////////// END START SYNC_TO_SERVER ////////////////////////////

@@ -55,7 +55,7 @@ function writeUnsyncedLedger(unsyncedLedger: UnsyncedLedger) {
   });
 }
 
-function getUnsyncedLedger() {
+export function getUnsyncedLedger() {
   const { cache } = window.____ebnis;
 
   const data = cache.readQuery<UnsyncedLedgerQueryResult>({

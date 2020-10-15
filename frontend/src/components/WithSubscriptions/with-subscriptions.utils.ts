@@ -26,6 +26,9 @@ import {
   GenericEffectDefinition,
 } from "../../utils/effects";
 import { purgeExperiencesFromCache1 } from "../../apollo/update-get-experiences-mini-query";
+import { syncToServer } from "../../apollo/sync-to-server";
+import { putSyncFlag } from "../../apollo/sync-flag";
+import { SyncFlag } from "../../utils/sync-flag.types";
 
 export enum ActionType {
   CONNECTION_CHANGED = "@with-subscription/connection-changed",
@@ -40,7 +43,10 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
       return immer(prevState, (proxy) => {
         switch (type) {
           case ActionType.CONNECTION_CHANGED:
-            proxy.states.connected = (payload as EmitActionConnectionChangedPayload).connected;
+            handleConnectionChangedAction(
+              proxy,
+              payload as EmitActionConnectionChangedPayload,
+            );
             break;
 
           case ActionType.EXPERIENCE_DELETED:
@@ -74,10 +80,30 @@ function handleExperienceDeletedAction(
   proxy: DraftState,
   payload: ExperienceDeletedPayload,
 ) {
-  const effects = getGeneralEffects(proxy);
+  const { data } = payload;
+
+  if (data) {
+    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+    effects.push({
+      key: "onExperiencesDeletedEffect",
+      ownArgs: data,
+    });
+  }
+}
+
+function handleConnectionChangedAction(
+  proxy: DraftState,
+  payload: EmitActionConnectionChangedPayload,
+) {
+  const { connected } = payload;
+  proxy.states.connected = connected;
+
+  const effects = getGeneralEffects<EffectType, DraftState>(proxy);
   effects.push({
-    key: "onExperiencesDeletedEffect",
-    ownArgs: payload.data,
+    key: "syncToServerEffect",
+    ownArgs: {
+      connected,
+    },
   });
 }
 
@@ -99,7 +125,7 @@ export function onMessage({ type, payload }: BroadcastMessage) {
 const onExperiencesDeletedEffect: DefOnExperiencesDeletedEffect["func"] = async (
   ownArgs,
 ) => {
-  const data = ownArgs && ownArgs.onExperiencesDeleted;
+  const data = ownArgs.onExperiencesDeleted;
 
   // istanbul ignore else:
   if (data) {
@@ -124,8 +150,26 @@ type DefOnExperiencesDeletedEffect = EffectDefinition<
   OnExperiencesDeletedSubscription
 >;
 
+const syncToServerEffect: DefSyncToServerEffect["func"] = ({ connected }) => {
+  if (!connected) {
+    putSyncFlag({ canSync: false } as SyncFlag);
+    return;
+  }
+
+  putSyncFlag({ canSync: true } as SyncFlag);
+  syncToServer();
+};
+
+type DefSyncToServerEffect = EffectDefinition<
+  "syncToServerEffect",
+  {
+    connected: boolean;
+  }
+>;
+
 export const effectFunctions = {
   onExperiencesDeletedEffect,
+  syncToServerEffect,
 };
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
@@ -169,4 +213,4 @@ type EffectDefinition<
   OwnArgs = {}
 > = GenericEffectDefinition<EffectArgs, CallerProps, Key, OwnArgs>;
 
-type EffectType = DefOnExperiencesDeletedEffect;
+type EffectType = DefOnExperiencesDeletedEffect | DefSyncToServerEffect;
