@@ -258,8 +258,6 @@ export async function syncToServer(location: Location) {
     }
   } catch (error) {}
 
-  await persistor.persist();
-
   const { pathname } = location;
 
   if (updateResult) {
@@ -278,9 +276,10 @@ export async function syncToServer(location: Location) {
     });
 
     if (map) {
-      map.forEach(([offlineId, onlineId]) => {
+      for (const [offlineId, onlineId] of map) {
         if (pathname.includes(offlineId)) {
           putSyncFlag({ isSyncing: false } as SyncFlag);
+          await persistor.persist();
 
           windowChangeUrl(
             makeDetailedExperienceRoute(onlineId),
@@ -289,12 +288,13 @@ export async function syncToServer(location: Location) {
 
           return;
         }
-      });
+      }
     }
   }
 
   putSyncFlag({ isSyncing: false } as SyncFlag);
-  windowChangeUrl(pathname, ChangeUrlType.reload);
+  await persistor.persist();
+  // windowChangeUrl(pathname, ChangeUrlType.reload);
 }
 
 type Variables = [UpdateExperienceInput[], CreateExperienceInput[]];

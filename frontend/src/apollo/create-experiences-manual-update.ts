@@ -30,7 +30,7 @@ export function createExperiencesManualUpdate(
     return undefined;
   }
 
-  const offlineExperienceIdToOnlineExperienceIdMap: [string, string][] = [];
+  const offlineExperienceIdToOnlineExperienceIdList: [string, string][] = [];
 
   const toBeInsertedOrReplaced = validResponses.reduce(
     (toBeInsertedOrReplacedAcc, response) => {
@@ -68,7 +68,7 @@ export function createExperiencesManualUpdate(
 
         const experienceId = newlyCreatedExperience.id;
 
-        offlineExperienceIdToOnlineExperienceIdMap.push([
+        offlineExperienceIdToOnlineExperienceIdList.push([
           offlineErfahrungId,
           experienceId,
         ]);
@@ -194,7 +194,7 @@ export function createExperiencesManualUpdate(
       toBeInsertedOrReplaced,
     );
 
-    return offlineExperienceIdToOnlineExperienceIdMap;
+    return offlineExperienceIdToOnlineExperienceIdList;
   }
 
   return undefined;
