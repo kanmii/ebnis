@@ -3,7 +3,7 @@ FROM node:12.17.0-buster-slim AS web
 ARG NODE_ENV
 
 ENV BUILD_DEPS="build-essential" \
-  APP_DEPS="curl" \
+  APP_DEPS="curl iputils-ping" \
   NODE_ENV=$NODE_ENV \
   HOST_APP_HOME="."
 

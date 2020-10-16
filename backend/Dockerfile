@@ -2,7 +2,7 @@ FROM hexpm/elixir:1.11.0-erlang-22.3.4.7-ubuntu-focal-20200703 AS dev
 
 ARG DOCKER_HOST_USER_NAME
 
-ENV APP_DEPS="openssl git ca-certificates inotify-tools curl" \
+ENV APP_DEPS="openssl git ca-certificates inotify-tools curl iputils-ping" \
   HOME_VAR=/home/${DOCKER_HOST_USER_NAME} \
   HOST_APP_HOME="."
 
