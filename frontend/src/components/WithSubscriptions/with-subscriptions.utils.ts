@@ -192,7 +192,7 @@ type Action =
       type: ActionType.ON_SYNC;
     } & OnSycPayload);
 
-type OnSycPayload = {
+export type OnSycPayload = {
   data?: OnSyncedData;
 };
 

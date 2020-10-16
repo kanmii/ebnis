@@ -2,7 +2,7 @@ import { getUnsyncedLedger } from "./unsynced-ledger";
 import { getSyncFlag, putSyncFlag } from "./sync-flag";
 import {
   SyncFlag,
-  OfflineExperienceIdToOnlineExperienceIdList,
+  OfflineIdToOnlineExperienceMap,
   OfflineIdToEntryMap,
 } from "../utils/sync-flag.types";
 import {
@@ -262,26 +262,26 @@ export async function syncToServer() {
     }
   } catch (error) {}
 
-  let offlineIdToEntryMap: OfflineIdToEntryMap = {};
+  let offlineIdToEntryMap: OfflineIdToEntryMap | undefined = undefined;
 
-  let offlineExperienceIdToOnlineExperienceIdList: OfflineExperienceIdToOnlineExperienceIdList = [];
+  let offlineIdToOnlineExperienceMap:
+    | OfflineIdToOnlineExperienceMap
+    | undefined = undefined;
 
   if (updateResult) {
-    offlineIdToEntryMap =
-      writeUpdatedExperienceToCache(cache, {
-        data: {
-          updateExperiences: updateResult,
-        },
-      }) || {};
+    offlineIdToEntryMap = writeUpdatedExperienceToCache(cache, {
+      data: {
+        updateExperiences: updateResult,
+      },
+    });
   }
 
   if (createResult) {
-    offlineExperienceIdToOnlineExperienceIdList =
-      createExperiencesManualUpdate(cache, {
-        data: {
-          createExperiences: createResult,
-        },
-      }) || [];
+    offlineIdToOnlineExperienceMap = createExperiencesManualUpdate(cache, {
+      data: {
+        createExperiences: createResult,
+      },
+    });
   }
 
   putSyncFlag({ isSyncing: false } as SyncFlag);
@@ -291,7 +291,7 @@ export async function syncToServer() {
     {
       type: BroadcastMessageType.syncDone,
       payload: {
-        offlineExperienceIdToOnlineExperienceIdList,
+        offlineIdToOnlineExperienceMap: offlineIdToOnlineExperienceMap,
         offlineIdToEntryMap,
       },
     },

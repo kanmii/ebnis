@@ -59,6 +59,7 @@ import {
 } from "../../graphql/apollo-types/ExperienceConnectionFragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { makeScrollToDomId } from "./my.dom";
+import { OfflineIdToOnlineExperienceMap } from "../../utils/sync-flag.types";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
@@ -75,6 +76,7 @@ export enum ActionType {
   DATA_RE_FETCH_REQUEST = "@my/data-re-fetch-request",
   FETCH_NEXT_EXPERIENCES_PAGE = "@my/fetch-next=experiences-page",
   SET_TIMEOUT = "@my/set-timeout",
+  ON_SYNC = "@my/on-sync",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -156,6 +158,10 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
           case ActionType.SET_TIMEOUT:
             handleSetTimeoutAction(proxy, payload as SetTimeoutPayload);
+            break;
+
+          case ActionType.ON_SYNC:
+            handleOnSyncAction(proxy, payload as OnSycPayload);
             break;
         }
       });
@@ -563,6 +569,27 @@ function handleOnDeleteExperienceProcessedHelper(
         };
       }
       break;
+  }
+}
+
+function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
+  // istanbul ignore else
+  const { states } = proxy;
+
+  // istanbul ignore else
+  if (states.value === StateValue.data) {
+    const experiences = states.data.context.experiences;
+    const len = experiences.length;
+    const offlineIdsToPurge: string[] = [];
+
+    for (let i = 0; i < len; i++) {
+      const { id } = experiences[i];
+      const newExperience = data[id];
+      if (newExperience) {
+        experiences[i] = newExperience;
+        offlineIdsToPurge.push(id);
+      }
+    }
   }
 }
 
@@ -1031,7 +1058,14 @@ type Action =
     } & WithExperiencePayload)
   | ({
       type: ActionType.SET_TIMEOUT;
-    } & SetTimeoutPayload);
+    } & SetTimeoutPayload)
+  | ({
+      type: ActionType.ON_SYNC;
+    } & OnSycPayload);
+
+type OnSycPayload = {
+  data: OfflineIdToOnlineExperienceMap;
+};
 
 type SetTimeoutPayload = {
   [k in keyof Timeouts]: NodeJS.Timeout;

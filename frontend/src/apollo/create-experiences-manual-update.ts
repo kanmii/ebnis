@@ -19,6 +19,7 @@ import {
   removeUnsyncedExperiences,
   writeUnsyncedExperience,
 } from "./unsynced-ledger";
+import { OfflineIdToOnlineExperienceMap } from "../utils/sync-flag.types";
 
 export function createExperiencesManualUpdate(
   dataProxy: DataProxy,
@@ -30,7 +31,7 @@ export function createExperiencesManualUpdate(
     return undefined;
   }
 
-  const offlineExperienceIdToOnlineExperienceIdList: [string, string][] = [];
+  const offlineIdToOnlineExperienceMap: OfflineIdToOnlineExperienceMap = {};
 
   const toBeInsertedOrReplaced = validResponses.reduce(
     (toBeInsertedOrReplacedAcc, response) => {
@@ -47,6 +48,7 @@ export function createExperiencesManualUpdate(
 
         const offlineErfahrungId = newlyCreatedExperience.clientId || "";
         const offlineExperience = readExperienceFragment(offlineErfahrungId);
+        const experienceId = newlyCreatedExperience.id;
 
         toBeInsertedOrReplacedAcc.push([
           newlyCreatedExperience.id,
@@ -58,20 +60,17 @@ export function createExperiencesManualUpdate(
           return toBeInsertedOrReplacedAcc;
         }
 
+        // following exist bcos of experience created offline now synced
+
+        offlineIdToOnlineExperienceMap[
+          offlineErfahrungId
+        ] = newlyCreatedExperience;
+
         // kein Eintrag erstelltet mit Offline Erfahrung
         if (!entriesResult) {
           removeUnsyncedExperiences([offlineErfahrungId]);
           return toBeInsertedOrReplacedAcc;
         }
-
-        // experience created offline now synced
-
-        const experienceId = newlyCreatedExperience.id;
-
-        offlineExperienceIdToOnlineExperienceIdList.push([
-          offlineErfahrungId,
-          experienceId,
-        ]);
 
         const getEntries = getEntriesQuerySuccess(offlineErfahrungId);
 
@@ -186,7 +185,7 @@ export function createExperiencesManualUpdate(
 
       return toBeInsertedOrReplacedAcc;
     },
-    [] as [string, ExperienceFragment][],
+    [] as ToBeInsertedOrReplaced[],
   );
 
   if (toBeInsertedOrReplaced.length) {
@@ -194,8 +193,11 @@ export function createExperiencesManualUpdate(
       toBeInsertedOrReplaced,
     );
 
-    return offlineExperienceIdToOnlineExperienceIdList;
+    return offlineIdToOnlineExperienceMap;
   }
 
   return undefined;
 }
+
+// [offlineId, OnlineExperience]
+type ToBeInsertedOrReplaced = [string, ExperienceFragment];

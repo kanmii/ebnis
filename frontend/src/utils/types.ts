@@ -83,6 +83,10 @@ export type BroadcastMessage =
       payload: OnSyncedData;
     };
 
+export type BroadcastMessageSelf = {
+  detail: BroadcastMessage;
+};
+
 export type BChannel = BroadcastChannel<BroadcastMessage>;
 
 export type CommonError = Error | string;

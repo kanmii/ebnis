@@ -61,6 +61,7 @@ import Header from "../Header/header.component";
 import { unstable_batchedUpdates } from "react-dom";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
+import { WithSubscriptionContext } from "../../utils/app-context";
 
 type DispatchContextValue = Readonly<{
   dispatch: DispatchType;
@@ -92,11 +93,16 @@ export function My(props: Props) {
 
   useRunEffects(generalEffects, effectFunctions, props, { dispatch });
 
-  const onReFetch = useCallback(() => {
-    dispatch({
-      type: ActionType.DATA_RE_FETCH_REQUEST,
-    });
-  }, []);
+  const { onSyncData } = useContext(WithSubscriptionContext);
+
+  useEffect(() => {
+    if (onSyncData && onSyncData.offlineIdToOnlineExperienceMap) {
+      dispatch({
+        type: ActionType.ON_SYNC,
+        data: onSyncData.offlineIdToOnlineExperienceMap,
+      });
+    }
+  }, [onSyncData]);
 
   useEffect(() => {
     return () => {
@@ -175,7 +181,14 @@ export function My(props: Props) {
       <Header />
 
       {states.value === StateValue.errors ? (
-        <FetchExperiencesFail error={states.error} onReFetch={onReFetch} />
+        <FetchExperiencesFail
+          error={states.error}
+          onReFetch={() => {
+            dispatch({
+              type: ActionType.DATA_RE_FETCH_REQUEST,
+            });
+          }}
+        />
       ) : states.value === StateValue.loading ? (
         <Loading />
       ) : (

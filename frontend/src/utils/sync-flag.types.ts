@@ -1,4 +1,5 @@
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
+import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 
 export interface SyncFlagQueryResult {
   syncFlag: SyncFlag;
@@ -11,10 +12,11 @@ export type SyncFlag = Readonly<{
 
 export type OfflineIdToEntryMap = { [clientId: string]: EntryFragment };
 
-// [OfflineId, onlineId]
-export type OfflineExperienceIdToOnlineExperienceIdList = [string, string][];
+export type OfflineIdToOnlineExperienceMap = {
+  [offlineId: string]: ExperienceFragment;
+};
 
 export type OnSyncedData = {
-  offlineIdToEntryMap: OfflineIdToEntryMap;
-  offlineExperienceIdToOnlineExperienceIdList: OfflineExperienceIdToOnlineExperienceIdList;
+  offlineIdToEntryMap?: OfflineIdToEntryMap;
+  offlineIdToOnlineExperienceMap?: OfflineIdToOnlineExperienceMap;
 };

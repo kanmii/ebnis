@@ -4,6 +4,7 @@ import {
   EmitPayload,
   BChannel,
   BroadcastMessage,
+  BroadcastMessageSelf,
   StateValue,
 } from "./types";
 import { BroadcastChannel } from "broadcast-channel";
@@ -78,7 +79,9 @@ export function broadcastMessage(
   const { plusSelf, selfOnly } = flags || {};
 
   if (plusSelf || selfOnly) {
-    const ev = new Event(StateValue.selfBcMessageKey);
+    const ev = new CustomEvent(StateValue.selfBcMessageKey, {
+      detail: message,
+    } as BroadcastMessageSelf);
     (ev as any).data = message;
     document.dispatchEvent(ev);
   }

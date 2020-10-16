@@ -11,6 +11,7 @@ import {
   StateValue,
   BroadcastMessageType,
   BroadcastMessage,
+  BroadcastMessageSelf,
 } from "../../utils/types";
 import { cleanCachedMutations } from "../../apollo/clean-cached-mutations";
 import {
@@ -36,7 +37,7 @@ export function WithSubscriptions(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
   const {
     effects: { general: generalEffects },
-    context: { connected: connectionStatus },
+    context: { connected: connectionStatus, onSyncData },
   } = stateMachine;
 
   useRunEffects(generalEffects, effectFunctions, props, {
@@ -87,7 +88,14 @@ export function WithSubscriptions(props: Props) {
     cleanCachedMutations();
   });
 
-  function onBcMessage({ type, payload }: BroadcastMessage) {
+  function onBcMessage(message: BroadcastMessage | BroadcastMessageSelf) {
+    const message1 = message as BroadcastMessageSelf;
+
+    if (message1.detail) {
+      message = message1.detail;
+    }
+
+    const { type, payload } = message as BroadcastMessage;
     switch (type) {
       case BroadcastMessageType.experienceDeleted:
         // istanbul ignore else:
@@ -110,6 +118,7 @@ export function WithSubscriptions(props: Props) {
       <WithSubscriptionProvider
         value={{
           connected: connectionStatus,
+          onSyncData,
         }}
       >
         {children}
