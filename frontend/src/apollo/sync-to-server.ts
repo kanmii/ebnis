@@ -47,6 +47,8 @@ import {
 } from "../graphql/apollo-types/CreateExperiences";
 import { createExperiencesManualUpdate } from "./create-experiences-manual-update";
 import { writeUpdatedExperienceToCache } from "./write-updated-experiences-to-cache";
+import { broadcastMessage } from "../utils/observable-manager";
+import { BroadcastMessageType } from "../utils/types";
 
 const WAIT_INTERVAL = 5 * 1000 * 60; // 5 minutes
 
@@ -284,6 +286,19 @@ export async function syncToServer() {
 
   putSyncFlag({ isSyncing: false } as SyncFlag);
   await persistor.persist();
+
+  broadcastMessage(
+    {
+      type: BroadcastMessageType.syncDone,
+      payload: {
+        offlineExperienceIdToOnlineExperienceIdList,
+        offlineIdToEntryMap,
+      },
+    },
+    {
+      plusSelf: true,
+    },
+  );
 }
 
 type Variables = [UpdateExperienceInput[], CreateExperienceInput[]];

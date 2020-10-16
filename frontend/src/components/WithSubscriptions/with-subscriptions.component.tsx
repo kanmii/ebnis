@@ -1,13 +1,16 @@
 import React, { useEffect, useReducer } from "react";
-import { EmitActionType, onBcMessage } from "../../utils/observable-manager";
+import { EmitActionType } from "../../utils/observable-manager";
 import {
   cleanupWithSubscriptions,
   WithSubscriptionProvider,
   useOnExperiencesDeletedSubscription,
+  WithSubscriptionsDispatchProvider,
 } from "./with-subscriptions.injectables";
 import {
   EmitActionConnectionChangedPayload,
   StateValue,
+  BroadcastMessageType,
+  BroadcastMessage,
 } from "../../utils/types";
 import { cleanCachedMutations } from "../../apollo/clean-cached-mutations";
 import {
@@ -19,6 +22,13 @@ import {
   Props,
 } from "./with-subscriptions.utils";
 import { useRunEffects } from "../../utils/use-run-effects";
+import {
+  windowChangeUrl,
+  ChangeUrlType,
+  getLocation,
+} from "../../utils/global-window";
+import { MY_URL } from "../../utils/urls";
+import { OnSyncedData } from "../../utils/sync-flag.types";
 
 export function WithSubscriptions(props: Props) {
   const { observable, children, bc } = props;
@@ -26,7 +36,7 @@ export function WithSubscriptions(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
   const {
     effects: { general: generalEffects },
-    states: { connected: connectionStatus },
+    context: { connected: connectionStatus },
   } = stateMachine;
 
   useRunEffects(generalEffects, effectFunctions, props, {
@@ -77,14 +87,34 @@ export function WithSubscriptions(props: Props) {
     cleanCachedMutations();
   });
 
+  function onBcMessage({ type, payload }: BroadcastMessage) {
+    switch (type) {
+      case BroadcastMessageType.experienceDeleted:
+        // istanbul ignore else:
+        if (getLocation().pathname.includes(MY_URL)) {
+          windowChangeUrl(MY_URL, ChangeUrlType.replace);
+        }
+        break;
+
+      case BroadcastMessageType.syncDone:
+        dispatch({
+          type: ActionType.ON_SYNC,
+          data: payload as OnSyncedData,
+        });
+        break;
+    }
+  }
+
   return (
-    <WithSubscriptionProvider
-      value={{
-        connected: connectionStatus,
-      }}
-    >
-      {children}
-    </WithSubscriptionProvider>
+    <WithSubscriptionsDispatchProvider value={{ withSubDispatch: dispatch }}>
+      <WithSubscriptionProvider
+        value={{
+          connected: connectionStatus,
+        }}
+      >
+        {children}
+      </WithSubscriptionProvider>
+    </WithSubscriptionsDispatchProvider>
   );
 }
 

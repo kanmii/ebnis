@@ -4,12 +4,9 @@ import {
   EmitPayload,
   BChannel,
   BroadcastMessage,
-  BroadcastMessageType,
   StateValue,
 } from "./types";
 import { BroadcastChannel } from "broadcast-channel";
-import { getLocation, windowChangeUrl, ChangeUrlType } from "./global-window";
-import { MY_URL } from "./urls";
 
 export enum EmitActionType {
   connectionChanged = "@emit-action/connection-changed",
@@ -74,28 +71,20 @@ export function makeBChannel(globals: E2EWindowObject) {
 export function broadcastMessage(
   message: BroadcastMessage,
   flags?: {
-    toSelf: true;
+    plusSelf?: true;
+    selfOnly?: true;
   },
 ) {
-  const { bc } = window.____ebnis;
-  bc.postMessage(message);
+  const { plusSelf, selfOnly } = flags || {};
 
-  const { toSelf } = flags || {};
-
-  if (toSelf) {
+  if (plusSelf || selfOnly) {
     const ev = new Event(StateValue.selfBcMessageKey);
     (ev as any).data = message;
     document.dispatchEvent(ev);
   }
-}
 
-export function onBcMessage({ type, payload }: BroadcastMessage) {
-  switch (type) {
-    case BroadcastMessageType.experienceDeleted:
-      // istanbul ignore else:
-      if (getLocation().pathname.includes(MY_URL)) {
-        windowChangeUrl(MY_URL, ChangeUrlType.replace);
-      }
-      break;
+  if (!selfOnly) {
+    const { bc } = window.____ebnis;
+    bc.postMessage(message);
   }
 }

@@ -6,6 +6,8 @@ import {
 } from "@apollo/client";
 import { RestoreCacheOrPurgeStorageFn, E2EWindowObject } from "./types";
 import { CachePersistor } from "apollo-cache-persist-dev";
+import { OnSyncedData } from "./sync-flag.types";
+import { DispatchType } from "../components/WithSubscriptions/with-subscriptions.utils";
 
 export const EbnisAppContext = createContext<EbnisContextProps>(
   {} as EbnisContextProps,
@@ -20,10 +22,21 @@ export interface EbnisContextProps extends E2EWindowObject {
 
 export type AppPersistor = CachePersistor<NormalizedCacheObject>;
 
-export const WithSubscriptionContext = createContext<WithSubscriptionContextProps>({
+export const WithSubscriptionContext = createContext<
+  WithSubscriptionContextProps
+>({
   connected: null,
 } as WithSubscriptionContextProps);
 
+export const WithSubscriptionsDispatchContext = createContext<
+  WithSubscriptionsDispatchContextProps
+>({} as WithSubscriptionsDispatchContextProps);
+
 export interface WithSubscriptionContextProps {
   connected: boolean | null;
+  onSyncData?: OnSyncedData;
 }
+
+export type WithSubscriptionsDispatchContextProps = {
+  withSubDispatch: DispatchType;
+};

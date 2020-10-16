@@ -7,7 +7,6 @@ import {
   EmitPayload,
   BChannel,
   EmitActionConnectionChangedPayload,
-  BroadcastMessage,
 } from "../../utils/types";
 import { MY_URL } from "../../utils/urls";
 import {
@@ -15,7 +14,6 @@ import {
   windowChangeUrl,
   ChangeUrlType,
 } from "../../utils/global-window";
-import { BroadcastMessageType } from "../../utils/observable-manager";
 import {
   OnExperiencesDeletedSubscription,
   OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences,
@@ -28,11 +26,13 @@ import {
 import { purgeExperiencesFromCache1 } from "../../apollo/update-get-experiences-mini-query";
 import { syncToServer } from "../../apollo/sync-to-server";
 import { putSyncFlag } from "../../apollo/sync-flag";
-import { SyncFlag } from "../../utils/sync-flag.types";
+import { SyncFlag, OnSyncedData } from "../../utils/sync-flag.types";
+import { WithSubscriptionContextProps } from "../../utils/app-context";
 
 export enum ActionType {
   CONNECTION_CHANGED = "@with-subscription/connection-changed",
   EXPERIENCE_DELETED = "@with-subscription/experience-deleted",
+  ON_SYNC = "@with-subscription/on-sync",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -55,6 +55,10 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
               payload as ExperienceDeletedPayload,
             );
             break;
+
+          case ActionType.ON_SYNC:
+            handleOnSyncAction(proxy, payload as OnSycPayload);
+            break;
         }
       });
     },
@@ -70,7 +74,7 @@ export function initState(): StateMachine {
         value: StateValue.noEffect,
       },
     },
-    states: {
+    context: {
       connected: null,
     },
   };
@@ -96,7 +100,7 @@ function handleConnectionChangedAction(
   payload: EmitActionConnectionChangedPayload,
 ) {
   const { connected } = payload;
-  proxy.states.connected = connected;
+  proxy.context.connected = connected;
 
   const effects = getGeneralEffects<EffectType, DraftState>(proxy);
   effects.push({
@@ -107,20 +111,13 @@ function handleConnectionChangedAction(
   });
 }
 
+function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
+  proxy.context.onSyncData = data;
+}
+
 ////////////////////////// END STATE UPDATE SECTION //////////////////////
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
-
-export function onMessage({ type, payload }: BroadcastMessage) {
-  switch (type) {
-    case BroadcastMessageType.experienceDeleted:
-      // istanbul ignore else:
-      if (getLocation().pathname.includes(MY_URL)) {
-        windowChangeUrl(MY_URL, ChangeUrlType.replace);
-      }
-      break;
-  }
-}
 
 const onExperiencesDeletedEffect: DefOnExperiencesDeletedEffect["func"] = async (
   ownArgs,
@@ -181,9 +178,7 @@ type DraftState = Draft<StateMachine>;
 
 export type StateMachine = GenericGeneralEffect<EffectType> &
   Readonly<{
-    states: Readonly<{
-      connected: boolean | null;
-    }>;
+    context: Readonly<WithSubscriptionContextProps>;
   }>;
 
 type Action =
@@ -192,7 +187,14 @@ type Action =
     } & EmitActionConnectionChangedPayload)
   | ({
       type: ActionType.EXPERIENCE_DELETED;
-    } & ExperienceDeletedPayload);
+    } & ExperienceDeletedPayload)
+  | ({
+      type: ActionType.ON_SYNC;
+    } & OnSycPayload);
+
+type OnSycPayload = {
+  data?: OnSyncedData;
+};
 
 interface ExperienceDeletedPayload {
   data?: OnExperiencesDeletedSubscription;
@@ -205,7 +207,7 @@ export type CallerProps = PropsWithChildren<{
 
 export type Props = CallerProps;
 
-type DispatchType = Dispatch<Action>;
+export type DispatchType = Dispatch<Action>;
 
 export interface EffectArgs {
   dispatch: DispatchType;
