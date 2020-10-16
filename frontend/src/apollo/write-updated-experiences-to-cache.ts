@@ -39,6 +39,8 @@ export function writeUpdatedExperienceToCache(
     [experienceId: string]: 1;
   } = {};
 
+  const offlineIdToEntryMap: OfflineIdToEntryMap = {};
+
   // istanbul ignore else
   if (updateExperiences.__typename === "UpdateExperiencesSomeSuccess") {
     for (const updateResult of updateExperiences.experiences) {
@@ -92,6 +94,7 @@ export function writeUpdatedExperienceToCache(
             getEntriesQueryProxy,
             unsyncedExperienceProxy,
             entriesResult,
+            offlineIdToEntryMap,
           );
 
           applyUpdatedEntriesAndCleanUpUnsyncedData(
@@ -129,6 +132,8 @@ export function writeUpdatedExperienceToCache(
       }
     }
   }
+
+  return offlineIdToEntryMap;
 }
 
 function ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
@@ -268,6 +273,7 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
   proxy: GetEntriesQueryDraft,
   unsynced: DraftUnsyncedModifiedExperience,
   result: UpdateExperienceSomeSuccessFragment_entries | null,
+  offlineIdToEntryMap: OfflineIdToEntryMap,
 ) {
   const newEntries = result && result.newEntries;
 
@@ -279,7 +285,6 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
   let hasOfflineSyncedEntryError = false;
   let hasUpdates = false;
   const brandNewEntries: EntryFragment[] = [];
-  const offlineSyncedEntries: IdToOfflineEntrySynced = {};
 
   newEntries.forEach((update) => {
     if (update.__typename === "CreateEntrySuccess") {
@@ -289,7 +294,7 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
 
       if (clientId) {
         // offline synced
-        offlineSyncedEntries[clientId] = entry;
+        offlineIdToEntryMap[clientId] = entry;
         delete entriesErrors[clientId];
       } else {
         // brand new entry
@@ -311,7 +316,7 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
     delete unsynced.newEntries;
   }
 
-  const isOfflineEntrySynced = Object.keys(offlineSyncedEntries).length !== 0;
+  const isOfflineEntrySynced = Object.keys(offlineIdToEntryMap).length !== 0;
 
   if (hasUpdates) {
     const edges = proxy.edges as EntryConnectionFragment_edges[];
@@ -319,7 +324,7 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
     if (isOfflineEntrySynced) {
       edges.forEach((edge) => {
         const node = edge.node as EntryFragment;
-        const newEntry = offlineSyncedEntries[node.id];
+        const newEntry = offlineIdToEntryMap[node.id];
         // istanbul ignore else
         if (newEntry) {
           edge.node = newEntry;
@@ -331,6 +336,8 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
       .map((entry) => entryToEdge(entry))
       .concat(edges);
   }
+
+  return offlineIdToEntryMap;
 }
 
 type ExperienceDraft = Draft<ExperienceFragment>;
@@ -351,7 +358,7 @@ interface EntryIdToDataObjectMap {
   [entryId: string]: IdToDataObjectMap;
 }
 
-interface IdToOfflineEntrySynced {
+export interface OfflineIdToEntryMap {
   [clientId: string]: EntryFragment;
 }
 

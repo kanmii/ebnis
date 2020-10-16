@@ -17,6 +17,7 @@ import {
   InitialVal,
   LoadingState,
   FETCH_EXPERIENCES_TIMEOUTS,
+  BroadcastMessageType,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -33,7 +34,6 @@ import {
   purgeExperiencesFromCache1,
   writeGetExperiencesMiniQuery,
 } from "../../apollo/update-get-experiences-mini-query";
-import { BroadcastMessageType } from "../../utils/observable-manager";
 import { getIsConnected } from "../../utils/connections";
 import {
   DATA_FETCHING_FAILED,

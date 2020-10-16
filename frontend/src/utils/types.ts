@@ -4,7 +4,7 @@ import { PropsWithChildren } from "react";
 import { InMemoryCache, ApolloClient } from "@apollo/client";
 import { Observable } from "zen-observable-ts";
 import { CachePersistor } from "apollo-cache-persist-dev";
-import { EmitActionType, BroadcastMessageType } from "./observable-manager";
+import { EmitActionType } from "./observable-manager";
 import { ChangeEvent } from "react";
 import { BroadcastChannel } from "broadcast-channel";
 
@@ -64,13 +64,23 @@ declare global {
   }
 }
 
-export type BroadcastMessage = {
-  type: BroadcastMessageType.experienceDeleted;
-  payload: {
-    id: string;
-    title: string;
-  };
-};
+export enum BroadcastMessageType {
+  experienceDeleted = "@broadcast/experience-deleted",
+  syncDone = "@broadcast/sync-done",
+}
+
+export type BroadcastMessage =
+  | {
+      type: BroadcastMessageType.experienceDeleted;
+      payload: {
+        id: string;
+        title: string;
+      };
+    }
+  | {
+      type: BroadcastMessageType.syncDone;
+      payload: 1;
+    };
 
 export type BChannel = BroadcastChannel<BroadcastMessage>;
 
@@ -149,6 +159,7 @@ export const StateValue = {
   update: "update" as UpdateVal,
   insert: "insert" as InsertVal,
   reFetchOnly: "re-fecht-only" as ReFetchOnly,
+  selfBcMessageKey: "self-bc-message" as any,
 } as const;
 
 export type LoadingState = Readonly<{

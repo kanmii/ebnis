@@ -1,6 +1,10 @@
 import { getUnsyncedLedger } from "./unsynced-ledger";
 import { getSyncFlag, putSyncFlag } from "./sync-flag";
-import { SyncFlag } from "../utils/sync-flag.types";
+import {
+  SyncFlag,
+  OfflineExperienceIdToOnlineExperienceIdList,
+  OfflineIdToEntryMap,
+} from "../utils/sync-flag.types";
 import {
   UpdateExperienceInput,
   CreateExperienceInput,
@@ -43,17 +47,15 @@ import {
 } from "../graphql/apollo-types/CreateExperiences";
 import { createExperiencesManualUpdate } from "./create-experiences-manual-update";
 import { writeUpdatedExperienceToCache } from "./write-updated-experiences-to-cache";
-import { windowChangeUrl, ChangeUrlType } from "../utils/global-window";
-import { makeDetailedExperienceRoute } from "../utils/urls";
 
 const WAIT_INTERVAL = 5 * 1000 * 60; // 5 minutes
 
-export async function syncToServer(location: Location) {
+export async function syncToServer() {
   let canSync = getSyncFlag().canSync;
 
   if (!canSync) {
     setTimeout(() => {
-      syncToServer(location);
+      syncToServer();
     }, WAIT_INTERVAL);
 
     putSyncFlag({ isSyncing: false } as SyncFlag);
@@ -193,7 +195,7 @@ export async function syncToServer(location: Location) {
 
   if (!canSync) {
     setTimeout(() => {
-      syncToServer(location);
+      syncToServer();
     }, WAIT_INTERVAL);
 
     return;
@@ -258,43 +260,30 @@ export async function syncToServer(location: Location) {
     }
   } catch (error) {}
 
-  const { pathname } = location;
+  let offlineIdToEntryMap: OfflineIdToEntryMap = {};
+
+  let offlineExperienceIdToOnlineExperienceIdList: OfflineExperienceIdToOnlineExperienceIdList = [];
 
   if (updateResult) {
-    writeUpdatedExperienceToCache(cache, {
-      data: {
-        updateExperiences: updateResult,
-      },
-    });
+    offlineIdToEntryMap =
+      writeUpdatedExperienceToCache(cache, {
+        data: {
+          updateExperiences: updateResult,
+        },
+      }) || {};
   }
 
   if (createResult) {
-    const map = createExperiencesManualUpdate(cache, {
-      data: {
-        createExperiences: createResult,
-      },
-    });
-
-    if (map) {
-      for (const [offlineId, onlineId] of map) {
-        if (pathname.includes(offlineId)) {
-          putSyncFlag({ isSyncing: false } as SyncFlag);
-          await persistor.persist();
-
-          windowChangeUrl(
-            makeDetailedExperienceRoute(onlineId),
-            ChangeUrlType.replace,
-          );
-
-          return;
-        }
-      }
-    }
+    offlineExperienceIdToOnlineExperienceIdList =
+      createExperiencesManualUpdate(cache, {
+        data: {
+          createExperiences: createResult,
+        },
+      }) || [];
   }
 
   putSyncFlag({ isSyncing: false } as SyncFlag);
   await persistor.persist();
-  // windowChangeUrl(pathname, ChangeUrlType.reload);
 }
 
 type Variables = [UpdateExperienceInput[], CreateExperienceInput[]];

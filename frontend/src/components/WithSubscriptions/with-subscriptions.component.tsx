@@ -1,15 +1,17 @@
 import React, { useEffect, useReducer } from "react";
-import { EmitActionType } from "../../utils/observable-manager";
+import { EmitActionType, onBcMessage } from "../../utils/observable-manager";
 import {
   cleanupWithSubscriptions,
   WithSubscriptionProvider,
   useOnExperiencesDeletedSubscription,
 } from "./with-subscriptions.injectables";
-import { EmitActionConnectionChangedPayload } from "../../utils/types";
+import {
+  EmitActionConnectionChangedPayload,
+  StateValue,
+} from "../../utils/types";
 import { cleanCachedMutations } from "../../apollo/clean-cached-mutations";
 import {
   CallerProps,
-  onMessage,
   ActionType,
   reducer,
   initState,
@@ -17,7 +19,6 @@ import {
   Props,
 } from "./with-subscriptions.utils";
 import { useRunEffects } from "../../utils/use-run-effects";
-import {useLocation} from "react-router-dom";
 
 export function WithSubscriptions(props: Props) {
   const { observable, children, bc } = props;
@@ -28,11 +29,8 @@ export function WithSubscriptions(props: Props) {
     states: { connected: connectionStatus },
   } = stateMachine;
 
-  const location = useLocation()
-
   useRunEffects(generalEffects, effectFunctions, props, {
     dispatch,
-    location
   });
 
   useEffect(() => {
@@ -43,7 +41,8 @@ export function WithSubscriptions(props: Props) {
   }, [data]);
 
   useEffect(() => {
-    bc.addEventListener("message", onMessage);
+    bc.addEventListener("message", onBcMessage);
+    document.addEventListener(StateValue.selfBcMessageKey, onBcMessage);
 
     const subscription = observable.subscribe({
       next({ type, ...payload }) {
@@ -66,7 +65,8 @@ export function WithSubscriptions(props: Props) {
 
     return () => {
       cleanupWithSubscriptions(() => {
-        bc.removeEventListener("message", onMessage);
+        bc.removeEventListener("message", onBcMessage);
+        document.removeEventListener(StateValue.selfBcMessageKey, onBcMessage);
         subscription.unsubscribe();
       });
     };

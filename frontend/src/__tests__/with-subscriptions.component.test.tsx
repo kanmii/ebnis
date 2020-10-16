@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ComponentType } from "react";
 import { render, cleanup, wait } from "@testing-library/react";
-import { E2EWindowObject } from "../utils/types";
+import { E2EWindowObject, BroadcastMessageType } from "../utils/types";
 import {
   cleanupWithSubscriptions,
   useOnExperiencesDeletedSubscription,
@@ -10,7 +10,7 @@ import { WithSubscriptions } from "../components/WithSubscriptions/with-subscrip
 import {
   makeObservable,
   EmitActionType,
-  makeBChannel,
+  onBcMessage,
 } from "../utils/observable-manager";
 import { act } from "react-dom/test-utils";
 import {
@@ -18,9 +18,7 @@ import {
   getLocation,
   ChangeUrlType,
 } from "../utils/global-window";
-import { BroadcastMessageType } from "../utils/observable-manager";
 import { MY_URL } from "../utils/urls";
-import { onMessage } from "../components/WithSubscriptions/with-subscriptions.utils";
 
 jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
@@ -132,7 +130,7 @@ it("utils/on broadcast channel message", () => {
     pathname: MY_URL,
   });
 
-  onMessage({
+  onBcMessage({
     type: BroadcastMessageType.experienceDeleted,
     payload: {
       id: "a",
