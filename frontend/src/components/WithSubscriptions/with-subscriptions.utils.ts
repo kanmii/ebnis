@@ -23,10 +23,17 @@ import {
   getGeneralEffects,
   GenericEffectDefinition,
 } from "../../utils/effects";
-import { purgeExperiencesFromCache1 } from "../../apollo/update-get-experiences-mini-query";
+import {
+  purgeExperiencesFromCache1,
+  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery,
+} from "../../apollo/update-get-experiences-mini-query";
 import { syncToServer } from "../../apollo/sync-to-server";
 import { putSyncFlag } from "../../apollo/sync-flag";
-import { SyncFlag, OnSyncedData } from "../../utils/sync-flag.types";
+import {
+  SyncFlag,
+  OnSyncedData,
+  OfflineIdToOnlineExperienceMap,
+} from "../../utils/sync-flag.types";
 import { WithSubscriptionContextProps } from "../../utils/app-context";
 
 export enum ActionType {
@@ -171,6 +178,22 @@ export const effectFunctions = {
   onExperiencesDeletedEffect,
   syncToServerEffect,
 };
+
+export async function cleanUpOfflineExperiences(
+  data: OfflineIdToOnlineExperienceMap,
+) {
+  const [toPurge, toRemove] = Object.keys(data).reduce(
+    (acc, id) => {
+      return acc;
+    },
+    [[], []] as [string[], [string, null][]],
+  );
+
+  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(toRemove);
+  purgeExperiencesFromCache1(toPurge);
+  const { persistor } = window.____ebnis;
+  await persistor.persist();
+}
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
 

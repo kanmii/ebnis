@@ -21,6 +21,7 @@ import {
   initState,
   effectFunctions,
   Props,
+  cleanUpOfflineExperiences,
 } from "./with-subscriptions.utils";
 import { useRunEffects } from "../../utils/use-run-effects";
 import {
@@ -28,7 +29,7 @@ import {
   ChangeUrlType,
   getLocation,
 } from "../../utils/global-window";
-import { MY_URL } from "../../utils/urls";
+import { MY_URL, EXPERIENCE_DETAIL_URL_PREFIX } from "../../utils/urls";
 import { OnSyncedData } from "../../utils/sync-flag.types";
 
 export function WithSubscriptions(props: Props) {
@@ -89,10 +90,10 @@ export function WithSubscriptions(props: Props) {
   });
 
   function onBcMessage(message: BroadcastMessage | BroadcastMessageSelf) {
-    const message1 = message as BroadcastMessageSelf;
+    const selfMessage = message as BroadcastMessageSelf;
 
-    if (message1.detail) {
-      message = message1.detail;
+    if (selfMessage.detail) {
+      message = selfMessage.detail;
     }
 
     const { type, payload } = message as BroadcastMessage;
@@ -105,9 +106,23 @@ export function WithSubscriptions(props: Props) {
         break;
 
       case BroadcastMessageType.syncDone:
+        const data = payload as OnSyncedData;
+        const { pathname } = getLocation();
+
+        if (data.offlineIdToOnlineExperienceMap && pathname !== MY_URL) {
+          cleanUpOfflineExperiences(data.offlineIdToOnlineExperienceMap);
+        }
+
+        if (
+          data.offlineIdToEntryMap &&
+          !pathname.startsWith(EXPERIENCE_DETAIL_URL_PREFIX)
+        ) {
+          //
+        }
+
         dispatch({
           type: ActionType.ON_SYNC,
-          data: payload as OnSyncedData,
+          data,
         });
         break;
     }

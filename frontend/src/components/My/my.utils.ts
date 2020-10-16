@@ -33,7 +33,6 @@ import {
 import {
   purgeExperiencesFromCache1,
   writeGetExperiencesMiniQuery,
-  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery,
 } from "../../apollo/update-get-experiences-mini-query";
 import { getIsConnected } from "../../utils/connections";
 import {
@@ -62,6 +61,7 @@ import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragmen
 import { makeScrollToDomId } from "./my.dom";
 import { OfflineIdToOnlineExperienceMap } from "../../utils/sync-flag.types";
 import { broadcastMessage } from "../../utils/observable-manager";
+import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
@@ -600,7 +600,7 @@ function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
     effects.push({
       key: "postSyncEffect",
       ownArgs: {
-        data: [toPurge, toSkip],
+        data,
       },
     });
   }
@@ -833,20 +833,14 @@ type DefTimeoutsEffect = EffectDefinition<
   }
 >;
 
-const postSyncEffect: DefPostSyncEffect["func"] = async ({ data }) => {
-  const [toPurge, toRemove] = data;
-
-  purgeExperiencesFromCache1(toPurge);
-  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(toRemove);
-
-  const { persistor } = window.____ebnis;
-  await persistor.persist();
+const postSyncEffect: DefPostSyncEffect["func"] = ({ data }) => {
+  cleanUpOfflineExperiences(data);
 };
 
 type DefPostSyncEffect = EffectDefinition<
   "postSyncEffect",
   {
-    data: [string[], [string, null][]];
+    data: OfflineIdToOnlineExperienceMap;
   }
 >;
 
