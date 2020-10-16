@@ -3,6 +3,7 @@
 export enum ChangeUrlType {
   replace = "replace",
   goTo = "goTo",
+  reload = "reload",
 }
 
 export function windowChangeUrl(url: string, type: ChangeUrlType) {
@@ -13,6 +14,10 @@ export function windowChangeUrl(url: string, type: ChangeUrlType) {
 
     case ChangeUrlType.goTo:
       window.location.href = url;
+      break;
+
+    case ChangeUrlType.reload:
+      window.location.reload();
       break;
   }
 }

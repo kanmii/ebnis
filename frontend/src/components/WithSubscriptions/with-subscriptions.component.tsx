@@ -17,6 +17,7 @@ import {
   Props,
 } from "./with-subscriptions.utils";
 import { useRunEffects } from "../../utils/use-run-effects";
+import {useLocation} from "react-router-dom";
 
 export function WithSubscriptions(props: Props) {
   const { observable, children, bc } = props;
@@ -27,8 +28,11 @@ export function WithSubscriptions(props: Props) {
     states: { connected: connectionStatus },
   } = stateMachine;
 
+  const location = useLocation()
+
   useRunEffects(generalEffects, effectFunctions, props, {
     dispatch,
+    location
   });
 
   useEffect(() => {

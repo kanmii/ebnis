@@ -150,14 +150,18 @@ type DefOnExperiencesDeletedEffect = EffectDefinition<
   OnExperiencesDeletedSubscription
 >;
 
-const syncToServerEffect: DefSyncToServerEffect["func"] = ({ connected }) => {
+const syncToServerEffect: DefSyncToServerEffect["func"] = (
+  { connected },
+  _,
+  { location },
+) => {
   if (!connected) {
     putSyncFlag({ canSync: false } as SyncFlag);
     return;
   }
 
   putSyncFlag({ canSync: true } as SyncFlag);
-  syncToServer();
+  syncToServer(location);
 };
 
 type DefSyncToServerEffect = EffectDefinition<
@@ -206,6 +210,7 @@ type DispatchType = Dispatch<Action>;
 
 export interface EffectArgs {
   dispatch: DispatchType;
+  location: Location;
 }
 
 type EffectDefinition<

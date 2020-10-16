@@ -43,15 +43,17 @@ import {
 } from "../graphql/apollo-types/CreateExperiences";
 import { createExperiencesManualUpdate } from "./create-experiences-manual-update";
 import { writeUpdatedExperienceToCache } from "./write-updated-experiences-to-cache";
+import { windowChangeUrl, ChangeUrlType } from "../utils/global-window";
+import { makeDetailedExperienceRoute } from "../utils/urls";
 
-const WAIT_INTERVAL = 3 * 1000 * 60; // 3 minutes
+const WAIT_INTERVAL = 5 * 1000 * 60; // 5 minutes
 
-export async function syncToServer() {
+export async function syncToServer(location: Location) {
   let canSync = getSyncFlag().canSync;
 
   if (!canSync) {
     setTimeout(() => {
-      syncToServer();
+      syncToServer(location);
     }, WAIT_INTERVAL);
 
     putSyncFlag({ isSyncing: false } as SyncFlag);
@@ -191,13 +193,13 @@ export async function syncToServer() {
 
   if (!canSync) {
     setTimeout(() => {
-      syncToServer();
+      syncToServer(location);
     }, WAIT_INTERVAL);
 
     return;
   }
 
-  const { client, cache } = window.____ebnis;
+  const { client, cache, persistor } = window.____ebnis;
 
   let updateResult = (undefined as unknown) as UpdateExperiencesOnline_updateExperiences;
   let createResult = (undefined as unknown) as CreateExperiences_createExperiences[];
@@ -256,12 +258,9 @@ export async function syncToServer() {
     }
   } catch (error) {}
 
-  console.log(
-    `\n\t\tLogging start\n\n\n\n sync result\n`,
-    updateResult,
-    createResult,
-    `\n\n\n\n\t\tLogging ends\n`,
-  );
+  await persistor.persist();
+
+  const { pathname } = location;
 
   if (updateResult) {
     writeUpdatedExperienceToCache(cache, {
@@ -272,14 +271,30 @@ export async function syncToServer() {
   }
 
   if (createResult) {
-    createExperiencesManualUpdate(cache, {
+    const map = createExperiencesManualUpdate(cache, {
       data: {
         createExperiences: createResult,
       },
     });
+
+    if (map) {
+      map.forEach(([offlineId, onlineId]) => {
+        if (pathname.includes(offlineId)) {
+          putSyncFlag({ isSyncing: false } as SyncFlag);
+
+          windowChangeUrl(
+            makeDetailedExperienceRoute(onlineId),
+            ChangeUrlType.replace,
+          );
+
+          return;
+        }
+      });
+    }
   }
 
   putSyncFlag({ isSyncing: false } as SyncFlag);
+  windowChangeUrl(pathname, ChangeUrlType.reload);
 }
 
 type Variables = [UpdateExperienceInput[], CreateExperienceInput[]];
