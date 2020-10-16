@@ -1,11 +1,11 @@
 import { HasEffectsVal, NoEffectVal, StateValue } from "./types";
 
-export function getGeneralEffects<E, T extends GenericGeneralEffect<E>>(
+export function getGeneralEffects<EffectType, T extends GenericGeneralEffect<EffectType>>(
   proxy: T,
 ) {
-  const generalEffects = proxy.effects.general as GenericHasEffect<E>;
+  const generalEffects = proxy.effects.general as GenericHasEffect<EffectType>;
   generalEffects.value = StateValue.hasEffects;
-  let effects: Array<E> = [];
+  let effects: Array<EffectType> = [];
 
   // istanbul ignore next: trivial
   if (!generalEffects.hasEffects) {

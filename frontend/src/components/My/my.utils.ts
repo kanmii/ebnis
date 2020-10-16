@@ -33,6 +33,7 @@ import {
 import {
   purgeExperiencesFromCache1,
   writeGetExperiencesMiniQuery,
+  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery,
 } from "../../apollo/update-get-experiences-mini-query";
 import { getIsConnected } from "../../utils/connections";
 import {
@@ -60,6 +61,7 @@ import {
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { makeScrollToDomId } from "./my.dom";
 import { OfflineIdToOnlineExperienceMap } from "../../utils/sync-flag.types";
+import { broadcastMessage } from "../../utils/observable-manager";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
@@ -580,16 +582,27 @@ function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
   if (states.value === StateValue.data) {
     const experiences = states.data.context.experiences;
     const len = experiences.length;
-    const offlineIdsToPurge: string[] = [];
+    const toPurge: string[] = [];
+    const toSkip: [string, null][] = [];
 
     for (let i = 0; i < len; i++) {
       const { id } = experiences[i];
       const newExperience = data[id];
       if (newExperience) {
         experiences[i] = newExperience;
-        offlineIdsToPurge.push(id);
+        toPurge.push(id);
+        toSkip.push([id, null]);
       }
     }
+
+    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+
+    effects.push({
+      key: "postSyncEffect",
+      ownArgs: {
+        data: [toPurge, toSkip],
+      },
+    });
   }
 }
 
@@ -820,11 +833,29 @@ type DefTimeoutsEffect = EffectDefinition<
   }
 >;
 
+const postSyncEffect: DefPostSyncEffect["func"] = async ({ data }) => {
+  const [toPurge, toRemove] = data;
+
+  purgeExperiencesFromCache1(toPurge);
+  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(toRemove);
+
+  const { persistor } = window.____ebnis;
+  await persistor.persist();
+};
+
+type DefPostSyncEffect = EffectDefinition<
+  "postSyncEffect",
+  {
+    data: [string[], [string, null][]];
+  }
+>;
+
 export const effectFunctions = {
   deletedExperienceRequestEffect,
   fetchExperiencesEffect,
   scrollToViewEffect,
   timeoutsEffect,
+  postSyncEffect,
 };
 
 async function deleteExperienceProcessedEffectHelper({ dispatch }: EffectArgs) {
@@ -840,11 +871,11 @@ async function deleteExperienceProcessedEffectHelper({ dispatch }: EffectArgs) {
   if (deletedExperience.key === StateValue.deleted) {
     const { id } = deletedExperience;
     purgeExperiencesFromCache1([id]);
-    const { persistor, bc, cache } = window.____ebnis;
+    const { persistor, cache } = window.____ebnis;
     cache.evict({ id });
     await persistor.persist();
 
-    bc.postMessage({
+    broadcastMessage({
       type: BroadcastMessageType.experienceDeleted,
       payload: {
         id,
@@ -1136,7 +1167,8 @@ export type EffectType =
   | DefDeleteExperienceRequestEffect
   | DefFetchExperiencesEffect
   | DefScrollToViewEffect
-  | DefTimeoutsEffect;
+  | DefTimeoutsEffect
+  | DefPostSyncEffect;
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
