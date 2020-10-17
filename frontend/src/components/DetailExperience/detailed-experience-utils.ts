@@ -7,7 +7,6 @@ import { isOfflineId } from "../../utils/offlines";
 import {
   getUnsyncedExperience,
   removeUnsyncedExperiences,
-  getUnSyncEntriesErrorsLedger,
 } from "../../apollo/unsynced-ledger";
 import immer, { Draft } from "immer";
 import dateFnFormat from "date-fns/format";
@@ -38,12 +37,7 @@ import {
   putOrRemoveSyncingExperience,
 } from "../../apollo/syncing-experience-ledger";
 import { purgeExperience } from "../../apollo/update-get-experiences-mini-query";
-import {
-  CreateEntryErrorFragment,
-  CreateEntryErrorFragment_dataObjects,
-} from "../../graphql/apollo-types/CreateEntryErrorFragment";
-import { putAndRemoveUnSyncableEntriesErrorsLedger } from "../../apollo/unsynced-ledger";
-import { UnsyncableEntriesErrors } from "../../utils/unsynced-ledger.types";
+import { CreateEntryErrorFragment } from "../../graphql/apollo-types/CreateEntryErrorFragment";
 import { MY_URL } from "../../utils/urls";
 import {
   getDeleteExperienceLedger,
@@ -120,13 +114,6 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             handleToggleNewEntryActiveAction(
               proxy,
               payload as NewEntryActivePayload,
-            );
-            break;
-
-          case ActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED:
-            handleOnNewEntryCreatedOrOfflineExperienceSynced(
-              proxy,
-              payload as OnNewEntryCreatedOrOfflineExperienceSyncedPayload,
             );
             break;
 
@@ -273,222 +260,6 @@ function handleToggleNewEntryActiveAction(
       context: {},
     };
   }
-}
-
-function handleOnNewEntryCreatedOrOfflineExperienceSynced(
-  proxy: DraftState,
-  payload: OnNewEntryCreatedOrOfflineExperienceSyncedPayload,
-) {
-  const { states: globalStates } = proxy;
-
-  // istanbul ignore else:
-  if (globalStates.value === StateValue.data) {
-    const { states, context } = globalStates.data;
-
-    const { newEntryActive, notification } = states;
-    newEntryActive.value = StateValue.inactive;
-    notification.value = StateValue.inactive;
-
-    handleMaybeNewEntryCreatedHelper(proxy, payload);
-
-    const unsyncableEntriesErrors = handleMaybeEntriesErrorsHelper(
-      proxy,
-      payload,
-    );
-
-    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
-
-    effects.push({
-      key: "scrollDocToTopEffect",
-      ownArgs: {},
-    });
-
-    // istanbul ignore else:
-    if (Object.keys(unsyncableEntriesErrors).length) {
-      effects.push({
-        key: "putEntriesErrorsInLedgerEffect",
-        ownArgs: {
-          errors: unsyncableEntriesErrors,
-          experience: context.experience,
-        },
-      });
-    }
-  }
-}
-
-function handleMaybeNewEntryCreatedHelper(
-  proxy: DraftState,
-  payload: OnNewEntryCreatedOrOfflineExperienceSyncedPayload,
-) {
-  const {
-    mayBeNewEntry,
-    mayBeEntriesErrors,
-    vielleichtBearbeitenEintrag,
-  } = payload;
-
-  // istanbul ignore next:
-  if (!mayBeNewEntry) {
-    return;
-  }
-
-  const { states: globalStates } = proxy;
-
-  // istanbul ignore else:
-  if (globalStates.value === StateValue.data) {
-    const { states } = globalStates.data;
-    const { neuEintragDaten, zustand } = mayBeNewEntry;
-
-    const {
-      updatedAt,
-      clientId: neuErstellteEintragKlientId,
-    } = neuEintragDaten;
-
-    const { newEntryCreated, einträge: einträgeStatten } = states;
-
-    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
-
-    effects.push({
-      key: "timeoutsEffect",
-      ownArgs: {
-        set: "set-close-new-entry-created-notification",
-      },
-    });
-
-    const neuErstellteEintragFehler =
-      mayBeEntriesErrors &&
-      mayBeEntriesErrors.find((error) => {
-        return error.meta.clientId === neuErstellteEintragKlientId;
-      });
-
-    // istanbul ignore next:
-    if (neuErstellteEintragFehler) {
-      return;
-    }
-
-    const newEntryState = newEntryCreated as Draft<NewEntryCreatedNotification>;
-    newEntryState.value = StateValue.active;
-
-    newEntryState.active = {
-      context: {
-        message: `New entry created on: ${formatDatetime(updatedAt)}`,
-      },
-    };
-
-    switch (einträgeStatten.wert) {
-      case StateValue.erfolg:
-      case StateValue.einträgeMitHolenFehler:
-        const ob =
-          einträgeStatten[StateValue.erfolg] ||
-          einträgeStatten[StateValue.einträgeMitHolenFehler];
-
-        verarbeitenEinträgeContext(
-          proxy,
-          ob.context,
-          neuEintragDaten,
-          zustand,
-          vielleichtBearbeitenEintrag,
-        );
-        break;
-
-      case StateValue.versagen:
-        {
-          const einträgeMitHolenFehler = states.einträge as Draft<
-            EinträgeMitHolenFehler
-          >;
-
-          einträgeMitHolenFehler.wert = StateValue.einträgeMitHolenFehler;
-          einträgeMitHolenFehler.einträgeMitHolenFehler = {
-            context: {
-              einträge: [
-                {
-                  eintragDaten: neuEintragDaten,
-                },
-              ],
-              holenFehler: einträgeStatten.fehler,
-            },
-          };
-        }
-        break;
-    }
-  }
-}
-
-function handleMaybeEntriesErrorsHelper(
-  proxy: DraftState,
-  payload: OnNewEntryCreatedOrOfflineExperienceSyncedPayload,
-) {
-  const unsyncableEntriesErrors = {} as UnsyncableEntriesErrors;
-  const { mayBeEntriesErrors } = payload;
-
-  // istanbul ignore next:
-  if (!mayBeEntriesErrors) {
-    return unsyncableEntriesErrors;
-  }
-
-  const { states: globalStates } = proxy;
-
-  // istanbul ignore else:
-  if (globalStates.value === StateValue.data) {
-    const {
-      states: { entriesErrors },
-    } = globalStates.data;
-
-    const entriesErrorsState = entriesErrors as Draft<
-      EntriesErrorsNotification
-    >;
-    const errorValues = {} as EintragFehlerAlsListeKarte;
-
-    entriesErrorsState.value = StateValue.active;
-    entriesErrorsState.active = {
-      context: {
-        errors: errorValues,
-      },
-    };
-
-    mayBeEntriesErrors.forEach((entryError) => {
-      const {
-        /* eslint-disable-next-line @typescript-eslint/no-unused-vars*/
-        __typename,
-        meta: { clientId },
-        dataObjects,
-        ...nichtGegenstandFehlern
-      } = entryError;
-
-      const errors: EintragFehlerAlsListe = [];
-
-      // istanbul ignore else:
-      if (dataObjects) {
-        dataObjects.forEach((d) => {
-          const {
-            /* eslint-disable-next-line @typescript-eslint/no-unused-vars*/
-            __typename,
-            meta: { index },
-            ...otherDataErrors
-          } = d as CreateEntryErrorFragment_dataObjects;
-
-          const dataErrors: [string, string][] = [];
-
-          Object.entries(otherDataErrors).forEach(([k, v]) => {
-            if (v) {
-              dataErrors.push([k, v]);
-            }
-          });
-
-          errors.push([index + 1, dataErrors]);
-        });
-      }
-
-      Object.entries(nichtGegenstandFehlern).forEach(([k, v]) => {
-        if (v) {
-          errors.push(["", [[k, v]]]);
-        }
-      });
-
-      unsyncableEntriesErrors[clientId as string] = entryError;
-      errorValues[clientId as string] = errors;
-    });
-  }
-  return unsyncableEntriesErrors;
 }
 
 function handleOnCloseNewEntryCreatedNotification(proxy: DraftState) {
@@ -1169,22 +940,6 @@ type DefDeleteExperienceRequestedEffect = EffectDefinition<
   }
 >;
 
-const putEntriesErrorsInLedgerEffect: DefPutEntriesErrorsInLedgerEffect["func"] = (
-  { experience: { id }, errors },
-  props,
-  effectArgs,
-) => {
-  putAndRemoveUnSyncableEntriesErrorsLedger(id, errors);
-};
-
-type DefPutEntriesErrorsInLedgerEffect = EffectDefinition<
-  "putEntriesErrorsInLedgerEffect",
-  {
-    experience: ExperienceFragment;
-    errors: UnsyncableEntriesErrors;
-  }
->;
-
 const cancelDeleteExperienceEffect: DefCancelDeleteExperienceEffect["func"] = (
   { schlüssel, experience: { id, title } },
   props,
@@ -1461,7 +1216,6 @@ export const effectFunctions = {
   scrollDocToTopEffect,
   timeoutsEffect,
   onOfflineExperienceSyncedEffect,
-  putEntriesErrorsInLedgerEffect,
   cancelDeleteExperienceEffect,
   deleteExperienceRequestedEffect,
   deleteExperienceEffect,
@@ -1933,7 +1687,6 @@ export type EffectType =
   | DefScrollDocToTopEffect
   | DefTimeoutsEffect
   | DefOnOfflineExperienceSyncedEffect
-  | DefPutEntriesErrorsInLedgerEffect
   | DefCancelDeleteExperienceEffect
   | DefDeleteExperienceRequestedEffect
   | DefDeleteExperienceEffect

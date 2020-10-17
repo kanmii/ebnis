@@ -62,10 +62,7 @@ import {
   CreateExperienceErrorsFragment_errors,
   CreateExperienceErrorsFragment_errors_dataDefinitions,
 } from "../../graphql/apollo-types/CreateExperienceErrorsFragment";
-import {
-  removeUnsyncedExperiences,
-  getUnSyncEntriesErrorsLedger,
-} from "../../apollo/unsynced-ledger";
+import { removeUnsyncedExperiences } from "../../apollo/unsynced-ledger";
 import { experienceToCreateInput } from "./new-entry.helpers";
 
 const NEW_LINE_REGEX = /\n/g;
@@ -473,44 +470,9 @@ type DefScrollToViewEffect = EffectDefinition<
   }
 >;
 
-const getEntryErrorsEffect: DefGetEntryErrorsEffect["func"] = (
-  _,
-  props,
-  effectArgs,
-) => {
-  const {
-    experience: { id: experienceId },
-    bearbeitenEintrag,
-  } = props;
-
-  const eintragId = bearbeitenEintrag && bearbeitenEintrag.id;
-
-  if (!eintragId) {
-    return;
-  }
-
-  const { dispatch } = effectArgs;
-
-  const ledger = getUnSyncEntriesErrorsLedger(experienceId);
-  const errors = ledger && ledger[eintragId];
-
-  // istanbul ignore next
-  if (!errors) {
-    return;
-  }
-
-  dispatch({
-    type: ActionType.ON_CREATE_ENTRY_ERRORS,
-    ...errors,
-  });
-};
-
-type DefGetEntryErrorsEffect = EffectDefinition<"getEntryErrorsEffect">;
-
 export const effectFunctions = {
   createEntryEffect,
   scrollToViewEffect,
-  getEntryErrorsEffect,
 };
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
@@ -561,17 +523,7 @@ export function initState(props: Props): StateMachine {
 
     effects: {
       general: {
-        value: StateValue.hasEffects,
-        hasEffects: {
-          context: {
-            effects: [
-              {
-                key: "getEntryErrorsEffect",
-                ownArgs: {},
-              },
-            ],
-          },
-        },
+        value: StateValue.noEffect,
       },
     },
   };
@@ -962,10 +914,7 @@ interface EffectContext {
   effectsArgsObj: Props;
 }
 
-type EffectType =
-  | DefScrollToViewEffect
-  | DefCreateEntryEffect
-  | DefGetEntryErrorsEffect;
+type EffectType = DefScrollToViewEffect | DefCreateEntryEffect;
 
 type EffectsList = EffectType[];
 
