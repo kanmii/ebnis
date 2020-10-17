@@ -369,14 +369,8 @@ async function createOnlineEntryEffect(
         await window.____ebnis.persistor.persist();
 
         detailedExperienceDispatch({
-          type:
-            DetailedExperienceActionType.ON_ENTRY_CREATED,
-          mayBeNewEntry: {
-            neuEintragDaten: entry0.entry,
-            zustand: "synchronisiert",
-          },
-          // vielleicht ein ganz Offline-Eintrag gerade synchronisiert?
-          vielleichtBearbeitenEintrag: bearbeitenEintrag,
+          type: DetailedExperienceActionType.ON_ENTRY_CREATED,
+          created: entry0.entry,
         });
 
         return;
@@ -430,12 +424,8 @@ async function createOfflineEntryEffect(
     }
 
     detailedExperienceDispatch({
-      type:
-        DetailedExperienceActionType.ON_ENTRY_CREATED,
-      mayBeNewEntry: {
-        neuEintragDaten: validResponse.entry,
-        zustand: "synchronisiert",
-      },
+      type: DetailedExperienceActionType.ON_ENTRY_CREATED,
+      created: validResponse.entry,
     });
 
     await window.____ebnis.persistor.persist();
