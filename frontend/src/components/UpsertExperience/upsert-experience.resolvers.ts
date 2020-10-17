@@ -20,7 +20,7 @@ import {
   GET_COMPLETE_EXPERIENCE_QUERY,
 } from "../../graphql/experience.gql";
 import {
-  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery,
+  upsertExperiencesInGetExperiencesMiniQuery,
   purgeEntry,
   floatExperienceToTheTopInGetExperiencesMiniQuery,
 } from "../../apollo/update-get-experiences-mini-query";
@@ -155,7 +155,7 @@ const createOfflineExperienceResolver: LocalResolverFn<
     },
   });
 
-  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery([
+  upsertExperiencesInGetExperiencesMiniQuery([
     [experienceId, experience],
   ]);
 

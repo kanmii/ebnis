@@ -6,7 +6,7 @@ import {
   CreateExperiences_createExperiences_ExperienceSuccess,
 } from "../graphql/apollo-types/CreateExperiences";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
-import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
+import { upsertExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
 import { writeUnsyncedExperience } from "../apollo/unsynced-ledger";
 import { isOfflineId } from "../utils/offlines";
 import { getExperiencesMiniQuery } from "../apollo/get-experiences-mini-query";
@@ -19,7 +19,7 @@ jest.mock("../apollo/unsynced-ledger");
 const mockWriteUnsyncedExperience = writeUnsyncedExperience as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
-const mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = insertReplaceRemoveExperiencesInGetExperiencesMiniQuery as jest.Mock;
+const mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = upsertExperiencesInGetExperiencesMiniQuery as jest.Mock;
 
 const mockWriteQueryFn = jest.fn();
 

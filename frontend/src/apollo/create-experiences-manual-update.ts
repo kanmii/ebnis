@@ -1,7 +1,7 @@
 import { DataProxy } from "@apollo/client";
 import { CreateExperiencesMutationResult } from "../utils/experience.gql.types";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
-import { insertReplaceRemoveExperiencesInGetExperiencesMiniQuery } from "./update-get-experiences-mini-query";
+import { upsertExperiencesInGetExperiencesMiniQuery } from "./update-get-experiences-mini-query";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 import { EntryConnectionFragment_edges } from "../graphql/apollo-types/EntryConnectionFragment";
@@ -39,11 +39,11 @@ export function createExperiencesManualUpdate(
   const syncErrors = maybeSyncErrors ? maybeSyncErrors : ({} as SyncErrors);
 
   const toBeInsertedOrReplaced = validResponses.reduce(
-    (toBeInsertedOrReplacedAcc, response) => {
+    (toBeInsertedAcc, response) => {
       // satisfy typescript
       // istanbul ignore next:
       if (!response) {
-        return toBeInsertedOrReplacedAcc;
+        return toBeInsertedAcc;
       }
 
       const syncError: SyncError = {};
@@ -58,14 +58,14 @@ export function createExperiencesManualUpdate(
         const offlineExperience = readExperienceFragment(offlineErfahrungId);
         const onlineExperienceId = newlyCreatedExperience.id;
 
-        toBeInsertedOrReplacedAcc.push([
+        toBeInsertedAcc.push([
           onlineExperienceId,
           newlyCreatedExperience,
         ]);
 
         // fresh experience created directly online
         if (!offlineExperience) {
-          return toBeInsertedOrReplacedAcc;
+          return toBeInsertedAcc;
         }
 
         // following exist bcos of experience created offline now synced
@@ -77,7 +77,8 @@ export function createExperiencesManualUpdate(
         // kein Eintrag erstelltet mit Offline Erfahrung
         if (!entriesResult) {
           removeUnsyncedExperiences([offlineErfahrungId]);
-          return toBeInsertedOrReplacedAcc;
+
+          return toBeInsertedAcc;
         }
 
         const getEntries = getEntriesQuerySuccess(offlineErfahrungId);
@@ -155,11 +156,6 @@ export function createExperiencesManualUpdate(
           }
         });
 
-        toBeInsertedOrReplacedAcc.push([
-          offlineErfahrungId,
-          newlyCreatedExperience,
-        ]);
-
         writeGetExperienceQueryToCache(newlyCreatedExperience);
 
         writeGetEntriesQuery(
@@ -195,15 +191,13 @@ export function createExperiencesManualUpdate(
         syncErrors[errors.meta.clientId as string] = syncError;
       }
 
-      return toBeInsertedOrReplacedAcc;
+      return toBeInsertedAcc;
     },
     [] as ToBeInsertedOrReplaced[],
   );
 
   if (toBeInsertedOrReplaced.length) {
-    insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(
-      toBeInsertedOrReplaced,
-    );
+    upsertExperiencesInGetExperiencesMiniQuery(toBeInsertedOrReplaced);
 
     return [syncErrors, offlineIdToOnlineExperienceMap];
   }

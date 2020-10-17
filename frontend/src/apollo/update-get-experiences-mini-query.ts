@@ -138,12 +138,8 @@ export function floatExperiencesToTopInGetExperiencesMiniQuery(ids: {
   });
 }
 
-/**
- * When null is supplied in the array, it means the experience will be removed
- * from the query
- */
-export function insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(
-  experiencesList: [string, ExperienceFragment | null][],
+export function upsertExperiencesInGetExperiencesMiniQuery(
+  experiencesList: [string, ExperienceFragment][],
 ) {
   const { cache } = window.____ebnis;
 
@@ -154,7 +150,7 @@ export function insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(
     const previousEdges = (proxy.edges ||
       []) as ExperienceConnectionFragment_edges[];
 
-    const previousEdgesMap = previousEdges.reduce(
+    const idToPreviousEdgesMap = previousEdges.reduce(
       (previousEdgesAcc, previousEdge) => {
         const experience = previousEdge.node as ExperienceMiniFragment;
         previousEdgesAcc[experience.id] = previousEdge;
@@ -166,20 +162,16 @@ export function insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(
 
     const newEdges: ExperienceConnectionFragment_edges[] = [];
 
-    experiencesList.forEach(([experienceId, experienceMiniFragmentOrNull]) => {
-      if (experienceMiniFragmentOrNull === null) {
-        delete previousEdgesMap[experienceId];
-        return;
-      }
-
-      const previousEdge = previousEdgesMap[experienceId];
+    experiencesList.forEach(([experienceId, experience]) => {
+      const previousEdge = idToPreviousEdgesMap[experienceId];
 
       if (previousEdge) {
-        previousEdge.node = experienceMiniFragmentOrNull;
+        previousEdge.node = experience;
         newEdges.push(previousEdge);
+        delete idToPreviousEdgesMap[experienceId];
       } else {
         const newEdge = {
-          node: experienceMiniFragmentOrNull,
+          node: experience,
           cursor: "",
           __typename: "ExperienceEdge" as "ExperienceEdge",
         } as ExperienceConnectionFragment_edges;
@@ -187,10 +179,10 @@ export function insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(
         newEdges.push(newEdge);
       }
 
-      delete previousEdgesMap[experienceId];
+      delete idToPreviousEdgesMap[experienceId];
     });
 
-    proxy.edges = newEdges.concat(Object.values(previousEdgesMap));
+    proxy.edges = newEdges.concat(Object.values(idToPreviousEdgesMap));
   });
 
   cache.writeQuery<

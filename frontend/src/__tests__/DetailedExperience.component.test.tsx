@@ -39,7 +39,7 @@ import {
   putOrRemoveSyncingExperience,
 } from "../apollo/syncing-experience-ledger";
 import {
-  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery,
+  upsertExperiencesInGetExperiencesMiniQuery,
   purgeExperience,
 } from "../apollo/update-get-experiences-mini-query";
 import {
@@ -115,7 +115,7 @@ const mockGetSyncingExperience = getSyncingExperience as jest.Mock;
 const mockPutOrRemoveSyncingExperience = putOrRemoveSyncingExperience as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
-const mockReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = insertReplaceRemoveExperiencesInGetExperiencesMiniQuery as jest.Mock;
+const mockReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = upsertExperiencesInGetExperiencesMiniQuery as jest.Mock;
 const mockPurgeExperience = purgeExperience as jest.Mock;
 
 const mockCreateNewEntryId = "?a?";
