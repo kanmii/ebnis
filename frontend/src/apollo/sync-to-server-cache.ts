@@ -72,7 +72,7 @@ function getSyncErrors() {
   return data ? data.syncErrors : {};
 }
 
-function writeSyncErrors(ledger: SyncErrors) {
+export function writeSyncErrors(ledger: SyncErrors) {
   const { cache } = window.____ebnis;
 
   cache.writeQuery({

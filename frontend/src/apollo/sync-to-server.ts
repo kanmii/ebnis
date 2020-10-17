@@ -1,5 +1,9 @@
 import { getUnsyncedLedger } from "./unsynced-ledger";
-import { getSyncFlag, putSyncFlag } from "./sync-to-server-cache";
+import {
+  getSyncFlag,
+  putSyncFlag,
+  writeSyncErrors,
+} from "./sync-to-server-cache";
 import {
   SyncFlag,
   OfflineIdToOnlineExperienceMap,
@@ -306,6 +310,11 @@ export async function syncToServer() {
   }
 
   putSyncFlag({ isSyncing: false } as SyncFlag);
+
+  if (syncErrors) {
+    writeSyncErrors(syncErrors);
+  }
+
   await persistor.persist();
 
   broadcastMessage(
