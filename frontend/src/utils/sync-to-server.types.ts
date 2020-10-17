@@ -5,9 +5,7 @@ import {
   UpdateExperienceSomeSuccessFragment_experience_ownFields_UpdateExperienceOwnFieldsErrors_errors,
   UpdateExperienceSomeSuccessFragment_entries_updatedEntries_UpdateEntrySomeSuccess_entry_dataObjects_DataObjectErrors_errors,
 } from "../graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
-import {
-  CreateExperiences_createExperiences_CreateExperienceErrors_errors,
-} from "../graphql/apollo-types/CreateExperiences";
+import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "../graphql/apollo-types/CreateExperiences";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
 
 export interface SyncFlagQueryResult {
@@ -55,6 +53,10 @@ export type SyncError = {
   ownFields?: UpdateExperienceSomeSuccessFragment_experience_ownFields_UpdateExperienceOwnFieldsErrors_errors;
 
   definitions?: IdToDefinitionUpdateSyncErrorMap;
+
+  // Not really an error, but piece of information we need to retrieve offline
+  // experience to be deleted in case we have an offline experience now synced
+  offlineExperienceId?: string;
 };
 
 export type IdToUpdateEntrySyncErrorMap = {
@@ -84,11 +86,7 @@ export type UpdateSyncReturnVal = [
   OfflineIdToOnlineExperienceMap,
 ];
 
-export type SyncCreateReturnVal = [
-  SyncErrors,
-  OfflineIdToOnlineExperienceMap,
-
-]
+export type SyncCreateReturnVal = [SyncErrors, OfflineIdToOnlineExperienceMap];
 
 export interface SyncErrorsQueryResult {
   syncErrors: SyncErrors;

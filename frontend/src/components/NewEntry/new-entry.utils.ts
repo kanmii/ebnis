@@ -370,7 +370,7 @@ async function createOnlineEntryEffect(
 
         detailedExperienceDispatch({
           type:
-            DetailedExperienceActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
+            DetailedExperienceActionType.ON_ENTRY_CREATED,
           mayBeNewEntry: {
             neuEintragDaten: entry0.entry,
             zustand: "synchronisiert",
@@ -431,7 +431,7 @@ async function createOfflineEntryEffect(
 
     detailedExperienceDispatch({
       type:
-        DetailedExperienceActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
+        DetailedExperienceActionType.ON_ENTRY_CREATED,
       mayBeNewEntry: {
         neuEintragDaten: validResponse.entry,
         zustand: "synchronisiert",

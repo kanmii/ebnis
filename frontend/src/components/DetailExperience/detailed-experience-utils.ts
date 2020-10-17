@@ -32,11 +32,6 @@ import {
 import { scrollDocumentToTop } from "./detail-experience.injectables";
 import { StateValue, Timeouts } from "../../utils/types";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
-import {
-  getSyncingExperience,
-  putOrRemoveSyncingExperience,
-} from "../../apollo/syncing-experience-ledger";
-import { purgeExperience } from "../../apollo/update-get-experiences-mini-query";
 import { CreateEntryErrorFragment } from "../../graphql/apollo-types/CreateEntryErrorFragment";
 import { MY_URL } from "../../utils/urls";
 import {
@@ -78,12 +73,17 @@ import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitio
 import {
   OnSyncedData,
   OfflineIdToOnlineExperienceMap,
+  SyncError,
+  OfflineIdToCreateEntrySyncErrorMap,
 } from "../../utils/sync-to-server.types";
 import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
+import { getSyncError } from "../../apollo/sync-to-server-cache";
+import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
+import { makeDetailedExperienceRoute } from "../../utils/urls";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
-  ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED = "@detailed-experience/on-new-entry-created/offline-experience-synced",
+  ON_ENTRY_CREATED = "@detailed-experience/entry-created",
   ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION = "@detailed-experience/on-close-new-entry-created-notification",
   SET_TIMEOUT = "@detailed-experience/set-timeout",
   ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION = "@detailed-experience/on-close-entries-errors-notification",
@@ -152,10 +152,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             break;
 
           case ActionType.ON_DATA_RECEIVED:
-            handleOnDataReceivedAction(
-              proxy,
-              payload as GeholteErfahrungErhieltenNutzlast,
-            );
+            handleOnDataReceivedAction(proxy, payload as OnDataReceivedPayload);
             break;
 
           case ActionType.RE_FETCH_EXPERIENCE:
@@ -186,6 +183,13 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
           case ActionType.ON_SYNC:
             handleOnSyncAction(proxy, payload as OnSyncedData);
+            break;
+
+          case ActionType.ON_ENTRY_CREATED:
+            handleOnEntryCreatedUpdatedAction(
+              proxy,
+              payload as OnEntryCreatedPayload,
+            );
             break;
         }
       });
@@ -399,15 +403,16 @@ function handleToggleShowOptionsMenuAction(
 
 function handleOnDataReceivedAction(
   proxy: DraftState,
-  payload: GeholteErfahrungErhieltenNutzlast,
+  payload: OnDataReceivedPayload,
 ) {
   const { states } = proxy;
   const effects = getGeneralEffects(proxy);
+  const { experienceData, syncErrors } = payload;
 
-  switch (payload.key) {
+  switch (experienceData.key) {
     case StateValue.data:
       {
-        const { erfahrung, einträgeDaten } = payload;
+        const { erfahrung, einträgeDaten } = experienceData;
 
         const dataState = states as Draft<DataState>;
         dataState.value = StateValue.data;
@@ -422,11 +427,13 @@ function handleOnDataReceivedAction(
 
         dataStateData.context = context;
         context.experience = erfahrung;
-        const { id: erfahrungId } = erfahrung;
+        context.syncErrors = syncErrors;
 
         context.dataDefinitionIdToNameMap = makeDataDefinitionIdToNameMap(
           erfahrung.dataDefinitions,
         );
+
+        const { id: erfahrungId } = erfahrung;
 
         dataStateData.states = {
           updateExperienceUiActive: {
@@ -492,7 +499,7 @@ function handleOnDataReceivedAction(
       const errorsState = states as Draft<ErrorState>;
       errorsState.errors = {
         context: {
-          error: parseStringError(payload.error),
+          error: parseStringError(experienceData.error),
         },
       };
       break;
@@ -719,7 +726,10 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const effects = getGeneralEffects<EffectType, DraftState>(proxy);
-    const { context } = globalStates.data;
+    const {
+      context,
+      states: { einträge: einträgeStatten },
+    } = globalStates.data;
     const {
       offlineIdToOnlineExperienceMap,
       onlineExperienceIdToOfflineEntriesMap,
@@ -732,21 +742,24 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
     if (offlineIdToOnlineExperienceMap) {
       const onlineExperience = offlineIdToOnlineExperienceMap[id];
 
-      if (!onlineExperience) {
+      if (onlineExperience) {
         // Offline experience now synced
+
+        const offlineExperienceId = id;
 
         const data = {
           ...offlineIdToOnlineExperienceMap,
         };
 
         // this offline experience will be purged upon navigation to related
-        // online experience
-        delete data[id];
+        // online experience, hence deletion here
+        delete data[offlineExperienceId];
 
         effects.push({
           key: "postSyncEffect",
           ownArgs: {
             data,
+            onlineExperienceId: onlineExperience.id,
           },
         });
 
@@ -755,10 +768,119 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
     }
 
     if (onlineExperienceIdToOfflineEntriesMap) {
-      const entriesErrors = onlineExperienceIdToOfflineEntriesMap[id];
+      const offlineIdToOnlineEntryMap =
+        onlineExperienceIdToOfflineEntriesMap[id];
 
-      // we have errors belonging to this experience
-      if (entriesErrors) {
+      // we have offline experiences now synced
+      if (offlineIdToOnlineEntryMap) {
+        updateEntries(einträgeStatten, offlineIdToOnlineEntryMap);
+      }
+    }
+  }
+}
+
+function handleOnEntryCreatedUpdatedAction(
+  proxy: DraftState,
+  payload: OnEntryCreatedPayload,
+) {
+  const { states: globalStates } = proxy;
+
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const { states } = globalStates.data;
+
+    const {
+      newEntryActive,
+      notification,
+      newEntryCreated,
+      einträge: einträgeStatten,
+    } = states;
+
+    newEntryActive.value = StateValue.inactive;
+    notification.value = StateValue.inactive;
+
+    const { created, updated } = payload;
+
+    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+
+    effects.push({
+      key: "timeoutsEffect",
+      ownArgs: {
+        set: "set-close-new-entry-created-notification",
+      },
+    });
+
+    if (updated) {
+      const ob = (einträgeStatten[StateValue.erfolg] ||
+        einträgeStatten[StateValue.einträgeMitHolenFehler]) as Draft<
+        EinträgeDatenErfolg["erfolg"]
+      >;
+
+      const { context } = ob;
+      const { id } = updated;
+
+      updateEntries(einträgeStatten, {
+        [id]: updated,
+      });
+
+      return;
+    }
+
+    if (created) {
+      const newEntryState = newEntryCreated as Draft<
+        NewEntryCreatedNotification
+      >;
+
+      const { updatedAt } = created;
+
+      newEntryState.value = StateValue.active;
+
+      newEntryState.active = {
+        context: {
+          message: `New entry created on: ${formatDatetime(updatedAt)}`,
+        },
+      };
+
+      effects.push({
+        key: "scrollDocToTopEffect",
+        ownArgs: {},
+      });
+
+      switch (einträgeStatten.wert) {
+        case StateValue.erfolg:
+        case StateValue.einträgeMitHolenFehler:
+          const ob = (einträgeStatten[StateValue.erfolg] ||
+            einträgeStatten[StateValue.einträgeMitHolenFehler]) as Draft<
+            EinträgeDatenErfolg["erfolg"]
+          >;
+
+          const { context } = ob;
+
+          context.einträge.unshift({
+            eintragDaten: created,
+          });
+
+          break;
+
+        case StateValue.versagen:
+          {
+            const einträgeMitHolenFehler = states.einträge as Draft<
+              EinträgeMitHolenFehler
+            >;
+
+            einträgeMitHolenFehler.wert = StateValue.einträgeMitHolenFehler;
+            einträgeMitHolenFehler.einträgeMitHolenFehler = {
+              context: {
+                einträge: [
+                  {
+                    eintragDaten: created,
+                  },
+                ],
+                holenFehler: einträgeStatten.fehler,
+              },
+            };
+          }
+          break;
       }
     }
   }
@@ -768,40 +890,37 @@ function getExperienceId(props: Props) {
   return (props.match as Match).params.experienceId;
 }
 
-function verarbeitenEinträgeContext(
-  proxy: DraftState,
-  context: Draft<EinträgeDatenErfolg["erfolg"]["context"]>,
-  neuEintragDaten: EntryFragment,
-  zustand: ErstellenNeuEintragZustand,
-  vielleichtBearbeitenEintrag?: EntryFragment,
-) {
-  // ein völlig neu Eintrag
-  // istanbul ignore else:
-  if (!(vielleichtBearbeitenEintrag || zustand === "ganz-nue")) {
-    context.einträge.unshift({
-      eintragDaten: neuEintragDaten,
-    });
-  } else {
-    // wir ersetzen die neu Eintrag mit dem zuletzt Eintrag
-
-    const { clientId } = neuEintragDaten;
-
-    context.einträge = context.einträge.map((daten) => {
-      return daten.eintragDaten.id === clientId
-        ? {
-            ...daten,
-            eintragDaten: neuEintragDaten,
-          }
-        : daten;
-    });
-  }
-}
-
 function makeDataDefinitionIdToNameMap(definitions: DataDefinitionFragment[]) {
   return definitions.reduce((acc, d) => {
     acc[d.id] = d.name;
     return acc;
   }, {} as DataDefinitionIdToNameMap);
+}
+
+function updateEntries(
+  state: EinträgeDaten,
+  payload: {
+    [entryId: string]: EntryFragment;
+  },
+) {
+  const ob = (state[StateValue.erfolg] ||
+    state[StateValue.einträgeMitHolenFehler]) as Draft<
+    EinträgeDatenErfolg["erfolg"]
+  >;
+
+  const { context } = ob;
+
+  context.einträge = context.einträge.map((daten) => {
+    const { id } = daten.eintragDaten;
+    const updated = payload[id];
+
+    return updated
+      ? {
+          ...daten,
+          eintragDaten: updated,
+        }
+      : daten;
+  });
 }
 
 ////////////////////////// END STATE UPDATE ////////////////////////////
@@ -865,60 +984,6 @@ type DefTimeoutsEffect = EffectDefinition<
       | "set-close-new-entry-created-notification"
       | "set-close-update-experience-success-notification";
     clear?: NodeJS.Timeout;
-  }
->;
-
-const onOfflineExperienceSyncedEffect: DefOnOfflineExperienceSyncedEffect["func"] = (
-  { erfahrungId, einträge },
-  _props,
-  effectArgs,
-) => {
-  const { dispatch } = effectArgs;
-
-  const ledger = getSyncingExperience(erfahrungId);
-
-  // istanbul ignore next
-  if (!ledger) {
-    return;
-  }
-
-  const { persistor } = window.____ebnis;
-  const { offlineExperienceId, newEntryClientId, entriesErrors } = ledger;
-
-  putOrRemoveSyncingExperience(erfahrungId);
-
-  let mayBeNewEntry: undefined | EntryFragment = undefined;
-
-  einträge &&
-    einträge.forEach(({ eintragDaten }) => {
-      const { clientId } = eintragDaten;
-
-      // das ein ganz Online-Eintrag zuerst erstelltet als Offline-Eintrag
-      // istanbul ignore else:
-      if (clientId === newEntryClientId) {
-        mayBeNewEntry = eintragDaten;
-      }
-    });
-
-  purgeExperience(offlineExperienceId);
-
-  persistor.persist();
-
-  dispatch({
-    type: ActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED,
-    mayBeNewEntry: {
-      neuEintragDaten: (mayBeNewEntry as unknown) as EntryFragment,
-      zustand: "ganz-nue",
-    },
-    mayBeEntriesErrors: entriesErrors,
-  });
-};
-
-type DefOnOfflineExperienceSyncedEffect = EffectDefinition<
-  "onOfflineExperienceSyncedEffect",
-  {
-    erfahrungId: string;
-    einträge?: DataStateContextEntries;
   }
 >;
 
@@ -1053,11 +1118,22 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
 
   if (bestehendeZwischengespeicherteErgebnis) {
     const daten = bestehendeZwischengespeicherteErgebnis.data as GetDetailExperience;
+    const syncErrors = getSyncError(experienceId) || undefined;
 
     dispatch({
       type: ActionType.ON_DATA_RECEIVED,
-      ...verarbeitenErfahrungAbfrage(daten.getExperience, daten.getEntries),
+      experienceData: verarbeitenErfahrungAbfrage(
+        daten.getExperience,
+        daten.getEntries,
+        syncErrors,
+      ),
     });
+
+    if (syncErrors && syncErrors.offlineExperienceId) {
+      cleanUpOfflineExperiences({
+        [syncErrors.offlineExperienceId]: {} as ExperienceFragment,
+      });
+    }
 
     return;
   }
@@ -1078,7 +1154,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
 
       dispatch({
         type: ActionType.ON_DATA_RECEIVED,
-        ...verarbeitenErfahrungAbfrage(
+        experienceData: verarbeitenErfahrungAbfrage(
           daten.getExperience || null,
           daten.getEntries,
         ),
@@ -1086,8 +1162,10 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
     } catch (error) {
       dispatch({
         type: ActionType.ON_DATA_RECEIVED,
-        key: StateValue.errors,
-        error,
+        experienceData: {
+          key: StateValue.errors,
+          error,
+        },
       });
     }
 
@@ -1107,8 +1185,10 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
     if (fetchExperienceAttemptsCount > timeoutsLen) {
       dispatch({
         type: ActionType.ON_DATA_RECEIVED,
-        key: StateValue.errors,
-        error: DATA_FETCHING_FAILED,
+        experienceData: {
+          key: StateValue.errors,
+          error: DATA_FETCHING_FAILED,
+        },
       });
 
       return;
@@ -1206,9 +1286,16 @@ type DefHolenEinträgeWirkung = EffectDefinition<
   }
 >;
 
-const postSyncEffect: DefPostSyncEffect["func"] = ({ data, id }) => {
+const postSyncEffect: DefPostSyncEffect["func"] = async ({
+  data,
+  onlineExperienceId: id,
+}) => {
+  await cleanUpOfflineExperiences(data);
+
   if (id) {
-    //
+    windowChangeUrl(makeDetailedExperienceRoute(id), ChangeUrlType.replace);
+
+    return;
   }
 
   cleanUpOfflineExperiences(data);
@@ -1218,14 +1305,13 @@ type DefPostSyncEffect = EffectDefinition<
   "postSyncEffect",
   {
     data: OfflineIdToOnlineExperienceMap;
-    id?: string;
+    onlineExperienceId?: string;
   }
 >;
 
 export const effectFunctions = {
   scrollDocToTopEffect,
   timeoutsEffect,
-  onOfflineExperienceSyncedEffect,
   cancelDeleteExperienceEffect,
   deleteExperienceRequestedEffect,
   deleteExperienceEffect,
@@ -1237,6 +1323,7 @@ export const effectFunctions = {
 function verarbeitenErfahrungAbfrage(
   erfahrung: ExperienceFragment | null,
   kriegEinträgeAbfrage: GetEntriesUnionFragment | null,
+  syncErrors?: SyncError,
 ): GeholteErfahrungErhieltenNutzlast {
   return erfahrung
     ? {
@@ -1256,6 +1343,7 @@ function verarbeitenErfahrungAbfrage(
 function verarbeitenEinträgeAbfrage(
   erfahrungId: string,
   kriegEinträgeAbfrage?: GetEntriesUnionFragment | null,
+  syncErrors?: SyncError,
 ): VerarbeitenEinträgeAbfrageZurückgegebenerWert {
   if (!kriegEinträgeAbfrage) {
     return {
@@ -1265,9 +1353,8 @@ function verarbeitenEinträgeAbfrage(
   }
 
   const nichtSynchronisiertFehler =
-    getUnSyncEntriesErrorsLedger(erfahrungId) ||
-    // istanbul ignore next:
-    {};
+    (syncErrors && syncErrors.createEntries) ||
+    ({} as OfflineIdToCreateEntrySyncErrorMap);
 
   if (kriegEinträgeAbfrage.__typename === "GetEntriesSuccess") {
     const daten = kriegEinträgeAbfrage.entries as EntryConnectionFragment;
@@ -1444,6 +1531,7 @@ type EinträgeDaten =
 export type DataStateContext = Readonly<{
   experience: ExperienceFragment;
   dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
+  syncErrors?: SyncError;
 }>;
 
 export type DataStateContextEntry = Readonly<{
@@ -1582,8 +1670,8 @@ type Action =
       type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE;
     } & NewEntryActivePayload)
   | ({
-      type: ActionType.ON_NEW_ENTRY_CREATED_OR_OFFLINE_EXPERIENCE_SYNCED;
-    } & OnNewEntryCreatedOrOfflineExperienceSyncedPayload)
+      type: ActionType.ON_ENTRY_CREATED;
+    } & OnEntryCreatedPayload)
   | {
       type: ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION;
     }
@@ -1607,7 +1695,7 @@ type Action =
     } & ToggleOptionsMenuPayload)
   | ({
       type: ActionType.ON_DATA_RECEIVED;
-    } & GeholteErfahrungErhieltenNutzlast)
+    } & OnDataReceivedPayload)
   | {
       type: ActionType.RE_FETCH_EXPERIENCE;
     }
@@ -1640,6 +1728,11 @@ type NewEntryActivePayload = {
   bearbeitenEintrag?: EntryFragment;
 };
 
+type OnDataReceivedPayload = {
+  experienceData: GeholteErfahrungErhieltenNutzlast;
+  syncErrors?: SyncError;
+};
+
 type GeholteErfahrungErhieltenNutzlast =
   | {
       key: DataVal;
@@ -1663,15 +1756,9 @@ export interface DataDefinitionIdToNameMap {
   [dataDefinitionId: string]: string;
 }
 
-type ErstellenNeuEintragZustand = "ganz-nue" | "synchronisiert";
-
-interface OnNewEntryCreatedOrOfflineExperienceSyncedPayload {
-  mayBeNewEntry?: {
-    zustand: ErstellenNeuEintragZustand;
-    neuEintragDaten: EntryFragment;
-  };
-  mayBeEntriesErrors?: CreateEntryErrorFragment[] | null;
-  vielleichtBearbeitenEintrag?: EntryFragment;
+interface OnEntryCreatedPayload {
+  created?: EntryFragment;
+  updated?: EntryFragment;
 }
 
 type SetTimeoutPayload = {
@@ -1696,7 +1783,6 @@ type EffectDefinition<
 export type EffectType =
   | DefScrollDocToTopEffect
   | DefTimeoutsEffect
-  | DefOnOfflineExperienceSyncedEffect
   | DefCancelDeleteExperienceEffect
   | DefDeleteExperienceRequestedEffect
   | DefDeleteExperienceEffect

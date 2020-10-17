@@ -71,6 +71,8 @@ export function createExperiencesManualUpdate(
 
         // following exist bcos of experience created offline now synced
 
+        syncError.offlineExperienceId = offlineErfahrungId;
+
         offlineIdToOnlineExperienceMap[
           offlineErfahrungId
         ] = newlyCreatedExperience;
