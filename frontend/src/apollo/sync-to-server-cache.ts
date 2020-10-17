@@ -27,7 +27,7 @@ export function getSyncFlag() {
   return (data && data.syncFlag) || ({} as SyncFlag);
 }
 
-export function putSyncFlag(payload: { [key in keyof SyncFlag]: boolean }) {
+export function putSyncFlag(payload: SyncFlag) {
   const { cache } = window.____ebnis;
   cache.writeQuery({
     query: SYNC_FLAG,
@@ -35,6 +35,36 @@ export function putSyncFlag(payload: { [key in keyof SyncFlag]: boolean }) {
       syncFlag: payload,
     },
   });
+}
+
+export function putOfflineExperienceIdInSyncFlag(arg: [string, string]) {
+  const data = { ...getSyncFlag() };
+  const [onlineId, offlineId] = arg;
+
+  data.onlineExperienceIdToOfflineId = {
+    [onlineId]: offlineId,
+  };
+
+  putSyncFlag(data);
+}
+
+export function getAndRemoveOfflineExperienceIdFromSyncFlag(
+  onlineExperienceId: string,
+) {
+  const data = { ...getSyncFlag() };
+  const { onlineExperienceIdToOfflineId } = data;
+
+  if (onlineExperienceIdToOfflineId) {
+    const offlineId = onlineExperienceIdToOfflineId[onlineExperienceId];
+
+    if (offlineId) {
+      data.onlineExperienceIdToOfflineId = undefined
+      putSyncFlag(data);
+      return offlineId;
+    }
+  }
+
+  return null;
 }
 
 export const syncFlagPolicy: FieldPolicy<SyncFlag> = {

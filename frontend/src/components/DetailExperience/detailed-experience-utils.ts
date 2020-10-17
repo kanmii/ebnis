@@ -81,7 +81,11 @@ import {
   cleanUpOfflineExperiences,
   cleanUpSyncedOfflineEntries,
 } from "../WithSubscriptions/with-subscriptions.utils";
-import { getSyncError } from "../../apollo/sync-to-server-cache";
+import {
+  getSyncError,
+  putOfflineExperienceIdInSyncFlag,
+  getAndRemoveOfflineExperienceIdFromSyncFlag,
+} from "../../apollo/sync-to-server-cache";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 
@@ -745,11 +749,12 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
       if (onlineExperience) {
         // Offline experience now synced
 
-        ownArgs.onlineExperienceId = onlineExperience.id;
-
         // this offline experience will be purged upon navigation to related
         // online experience, hence deletion here
         const offlineExperienceId = id;
+
+        ownArgs.onlineIdToOffline = [onlineExperience.id, offlineExperienceId];
+
         delete data[offlineExperienceId];
       }
 
@@ -1109,13 +1114,15 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
     experienceId,
   );
 
-  const syncErrors = getSyncError(experienceId) || undefined;
+  const offlineId = getAndRemoveOfflineExperienceIdFromSyncFlag(experienceId);
 
-  if (syncErrors && syncErrors.offlineExperienceId) {
+  if (offlineId) {
     cleanUpOfflineExperiences({
-      [syncErrors.offlineExperienceId]: {} as ExperienceFragment,
+      [offlineId]: {} as ExperienceFragment,
     });
   }
+
+  const syncErrors = getSyncError(experienceId) || undefined;
 
   if (bestehendeZwischengespeicherteErgebnis) {
     const daten = bestehendeZwischengespeicherteErgebnis.data as GetDetailExperience;
@@ -1283,24 +1290,36 @@ type DefHolenEinträgeWirkung = EffectDefinition<
 
 const postOfflineExperiencesSyncEffect: DefPostOfflineExperiencesSyncEffect["func"] = async ({
   data,
-  onlineExperienceId: id,
+  onlineIdToOffline,
 }) => {
-  await cleanUpOfflineExperiences(data);
-
-  if (id) {
-    windowChangeUrl(makeDetailedExperienceRoute(id), ChangeUrlType.replace);
-
-    return;
+  if (Object.keys(data).length) {
+    cleanUpOfflineExperiences(data);
   }
 
-  cleanUpOfflineExperiences(data);
+  const { persistor } = window.____ebnis;
+
+  if (onlineIdToOffline) {
+    const [onlineId] = onlineIdToOffline;
+
+    putOfflineExperienceIdInSyncFlag(onlineIdToOffline);
+    await persistor.persist();
+
+    setTimeout(() => {
+      windowChangeUrl(
+        makeDetailedExperienceRoute(onlineId),
+        ChangeUrlType.replace,
+      );
+    });
+  }
+
+  await persistor.persist();
 };
 
 type DefPostOfflineExperiencesSyncEffect = EffectDefinition<
   "postOfflineExperiencesSyncEffect",
   {
     data: OfflineIdToOnlineExperienceMap;
-    onlineExperienceId?: string;
+    onlineIdToOffline?: [string, string];
   }
 >;
 

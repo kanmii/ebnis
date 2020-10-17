@@ -15,6 +15,9 @@ export interface SyncFlagQueryResult {
 export type SyncFlag = Readonly<{
   canSync: boolean;
   isSyncing: boolean;
+  onlineExperienceIdToOfflineId?: {
+    [key: string]: string;
+  };
 }>;
 
 export type OnlineExperienceIdToOfflineEntriesMap = {
@@ -53,10 +56,6 @@ export type SyncError = {
   ownFields?: UpdateExperienceSomeSuccessFragment_experience_ownFields_UpdateExperienceOwnFieldsErrors_errors;
 
   definitions?: IdToDefinitionUpdateSyncErrorMap;
-
-  // Not really an error, but piece of information we need to retrieve offline
-  // experience to be deleted in case we have an offline experience now synced
-  offlineExperienceId?: string;
 };
 
 export type IdToUpdateEntrySyncErrorMap = {

@@ -70,9 +70,6 @@ export function createExperiencesManualUpdate(
 
         // following exist bcos of experience created offline now synced
 
-        syncError.offlineExperienceId = offlineErfahrungId;
-        syncErrors[onlineExperienceId] = syncError;
-
         offlineIdToOnlineExperienceMap[
           offlineErfahrungId
         ] = newlyCreatedExperience;
@@ -184,6 +181,7 @@ export function createExperiencesManualUpdate(
         // Has entries errors
         if (Object.keys(clientIdToEntryErrorsMap).length) {
           syncError.createEntries = clientIdToEntryErrorsMap;
+          syncErrors[onlineExperienceId] = syncError;
 
           writeUnsyncedExperience(onlineExperienceId, {
             newEntries: true,

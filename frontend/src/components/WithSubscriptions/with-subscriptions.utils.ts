@@ -25,7 +25,6 @@ import {
 } from "../../utils/effects";
 import {
   purgeExperiencesFromCache1,
-  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery,
   purgeEntry,
 } from "../../apollo/update-get-experiences-mini-query";
 import { syncToServer } from "../../apollo/sync-to-server";
@@ -186,15 +185,7 @@ export const effectFunctions = {
 export async function cleanUpOfflineExperiences(
   data: OfflineIdToOnlineExperienceMap,
 ) {
-  const [toPurge, toRemove] = Object.keys(data).reduce(
-    (acc, id) => {
-      return acc;
-    },
-    [[], []] as [string[], [string, null][]],
-  );
-
-  insertReplaceRemoveExperiencesInGetExperiencesMiniQuery(toRemove);
-  purgeExperiencesFromCache1(toPurge);
+  purgeExperiencesFromCache1(Object.keys(data));
   const { persistor } = window.____ebnis;
   await persistor.persist();
 }
