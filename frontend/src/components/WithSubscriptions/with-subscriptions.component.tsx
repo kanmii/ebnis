@@ -30,7 +30,7 @@ import {
   getLocation,
 } from "../../utils/global-window";
 import { MY_URL, EXPERIENCE_DETAIL_URL_PREFIX } from "../../utils/urls";
-import { OnSyncedData } from "../../utils/sync-flag.types";
+import { OnSyncedData } from "../../utils/sync-to-server.types";
 
 export function WithSubscriptions(props: Props) {
   const { observable, children, bc } = props;
@@ -110,6 +110,9 @@ export function WithSubscriptions(props: Props) {
         const { pathname } = getLocation();
 
         if (data.offlineIdToOnlineExperienceMap && pathname !== MY_URL) {
+          // Wrong !!!!
+          // What if we are on a page showing offline experience newly
+          // synced????
           cleanUpOfflineExperiences(data.offlineIdToOnlineExperienceMap);
         }
 

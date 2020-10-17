@@ -1,10 +1,12 @@
 import { getUnsyncedLedger } from "./unsynced-ledger";
-import { getSyncFlag, putSyncFlag } from "./sync-flag";
+import { getSyncFlag, putSyncFlag } from "./sync-to-server-cache";
 import {
   SyncFlag,
   OfflineIdToOnlineExperienceMap,
-  OfflineIdToEntryMap,
-} from "../utils/sync-flag.types";
+  SyncErrors,
+  UpdateSyncReturnVal,
+  OnlineExperienceIdToOfflineEntriesMap,
+} from "../utils/sync-to-server.types";
 import {
   UpdateExperienceInput,
   CreateExperienceInput,
@@ -46,7 +48,7 @@ import {
   CreateExperiences_createExperiences,
 } from "../graphql/apollo-types/CreateExperiences";
 import { createExperiencesManualUpdate } from "./create-experiences-manual-update";
-import { writeUpdatedExperienceToCache } from "./write-updated-experiences-to-cache";
+import { updateExperiencesManualCacheUpdate } from "./update-experiences-manual-cache-update";
 import { broadcastMessage } from "../utils/observable-manager";
 import { BroadcastMessageType } from "../utils/types";
 
@@ -262,18 +264,27 @@ export async function syncToServer() {
     }
   } catch (error) {}
 
-  let offlineIdToEntryMap: OfflineIdToEntryMap | undefined = undefined;
+  let onlineExperienceIdToOfflineEntriesMap:
+    | OnlineExperienceIdToOfflineEntriesMap
+    | undefined = undefined;
+
+  let syncErrors: SyncErrors | undefined = undefined;
 
   let offlineIdToOnlineExperienceMap:
     | OfflineIdToOnlineExperienceMap
     | undefined = undefined;
 
   if (updateResult) {
-    offlineIdToEntryMap = writeUpdatedExperienceToCache(cache, {
+    const result = updateExperiencesManualCacheUpdate(cache, {
       data: {
         updateExperiences: updateResult,
       },
-    });
+    }) as UpdateSyncReturnVal;
+
+    if (result) {
+      onlineExperienceIdToOfflineEntriesMap = result[0];
+      syncErrors = result[1];
+    }
   }
 
   if (createResult) {
@@ -291,8 +302,9 @@ export async function syncToServer() {
     {
       type: BroadcastMessageType.syncDone,
       payload: {
-        offlineIdToOnlineExperienceMap: offlineIdToOnlineExperienceMap,
-        offlineIdToEntryMap,
+        offlineIdToOnlineExperienceMap,
+        syncErrors,
+        onlineExperienceIdToOfflineEntriesMap,
       },
     },
     {

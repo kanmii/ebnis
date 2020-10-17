@@ -22,8 +22,8 @@ import {
   CommonError, //
 } from "../utils/types";
 import {
-  writeUpdatedExperienceToCache, //
-} from "../apollo/write-updated-experiences-to-cache";
+  updateExperiencesManualCacheUpdate, //
+} from "../apollo/update-experiences-manual-cache-update";
 import {
   UpdateExperiencesOnline,
   UpdateExperiencesOnlineVariables,
@@ -97,7 +97,7 @@ export async function updateExperiencesOnlineEffectHelperFunc({
         input,
       },
 
-      update: writeUpdatedExperienceToCache,
+      update: updateExperiencesManualCacheUpdate,
     });
 
     const validResponse =

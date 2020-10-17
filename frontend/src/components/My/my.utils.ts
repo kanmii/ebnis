@@ -59,7 +59,7 @@ import {
 } from "../../graphql/apollo-types/ExperienceConnectionFragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { makeScrollToDomId } from "./my.dom";
-import { OfflineIdToOnlineExperienceMap } from "../../utils/sync-flag.types";
+import { OfflineIdToOnlineExperienceMap } from "../../utils/sync-to-server.types";
 import { broadcastMessage } from "../../utils/observable-manager";
 import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
 

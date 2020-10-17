@@ -7,7 +7,7 @@ import { CachePersistor } from "apollo-cache-persist-dev";
 import { EmitActionType } from "./observable-manager";
 import { ChangeEvent } from "react";
 import { BroadcastChannel } from "broadcast-channel";
-import { OnSyncedData } from "./sync-flag.types";
+import { OnSyncedData } from "./sync-to-server.types";
 
 export const FETCH_EXPERIENCES_TIMEOUTS = [2000, 2000, 3000, 5000];
 

@@ -15,15 +15,19 @@ import {
 import { toGetEntriesSuccessQuery } from "../graphql/utils.gql";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
 import {
-  getUnsyncedExperience,
   removeUnsyncedExperiences,
   writeUnsyncedExperience,
 } from "./unsynced-ledger";
-import { OfflineIdToOnlineExperienceMap } from "../utils/sync-flag.types";
+import {
+  OfflineIdToOnlineExperienceMap,
+  SyncErrors,
+  SyncError,
+} from "../utils/sync-to-server.types";
 
 export function createExperiencesManualUpdate(
   dataProxy: DataProxy,
   result: CreateExperiencesMutationResult,
+  maybeSyncErrors?: SyncErrors,
 ) {
   const validResponses = result && result.data && result.data.createExperiences;
 
@@ -32,13 +36,18 @@ export function createExperiencesManualUpdate(
   }
 
   const offlineIdToOnlineExperienceMap: OfflineIdToOnlineExperienceMap = {};
+  const syncErrors = maybeSyncErrors ? maybeSyncErrors : ({} as SyncErrors);
 
   const toBeInsertedOrReplaced = validResponses.reduce(
     (toBeInsertedOrReplacedAcc, response) => {
+      // satisfy typescript
       // istanbul ignore next:
       if (!response) {
         return toBeInsertedOrReplacedAcc;
       }
+
+      const syncError: SyncError = {};
+      let syncErrorId = "";
 
       if (response.__typename === "ExperienceSuccess") {
         const {
@@ -48,7 +57,7 @@ export function createExperiencesManualUpdate(
 
         const offlineErfahrungId = newlyCreatedExperience.clientId || "";
         const offlineExperience = readExperienceFragment(offlineErfahrungId);
-        const experienceId = newlyCreatedExperience.id;
+        const onlineExperienceId = newlyCreatedExperience.id;
 
         toBeInsertedOrReplacedAcc.push([
           newlyCreatedExperience.id,
@@ -71,6 +80,8 @@ export function createExperiencesManualUpdate(
           removeUnsyncedExperiences([offlineErfahrungId]);
           return toBeInsertedOrReplacedAcc;
         }
+
+        syncErrorId = onlineExperienceId;
 
         const getEntries = getEntriesQuerySuccess(offlineErfahrungId);
 
@@ -133,7 +144,7 @@ export function createExperiencesManualUpdate(
               ...edge,
               node: {
                 ...beforeSyncEntryNode,
-                experienceId,
+                experienceId: onlineExperienceId,
                 dataObjects,
               },
             };
@@ -155,7 +166,7 @@ export function createExperiencesManualUpdate(
         writeGetExperienceQueryToCache(newlyCreatedExperience);
 
         writeGetEntriesQuery(
-          experienceId,
+          onlineExperienceId,
           toGetEntriesSuccessQuery({
             ...getEntries,
             edges: neueErstellteErfahrungEinträgeKanten,
@@ -170,17 +181,24 @@ export function createExperiencesManualUpdate(
           }),
         );
 
+        // Has entries errors
         if (Object.keys(clientIdToEntryErrorsMap).length) {
-          const ledger = getUnsyncedExperience(offlineErfahrungId);
+          syncError.createEntries = clientIdToEntryErrorsMap;
 
-          if (ledger) {
-            writeUnsyncedExperience(experienceId, {
-              entriesErrors: clientIdToEntryErrorsMap,
-            });
-          }
+          writeUnsyncedExperience(onlineExperienceId, {
+            newEntries: true,
+          });
         }
 
         removeUnsyncedExperiences([offlineErfahrungId]);
+      } else {
+        const errors = response.errors;
+        syncError.createExperience = errors;
+        syncErrorId = errors.meta.clientId as string;
+      }
+
+      if (Object.keys(syncError).length) {
+        syncErrors[syncErrorId] = syncError;
       }
 
       return toBeInsertedOrReplacedAcc;

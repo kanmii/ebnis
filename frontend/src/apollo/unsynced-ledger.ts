@@ -4,7 +4,6 @@ import { FieldPolicy } from "@apollo/client/cache/inmemory/policies";
 import {
   UnsyncedLedger,
   UnsyncedModifiedExperience,
-  UnsyncableEntriesErrors,
 } from "../utils/unsynced-ledger.types";
 
 const UNSYNCED_LEDGER_QUERY = gql`
@@ -65,45 +64,6 @@ export function getUnsyncedLedger() {
   const unsyncedLedger = data && data.unsyncedLedger;
 
   return unsyncedLedger || {};
-}
-
-export function putAndRemoveUnSyncableEntriesErrorsLedger(
-  experienceId: string,
-  newLedgerItems: UnsyncableEntriesErrors = {},
-) {
-  const unsyncedExperience = (getUnsyncedExperience(experienceId) ||
-    {}) as UnsyncedModifiedExperience;
-
-  let entriesErrors = (unsyncedExperience.entriesErrors ||
-    {}) as UnsyncableEntriesErrors;
-
-  entriesErrors = { ...entriesErrors };
-
-  Object.entries(newLedgerItems).forEach(([k, v]) => {
-    if (v === null) {
-      delete entriesErrors[k];
-    } else {
-      entriesErrors[k] = v;
-    }
-  });
-
-  if (Object.keys(entriesErrors).length) {
-    unsyncedExperience.entriesErrors = entriesErrors;
-    unsyncedExperience.newEntries = true;
-  } else {
-    delete unsyncedExperience.entriesErrors;
-  }
-
-  writeUnsyncedExperience(experienceId, unsyncedExperience);
-}
-
-export function getUnSyncEntriesErrorsLedger(
-  experienceId: string,
-): UnsyncableEntriesErrors | null {
-  const unsyncedExperience = (getUnsyncedExperience(experienceId) ||
-    {}) as UnsyncedModifiedExperience;
-
-  return unsyncedExperience.entriesErrors || null;
 }
 
 interface UnsyncedLedgerQueryResult {

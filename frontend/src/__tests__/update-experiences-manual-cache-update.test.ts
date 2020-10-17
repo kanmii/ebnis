@@ -1,9 +1,9 @@
 import { DataProxy } from "@apollo/client";
 import { UpdateExperiencesOnlineMutationResult } from "../utils/experience.gql.types";
 import {
-  writeUpdatedExperienceToCache,
+  updateExperiencesManualCacheUpdate,
   // StateValue,
-} from "../apollo/write-updated-experiences-to-cache";
+} from "../apollo/update-experiences-manual-cache-update";
 import { E2EWindowObject } from "../utils/types";
 import {
   writeExperienceFragmentToCache,
@@ -50,7 +50,7 @@ afterEach(() => {
 });
 
 it("invalid result", () => {
-  writeUpdatedExperienceToCache(dataProxy, {
+  updateExperiencesManualCacheUpdate(dataProxy, {
     data: {},
   } as any);
 
@@ -428,7 +428,7 @@ test("updated entries errors", () => {
 });
 
 function call({ experience, entries }: UpdateExperienceSomeSuccessFragment) {
-  writeUpdatedExperienceToCache(dataProxy, {
+  updateExperiencesManualCacheUpdate(dataProxy, {
     data: {
       updateExperiences: {
         __typename: "UpdateExperiencesSomeSuccess",

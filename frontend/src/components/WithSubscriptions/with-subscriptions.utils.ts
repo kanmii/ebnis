@@ -28,12 +28,12 @@ import {
   insertReplaceRemoveExperiencesInGetExperiencesMiniQuery,
 } from "../../apollo/update-get-experiences-mini-query";
 import { syncToServer } from "../../apollo/sync-to-server";
-import { putSyncFlag } from "../../apollo/sync-flag";
+import { putSyncFlag } from "../../apollo/sync-to-server-cache";
 import {
   SyncFlag,
   OnSyncedData,
   OfflineIdToOnlineExperienceMap,
-} from "../../utils/sync-flag.types";
+} from "../../utils/sync-to-server.types";
 import { WithSubscriptionContextProps } from "../../utils/app-context";
 
 export enum ActionType {

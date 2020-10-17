@@ -604,7 +604,7 @@ describe("reducers", () => {
     let statten = initState();
 
     statten = reducer(statten, {
-      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      type: ActionType.ON_DATA_RECEIVED,
       key: StateValue.data,
       erfahrung: DEFAULT_ERFAHRUNG,
       einträgeDaten: {
@@ -659,7 +659,7 @@ describe("reducers", () => {
     let statten = initState();
 
     statten = reducer(statten, {
-      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      type: ActionType.ON_DATA_RECEIVED,
       key: StateValue.data,
       erfahrung: DEFAULT_ERFAHRUNG,
       einträgeDaten: {
@@ -728,7 +728,7 @@ describe("reducers", () => {
     let statten = initState();
 
     statten = reducer(statten, {
-      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      type: ActionType.ON_DATA_RECEIVED,
       key: StateValue.data,
       erfahrung: DEFAULT_ERFAHRUNG,
       einträgeDaten: {
@@ -781,7 +781,7 @@ describe("reducers", () => {
     let statten = initState();
 
     statten = reducer(statten, {
-      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      type: ActionType.ON_DATA_RECEIVED,
       key: StateValue.data,
       erfahrung: DEFAULT_ERFAHRUNG,
       einträgeDaten: {
@@ -826,7 +826,7 @@ describe("reducers", () => {
     let statten = initState();
 
     statten = reducer(statten, {
-      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      type: ActionType.ON_DATA_RECEIVED,
       key: StateValue.data,
       erfahrung: DEFAULT_ERFAHRUNG,
       einträgeDaten: {
@@ -867,7 +867,7 @@ describe("reducers", () => {
     let statten = initState();
 
     statten = reducer(statten, {
-      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      type: ActionType.ON_DATA_RECEIVED,
       key: StateValue.data,
       erfahrung: DEFAULT_ERFAHRUNG,
       einträgeDaten: {
@@ -917,7 +917,7 @@ describe("reducers", () => {
     let statten = initState();
 
     statten = reducer(statten, {
-      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      type: ActionType.ON_DATA_RECEIVED,
       key: StateValue.data,
       erfahrung: DEFAULT_ERFAHRUNG,
       einträgeDaten: {

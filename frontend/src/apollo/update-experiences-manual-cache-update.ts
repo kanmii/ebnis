@@ -23,10 +23,22 @@ import {
 } from "./get-detailed-experience-query";
 import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "../graphql/apollo-types/GetEntriesUnionFragment";
 import { toGetEntriesSuccessQuery } from "../graphql/utils.gql";
+import {
+  SyncErrors,
+  SyncError,
+  OnlineExperienceIdToOfflineEntriesMap,
+  OfflineIdToOnlineEntryMap,
+  IdToDefinitionUpdateSyncErrorMap,
+  OfflineIdToCreateEntrySyncErrorMap,
+  IdToUpdateEntrySyncErrorMap,
+  IdToUpdateDataObjectSyncErrorMap,
+} from "../utils/sync-to-server.types";
+import { getSyncError } from "./sync-to-server-cache";
 
-export function writeUpdatedExperienceToCache(
+export function updateExperiencesManualCacheUpdate(
   dataProxy: DataProxy,
   result: UpdateExperiencesOnlineMutationResult,
+  maybeSyncErrors?: SyncErrors,
 ) {
   const updateExperiences =
     result && result.data && result.data.updateExperiences;
@@ -39,7 +51,8 @@ export function writeUpdatedExperienceToCache(
     [experienceId: string]: 1;
   } = {};
 
-  const offlineIdToEntryMap: OfflineIdToEntryMap = {};
+  const onlineExperienceToOfflineEntriesMap: OnlineExperienceIdToOfflineEntriesMap = {};
+  const syncErrors = maybeSyncErrors ? maybeSyncErrors : ({} as SyncErrors);
 
   // istanbul ignore else
   if (updateExperiences.__typename === "UpdateExperiencesSomeSuccess") {
@@ -53,6 +66,7 @@ export function writeUpdatedExperienceToCache(
         const { experienceId } = experienceResult;
         const experience = readExperienceFragment(experienceId);
 
+        // TODO: what if experience missing from cache
         // istanbul ignore next
         if (!experience) {
           continue;
@@ -65,56 +79,73 @@ export function writeUpdatedExperienceToCache(
         const unsynced = (getUnsyncedExperience(experienceId) ||
           {}) as UnsyncedModifiedExperience;
 
+        const syncError = (getSyncError(experienceId) || {}) as SyncError;
+
         const toBeModified: ToBeModified = [
           experience,
           unsynced,
           getEntriesQuery,
+          syncError,
         ];
 
-        const modified = immer<ToBeModified>(toBeModified, (modifications) => {
-          const [
-            experienceProxy,
-            unsyncedExperienceProxy,
-            getEntriesQueryProxy,
-          ] = modifications;
+        const fromImmer = immer<ToBeModified>(
+          toBeModified,
+          (immerModifications) => {
+            const [
+              immerExperience,
+              immerUnsyncedLedger,
+              immerGetEntriesQuery,
+              immerSyncError,
+            ] = immerModifications;
 
-          ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
-            experienceProxy,
-            unsyncedExperienceProxy,
-            experienceResult,
-          );
+            ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
+              immerExperience,
+              immerUnsyncedLedger,
+              experienceResult,
+              immerSyncError,
+            );
 
-          definitionsApplyUpdatesAndCleanUpUnsyncedData(
-            experienceProxy,
-            unsyncedExperienceProxy,
-            experienceResult,
-          );
+            definitionsApplyUpdatesAndCleanUpUnsyncedData(
+              immerExperience,
+              immerUnsyncedLedger,
+              experienceResult,
+              immerSyncError,
+            );
 
-          applyNewEntriesUpdateAndCleanUpUnsyncedData(
-            getEntriesQueryProxy,
-            unsyncedExperienceProxy,
-            entriesResult,
-            offlineIdToEntryMap,
-          );
+            applyUpdatedEntriesAndCleanUpUnsyncedData(
+              immerGetEntriesQuery,
+              immerUnsyncedLedger,
+              entriesResult,
+              immerSyncError,
+            );
 
-          applyUpdatedEntriesAndCleanUpUnsyncedData(
-            getEntriesQueryProxy,
-            unsyncedExperienceProxy,
-            entriesResult,
-          );
+            const offlineIdToOnlineEntryMap: OfflineIdToOnlineEntryMap = {};
 
-          const entriesErrors = unsyncedExperienceProxy.entriesErrors;
+            applyNewEntriesUpdateAndCleanUpUnsyncedData(
+              immerGetEntriesQuery,
+              immerUnsyncedLedger,
+              entriesResult,
+              offlineIdToOnlineEntryMap,
+              immerSyncError,
+            );
 
-          if (entriesErrors && !Object.keys(entriesErrors).length) {
-            delete unsyncedExperienceProxy.entriesErrors;
-          }
-        });
+            if (Object.keys(offlineIdToOnlineEntryMap)) {
+              onlineExperienceToOfflineEntriesMap[
+                experienceId
+              ] = offlineIdToOnlineEntryMap;
+            }
+
+            if (Object.keys(syncError)) {
+              syncErrors[immerExperience.id] = syncError;
+            }
+          },
+        );
 
         const [
           updatedExperience,
           updatedUnsyncedExperience,
           updatedGetEntriesQuery,
-        ] = modified;
+        ] = fromImmer;
 
         updatedIds[updatedExperience.id] = 1;
         writeExperienceFragmentToCache(updatedExperience);
@@ -133,24 +164,26 @@ export function writeUpdatedExperienceToCache(
     }
   }
 
-  return offlineIdToEntryMap;
+  return [onlineExperienceToOfflineEntriesMap, syncErrors];
 }
 
 function ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
   proxy: ExperienceDraft,
   unsynced: DraftUnsyncedModifiedExperience,
   { ownFields }: UpdateExperienceFragment,
+  immerSyncError: Draft<SyncError>,
 ) {
   if (!ownFields) {
     return;
   }
 
-  // istanbul ignore else
   if (ownFields.__typename === "ExperienceOwnFieldsSuccess") {
     const { title, description } = ownFields.data;
     proxy.title = title;
     proxy.description = description;
     delete unsynced.ownFields;
+  } else {
+    immerSyncError.ownFields = ownFields.errors;
   }
 }
 
@@ -158,6 +191,7 @@ function definitionsApplyUpdatesAndCleanUpUnsyncedData(
   proxy: ExperienceDraft,
   unsynced: DraftUnsyncedModifiedExperience,
   { updatedDefinitions }: UpdateExperienceFragment,
+  immerSyncError: Draft<SyncError>,
 ) {
   if (!updatedDefinitions) {
     return;
@@ -165,6 +199,7 @@ function definitionsApplyUpdatesAndCleanUpUnsyncedData(
 
   const unsyncedDefinitions = unsynced.definitions || {};
   let hasSuccess = false;
+  const errorsMap: IdToDefinitionUpdateSyncErrorMap = {};
 
   const updates = updatedDefinitions.reduce((acc, update) => {
     if (update.__typename === "DefinitionSuccess") {
@@ -173,7 +208,11 @@ function definitionsApplyUpdatesAndCleanUpUnsyncedData(
       const { id } = definition;
       acc[id] = definition;
       delete unsyncedDefinitions[id];
+    } else {
+      const errors = update.errors;
+      errorsMap[errors.id] = errors;
     }
+
     return acc;
   }, {} as IdToDataDefinition);
 
@@ -189,12 +228,17 @@ function definitionsApplyUpdatesAndCleanUpUnsyncedData(
       return update ? update : definition;
     });
   }
+
+  if (Object.keys(errorsMap).length) {
+    immerSyncError.definitions = errorsMap;
+  }
 }
 
 function applyUpdatedEntriesAndCleanUpUnsyncedData(
   proxy: GetEntriesQueryDraft,
   unsynced: DraftUnsyncedModifiedExperience,
   result: UpdateExperienceSomeSuccessFragment_entries | null,
+  immerSyncError: Draft<SyncError>,
 ) {
   const updatedEntries = result && result.updatedEntries;
 
@@ -202,43 +246,54 @@ function applyUpdatedEntriesAndCleanUpUnsyncedData(
     return;
   }
 
-  let hasAllUpdates = false;
-  const modifiedEntries = unsynced.modifiedEntries || {};
+  const unsyncedModifiedEntriesLedger =
+    unsynced.modifiedEntries ||
+    // istanbul ignore next:
+    {};
+
+  const errorsMap: IdToUpdateEntrySyncErrorMap = {};
 
   const updatesMap = updatedEntries.reduce(
     (entryIdToDataObjectMapAcc, update) => {
       if (update.__typename === "UpdateEntrySomeSuccess") {
         const { entryId, dataObjects } = update.entry;
-        const modifiedEntry = modifiedEntries[entryId] || {};
-        let hasSingleUpdate = false;
+        const modifiedEntryLedger =
+          unsyncedModifiedEntriesLedger[entryId] ||
+          // istanbul ignore next:
+          {};
+
+        const dataObjectErrorsMap: IdToUpdateDataObjectSyncErrorMap = {};
 
         const dataObjectUpdates = dataObjects.reduce((dataObjectsAcc, data) => {
-          // istanbul ignore else
           if (data.__typename === "DataObjectSuccess") {
             const { dataObject } = data;
             const { id } = dataObject;
             dataObjectsAcc[id] = dataObject;
-            hasAllUpdates = true;
-            hasSingleUpdate = true;
-            delete modifiedEntry[id];
+            delete modifiedEntryLedger[id];
+          } else {
+            const errors = data.errors;
+            dataObjectErrorsMap[errors.meta.id as string] = errors;
           }
 
           return dataObjectsAcc;
         }, {} as IdToDataObjectMap);
 
+        // has updates
         // istanbul ignore else
-        if (hasSingleUpdate) {
+        if (Object.keys(dataObjectUpdates).length) {
           entryIdToDataObjectMapAcc[entryId] = dataObjectUpdates;
+        }
 
-          if (!Object.keys(modifiedEntry).length) {
-            delete modifiedEntries[entryId];
-          }
+        // has errors
+        if (Object.keys(dataObjectErrorsMap).length) {
+          errorsMap[entryId] = dataObjectErrorsMap;
+        } else {
+          // no errors
+          delete unsyncedModifiedEntriesLedger[entryId];
         }
       } else {
-        // we have got an update entry error - so we write it to cache. The
-        // challenge is that we'd like to use a singe error schema for both
-        // new and modifiedEntry errors
-        // const x = update.errors;
+        const errors = update.errors;
+        errorsMap[errors.entryId] = errors.error;
       }
 
       return entryIdToDataObjectMapAcc;
@@ -246,9 +301,14 @@ function applyUpdatedEntriesAndCleanUpUnsyncedData(
     {} as EntryIdToDataObjectMap,
   );
 
-  if (hasAllUpdates) {
-    if (!Object.keys(modifiedEntries).length) {
+  // has updates
+  if (Object.keys(updatesMap).length) {
+    // no errors
+    if (!Object.keys(unsyncedModifiedEntriesLedger).length) {
       delete unsynced.modifiedEntries;
+    } else {
+      // has errors
+      immerSyncError.updateEntries = errorsMap;
     }
 
     (proxy.edges as EntryConnectionFragment_edges[]).forEach((e) => {
@@ -273,7 +333,8 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
   proxy: GetEntriesQueryDraft,
   unsynced: DraftUnsyncedModifiedExperience,
   result: UpdateExperienceSomeSuccessFragment_entries | null,
-  offlineIdToEntryMap: OfflineIdToEntryMap,
+  offlineIdToEntryMap: OfflineIdToOnlineEntryMap,
+  immerSyncError: Draft<SyncError>,
 ) {
   const newEntries = result && result.newEntries;
 
@@ -281,8 +342,8 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
     return;
   }
 
-  const entriesErrors = unsynced.entriesErrors || {};
-  let hasOfflineSyncedEntryError = false;
+  const errorsMap: OfflineIdToCreateEntrySyncErrorMap = {};
+
   let hasUpdates = false;
   const brandNewEntries: EntryFragment[] = [];
 
@@ -295,24 +356,24 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
       if (clientId) {
         // offline synced
         offlineIdToEntryMap[clientId] = entry;
-        delete entriesErrors[clientId];
       } else {
         // brand new entry
         brandNewEntries.push(entry);
       }
     } else {
-      const clientIdErrorIndicator =
-        update.errors && update.errors.meta && update.errors.meta.clientId;
+      const errors = update.errors;
+      const clientId = errors.meta.clientId;
 
       // istanbul ignore else
-      if (clientIdErrorIndicator) {
-        // offline synced
-        hasOfflineSyncedEntryError = true;
+      if (clientId) {
+        errorsMap[clientId] = errors;
       }
     }
   });
 
-  if (!hasOfflineSyncedEntryError) {
+  if (Object.keys(errorsMap).length) {
+    immerSyncError.createEntries = errorsMap;
+  } else {
     delete unsynced.newEntries;
   }
 
@@ -358,12 +419,9 @@ interface EntryIdToDataObjectMap {
   [entryId: string]: IdToDataObjectMap;
 }
 
-export interface OfflineIdToEntryMap {
-  [clientId: string]: EntryFragment;
-}
-
 type ToBeModified = [
   ExperienceFragment,
   UnsyncedModifiedExperience,
   GetEntriesUnionFragment_GetEntriesSuccess_entries,
+  SyncError,
 ];

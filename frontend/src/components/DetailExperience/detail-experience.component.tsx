@@ -46,6 +46,7 @@ import { activeClassName } from "../../utils/utils.dom";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { UpsertExperience } from "../My/my.lazy";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
+import { WithSubscriptionContext } from "../../utils/app-context";
 
 type DispatchContextValue = Readonly<{
   onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
@@ -82,6 +83,17 @@ export function DetailExperience(props: Props) {
     effects: { general: generalEffects },
     timeouts: { genericTimeout },
   } = stateMachine;
+
+  const { onSyncData } = useContext(WithSubscriptionContext);
+
+  useEffect(() => {
+    if (onSyncData) {
+      dispatch({
+        type: ActionType.ON_SYNC,
+        ...onSyncData,
+      });
+    }
+  }, [onSyncData]);
 
   useRunEffects(generalEffects, effectFunctions, props, {
     dispatch,

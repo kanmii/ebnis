@@ -2,7 +2,7 @@
 #
 #     mix run priv/repo/seeds.exs
 #
-# Inside the script, you can read and write to any of your
+# Inside the script, you can read and update-experiences-manual-cache-update to any of your
 # repositories directly:
 #
 #     Ebnis.Repo.insert!(%Ebnis.SomeSchema{})

@@ -81,6 +81,11 @@ import { scrollIntoView } from "../../utils/scroll-into-view";
 import { nonsenseId } from "../../utils/utils.dom";
 import { toGetEntriesSuccessQuery } from "../../graphql/utils.gql";
 import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitionFragment";
+import {
+  OnSyncedData,
+  OfflineIdToOnlineExperienceMap,
+} from "../../utils/sync-to-server.types";
+import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -92,12 +97,13 @@ export enum ActionType {
   DELETE_EXPERIENCE_CANCELLED = "@detailed-experience/delete-experience-cancelled",
   DELETE_EXPERIENCE_CONFIRMED = "@detailed-experience/delete-experience-confirmed",
   TOGGLE_SHOW_OPTIONS_MENU = "@detailed-experience/toggle-options-menu",
-  AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN = "@detailed-experience/on-data-received",
+  ON_DATA_RECEIVED = "@detailed-experience/on-data-received",
   RE_FETCH_EXPERIENCE = "@detailed-experience/re-fetch-experience",
   RE_FETCH_ENTRIES = "@detailed-experience/re-fetch-entries",
   HOLEN_NÄCHSTE_EINTRÄGE = "@detailed-experience/holen-nächste-einträge",
   AUF_EINTRÄGE_ERHIELTEN = "@detailed-experience/on-entries-received",
   REQUEST_UPDATE_EXPERIENCE_UI = "@detailed-experience/request-update-experience-ui",
+  ON_SYNC = "@detailed-experience/on-sync",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -158,8 +164,8 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             );
             break;
 
-          case ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN:
-            handhabenGeholteErfahrungDaten(
+          case ActionType.ON_DATA_RECEIVED:
+            handleOnDataReceivedAction(
               proxy,
               payload as GeholteErfahrungErhieltenNutzlast,
             );
@@ -189,6 +195,10 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
               proxy,
               payload as WithMayBeExperiencePayload,
             );
+            break;
+
+          case ActionType.ON_SYNC:
+            handleOnSyncAction(proxy, payload as OnSyncedData);
             break;
         }
       });
@@ -226,7 +236,7 @@ export function initState(): StateMachine {
 }
 
 function handleToggleNewEntryActiveAction(
-  proxy: DraftStateMachine,
+  proxy: DraftState,
   payload: NewEntryActivePayload,
 ) {
   const { states: globalStates } = proxy;
@@ -266,7 +276,7 @@ function handleToggleNewEntryActiveAction(
 }
 
 function handleOnNewEntryCreatedOrOfflineExperienceSynced(
-  proxy: DraftStateMachine,
+  proxy: DraftState,
   payload: OnNewEntryCreatedOrOfflineExperienceSyncedPayload,
 ) {
   const { states: globalStates } = proxy;
@@ -286,7 +296,7 @@ function handleOnNewEntryCreatedOrOfflineExperienceSynced(
       payload,
     );
 
-    const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
+    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
 
     effects.push({
       key: "scrollDocToTopEffect",
@@ -307,7 +317,7 @@ function handleOnNewEntryCreatedOrOfflineExperienceSynced(
 }
 
 function handleMaybeNewEntryCreatedHelper(
-  proxy: DraftStateMachine,
+  proxy: DraftState,
   payload: OnNewEntryCreatedOrOfflineExperienceSyncedPayload,
 ) {
   const {
@@ -335,7 +345,7 @@ function handleMaybeNewEntryCreatedHelper(
 
     const { newEntryCreated, einträge: einträgeStatten } = states;
 
-    const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
+    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
 
     effects.push({
       key: "timeoutsEffect",
@@ -404,7 +414,7 @@ function handleMaybeNewEntryCreatedHelper(
 }
 
 function handleMaybeEntriesErrorsHelper(
-  proxy: DraftStateMachine,
+  proxy: DraftState,
   payload: OnNewEntryCreatedOrOfflineExperienceSyncedPayload,
 ) {
   const unsyncableEntriesErrors = {} as UnsyncableEntriesErrors;
@@ -481,7 +491,7 @@ function handleMaybeEntriesErrorsHelper(
   return unsyncableEntriesErrors;
 }
 
-function handleOnCloseNewEntryCreatedNotification(proxy: DraftStateMachine) {
+function handleOnCloseNewEntryCreatedNotification(proxy: DraftState) {
   const { states: globalStates, timeouts } = proxy;
 
   // istanbul ignore else:
@@ -489,7 +499,7 @@ function handleOnCloseNewEntryCreatedNotification(proxy: DraftStateMachine) {
     const { states } = globalStates.data;
     states.newEntryCreated.value = StateValue.inactive;
 
-    const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
+    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
 
     effects.push({
       key: "timeoutsEffect",
@@ -502,7 +512,7 @@ function handleOnCloseNewEntryCreatedNotification(proxy: DraftStateMachine) {
   }
 }
 
-function handleOnCloseEntriesErrorsNotification(proxy: DraftStateMachine) {
+function handleOnCloseEntriesErrorsNotification(proxy: DraftState) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else:
@@ -512,10 +522,7 @@ function handleOnCloseEntriesErrorsNotification(proxy: DraftStateMachine) {
   }
 }
 
-function handleSetTimeoutAction(
-  proxy: DraftStateMachine,
-  payload: SetTimeoutPayload,
-) {
+function handleSetTimeoutAction(proxy: DraftState, payload: SetTimeoutPayload) {
   const { timeouts } = proxy;
 
   Object.entries(payload).forEach(([key, val]) => {
@@ -524,7 +531,7 @@ function handleSetTimeoutAction(
 }
 
 function handleDeleteExperienceRequestAction(
-  proxy: DraftStateMachine,
+  proxy: DraftState,
   payload: DeleteExperienceRequestPayload,
 ) {
   const { states: globalStates } = proxy;
@@ -548,7 +555,7 @@ function handleDeleteExperienceRequestAction(
   }
 }
 
-function handleDeleteExperienceCancelledAction(proxy: DraftStateMachine) {
+function handleDeleteExperienceCancelledAction(proxy: DraftState) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else:
@@ -576,7 +583,7 @@ function handleDeleteExperienceCancelledAction(proxy: DraftStateMachine) {
   }
 }
 
-function handleDeleteExperienceConfirmedAction(proxy: DraftStateMachine) {
+function handleDeleteExperienceConfirmedAction(proxy: DraftState) {
   const { states } = proxy;
 
   // istanbul ignore else
@@ -592,7 +599,7 @@ function handleDeleteExperienceConfirmedAction(proxy: DraftStateMachine) {
 }
 
 function handleToggleShowOptionsMenuAction(
-  proxy: DraftStateMachine,
+  proxy: DraftState,
   payload: ToggleOptionsMenuPayload,
 ) {
   const { states: globalStates } = proxy;
@@ -619,8 +626,8 @@ function handleToggleShowOptionsMenuAction(
   }
 }
 
-function handhabenGeholteErfahrungDaten(
-  proxy: DraftStateMachine,
+function handleOnDataReceivedAction(
+  proxy: DraftState,
   payload: GeholteErfahrungErhieltenNutzlast,
 ) {
   const { states } = proxy;
@@ -721,7 +728,7 @@ function handhabenGeholteErfahrungDaten(
   }
 }
 
-function handleRefetchExperienceAction(proxy: DraftStateMachine) {
+function handleRefetchExperienceAction(proxy: DraftState) {
   const effects = getGeneralEffects(proxy);
 
   effects.push({
@@ -730,7 +737,7 @@ function handleRefetchExperienceAction(proxy: DraftStateMachine) {
   });
 }
 
-function handleRefetchEntries(proxy: DraftStateMachine) {
+function handleRefetchEntries(proxy: DraftState) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else
@@ -749,7 +756,7 @@ function handleRefetchEntries(proxy: DraftStateMachine) {
   }
 }
 
-function handhabenHolenNächsteEinträgeHandlung(proxy: DraftStateMachine) {
+function handhabenHolenNächsteEinträgeHandlung(proxy: DraftState) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else
@@ -782,7 +789,7 @@ function handhabenHolenNächsteEinträgeHandlung(proxy: DraftStateMachine) {
 }
 
 function handhabenEinträgeErhieltenHandlung(
-  proxy: DraftStateMachine,
+  proxy: DraftState,
   payload: VerarbeitenEinträgeAbfrageZurückgegebenerWert | ReFetchOnlyPayload,
 ) {
   const { states: globalStates } = proxy;
@@ -871,7 +878,7 @@ function handhabenEinträgeErhieltenHandlung(
 }
 
 function handleUpdateExperienceUiRequestAction(
-  proxy: DraftStateMachine,
+  proxy: DraftState,
   { experience }: WithMayBeExperiencePayload,
 ) {
   const { states: globalStates, timeouts } = proxy;
@@ -884,7 +891,7 @@ function handleUpdateExperienceUiRequestAction(
     } = globalStates.data;
 
     const modifiedState = state;
-    const effects = getGeneralEffects<EffectType, DraftStateMachine>(proxy);
+    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
 
     if (state.value === StateValue.erfolg) {
       modifiedState.value = StateValue.inactive;
@@ -936,12 +943,52 @@ function handleUpdateExperienceUiRequestAction(
   }
 }
 
+function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
+  const { states: globalStates } = proxy;
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+    const { context } = globalStates.data;
+    const { offlineIdToEntryMap, offlineIdToOnlineExperienceMap } = payload;
+
+    // Offline experience now synced
+    if (offlineIdToOnlineExperienceMap) {
+      const {
+        experience: { id },
+      } = context;
+
+      const onlineExperience = offlineIdToOnlineExperienceMap[id];
+
+      if (!onlineExperience) {
+        effects.push({
+          key: "postSyncEffect",
+          ownArgs: {
+            data: offlineIdToOnlineExperienceMap,
+          },
+        });
+      } else {
+        effects.push({
+          key: "postSyncEffect",
+          ownArgs: {
+            data: offlineIdToOnlineExperienceMap,
+            id,
+          },
+        });
+      }
+    }
+
+    // Synced online experience with entries errors
+    if (offlineIdToEntryMap) {
+    }
+  }
+}
+
 function getExperienceId(props: Props) {
   return (props.match as Match).params.experienceId;
 }
 
 function verarbeitenEinträgeContext(
-  proxy: DraftStateMachine,
+  proxy: DraftState,
   context: Draft<EinträgeDatenErfolg["erfolg"]["context"]>,
   neuEintragDaten: EntryFragment,
   zustand: ErstellenNeuEintragZustand,
@@ -1243,7 +1290,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
     const daten = bestehendeZwischengespeicherteErgebnis.data as GetDetailExperience;
 
     dispatch({
-      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+      type: ActionType.ON_DATA_RECEIVED,
       ...verarbeitenErfahrungAbfrage(daten.getExperience, daten.getEntries),
     });
 
@@ -1265,7 +1312,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
       const daten = (data && data.data) || ({} as GetDetailExperience);
 
       dispatch({
-        type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+        type: ActionType.ON_DATA_RECEIVED,
         ...verarbeitenErfahrungAbfrage(
           daten.getExperience || null,
           daten.getEntries,
@@ -1273,7 +1320,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
       });
     } catch (error) {
       dispatch({
-        type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+        type: ActionType.ON_DATA_RECEIVED,
         key: StateValue.errors,
         error,
       });
@@ -1294,7 +1341,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
     // we were never able to connect
     if (fetchExperienceAttemptsCount > timeoutsLen) {
       dispatch({
-        type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN,
+        type: ActionType.ON_DATA_RECEIVED,
         key: StateValue.errors,
         error: DATA_FETCHING_FAILED,
       });
@@ -1394,6 +1441,22 @@ type DefHolenEinträgeWirkung = EffectDefinition<
   }
 >;
 
+const postSyncEffect: DefPostSyncEffect["func"] = ({ data, id }) => {
+  if (id) {
+    //
+  }
+
+  cleanUpOfflineExperiences(data);
+};
+
+type DefPostSyncEffect = EffectDefinition<
+  "postSyncEffect",
+  {
+    data: OfflineIdToOnlineExperienceMap;
+    id?: string;
+  }
+>;
+
 export const effectFunctions = {
   scrollDocToTopEffect,
   timeoutsEffect,
@@ -1404,6 +1467,7 @@ export const effectFunctions = {
   deleteExperienceEffect,
   fetchDetailedExperienceEffect,
   holenEinträgeWirkung,
+  postSyncEffect,
 };
 
 function verarbeitenErfahrungAbfrage(
@@ -1554,7 +1618,7 @@ export function getOnlineStatus<T extends { id: string }>(
 
 ////////////////////////// END HELPER FUNCTIONS ////////////////////////////
 
-type DraftStateMachine = Draft<StateMachine>;
+type DraftState = Draft<StateMachine>;
 
 export type StateMachine = GenericGeneralEffect<EffectType> &
   Readonly<{
@@ -1778,7 +1842,7 @@ type Action =
       type: ActionType.TOGGLE_SHOW_OPTIONS_MENU;
     } & ToggleOptionsMenuPayload)
   | ({
-      type: ActionType.AUF_GEHOLTE_ERFAHRUNG_DATEN_ERHIELTEN;
+      type: ActionType.ON_DATA_RECEIVED;
     } & GeholteErfahrungErhieltenNutzlast)
   | {
       type: ActionType.RE_FETCH_EXPERIENCE;
@@ -1794,7 +1858,10 @@ type Action =
     }
   | ({
       type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI;
-    } & WithMayBeExperiencePayload);
+    } & WithMayBeExperiencePayload)
+  | ({
+      type: ActionType.ON_SYNC;
+    } & OnSyncedData);
 
 type ReFetchOnlyPayload = {
   schlüssel: ReFetchOnlyVal;
@@ -1871,7 +1938,8 @@ export type EffectType =
   | DefDeleteExperienceRequestedEffect
   | DefDeleteExperienceEffect
   | DefFetchDetailedExperienceEffect
-  | DefHolenEinträgeWirkung;
+  | DefHolenEinträgeWirkung
+  | DefPostSyncEffect;
 
 // [index/label, [errorKey, errorValue][]][]
 export type EintragFehlerAlsListe = [string | number, [string, string][]][];
