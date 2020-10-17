@@ -77,7 +77,10 @@ import {
   OfflineIdToCreateEntrySyncErrorMap,
   OnlineExperienceIdToOfflineEntriesMap,
 } from "../../utils/sync-to-server.types";
-import { cleanUpOfflineExperiences, cleanUpSyncedOfflineEntries } from "../WithSubscriptions/with-subscriptions.utils";
+import {
+  cleanUpOfflineExperiences,
+  cleanUpSyncedOfflineEntries,
+} from "../WithSubscriptions/with-subscriptions.utils";
 import { getSyncError } from "../../apollo/sync-to-server-cache";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
@@ -434,8 +437,6 @@ function handleOnDataReceivedAction(
           erfahrung.dataDefinitions,
         );
 
-        const { id: erfahrungId } = erfahrung;
-
         dataStateData.states = {
           updateExperienceUiActive: {
             value: StateValue.inactive,
@@ -475,23 +476,12 @@ function handleOnDataReceivedAction(
                 },
         };
 
-        effects.push(
-          {
-            key: "onOfflineExperienceSyncedEffect",
-            ownArgs: {
-              erfahrungId,
-              einträge:
-                einträgeDaten.schlüssel === StateValue.erfolg &&
-                einträgeDaten.einträge,
-            },
+        effects.push({
+          key: "deleteExperienceRequestedEffect",
+          ownArgs: {
+            experienceId: erfahrung.id,
           },
-          {
-            key: "deleteExperienceRequestedEffect",
-            ownArgs: {
-              experienceId: erfahrung.id,
-            },
-          },
-        );
+        });
       }
       break;
 
@@ -1119,9 +1109,16 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
     experienceId,
   );
 
+  const syncErrors = getSyncError(experienceId) || undefined;
+
+  if (syncErrors && syncErrors.offlineExperienceId) {
+    cleanUpOfflineExperiences({
+      [syncErrors.offlineExperienceId]: {} as ExperienceFragment,
+    });
+  }
+
   if (bestehendeZwischengespeicherteErgebnis) {
     const daten = bestehendeZwischengespeicherteErgebnis.data as GetDetailExperience;
-    const syncErrors = getSyncError(experienceId) || undefined;
 
     dispatch({
       type: ActionType.ON_DATA_RECEIVED,
@@ -1131,12 +1128,6 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
         syncErrors,
       ),
     });
-
-    if (syncErrors && syncErrors.offlineExperienceId) {
-      cleanUpOfflineExperiences({
-        [syncErrors.offlineExperienceId]: {} as ExperienceFragment,
-      });
-    }
 
     return;
   }
@@ -1160,6 +1151,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
         experienceData: verarbeitenErfahrungAbfrage(
           daten.getExperience || null,
           daten.getEntries,
+          syncErrors,
         ),
       });
     } catch (error) {
@@ -1315,7 +1307,7 @@ type DefPostOfflineExperiencesSyncEffect = EffectDefinition<
 const postOfflineEntriesSyncEffect: DefPostOfflineEntriesSyncEffect["func"] = ({
   data,
 }) => {
-  cleanUpSyncedOfflineEntries(data)
+  cleanUpSyncedOfflineEntries(data);
 };
 
 type DefPostOfflineEntriesSyncEffect = EffectDefinition<
