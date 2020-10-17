@@ -6,6 +6,7 @@ import {
   SyncErrors,
   UpdateSyncReturnVal,
   OnlineExperienceIdToOfflineEntriesMap,
+  SyncCreateReturnVal,
 } from "../utils/sync-to-server.types";
 import {
   UpdateExperienceInput,
@@ -288,11 +289,20 @@ export async function syncToServer() {
   }
 
   if (createResult) {
-    offlineIdToOnlineExperienceMap = createExperiencesManualUpdate(cache, {
+    const result = createExperiencesManualUpdate(cache, {
       data: {
         createExperiences: createResult,
       },
-    });
+    }) as SyncCreateReturnVal;
+
+    if (result) {
+      syncErrors = {
+        ...syncErrors,
+        ...result[0],
+      };
+
+      offlineIdToOnlineExperienceMap = result[1];
+    }
   }
 
   putSyncFlag({ isSyncing: false } as SyncFlag);

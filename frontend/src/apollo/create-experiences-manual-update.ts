@@ -211,7 +211,7 @@ export function createExperiencesManualUpdate(
       toBeInsertedOrReplaced,
     );
 
-    return offlineIdToOnlineExperienceMap;
+    return [syncErrors, offlineIdToOnlineExperienceMap];
   }
 
   return undefined;

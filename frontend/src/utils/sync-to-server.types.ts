@@ -84,6 +84,12 @@ export type UpdateSyncReturnVal = [
   OfflineIdToOnlineExperienceMap,
 ];
 
+export type SyncCreateReturnVal = [
+  SyncErrors,
+  OfflineIdToOnlineExperienceMap,
+
+]
+
 export interface SyncErrorsQueryResult {
   syncErrors: SyncErrors;
 }

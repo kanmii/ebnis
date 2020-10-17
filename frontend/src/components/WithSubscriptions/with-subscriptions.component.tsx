@@ -116,13 +116,6 @@ export function WithSubscriptions(props: Props) {
           cleanUpOfflineExperiences(data.offlineIdToOnlineExperienceMap);
         }
 
-        if (
-          data.offlineIdToEntryMap &&
-          !pathname.startsWith(EXPERIENCE_DETAIL_URL_PREFIX)
-        ) {
-          //
-        }
-
         dispatch({
           type: ActionType.ON_SYNC,
           data,
