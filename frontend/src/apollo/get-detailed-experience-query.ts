@@ -19,6 +19,8 @@ import {
 } from "../graphql/apollo-types/EntryConnectionFragment";
 import { emptyPageInfo } from "../graphql/utils.gql";
 import { GetEntriesUnionFragment } from "../graphql/apollo-types/GetEntriesUnionFragment";
+import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
+import { ENTRY_FRAGMENT } from "../graphql/entry.gql";
 
 export function writeExperienceFragmentToCache(experience: ExperienceFragment) {
   const { id } = experience;
@@ -148,4 +150,16 @@ export function getExperienceQuery(erfahrungId: string) {
 
 export function erzeugenSammelnEinträgenAbfrage(erfahrungId: string) {
   return `getEntries({"experienceId":"${erfahrungId}"})`;
+}
+
+export function readEntryFragment(entryId: string) {
+  const { cache } = window.____ebnis;
+
+  const entry = cache.readFragment<EntryFragment>({
+    id: makeApolloCacheRef("Entry", entryId),
+    fragment: ENTRY_FRAGMENT,
+    fragmentName: "EntryFragment",
+  });
+
+  return entry;
 }

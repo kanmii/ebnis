@@ -575,7 +575,6 @@ function handleOnDeleteExperienceProcessedHelper(
 }
 
 function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
-  // istanbul ignore else
   const { states } = proxy;
 
   // istanbul ignore else

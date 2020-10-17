@@ -75,8 +75,9 @@ import {
   OfflineIdToOnlineExperienceMap,
   SyncError,
   OfflineIdToCreateEntrySyncErrorMap,
+  OnlineExperienceIdToOfflineEntriesMap,
 } from "../../utils/sync-to-server.types";
-import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
+import { cleanUpOfflineExperiences, cleanUpSyncedOfflineEntries } from "../WithSubscriptions/with-subscriptions.utils";
 import { getSyncError } from "../../apollo/sync-to-server-cache";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
@@ -723,9 +724,11 @@ function handleUpdateExperienceUiRequestAction(
 
 function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
   const { states: globalStates } = proxy;
+
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+
     const {
       context,
       states: { einträge: einträgeStatten },
@@ -740,31 +743,30 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
     } = context;
 
     if (offlineIdToOnlineExperienceMap) {
+      const data = {
+        ...offlineIdToOnlineExperienceMap,
+      };
+      const ownArgs: DefPostOfflineExperiencesSyncEffect["ownArgs"] = {
+        data,
+      };
+
       const onlineExperience = offlineIdToOnlineExperienceMap[id];
 
       if (onlineExperience) {
         // Offline experience now synced
 
-        const offlineExperienceId = id;
-
-        const data = {
-          ...offlineIdToOnlineExperienceMap,
-        };
+        ownArgs.onlineExperienceId = onlineExperience.id;
 
         // this offline experience will be purged upon navigation to related
         // online experience, hence deletion here
+        const offlineExperienceId = id;
         delete data[offlineExperienceId];
-
-        effects.push({
-          key: "postSyncEffect",
-          ownArgs: {
-            data,
-            onlineExperienceId: onlineExperience.id,
-          },
-        });
-
-        return;
       }
+
+      effects.push({
+        key: "postOfflineExperiencesSyncEffect",
+        ownArgs,
+      });
     }
 
     if (onlineExperienceIdToOfflineEntriesMap) {
@@ -775,6 +777,13 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
       if (offlineIdToOnlineEntryMap) {
         updateEntries(einträgeStatten, offlineIdToOnlineEntryMap);
       }
+
+      effects.push({
+        key: "postOfflineEntriesSyncEffect",
+        ownArgs: {
+          data: onlineExperienceIdToOfflineEntriesMap,
+        },
+      });
     }
   }
 }
@@ -811,12 +820,6 @@ function handleOnEntryCreatedUpdatedAction(
     });
 
     if (updated) {
-      const ob = (einträgeStatten[StateValue.erfolg] ||
-        einträgeStatten[StateValue.einträgeMitHolenFehler]) as Draft<
-        EinträgeDatenErfolg["erfolg"]
-      >;
-
-      const { context } = ob;
       const { id } = updated;
 
       updateEntries(einträgeStatten, {
@@ -1286,7 +1289,7 @@ type DefHolenEinträgeWirkung = EffectDefinition<
   }
 >;
 
-const postSyncEffect: DefPostSyncEffect["func"] = async ({
+const postOfflineExperiencesSyncEffect: DefPostOfflineExperiencesSyncEffect["func"] = async ({
   data,
   onlineExperienceId: id,
 }) => {
@@ -1301,11 +1304,24 @@ const postSyncEffect: DefPostSyncEffect["func"] = async ({
   cleanUpOfflineExperiences(data);
 };
 
-type DefPostSyncEffect = EffectDefinition<
-  "postSyncEffect",
+type DefPostOfflineExperiencesSyncEffect = EffectDefinition<
+  "postOfflineExperiencesSyncEffect",
   {
     data: OfflineIdToOnlineExperienceMap;
     onlineExperienceId?: string;
+  }
+>;
+
+const postOfflineEntriesSyncEffect: DefPostOfflineEntriesSyncEffect["func"] = ({
+  data,
+}) => {
+  cleanUpSyncedOfflineEntries(data)
+};
+
+type DefPostOfflineEntriesSyncEffect = EffectDefinition<
+  "postOfflineEntriesSyncEffect",
+  {
+    data: OnlineExperienceIdToOfflineEntriesMap;
   }
 >;
 
@@ -1317,7 +1333,8 @@ export const effectFunctions = {
   deleteExperienceEffect,
   fetchDetailedExperienceEffect,
   holenEinträgeWirkung,
-  postSyncEffect,
+  postOfflineExperiencesSyncEffect,
+  postOfflineEntriesSyncEffect,
 };
 
 function verarbeitenErfahrungAbfrage(
@@ -1788,7 +1805,8 @@ export type EffectType =
   | DefDeleteExperienceEffect
   | DefFetchDetailedExperienceEffect
   | DefHolenEinträgeWirkung
-  | DefPostSyncEffect;
+  | DefPostOfflineExperiencesSyncEffect
+  | DefPostOfflineEntriesSyncEffect;
 
 // [index/label, [errorKey, errorValue][]][]
 export type EintragFehlerAlsListe = [string | number, [string, string][]][];

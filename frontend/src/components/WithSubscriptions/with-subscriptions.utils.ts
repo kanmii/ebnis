@@ -26,6 +26,7 @@ import {
 import {
   purgeExperiencesFromCache1,
   insertReplaceRemoveExperiencesInGetExperiencesMiniQuery,
+  purgeEntry,
 } from "../../apollo/update-get-experiences-mini-query";
 import { syncToServer } from "../../apollo/sync-to-server";
 import { putSyncFlag } from "../../apollo/sync-to-server-cache";
@@ -33,8 +34,11 @@ import {
   SyncFlag,
   OnSyncedData,
   OfflineIdToOnlineExperienceMap,
+  OnlineExperienceIdToOfflineEntriesMap,
 } from "../../utils/sync-to-server.types";
 import { WithSubscriptionContextProps } from "../../utils/app-context";
+import { readEntryFragment } from "../../apollo/get-detailed-experience-query";
+import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 
 export enum ActionType {
   CONNECTION_CHANGED = "@with-subscription/connection-changed",
@@ -193,6 +197,22 @@ export async function cleanUpOfflineExperiences(
   purgeExperiencesFromCache1(toPurge);
   const { persistor } = window.____ebnis;
   await persistor.persist();
+}
+
+export async function cleanUpSyncedOfflineEntries(
+  data: OnlineExperienceIdToOfflineEntriesMap,
+) {
+  const { persistor } = window.____ebnis;
+
+  const toPurge = Object.values(data).flatMap((offlineIdToEntryMap) =>
+    Object.keys(offlineIdToEntryMap),
+  );
+
+  toPurge.forEach((id) => {
+    purgeEntry(readEntryFragment(id) as EntryFragment);
+  });
+
+  persistor.persist();
 }
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////////

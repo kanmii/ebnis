@@ -21,7 +21,7 @@ import {
   initState,
   effectFunctions,
   Props,
-  cleanUpOfflineExperiences,
+  cleanUpSyncedOfflineEntries,
 } from "./with-subscriptions.utils";
 import { useRunEffects } from "../../utils/use-run-effects";
 import {
@@ -29,7 +29,7 @@ import {
   ChangeUrlType,
   getLocation,
 } from "../../utils/global-window";
-import { MY_URL, EXPERIENCE_DETAIL_URL_PREFIX } from "../../utils/urls";
+import { MY_URL } from "../../utils/urls";
 import { OnSyncedData } from "../../utils/sync-to-server.types";
 
 export function WithSubscriptions(props: Props) {
@@ -109,11 +109,10 @@ export function WithSubscriptions(props: Props) {
         const data = payload as OnSyncedData;
         const { pathname } = getLocation();
 
-        if (data.offlineIdToOnlineExperienceMap && pathname !== MY_URL) {
-          // Wrong !!!!
-          // What if we are on a page showing offline experience newly
-          // synced????
-          cleanUpOfflineExperiences(data.offlineIdToOnlineExperienceMap);
+        if (data.onlineExperienceIdToOfflineEntriesMap && pathname === MY_URL) {
+          cleanUpSyncedOfflineEntries(
+            data.onlineExperienceIdToOfflineEntriesMap,
+          );
         }
 
         dispatch({
