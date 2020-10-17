@@ -47,7 +47,6 @@ export function createExperiencesManualUpdate(
       }
 
       const syncError: SyncError = {};
-      let syncErrorId = "";
 
       if (response.__typename === "ExperienceSuccess") {
         const {
@@ -60,7 +59,7 @@ export function createExperiencesManualUpdate(
         const onlineExperienceId = newlyCreatedExperience.id;
 
         toBeInsertedOrReplacedAcc.push([
-          newlyCreatedExperience.id,
+          onlineExperienceId,
           newlyCreatedExperience,
         ]);
 
@@ -72,6 +71,7 @@ export function createExperiencesManualUpdate(
         // following exist bcos of experience created offline now synced
 
         syncError.offlineExperienceId = offlineErfahrungId;
+        syncErrors[onlineExperienceId] = syncError;
 
         offlineIdToOnlineExperienceMap[
           offlineErfahrungId
@@ -82,8 +82,6 @@ export function createExperiencesManualUpdate(
           removeUnsyncedExperiences([offlineErfahrungId]);
           return toBeInsertedOrReplacedAcc;
         }
-
-        syncErrorId = onlineExperienceId;
 
         const getEntries = getEntriesQuerySuccess(offlineErfahrungId);
 
@@ -196,11 +194,7 @@ export function createExperiencesManualUpdate(
       } else {
         const errors = response.errors;
         syncError.createExperience = errors;
-        syncErrorId = errors.meta.clientId as string;
-      }
-
-      if (Object.keys(syncError).length) {
-        syncErrors[syncErrorId] = syncError;
+        syncErrors[errors.meta.clientId as string] = syncError;
       }
 
       return toBeInsertedOrReplacedAcc;
