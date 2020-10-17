@@ -25,7 +25,7 @@ import { E2EWindowObject } from "../utils/types";
 import { unsyncedLedgerPolicy } from "./unsynced-ledger";
 import { syncingExperiencesLedgerPolicy } from "./syncing-experience-ledger";
 import { deleteExperienceVar } from "../apollo/delete-experience-cache";
-import { syncFlagPolicy } from "./sync-to-server-cache";
+import { syncFlagPolicy, syncErrorsPolicy } from "./sync-to-server-cache";
 
 export function buildClientCache(
   {
@@ -71,6 +71,7 @@ export function buildClientCache(
           unsyncedLedger: unsyncedLedgerPolicy,
           syncingExperiencesLedger: syncingExperiencesLedgerPolicy,
           syncFlag: syncFlagPolicy,
+          syncErrors: syncErrorsPolicy,
         },
       },
     },
