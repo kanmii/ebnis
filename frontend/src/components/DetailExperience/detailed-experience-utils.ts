@@ -720,36 +720,46 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
   if (globalStates.value === StateValue.data) {
     const effects = getGeneralEffects<EffectType, DraftState>(proxy);
     const { context } = globalStates.data;
-    const { offlineIdToEntryMap, offlineIdToOnlineExperienceMap } = payload;
+    const {
+      offlineIdToOnlineExperienceMap,
+      onlineExperienceIdToOfflineEntriesMap,
+    } = payload;
 
-    // Offline experience now synced
+    const {
+      experience: { id },
+    } = context;
+
     if (offlineIdToOnlineExperienceMap) {
-      const {
-        experience: { id },
-      } = context;
-
       const onlineExperience = offlineIdToOnlineExperienceMap[id];
 
       if (!onlineExperience) {
+        // Offline experience now synced
+
+        const data = {
+          ...offlineIdToOnlineExperienceMap,
+        };
+
+        // this offline experience will be purged upon navigation to related
+        // online experience
+        delete data[id];
+
         effects.push({
           key: "postSyncEffect",
           ownArgs: {
-            data: offlineIdToOnlineExperienceMap,
+            data,
           },
         });
-      } else {
-        effects.push({
-          key: "postSyncEffect",
-          ownArgs: {
-            data: offlineIdToOnlineExperienceMap,
-            id,
-          },
-        });
+
+        return;
       }
     }
 
-    // Synced online experience with entries errors
-    if (offlineIdToEntryMap) {
+    if (onlineExperienceIdToOfflineEntriesMap) {
+      const entriesErrors = onlineExperienceIdToOfflineEntriesMap[id];
+
+      // we have errors belonging to this experience
+      if (entriesErrors) {
+      }
     }
   }
 }
