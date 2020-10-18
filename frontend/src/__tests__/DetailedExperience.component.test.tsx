@@ -144,7 +144,7 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
           onClick={() => {
             detailedExperienceDispatch({
               type:
-                mockActionType.ON_ENTRY_CREATED,
+                mockActionType.ON_UPSERT_ENTRY_SUCCESS,
               mayBeNewEntry: {
                 neuEintragDaten: mockNewlyCreatedEntry,
                 zustand: "synchronisiert",
@@ -619,7 +619,7 @@ describe("reducers", () => {
     expect(holenEinträgeScheitertStatten.wert).toBe(StateValue.versagen);
 
     statten = reducer(statten, {
-      type: ActionType.ON_ENTRY_CREATED,
+      type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       mayBeNewEntry: {
         neuEintragDaten: mockNewlyCreatedEntry,
         zustand: "synchronisiert",
@@ -639,7 +639,7 @@ describe("reducers", () => {
     ).toBe(1);
 
     statten = reducer(statten, {
-      type: ActionType.ON_ENTRY_CREATED,
+      type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       mayBeNewEntry: {
         neuEintragDaten: mockNewlyCreatedEntry,
         zustand: "synchronisiert",
@@ -715,7 +715,7 @@ describe("reducers", () => {
     expect(mockPersistFunc).toHaveBeenCalled();
 
     expect(mockDispatchFn.mock.calls[1][0]).toEqual({
-      type: ActionType.ON_ENTRY_CREATED,
+      type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       mayBeNewEntry: {
         neuEintragDaten: eintragDaten,
         zustand: "ganz-nue",
@@ -738,7 +738,7 @@ describe("reducers", () => {
     });
 
     statten = reducer(statten, {
-      type: ActionType.ON_ENTRY_CREATED,
+      type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       mayBeNewEntry: {
         neuEintragDaten: mockNewlyCreatedEntry,
         zustand: "synchronisiert",
@@ -791,7 +791,7 @@ describe("reducers", () => {
     });
 
     statten = reducer(statten, {
-      type: ActionType.ON_ENTRY_CREATED,
+      type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       mayBeNewEntry: {
         neuEintragDaten: mockNewlyCreatedEntry,
         zustand: "synchronisiert",

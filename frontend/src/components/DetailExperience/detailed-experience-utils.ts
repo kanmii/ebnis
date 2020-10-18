@@ -85,14 +85,16 @@ import {
   getSyncError,
   putOfflineExperienceIdInSyncFlag,
   getAndRemoveOfflineExperienceIdFromSyncFlag,
+  putOrRemoveSyncError,
 } from "../../apollo/sync-to-server-cache";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { UpdatingEntryPayload } from "../NewEntry/new-entry.utils";
+import { purgeEntry } from "../../apollo/update-get-experiences-mini-query";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
-  ON_ENTRY_CREATED = "@detailed-experience/entry-created",
+  ON_UPSERT_ENTRY_SUCCESS = "@detailed-experience/on-upsert-entry-success",
   ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION = "@detailed-experience/on-close-new-entry-created-notification",
   SET_TIMEOUT = "@detailed-experience/set-timeout",
   ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION = "@detailed-experience/on-close-entries-errors-notification",
@@ -194,8 +196,8 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             handleOnSyncAction(proxy, payload as OnSyncedData);
             break;
 
-          case ActionType.ON_ENTRY_CREATED:
-            handleOnEntryCreatedUpdatedAction(
+          case ActionType.ON_UPSERT_ENTRY_SUCCESS:
+            handleOnUpsertEntrySuccessAction(
               proxy,
               payload as OnEntryCreatedPayload,
             );
@@ -795,7 +797,7 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
   }
 }
 
-function handleOnEntryCreatedUpdatedAction(
+function handleOnUpsertEntrySuccessAction(
   proxy: DraftState,
   payload: OnEntryCreatedPayload,
 ) {
@@ -803,7 +805,12 @@ function handleOnEntryCreatedUpdatedAction(
 
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
-    const { states } = globalStates.data;
+    const {
+      states,
+      context: {
+        experience: { id: experienceId },
+      },
+    } = globalStates.data;
 
     const {
       newEntryActive,
@@ -815,7 +822,7 @@ function handleOnEntryCreatedUpdatedAction(
     newEntryActive.value = StateValue.inactive;
     notification.value = StateValue.inactive;
 
-    const { created, updated } = payload;
+    const { old, newData } = payload;
 
     const effects = getGeneralEffects<EffectType, DraftState>(proxy);
 
@@ -826,22 +833,13 @@ function handleOnEntryCreatedUpdatedAction(
       },
     });
 
-    if (updated) {
-      const { id } = updated;
-
-      updateEntries(einträgeStatten, {
-        [id]: updated,
-      });
-
-      return;
-    }
-
-    if (created) {
+    // completely new entry created online
+    if (!old) {
       const newEntryState = newEntryCreated as Draft<
         NewEntryCreatedNotification
       >;
 
-      const { updatedAt } = created;
+      const { updatedAt } = newData;
 
       newEntryState.value = StateValue.active;
 
@@ -867,7 +865,7 @@ function handleOnEntryCreatedUpdatedAction(
           const { context } = ob;
 
           context.einträge.unshift({
-            eintragDaten: created,
+            eintragDaten: newData,
           });
 
           break;
@@ -883,7 +881,7 @@ function handleOnEntryCreatedUpdatedAction(
               context: {
                 einträge: [
                   {
-                    eintragDaten: created,
+                    eintragDaten: newData,
                   },
                 ],
                 holenFehler: einträgeStatten.fehler,
@@ -892,6 +890,33 @@ function handleOnEntryCreatedUpdatedAction(
           }
           break;
       }
+    } else {
+      // updated entry: either offline entry synced / online entry updated
+      const { id } = old;
+
+      updateEntries(
+        einträgeStatten,
+        {
+          [id]: newData,
+        },
+        true,
+      );
+
+      const cleanUpData: DefDeleteCreateEntrySyncErrorEffect["ownArgs"]["data"] = {
+        experienceId,
+      };
+
+      // offline entry synced
+      if (id !== newData.id) {
+        cleanUpData.createErrors = [old];
+      }
+
+      effects.push({
+        key: "deleteCreateEntrySyncErrorEffect",
+        ownArgs: {
+          data: cleanUpData,
+        },
+      });
     }
   }
 }
@@ -912,6 +937,7 @@ function updateEntries(
   payload: {
     [entryId: string]: EntryFragment | CreateEntryErrorFragment;
   },
+  update?: true,
 ) {
   const ob = (state[StateValue.erfolg] ||
     state[StateValue.einträgeMitHolenFehler]) as Draft<
@@ -927,10 +953,15 @@ function updateEntries(
     if (updated) {
       switch (updated.__typename) {
         case "Entry":
-          return {
+          const newData = {
             ...daten,
             eintragDaten: updated,
+            nichtSynchronisiertFehler: update
+              ? undefined
+              : daten.nichtSynchronisiertFehler,
           };
+
+          return newData;
 
         case "CreateEntryError":
           return {
@@ -1361,6 +1392,46 @@ type DefPostOfflineEntriesSyncEffect = EffectDefinition<
   }
 >;
 
+const deleteCreateEntrySyncErrorEffect: DefDeleteCreateEntrySyncErrorEffect["func"] = ({
+  data: { experienceId, createErrors },
+}) => {
+  const errors = getSyncError(experienceId);
+
+  if (errors) {
+    const fromImmer = immer(errors, (immerErrors) => {
+      const { createEntries } = immerErrors;
+
+      if (createEntries && createErrors) {
+        createErrors.forEach((entry) => {
+          delete createEntries[entry.id];
+          purgeEntry(entry);
+        });
+
+        if (!Object.keys(createEntries).length) {
+          delete immerErrors.createEntries;
+        }
+      }
+    });
+
+    const { persistor } = window.____ebnis;
+
+    const newError = Object.keys(fromImmer).length ? fromImmer : undefined;
+    putOrRemoveSyncError(experienceId, newError);
+
+    persistor.persist();
+  }
+};
+
+type DefDeleteCreateEntrySyncErrorEffect = EffectDefinition<
+  "deleteCreateEntrySyncErrorEffect",
+  {
+    data: {
+      experienceId: string;
+      createErrors?: EntryFragment[];
+    };
+  }
+>;
+
 export const effectFunctions = {
   scrollDocToTopEffect,
   timeoutsEffect,
@@ -1371,6 +1442,7 @@ export const effectFunctions = {
   holenEinträgeWirkung,
   postOfflineExperiencesSyncEffect,
   postOfflineEntriesSyncEffect,
+  deleteCreateEntrySyncErrorEffect,
 };
 
 function verarbeitenErfahrungAbfrage(
@@ -1726,7 +1798,7 @@ type Action =
       type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE;
     } & NewEntryActivePayload)
   | ({
-      type: ActionType.ON_ENTRY_CREATED;
+      type: ActionType.ON_UPSERT_ENTRY_SUCCESS;
     } & OnEntryCreatedPayload)
   | {
       type: ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION;
@@ -1813,8 +1885,8 @@ export interface DataDefinitionIdToNameMap {
 }
 
 interface OnEntryCreatedPayload {
-  created?: EntryFragment;
-  updated?: EntryFragment;
+  old?: EntryFragment;
+  newData: EntryFragment;
 }
 
 type SetTimeoutPayload = {
@@ -1822,10 +1894,6 @@ type SetTimeoutPayload = {
 };
 
 export type DispatchType = Dispatch<Action>;
-
-export interface DetailedExperienceChildDispatchProps {
-  detailedExperienceDispatch: DispatchType;
-}
 
 export type EffectArgs = DeleteExperiencesComponentProps & {
   dispatch: DispatchType;
@@ -1845,7 +1913,8 @@ export type EffectType =
   | DefFetchDetailedExperienceEffect
   | DefHolenEinträgeWirkung
   | DefPostOfflineExperiencesSyncEffect
-  | DefPostOfflineEntriesSyncEffect;
+  | DefPostOfflineEntriesSyncEffect
+  | DefDeleteCreateEntrySyncErrorEffect;
 
 // [index/label, [errorKey, errorValue][]][]
 export type EintragFehlerAlsListe = [string | number, [string, string][]][];

@@ -35,13 +35,12 @@ import {
   notificationCloseId,
   fieldErrorSelector,
 } from "./new-entry.dom";
-import { ActionType as DetailExperienceActionType } from "../DetailExperience/detailed-experience-utils";
 import { StateValue } from "../../utils/types";
 import { errorClassName } from "../../utils/utils.dom";
 import { useRunEffects } from "../../utils/use-run-effects";
 
 export function NewEntry(props: Props) {
-  const { experience, detailedExperienceDispatch } = props;
+  const { experience, onClose } = props;
 
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
@@ -63,13 +62,6 @@ export function NewEntry(props: Props) {
     dispatch({
       type: ActionType.DISMISS_NOTIFICATION,
     });
-  }, []);
-
-  const onCloseComponent = useCallback(() => {
-    detailedExperienceDispatch({
-      type: DetailExperienceActionType.TOGGLE_NEW_ENTRY_ACTIVE,
-    });
-    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
 
   useEffect(() => {
@@ -101,7 +93,7 @@ export function NewEntry(props: Props) {
               className="delete new-entry__delete"
               aria-label="close"
               type="button"
-              onClick={onCloseComponent}
+              onClick={onClose}
             ></button>
           </header>
 

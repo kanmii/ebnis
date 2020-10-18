@@ -32,10 +32,6 @@ import {
   CreateEntryErrorFragment_dataObjects,
 } from "../../graphql/apollo-types/CreateEntryErrorFragment";
 import {
-  DetailedExperienceChildDispatchProps,
-  ActionType as DetailedExperienceActionType,
-} from "../DetailExperience/detailed-experience-utils";
-import {
   HasEffectsVal,
   ActiveVal,
   InActiveVal,
@@ -316,8 +312,8 @@ async function createOnlineEntryEffect(
   const {
     experience: { id: experienceId },
     updateExperiencesOnline,
-    detailedExperienceDispatch,
     bearbeitenEintrag,
+    onSuccess,
   } = props;
 
   const { dispatch } = effectArgs;
@@ -368,11 +364,7 @@ async function createOnlineEntryEffect(
         }
 
         await window.____ebnis.persistor.persist();
-
-        detailedExperienceDispatch({
-          type: DetailedExperienceActionType.ON_ENTRY_CREATED,
-          created: entry0.entry,
-        });
+        onSuccess(entry0.entry);
 
         return;
       }
@@ -399,7 +391,7 @@ async function createOfflineEntryEffect(
   const {
     createOfflineEntry,
     experience: { id: experienceId },
-    detailedExperienceDispatch,
+    onSuccess,
   } = props;
 
   const { dispatch } = effectArgs;
@@ -424,10 +416,7 @@ async function createOfflineEntryEffect(
       return;
     }
 
-    detailedExperienceDispatch({
-      type: DetailedExperienceActionType.ON_ENTRY_CREATED,
-      created: validResponse.entry,
-    });
+    onSuccess(validResponse.entry);
 
     await window.____ebnis.persistor.persist();
   } catch (error) {
@@ -791,9 +780,11 @@ export function parseDataObjectData(datum: string) {
 
 ////////////////////////// TYPES SECTION ////////////////////////////
 
-export interface CallerProps extends DetailedExperienceChildDispatchProps {
+export interface CallerProps {
   experience: ExperienceFragment;
   bearbeitenEintrag?: UpdatingEntryPayload;
+  onSuccess: (entry: EntryFragment) => void;
+  onClose: () => void;
 }
 
 export type Props = CallerProps &

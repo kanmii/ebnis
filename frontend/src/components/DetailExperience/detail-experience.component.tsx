@@ -320,12 +320,27 @@ function ExperienceComponent() {
           <Suspense fallback={<Loading />}>
             <NewEntry
               experience={experience}
-              detailedExperienceDispatch={dispatch}
               bearbeitenEintrag={
                 newEntryActiveState.active.context.bearbeitenEintrag
                   ? newEntryActiveState.active.context.bearbeitenEintrag
                   : undefined
               }
+              onSuccess={(entry) => {
+                const old =
+                  newEntryActiveState.active.context.bearbeitenEintrag &&
+                  newEntryActiveState.active.context.bearbeitenEintrag.entry;
+
+                dispatch({
+                  type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
+                  newData: entry,
+                  old,
+                });
+              }}
+              onClose={() => {
+                dispatch({
+                  type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,
+                });
+              }}
             />
           </Suspense>
         )}
