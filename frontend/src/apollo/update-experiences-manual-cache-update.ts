@@ -135,7 +135,7 @@ export function updateExperiencesManualCacheUpdate(
               ] = offlineIdToOnlineEntryMap;
             }
 
-            if (Object.keys(syncError)) {
+            if (Object.keys(immerSyncError)) {
               syncErrors[immerExperience.id] = syncError;
             }
           },
@@ -182,6 +182,7 @@ function ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
     proxy.title = title;
     proxy.description = description;
     delete unsynced.ownFields;
+    delete immerSyncError.ownFields
   } else {
     immerSyncError.ownFields = ownFields.errors;
   }
