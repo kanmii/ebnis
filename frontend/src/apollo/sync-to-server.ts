@@ -3,6 +3,7 @@ import {
   getSyncFlag,
   putSyncFlag,
   writeSyncErrors,
+  getSyncErrors,
 } from "./sync-to-server-cache";
 import {
   SyncFlag,
@@ -81,8 +82,14 @@ export async function syncToServer() {
     return;
   }
 
+  let oldSyncErrors = getSyncErrors();
+
   const [updateInput, createInput] = Object.entries(unsyncedLedger).reduce(
     (acc, [experienceId, ledger]) => {
+      if (oldSyncErrors[experienceId]) {
+        return acc;
+      }
+
       const [updateInputs, createInputs] = acc;
 
       const experience = readExperienceFragment(
@@ -252,7 +259,7 @@ export async function syncToServer() {
         result.data &&
         result.data
           .updateExperiences) as UpdateExperiencesOnline_updateExperiences;
-    } else {
+    } else if (createInput.length) {
       const result = await client.mutate<
         CreateExperiences,
         CreateExperiencesVariables
@@ -317,19 +324,21 @@ export async function syncToServer() {
 
   await persistor.persist();
 
-  broadcastMessage(
-    {
-      type: BroadcastMessageType.syncDone,
-      payload: {
-        offlineIdToOnlineExperienceMap,
-        syncErrors,
-        onlineExperienceIdToOfflineEntriesMap,
+  if (updateResult || createResult) {
+    broadcastMessage(
+      {
+        type: BroadcastMessageType.syncDone,
+        payload: {
+          offlineIdToOnlineExperienceMap,
+          syncErrors,
+          onlineExperienceIdToOfflineEntriesMap,
+        },
       },
-    },
-    {
-      plusSelf: true,
-    },
-  );
+      {
+        plusSelf: true,
+      },
+    );
+  }
 }
 
 type Variables = [UpdateExperienceInput[], CreateExperienceInput[]];

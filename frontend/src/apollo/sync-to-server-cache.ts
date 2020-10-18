@@ -58,7 +58,7 @@ export function getAndRemoveOfflineExperienceIdFromSyncFlag(
     const offlineId = onlineExperienceIdToOfflineId[onlineExperienceId];
 
     if (offlineId) {
-      data.onlineExperienceIdToOfflineId = undefined
+      data.onlineExperienceIdToOfflineId = undefined;
       putSyncFlag(data);
       return offlineId;
     }
@@ -92,14 +92,14 @@ const SYNC_ERRORS_QUERY = gql`
   }
 `;
 
-function getSyncErrors() {
+export function getSyncErrors() {
   const { cache } = window.____ebnis;
 
   const data = cache.readQuery<SyncErrorsQueryResult>({
     query: SYNC_ERRORS_QUERY,
   });
 
-  return data ? data.syncErrors : {};
+  return data ? data.syncErrors : ({} as SyncErrors);
 }
 
 export function writeSyncErrors(ledger: SyncErrors) {
