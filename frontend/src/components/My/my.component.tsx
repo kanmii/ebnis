@@ -35,7 +35,11 @@ import {
 import { setUpRoutePage } from "../../utils/global-window";
 import "./my.styles.scss";
 import Loading from "../Loading/loading.component";
-import { StateValue, ReactMouseAnchorEvent } from "../../utils/types";
+import {
+  StateValue,
+  ReactMouseAnchorEvent,
+  OnlineStatus,
+} from "../../utils/types";
 import {
   reducer,
   initState,
@@ -67,7 +71,7 @@ type DispatchContextValue = Readonly<{
   onUpsertExperienceActivated: (e: ReactMouseAnchorEvent) => void;
   onCloseDeleteExperienceNotification: () => void;
   deactivateUpsertExperienceUiCb: (e: ReactMouseAnchorEvent) => void;
-  onExperienceUpsertSuccess: (e: ExperienceFragment) => void;
+  onExperienceUpsertSuccess: (e: ExperienceFragment, o: OnlineStatus) => void;
   nächsteSeiteAbrufen: () => void;
   onUpdateExperienceError: (error: string) => void;
 }>;
@@ -157,10 +161,11 @@ export function My(props: Props) {
           type: ActionType.CANCEL_UPSERT_EXPERIENCE,
         });
       },
-      onExperienceUpsertSuccess(experience) {
+      onExperienceUpsertSuccess(experience, onlineStatus) {
         dispatch({
           type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
           experience,
+          onlineStatus,
         });
       },
       nächsteSeiteAbrufen() {

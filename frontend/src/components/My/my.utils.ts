@@ -477,7 +477,7 @@ function handleFetchPrevNextExperiencesPageAction(proxy: DraftState) {
 
 function handleOnUpdateExperienceSuccessAction(
   proxy: DraftState,
-  { experience: updatedExperience }: WithExperiencePayload,
+  { experience: updatedExperience, onlineStatus }: WithExperiencePayload,
 ) {
   const { states, timeouts } = proxy;
   const { id, title } = updatedExperience;
@@ -526,16 +526,17 @@ function handleOnUpdateExperienceSuccessAction(
       });
 
       for (let index = 0; index < experiences.length; index++) {
-        const iterExperience = experiences[index];
-        const prevExperience = iterExperience.experience;
+        const iter = experiences[index];
+        const prevExperience = iter.experience;
 
         // istanbul ignore else:
         if (prevExperience.id === id) {
           experiences[index] = {
-            ...iterExperience,
+            ...iter,
             experience: updatedExperience,
             // TODO: Should we not compute new syncError
             syncError: undefined,
+            onlineStatus: onlineStatus || iter.onlineStatus,
           };
           const prepared = experiencesPrepared[index];
           prepared.title = title;
@@ -1127,6 +1128,7 @@ type SetTimeoutPayload = {
 
 type WithExperiencePayload = {
   experience: ExperienceMiniFragment;
+  onlineStatus?: OnlineStatus;
 };
 
 type UpsertExperiencePayload = {

@@ -60,6 +60,7 @@ import {
   UpdateVal,
   InsertVal,
   ReactMouseAnchorEvent,
+  OnlineStatus,
 } from "../../utils/types";
 import {
   CreateExperienceErrorsFragment,
@@ -75,6 +76,7 @@ import {
 import { EntryConnectionFragment_edges } from "../../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
+import { isOfflineId } from "../../utils/offlines";
 
 export const fieldTypeKeys = Object.values(DataTypes);
 
@@ -438,7 +440,7 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
           }
         }
 
-        onSuccess(updatedExperience);
+        onSuccess(updatedExperience, StateValue.online);
       },
       onError: (errors) => {
         // istanbul ignore else:
@@ -451,8 +453,15 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
       },
     });
   } else {
-    const updatedExperience = updateExperienceOfflineFn(input);
-    onSuccess(updatedExperience as ExperienceFragment);
+    const updatedExperience = updateExperienceOfflineFn(
+      input,
+    ) as ExperienceFragment;
+
+    const onlineStatus = isOfflineId(updatedExperience.id)
+      ? StateValue.offline
+      : StateValue.partOffline;
+
+    onSuccess(updatedExperience as ExperienceFragment, onlineStatus);
   }
 };
 
@@ -1424,7 +1433,10 @@ function mapDefinitionIdToDefinitionHelper(
 ////////////////////////// TYPES SECTION ////////////////////////////
 
 export type CallerProps = {
-  onSuccess: (experience: ExperienceFragment) => void;
+  onSuccess: (
+    experience: ExperienceFragment,
+    onlineStatus: OnlineStatus,
+  ) => void;
   onClose: (e: ReactMouseAnchorEvent) => void;
   experience?: {
     id: string;
