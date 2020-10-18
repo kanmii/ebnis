@@ -88,7 +88,7 @@ import {
 } from "../../apollo/sync-to-server-cache";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
-import {UpdatingEntryPayload} from "../NewEntry/new-entry.utils";
+import { UpdatingEntryPayload } from "../NewEntry/new-entry.utils";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -1150,13 +1150,15 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
   if (bestehendeZwischengespeicherteErgebnis) {
     const daten = bestehendeZwischengespeicherteErgebnis.data as GetDetailExperience;
 
+    const processedQuery = verarbeitenErfahrungAbfrage(
+      daten.getExperience,
+      daten.getEntries,
+      syncErrors,
+    );
+
     dispatch({
       type: ActionType.ON_DATA_RECEIVED,
-      experienceData: verarbeitenErfahrungAbfrage(
-        daten.getExperience,
-        daten.getEntries,
-        syncErrors,
-      ),
+      experienceData: processedQuery,
     });
 
     return;
@@ -1383,6 +1385,7 @@ function verarbeitenErfahrungAbfrage(
         einträgeDaten: verarbeitenEinträgeAbfrage(
           erfahrung.id,
           kriegEinträgeAbfrage,
+          syncErrors,
         ),
       }
     : {
@@ -1413,10 +1416,12 @@ function verarbeitenEinträgeAbfrage(
     const einträge = (daten.edges as EntryConnectionFragment_edges[]).map(
       (edge) => {
         const eintrag = edge.node as EntryFragment;
+        const { id, clientId } = eintrag;
+        const errorId = id || (clientId as string);
+
         return {
           eintragDaten: eintrag,
-          nichtSynchronisiertFehler:
-            nichtSynchronisiertFehler[eintrag.clientId as string],
+          nichtSynchronisiertFehler: nichtSynchronisiertFehler[errorId],
         };
       },
     );
