@@ -730,6 +730,7 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
     const {
       offlineIdToOnlineExperienceMap,
       onlineExperienceIdToOfflineEntriesMap,
+      syncErrors,
     } = payload;
 
     const {
@@ -779,6 +780,16 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
           data: onlineExperienceIdToOfflineEntriesMap,
         },
       });
+    }
+
+    const errors = syncErrors && syncErrors[id];
+
+    if (errors) {
+      const { createEntries } = errors;
+
+      if (createEntries) {
+        updateEntries(einträgeStatten, createEntries);
+      }
     }
   }
 }
@@ -898,7 +909,7 @@ function makeDataDefinitionIdToNameMap(definitions: DataDefinitionFragment[]) {
 function updateEntries(
   state: EinträgeDaten,
   payload: {
-    [entryId: string]: EntryFragment;
+    [entryId: string]: EntryFragment | CreateEntryErrorFragment;
   },
 ) {
   const ob = (state[StateValue.erfolg] ||
@@ -912,12 +923,23 @@ function updateEntries(
     const { id } = daten.eintragDaten;
     const updated = payload[id];
 
-    return updated
-      ? {
-          ...daten,
-          eintragDaten: updated,
-        }
-      : daten;
+    if (updated) {
+      switch (updated.__typename) {
+        case "Entry":
+          return {
+            ...daten,
+            eintragDaten: updated,
+          };
+
+        case "CreateEntryError":
+          return {
+            ...daten,
+            nichtSynchronisiertFehler: updated,
+          };
+      }
+    }
+
+    return daten;
   });
 }
 

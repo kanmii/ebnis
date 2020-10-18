@@ -477,7 +477,11 @@ function EntryComponent(props: { state: DataStateContextEntry }) {
         {nichtSynchronisiertFehler && (
           <div>
             <div className="subtitle is-6 entry__unsynced-error">
-              <p>Entry has errors and can not be created/uploaded!</p>
+              <p>
+                Entry has errors and can not be created/uploaded!
+                {nichtSynchronisiertFehler.experienceId}
+              </p>
+
               <p style={{ marginTop: "10px" }}>Click 'edit button' to fix.</p>
             </div>
 
