@@ -33,7 +33,6 @@ import {
   IdToUpdateEntrySyncErrorMap,
   IdToUpdateDataObjectSyncErrorMap,
 } from "../utils/sync-to-server.types";
-import { getSyncError } from "./sync-to-server-cache";
 
 export function updateExperiencesManualCacheUpdate(
   dataProxy: DataProxy,
@@ -79,13 +78,12 @@ export function updateExperiencesManualCacheUpdate(
         const unsynced = (getUnsyncedExperience(experienceId) ||
           {}) as UnsyncedModifiedExperience;
 
-        const syncError = (getSyncError(experienceId) || {}) as SyncError;
+        const syncError = {} as SyncError;
 
         const toBeModified: ToBeModified = [
           experience,
           unsynced,
           getEntriesQuery,
-          syncError,
         ];
 
         const fromImmer = immer<ToBeModified>(
@@ -95,28 +93,27 @@ export function updateExperiencesManualCacheUpdate(
               immerExperience,
               immerUnsyncedLedger,
               immerGetEntriesQuery,
-              immerSyncError,
             ] = immerModifications;
 
             ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
               immerExperience,
               immerUnsyncedLedger,
               experienceResult,
-              immerSyncError,
+              syncError,
             );
 
             definitionsApplyUpdatesAndCleanUpUnsyncedData(
               immerExperience,
               immerUnsyncedLedger,
               experienceResult,
-              immerSyncError,
+              syncError,
             );
 
             applyUpdatedEntriesAndCleanUpUnsyncedData(
               immerGetEntriesQuery,
               immerUnsyncedLedger,
               entriesResult,
-              immerSyncError,
+              syncError,
             );
 
             const offlineIdToOnlineEntryMap: OfflineIdToOnlineEntryMap = {};
@@ -125,18 +122,18 @@ export function updateExperiencesManualCacheUpdate(
               immerGetEntriesQuery,
               immerUnsyncedLedger,
               entriesResult,
+              syncError,
               offlineIdToOnlineEntryMap,
-              immerSyncError,
             );
 
-            if (Object.keys(offlineIdToOnlineEntryMap)) {
+            if (Object.keys(offlineIdToOnlineEntryMap).length) {
               onlineExperienceToOfflineEntriesMap[
                 experienceId
               ] = offlineIdToOnlineEntryMap;
             }
 
-            if (Object.keys(immerSyncError)) {
-              syncErrors[immerExperience.id] = syncError;
+            if (Object.keys(syncError).length) {
+              syncErrors[experienceId] = syncError;
             }
           },
         );
@@ -171,7 +168,7 @@ function ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
   proxy: ExperienceDraft,
   unsynced: DraftUnsyncedModifiedExperience,
   { ownFields }: UpdateExperienceFragment,
-  immerSyncError: Draft<SyncError>,
+  syncError: Draft<SyncError>,
 ) {
   if (!ownFields) {
     return;
@@ -182,9 +179,9 @@ function ownFieldsApplyUpdatesAndCleanUpUnsyncedData(
     proxy.title = title;
     proxy.description = description;
     delete unsynced.ownFields;
-    delete immerSyncError.ownFields
+    delete syncError.ownFields;
   } else {
-    immerSyncError.ownFields = ownFields.errors;
+    syncError.ownFields = ownFields.errors;
   }
 }
 
@@ -192,12 +189,11 @@ function definitionsApplyUpdatesAndCleanUpUnsyncedData(
   proxy: ExperienceDraft,
   unsynced: DraftUnsyncedModifiedExperience,
   { updatedDefinitions }: UpdateExperienceFragment,
-  immerSyncError: Draft<SyncError>,
+  syncError: Draft<SyncError>,
 ) {
   if (!updatedDefinitions) {
     return;
   }
-
   const unsyncedDefinitions = unsynced.definitions || {};
   let hasSuccess = false;
   const errorsMap: IdToDefinitionUpdateSyncErrorMap = {};
@@ -231,7 +227,7 @@ function definitionsApplyUpdatesAndCleanUpUnsyncedData(
   }
 
   if (Object.keys(errorsMap).length) {
-    immerSyncError.definitions = errorsMap;
+    syncError.definitions = errorsMap;
   }
 }
 
@@ -239,7 +235,7 @@ function applyUpdatedEntriesAndCleanUpUnsyncedData(
   proxy: GetEntriesQueryDraft,
   unsynced: DraftUnsyncedModifiedExperience,
   result: UpdateExperienceSomeSuccessFragment_entries | null,
-  immerSyncError: Draft<SyncError>,
+  syncError: Draft<SyncError>,
 ) {
   const updatedEntries = result && result.updatedEntries;
 
@@ -309,7 +305,7 @@ function applyUpdatedEntriesAndCleanUpUnsyncedData(
       delete unsynced.modifiedEntries;
     } else {
       // has errors
-      immerSyncError.updateEntries = errorsMap;
+      syncError.updateEntries = errorsMap;
     }
 
     (proxy.edges as EntryConnectionFragment_edges[]).forEach((e) => {
@@ -334,8 +330,8 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
   proxy: GetEntriesQueryDraft,
   unsynced: DraftUnsyncedModifiedExperience,
   result: UpdateExperienceSomeSuccessFragment_entries | null,
+  syncError: Draft<SyncError>,
   offlineIdToEntryMap: OfflineIdToOnlineEntryMap,
-  immerSyncError: Draft<SyncError>,
 ) {
   const newEntries = result && result.newEntries;
 
@@ -373,7 +369,7 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
   });
 
   if (Object.keys(errorsMap).length) {
-    immerSyncError.createEntries = errorsMap;
+    syncError.createEntries = errorsMap;
   } else {
     delete unsynced.newEntries;
   }
@@ -424,5 +420,4 @@ type ToBeModified = [
   ExperienceFragment,
   UnsyncedModifiedExperience,
   GetEntriesUnionFragment_GetEntriesSuccess_entries,
-  SyncError,
 ];
