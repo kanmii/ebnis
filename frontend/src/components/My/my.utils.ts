@@ -581,16 +581,12 @@ function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
   if (states.value === StateValue.data) {
     const experiences = states.data.context.experiences;
     const len = experiences.length;
-    const toPurge: string[] = [];
-    const toSkip: [string, null][] = [];
 
     for (let i = 0; i < len; i++) {
       const { id } = experiences[i];
       const newExperience = data[id];
       if (newExperience) {
         experiences[i] = newExperience;
-        toPurge.push(id);
-        toSkip.push([id, null]);
       }
     }
 
