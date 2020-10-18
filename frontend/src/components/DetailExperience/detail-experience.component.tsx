@@ -323,6 +323,8 @@ function ExperienceComponent() {
               detailedExperienceDispatch={dispatch}
               bearbeitenEintrag={
                 newEntryActiveState.active.context.bearbeitenEintrag
+                  ? newEntryActiveState.active.context.bearbeitenEintrag
+                  : undefined
               }
             />
           </Suspense>
@@ -477,32 +479,28 @@ function EntryComponent(props: { state: DataStateContextEntry }) {
         {nichtSynchronisiertFehler && (
           <div>
             <div className="subtitle is-6 entry__unsynced-error">
-              <p>
-                Entry has errors and can not be created/uploaded!
-                {nichtSynchronisiertFehler.experienceId}
-              </p>
+              <p>Entry has errors and can not be created/uploaded!</p>
 
               <p style={{ marginTop: "10px" }}>Click 'edit button' to fix.</p>
             </div>
-
-            <div
-              style={{
-                textAlign: "right",
-              }}
-            >
+            <div style={{ textAlign: "right" }}>
               <button
                 type="button"
-                className="button is-small detailed-experience__entry-edit"
+                className="button is-small
+                detailed-experience__entry-edit"
                 onClick={() => {
                   dispatch({
                     type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,
-                    bearbeitenEintrag: eintragDaten,
+                    bearbeitenEintrag: {
+                      entry: eintragDaten,
+                      errors: nichtSynchronisiertFehler,
+                    },
                   });
                 }}
               >
-                Beheben
-              </button>
-            </div>
+                Beheben{" "}
+              </button>{" "}
+            </div>{" "}
           </div>
         )}
 

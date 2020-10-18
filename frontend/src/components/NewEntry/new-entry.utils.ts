@@ -323,7 +323,8 @@ async function createOnlineEntryEffect(
   const { dispatch } = effectArgs;
 
   if (bearbeitenEintrag) {
-    const datenGegenständen = bearbeitenEintrag.dataObjects.map((d, index) => {
+    const { entry } = bearbeitenEintrag;
+    const datenGegenständen = entry.dataObjects.map((d, index) => {
       const { clientId, updatedAt, insertedAt } = d as DataObjectFragment;
 
       return {
@@ -471,11 +472,9 @@ export const effectFunctions = {
 
 export function initState(props: Props): StateMachine {
   const { experience, bearbeitenEintrag } = props;
+  const { entry, errors } = bearbeitenEintrag || ({} as UpdatingEntryPayload);
 
-  const definitionIdToDataMap = mapDefinitionIdToDataHelper(
-    experience,
-    bearbeitenEintrag,
-  );
+  const definitionIdToDataMap = mapDefinitionIdToDataHelper(experience, entry);
 
   const formFields = (experience.dataDefinitions as ExperienceFragment_dataDefinitions[]).reduce(
     (acc, definition, index) => {
@@ -499,7 +498,7 @@ export function initState(props: Props): StateMachine {
     {} as FormFields,
   );
 
-  return {
+  const stateMachine = {
     states: {
       submission: {
         value: StateValue.inactive,
@@ -517,6 +516,12 @@ export function initState(props: Props): StateMachine {
       },
     },
   };
+
+  if (errors) {
+    handleOnCreateEntryErrors(stateMachine, errors);
+  }
+
+  return stateMachine;
 }
 
 function mapDefinitionIdToDataHelper(
@@ -571,7 +576,7 @@ function handleSubmissionAction(proxy: DraftState) {
   let erstelltenNeuEintragKlientId = "";
 
   if (bearbeitenEintrag) {
-    const { id, clientId } = bearbeitenEintrag;
+    const { id, clientId } = bearbeitenEintrag.entry;
 
     // das bedeutet ein vollständig Offline-Eintrag und ein nue Eintrag muss
     // erstellten werden
@@ -788,13 +793,18 @@ export function parseDataObjectData(datum: string) {
 
 export interface CallerProps extends DetailedExperienceChildDispatchProps {
   experience: ExperienceFragment;
-  bearbeitenEintrag?: EntryFragment;
+  bearbeitenEintrag?: UpdatingEntryPayload;
 }
 
 export type Props = CallerProps &
   UpdateExperiencesOnlineComponentProps &
   CreateOfflineEntryMutationComponentProps &
   CreateExperiencesOnlineComponentProps;
+
+export type UpdatingEntryPayload = {
+  entry: EntryFragment;
+  errors?: CreateEntryErrorFragment;
+};
 
 export type FormObjVal = Date | string | number;
 
@@ -846,7 +856,7 @@ type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
 
 type Zusammenhang = Readonly<{
   experience: Readonly<ExperienceFragment>;
-  bearbeitenEintrag?: EntryFragment;
+  bearbeitenEintrag?: UpdatingEntryPayload;
 }>;
 
 export type Submission = Readonly<

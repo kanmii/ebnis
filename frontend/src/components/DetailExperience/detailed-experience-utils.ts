@@ -88,6 +88,7 @@ import {
 } from "../../apollo/sync-to-server-cache";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
+import {UpdatingEntryPayload} from "../NewEntry/new-entry.utils";
 
 export enum ActionType {
   TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
@@ -1674,7 +1675,7 @@ type NewEntryActive = Readonly<{
   value: ActiveVal;
   active: Readonly<{
     context: Readonly<{
-      bearbeitenEintrag?: EntryFragment;
+      bearbeitenEintrag?: UpdatingEntryPayload;
     }>;
   }>;
 }>;
@@ -1775,7 +1776,7 @@ type WithMayBeExperiencePayload = {
 };
 
 type NewEntryActivePayload = {
-  bearbeitenEintrag?: EntryFragment;
+  bearbeitenEintrag?: UpdatingEntryPayload;
 };
 
 type OnDataReceivedPayload = {
