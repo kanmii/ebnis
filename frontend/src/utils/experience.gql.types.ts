@@ -19,7 +19,7 @@ import {
 } from "../graphql/experience.gql";
 import { UpdateExperienceInput } from "../graphql/apollo-types/globalTypes";
 import {
-  CommonError, //
+  CommonError, OnlineStatus, //
 } from "../utils/types";
 import {
   updateExperiencesManualCacheUpdate, //
@@ -69,6 +69,7 @@ import {
   GetDataObjectsVariables,
   GetDataObjects,
 } from "../graphql/apollo-types/GetDataObjects";
+import { SyncError } from "./sync-to-server.types";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 
@@ -296,8 +297,14 @@ export type KleinErfahrüngenAbfrageErgebnisse = ApolloQueryResult<
 
 export const EXPERIENCES_MINI_FETCH_COUNT = 10;
 
+export type ExperienceData = {
+  experience: ExperienceMiniFragment;
+  syncError?: SyncError;
+  onlineStatus: OnlineStatus
+};
+
 export type ExperiencesData = Readonly<{
-  experiences: ExperienceMiniFragment[];
+  experiences: ExperienceData[];
   pageInfo: PageInfoFragment;
 }>;
 

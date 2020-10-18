@@ -137,6 +137,10 @@ export type EinträgeMitHolenFehlerWert = "einträgeMitHolenFehler";
 export type UpdateVal = "update";
 export type InsertVal = "insert";
 export type ReFetchOnly = "re-fetch-only";
+export type OnlineVal = "online";
+export type OfflineVal = "offline";
+export type PartOfflineVal = "part-offline";
+export type OnlineStatus = OnlineVal | OfflineVal | PartOfflineVal;
 
 export const StateValue = {
   noEffect: "noEffect" as NoEffectVal,
@@ -165,6 +169,9 @@ export const StateValue = {
   insert: "insert" as InsertVal,
   reFetchOnly: "re-fecht-only" as ReFetchOnly,
   selfBcMessageKey: "self-bc-message" as any,
+  online: "online" as OnlineVal,
+  offline: "offline" as OfflineVal,
+  partOffline: "part-offline" as PartOfflineVal,
 } as const;
 
 export type LoadingState = Readonly<{

@@ -49,11 +49,9 @@ import {
   DataState,
 } from "./my.utils";
 import { UpsertExperience } from "./my.lazy";
-import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMiniFragment";
 import makeClassNames from "classnames";
 import { Link } from "react-router-dom";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
-import { getOnlineStatus } from "../DetailExperience/detailed-experience-utils";
 import { InputChangeEvent } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 import errorImage from "../../media/error-96.png";
@@ -62,6 +60,7 @@ import { unstable_batchedUpdates } from "react-dom";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { WithSubscriptionContext } from "../../utils/app-context";
+import { ExperienceData } from "../../utils/experience.gql.types";
 
 type DispatchContextValue = Readonly<{
   dispatch: DispatchType;
@@ -279,8 +278,8 @@ function ExperiencesComponent() {
   return useMemo(() => {
     return (
       <div className="experiences-container" id={experiencesDomId}>
-        {experiences.map((experience) => {
-          const { id } = experience;
+        {experiences.map((experienceData) => {
+          const { id } = experienceData.experience;
 
           return (
             <ExperienceComponent
@@ -292,7 +291,7 @@ function ExperiencesComponent() {
                   showingDescription: false,
                 } as ExperienceState)
               }
-              experience={experience}
+              experienceData={experienceData}
             />
           );
         })}
@@ -306,9 +305,9 @@ function ExperiencesComponent() {
 const ExperienceComponent = React.memo(
   function ExperienceFn(props: ExperienceProps) {
     const { dispatch } = useContext(DispatchContext);
-    const { experience, experienceState: state } = props;
+    const { experienceData, experienceState: state } = props;
+    const { experience, onlineStatus } = experienceData;
     const { title, description, id } = experience;
-    const { isOffline, isPartOffline } = getOnlineStatus(experience);
     const detailPath = makeDetailedExperienceRoute(id);
 
     const {
@@ -372,8 +371,8 @@ const ExperienceComponent = React.memo(
         id={id}
         className={makeClassNames({
           "experience box media": true,
-          [experienceDangerClassName]: isOffline,
-          [experienceWarningClassName]: isPartOffline,
+          [experienceDangerClassName]: onlineStatus === StateValue.offline,
+          [experienceWarningClassName]: onlineStatus === StateValue.partOffline,
         })}
       >
         <div className="media-content">
@@ -670,5 +669,5 @@ function FetchExperiencesFail(props: { error: string; onReFetch: () => void }) {
 
 interface ExperienceProps {
   experienceState: ExperienceState;
-  experience: ExperienceMiniFragment;
+  experienceData: ExperienceData;
 }

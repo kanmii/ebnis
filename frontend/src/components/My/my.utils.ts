@@ -14,10 +14,10 @@ import {
   DataVal,
   ErrorsVal,
   LoadingVal,
-  InitialVal,
   LoadingState,
   FETCH_EXPERIENCES_TIMEOUTS,
   BroadcastMessageType,
+  OnlineStatus,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -43,6 +43,7 @@ import {
   manuallyFetchExperienceConnectionMini,
   EXPERIENCES_MINI_FETCH_COUNT,
   ExperiencesData,
+  ExperienceData,
 } from "../../utils/experience.gql.types";
 import {
   GetExperienceConnectionMini_getExperiences,
@@ -53,15 +54,13 @@ import { getExperiencesMiniQuery } from "../../apollo/get-experiences-mini-query
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { nonsenseId } from "../../utils/utils.dom";
 import { handlePreFetchExperiences } from "./my.injectables";
-import {
-  ExperienceConnectionFragment_edges,
-  ExperienceConnectionFragment_edges_node,
-} from "../../graphql/apollo-types/ExperienceConnectionFragment";
-import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { makeScrollToDomId } from "./my.dom";
 import { OfflineIdToOnlineExperienceMap } from "../../utils/sync-to-server.types";
 import { broadcastMessage } from "../../utils/observable-manager";
 import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
+import { getSyncErrors } from "../../apollo/sync-to-server-cache";
+import { isOfflineId } from "../../utils/offlines";
+import { getUnsyncedExperience } from "../../apollo/unsynced-ledger";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
@@ -375,38 +374,52 @@ function handleOnDataReceivedAction(
 ) {
   switch (payload.key) {
     case StateValue.data:
-      {
-        const { data, deletedExperience } = payload;
-        const { experiences, pageInfo } = data;
+      const {
+        data,
+        deletedExperience,
+        paginating,
+        preparedExperiences,
+      } = payload;
+      const { experiences, pageInfo } = data;
 
-        const state = {
-          value: StateValue.data,
-          data: {
-            context: {
-              experiencesPrepared: prepareExperiencesForSearch(experiences),
-              experiences,
-              pageInfo,
+      const state = {
+        value: StateValue.data,
+      } as Draft<DataState>;
+
+      if (paginating) {
+        const { context } = (proxy.states as Draft<DataState>).data;
+        context.experiences = [...context.experiences, ...experiences];
+        context.pageInfo = pageInfo;
+        context.experiencesPrepared = [
+          ...context.experiencesPrepared,
+          ...preparedExperiences,
+        ];
+      } else {
+        state.data = {
+          context: {
+            experiencesPrepared: preparedExperiences,
+            experiences,
+            pageInfo,
+          },
+
+          states: {
+            upsertExperienceActivated: {
+              value: StateValue.inactive,
             },
-
-            states: {
-              upsertExperienceActivated: {
-                value: StateValue.inactive,
-              },
-              experiences: {},
-              search: {
-                value: StateValue.inactive,
-              },
-              deletedExperience: {
-                value: StateValue.inactive,
-              },
+            experiences: {},
+            search: {
+              value: StateValue.inactive,
+            },
+            deletedExperience: {
+              value: StateValue.inactive,
             },
           },
-        } as DataState;
+        };
 
         proxy.states = state;
-
         handleOnDeleteExperienceProcessedHelper(state, deletedExperience);
       }
+
       break;
 
     case StateValue.errors:
@@ -433,7 +446,19 @@ function handleFetchPrevNextExperiencesPageAction(proxy: DraftState) {
 
   // istanbul ignore else
   if (states.value === StateValue.data) {
-    const { endCursor } = states.data.context.pageInfo;
+    const {
+      context: {
+        pageInfo: { endCursor },
+        experiences,
+      },
+    } = states.data;
+
+    let previousLastId = nonsenseId;
+    const len = experiences.length;
+
+    if (len) {
+      previousLastId = experiences[len - 1].experience.id;
+    }
 
     const effects = getGeneralEffects(proxy);
 
@@ -444,6 +469,7 @@ function handleFetchPrevNextExperiencesPageAction(proxy: DraftState) {
           after: endCursor,
           first: EXPERIENCES_MINI_FETCH_COUNT,
         },
+        previousLastId,
       },
     });
   }
@@ -451,10 +477,10 @@ function handleFetchPrevNextExperiencesPageAction(proxy: DraftState) {
 
 function handleOnUpdateExperienceSuccessAction(
   proxy: DraftState,
-  { experience }: WithExperiencePayload,
+  { experience: updatedExperience }: WithExperiencePayload,
 ) {
   const { states, timeouts } = proxy;
-  const { id, title } = experience;
+  const { id, title } = updatedExperience;
 
   // istanbul ignore else
   if (states.value === StateValue.data) {
@@ -494,17 +520,23 @@ function handleOnUpdateExperienceSuccessAction(
         ownArgs: {
           set: {
             key: "set-close-upsert-experience-success-notification",
-            experience,
+            experience: updatedExperience,
           },
         },
       });
 
       for (let index = 0; index < experiences.length; index++) {
         const iterExperience = experiences[index];
+        const prevExperience = iterExperience.experience;
 
         // istanbul ignore else:
-        if (iterExperience.id === id) {
-          experiences[index] = experience;
+        if (prevExperience.id === id) {
+          experiences[index] = {
+            ...iterExperience,
+            experience: updatedExperience,
+            // TODO: Should we not compute new syncError
+            syncError: undefined,
+          };
           const prepared = experiencesPrepared[index];
           prepared.title = title;
           prepared.target = fuzzysort.prepare(title) as Fuzzysort.Prepared;
@@ -583,10 +615,14 @@ function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
     const len = experiences.length;
 
     for (let i = 0; i < len; i++) {
-      const { id } = experiences[i];
+      const iter = experiences[i];
+      const { id } = iter.experience;
       const newExperience = data[id];
       if (newExperience) {
-        experiences[i] = newExperience;
+        experiences[i] = {
+          ...iter,
+          experience: newExperience,
+        };
       }
     }
 
@@ -605,14 +641,12 @@ function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
 
 /////////////////// START STATE UPDATE HELPERS SECTION //////////////////
 
-function prepareExperiencesForSearch(experiences: ExperienceMiniFragment[]) {
-  return experiences.map(({ id, title }) => {
-    return {
-      id,
-      title,
-      target: fuzzysort.prepare(title) as Fuzzysort.Prepared,
-    };
-  });
+function prepareExperienceForSearch({ id, title }: ExperienceMiniFragment) {
+  return {
+    id,
+    title,
+    target: fuzzysort.prepare(title) as Fuzzysort.Prepared,
+  };
 }
 
 /////////////////// END STATE UPDATE HELPERS SECTION //////////////////
@@ -637,7 +671,7 @@ type DefDeleteExperienceRequestEffect = EffectDefinition<
 >;
 
 const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
-  { paginationInput },
+  { paginationInput, previousLastId },
   props,
   effectArgs,
 ) => {
@@ -646,24 +680,32 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
   let fetchExperiencesAttemptsCount = 0;
   const timeoutsLen = FETCH_EXPERIENCES_TIMEOUTS.length - 1;
 
-  const deletedExperience = await deleteExperienceProcessedEffectHelper(
-    effectArgs,
-  );
-
   // bei seitennummerierung wurden wir zwischengespeicherte Erfahrungen nicht
   // gebraucht
   const zwischengespeicherteErgebnis = getExperiencesMiniQuery();
 
-  // für folgenden Situation:
-  // Kein Paginierung und:
-  //    Netzwerk = false
-  //    Netzwerk = true und gibt es zwischengespeicherte Daten
-  if (!paginationInput && zwischengespeicherteErgebnis) {
-    verarbeitenZwischengespeichertetErfahrungen(
-      dispatch,
+  const deletedExperience = await deleteExperienceProcessedEffectHelper(
+    effectArgs,
+  );
+
+  if (paginationInput) {
+    fetchExperiences();
+    return;
+  }
+
+  if (zwischengespeicherteErgebnis) {
+    const [experiences, preparedExperiences] = processGetExperiencesQuery(
       zwischengespeicherteErgebnis,
-      deletedExperience,
     );
+
+    dispatch({
+      type: ActionType.ON_DATA_RECEIVED,
+      key: StateValue.data,
+      data: experiences,
+      preparedExperiences,
+      deletedExperience,
+    });
+
     return;
   }
 
@@ -712,13 +754,9 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
         const sammelnErfahrungen = (data &&
           data.getExperiences) as GetExperienceConnectionMini_getExperiences;
 
-        const [
-          ergebnisse,
-          blätterZuId,
-          erfahrungenIds,
-        ] = appendNewToGetExperiencesQuery(
-          !!paginationInput,
+        const [ergebnisse, preparedExperiences] = processGetExperiencesQuery(
           sammelnErfahrungen,
+          !!paginationInput,
           zwischengespeicherteErgebnis,
         );
 
@@ -726,26 +764,14 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
           type: ActionType.ON_DATA_RECEIVED,
           key: StateValue.data,
           data: ergebnisse,
+          preparedExperiences,
           deletedExperience,
+          paginating: !!paginationInput,
         });
 
-        if (paginationInput) {
-          scrollIntoView(blätterZuId);
+        if (previousLastId) {
+          scrollIntoView(previousLastId);
         }
-
-        const idToExperienceMap = (sammelnErfahrungen.edges as ExperienceConnectionFragment_edges[]).reduce(
-          (acc, e) => {
-            const edge = e as ExperienceConnectionFragment_edges;
-            const node = edge.node as ExperienceConnectionFragment_edges_node;
-            acc[node.id] = node;
-            return acc;
-          },
-          {} as { [experienceId: string]: ExperienceFragment },
-        );
-
-        setTimeout(() => {
-          handlePreFetchExperiences(erfahrungenIds, idToExperienceMap);
-        });
       }
     } catch (error) {
       dispatch({
@@ -767,7 +793,7 @@ type DefFetchExperiencesEffect = EffectDefinition<
   "fetchExperiencesEffect",
   {
     paginationInput?: GetExperienceConnectionMiniVariables;
-    initial?: InitialVal;
+    previousLastId?: string;
   }
 >;
 
@@ -876,11 +902,11 @@ async function deleteExperienceProcessedEffectHelper({ dispatch }: EffectArgs) {
   return deletedExperience;
 }
 
-function appendNewToGetExperiencesQuery(
-  istPaginierung: boolean,
+function processGetExperiencesQuery(
   { edges, pageInfo }: GetExperienceConnectionMini_getExperiences,
+  preFetchEntries?: boolean,
   storeData?: GetExperienceConnectionMini_getExperiences | null,
-): [ExperiencesData, string, string[]] {
+): [ExperiencesData, PreparedExperience[]] {
   const previousEdges = ((storeData && storeData.edges) ||
     []) as GetExperienceConnectionMini_getExperiences_edges[];
 
@@ -888,61 +914,69 @@ function appendNewToGetExperiencesQuery(
 
   const allEdges = [...previousEdges, ...newEdges];
 
-  if (istPaginierung) {
+  const syncErrors = getSyncErrors();
+
+  const preparedExperiences: PreparedExperience[] = [];
+
+  const idToExperienceMap: {
+    [experienceId: string]: ExperienceMiniFragment;
+  } = {};
+
+  const [experiences, erfahrungenIds] = newEdges.reduce(
+    ([neuenErfahrungen, erfahrungenIds], edge) => {
+      const experience = edge.node as ExperienceMiniFragment;
+      const { id } = experience;
+      const syncError = syncErrors[id];
+      erfahrungenIds.push(id);
+      idToExperienceMap[id] = experience;
+      preparedExperiences.push(prepareExperienceForSearch(experience));
+
+      neuenErfahrungen.push({
+        experience,
+        syncError,
+        onlineStatus: getOnlineStatus(id),
+      });
+
+      return [neuenErfahrungen, erfahrungenIds];
+    },
+    [[], []] as [ExperienceData[], string[]],
+  );
+
+  if (preFetchEntries) {
     writeGetExperiencesMiniQuery({
       edges: allEdges,
       pageInfo,
     });
   }
 
-  const [neuenErfahrungen, erfahrungenIds] = newEdges.reduce(
-    ([neuenErfahrungen, erfahrungenIds], edge) => {
-      const node = edge.node as ExperienceMiniFragment;
-      neuenErfahrungen.push(node);
-      erfahrungenIds.push(node.id);
+  if (arguments.length > 1) {
+    setTimeout(() => {
+      handlePreFetchExperiences(erfahrungenIds, idToExperienceMap);
+    });
+  }
 
-      return [neuenErfahrungen, erfahrungenIds];
-    },
-    [[], []] as [ExperienceMiniFragment[], string[]],
-  );
+  const data = {
+    experiences,
+    pageInfo: pageInfo,
+  };
 
-  const zuletztErfahrüngen = previousEdges.map(
-    (edge) => edge.node as ExperienceMiniFragment,
-  );
-
-  const zuletztErfahrüngenLänge = zuletztErfahrüngen.length;
-
-  return [
-    {
-      experiences: zuletztErfahrüngen.concat(neuenErfahrungen),
-      pageInfo: pageInfo,
-    },
-    zuletztErfahrüngenLänge === 0
-      ? (neuenErfahrungen[0] || ({ id: nonsenseId } as ExperienceMiniFragment))
-          .id
-      : zuletztErfahrüngen[zuletztErfahrüngenLänge - 1].id,
-    erfahrungenIds,
-  ];
+  return [data, preparedExperiences];
 }
 
-function verarbeitenZwischengespeichertetErfahrungen(
-  dispatch: DispatchType,
-  daten: GetExperienceConnectionMini_getExperiences,
-  deletedExperience?: DeletedExperienceLedger,
-) {
-  const experiences = (daten.edges as GetExperienceConnectionMini_getExperiences_edges[]).map(
-    (e) => e.node as ExperienceMiniFragment,
-  );
+function getOnlineStatus(id: string): OnlineStatus {
+  const isOffline = isOfflineId(id);
 
-  dispatch({
-    type: ActionType.ON_DATA_RECEIVED,
-    key: StateValue.data,
-    data: {
-      experiences,
-      pageInfo: daten.pageInfo,
-    },
-    deletedExperience,
-  });
+  if (isOffline) {
+    return StateValue.offline;
+  }
+
+  const hasUnsaved = getUnsyncedExperience(id);
+
+  if (hasUnsaved) {
+    return StateValue.partOffline;
+  }
+
+  return StateValue.online;
 }
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////
@@ -1103,7 +1137,9 @@ type OnDataReceivedPayload =
   | {
       key: DataVal;
       data: ExperiencesData;
+      preparedExperiences: PreparedExperience[];
       deletedExperience?: DeletedExperienceLedger;
+      paginating?: boolean;
     }
   | {
       key: ErrorsVal;
@@ -1163,3 +1199,9 @@ type EffectDefinition<
   Key extends keyof typeof effectFunctions,
   OwnArgs = {}
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
+
+type PreparedExperience = {
+  id: string;
+  title: string;
+  target: Fuzzysort.Prepared;
+};
