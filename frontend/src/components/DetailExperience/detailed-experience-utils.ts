@@ -816,12 +816,11 @@ function handleOnUpsertEntrySuccessAction(
 
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
+    const { states, context } = globalStates.data;
+
     const {
-      states,
-      context: {
-        experience: { id: experienceId },
-      },
-    } = globalStates.data;
+      experience: { id: experienceId },
+    } = context;
 
     const {
       newEntryActive,
@@ -833,7 +832,12 @@ function handleOnUpsertEntrySuccessAction(
     newEntryActive.value = StateValue.inactive;
     notification.value = StateValue.inactive;
 
-    const { old, newData } = payload;
+    const {
+      old,
+      newData: { entry: newEntry, onlineStatus: newOnlineStatus },
+    } = payload;
+
+    context.onlineStatus = newOnlineStatus;
 
     const effects = getGeneralEffects<EffectType, DraftState>(proxy);
 
@@ -850,13 +854,13 @@ function handleOnUpsertEntrySuccessAction(
         NewEntryCreatedNotification
       >;
 
-      const { updatedAt } = newData;
-
       newEntryState.value = StateValue.active;
 
       newEntryState.active = {
         context: {
-          message: `New entry created on: ${formatDatetime(updatedAt)}`,
+          message: `New entry created on: ${formatDatetime(
+            newEntry.updatedAt,
+          )}`,
         },
       };
 
@@ -876,7 +880,7 @@ function handleOnUpsertEntrySuccessAction(
           const { context } = ob;
 
           context.einträge.unshift({
-            eintragDaten: newData,
+            eintragDaten: newEntry,
           });
 
           break;
@@ -892,7 +896,7 @@ function handleOnUpsertEntrySuccessAction(
               context: {
                 einträge: [
                   {
-                    eintragDaten: newData,
+                    eintragDaten: newEntry,
                   },
                 ],
                 holenFehler: einträgeStatten.fehler,
@@ -908,7 +912,7 @@ function handleOnUpsertEntrySuccessAction(
       updateEntries(
         einträgeStatten,
         {
-          [id]: newData,
+          [id]: newEntry,
         },
         true,
       );
@@ -918,7 +922,7 @@ function handleOnUpsertEntrySuccessAction(
       };
 
       // offline entry synced
-      if (id !== newData.id) {
+      if (id !== newEntry.id) {
         cleanUpData.createErrors = [old];
       }
 
@@ -1900,7 +1904,10 @@ export interface DataDefinitionIdToNameMap {
 
 interface OnEntryCreatedPayload {
   old?: EntryFragment;
-  newData: EntryFragment;
+  newData: {
+    entry: EntryFragment;
+    onlineStatus: OnlineStatus;
+  };
 }
 
 type SetTimeoutPayload = {

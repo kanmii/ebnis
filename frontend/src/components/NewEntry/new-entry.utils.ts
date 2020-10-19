@@ -38,6 +38,7 @@ import {
   ErrorsVal,
   StateValue,
   SyncOfflineExperienceErrorsVal,
+  OnlineStatus,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -173,17 +174,18 @@ const createEntryEffect: DefCreateEntryEffect["func"] = (
     };
   }
 
-  if (getIsConnected()) {
-    const { experience } = props;
-    const experienceId = experience.id;
+  const { experience } = props;
+  const experienceId = experience.id;
+  const isOffline = isOfflineId(experienceId);
 
-    if (isOfflineId(experienceId)) {
+  if (getIsConnected()) {
+    if (isOffline) {
       syncOfflineExperienceCreateEntryEffectHelper(input, props, effectArgs);
     } else {
       createOnlineEntryEffect(input, props, effectArgs);
     }
   } else {
-    createOfflineEntryEffect(input, props, effectArgs);
+    createOfflineEntryEffect(input, props, effectArgs, isOffline);
   }
 };
 
@@ -364,7 +366,7 @@ async function createOnlineEntryEffect(
         }
 
         await window.____ebnis.persistor.persist();
-        onSuccess(entry0.entry);
+        onSuccess(entry0.entry, StateValue.online);
 
         return;
       }
@@ -387,6 +389,7 @@ async function createOfflineEntryEffect(
   input: CreateEntryInput,
   props: Props,
   effectArgs: EffectArgs,
+  isOffline: boolean,
 ) {
   const {
     createOfflineEntry,
@@ -416,7 +419,10 @@ async function createOfflineEntryEffect(
       return;
     }
 
-    onSuccess(validResponse.entry);
+    onSuccess(
+      validResponse.entry,
+      isOffline ? StateValue.offline : StateValue.partOffline,
+    );
 
     await window.____ebnis.persistor.persist();
   } catch (error) {
@@ -783,7 +789,7 @@ export function parseDataObjectData(datum: string) {
 export interface CallerProps {
   experience: ExperienceFragment;
   bearbeitenEintrag?: UpdatingEntryPayload;
-  onSuccess: (entry: EntryFragment) => void;
+  onSuccess: (entry: EntryFragment, onlineStatus: OnlineStatus) => void;
   onClose: () => void;
 }
 

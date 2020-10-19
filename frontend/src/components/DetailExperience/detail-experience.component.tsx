@@ -334,14 +334,17 @@ function ExperienceComponent() {
                 ? newEntryActiveState.active.context.bearbeitenEintrag
                 : undefined
             }
-            onSuccess={(entry) => {
+            onSuccess={(entry, onlineStatus) => {
               const old =
                 newEntryActiveState.active.context.bearbeitenEintrag &&
                 newEntryActiveState.active.context.bearbeitenEintrag.entry;
 
               dispatch({
                 type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
-                newData: entry,
+                newData: {
+                  entry,
+                  onlineStatus,
+                },
                 old,
               });
             }}
