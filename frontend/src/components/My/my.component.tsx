@@ -307,202 +307,179 @@ function ExperiencesComponent() {
   }, [experiencesStates, experiences]);
 }
 
-const ExperienceComponent = React.memo(
-  function ExperienceFn(props: ExperienceProps) {
-    const { dispatch } = useContext(DispatchContext);
-    const { experienceData, experienceState: state } = props;
-    const { experience, onlineStatus } = experienceData;
-    const { title, description, id } = experience;
-    const detailPath = makeDetailedExperienceRoute(id);
+function ExperienceComponent(props: ExperienceProps) {
+  const { dispatch } = useContext(DispatchContext);
+  const { experienceData, experienceState: state } = props;
+  const { experience, onlineStatus } = experienceData;
+  const { title, description, id } = experience;
+  const detailPath = makeDetailedExperienceRoute(id);
 
-    const {
-      showingDescription,
-      showingOptionsMenu,
-      showingUpdateSuccess,
-    } = state;
+  const {
+    showingDescription,
+    showingOptionsMenu,
+    showingUpdateSuccess,
+  } = state;
 
-    const onToggleShowMenuOptions = useCallback((e) => {
-      e.preventDefault();
+  return (
+    <article
+      id={id}
+      className={makeClassNames({
+        "experience box media": true,
+        [experienceDangerClassName]: onlineStatus === StateValue.offline,
+        [experienceWarningClassName]: onlineStatus === StateValue.partOffline,
+      })}
+    >
+      <div className="media-content">
+        <div className="content">
+          <div
+            id={makeScrollToDomId(id)}
+            className="my-experience__scroll-to"
+          />
 
-      dispatch({
-        type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
-        id,
-      });
-      /* eslint-disable-next-line react-hooks/exhaustive-deps*/
-    }, []);
+          {showingUpdateSuccess && (
+            <div className="notification is-success">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
 
-    const onToggleShowDescription = useCallback((e) => {
-      e.preventDefault();
+                  dispatch({
+                    type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
+                    experience,
+                  });
+                  /* eslint-disable-next-line react-hooks/exhaustive-deps*/
+                }}
+                className={`${updateExperienceSuccessNotificationCloseClassName} delete`}
+              />
+              Updated successfully
+            </div>
+          )}
 
-      dispatch({
-        type: ActionType.TOGGLE_SHOW_DESCRIPTION,
-        id,
-      });
-      /* eslint-disable-next-line react-hooks/exhaustive-deps*/
-    }, []);
+          <Link className="neutral-link experience__title" to={detailPath}>
+            <strong>{title}</strong>
+          </Link>
 
-    const onDeleteExperience = useCallback((e) => {
-      e.preventDefault();
+          {description && (
+            <div className="description">
+              <div
+                onClick={(e) => {
+                  e.preventDefault();
 
-      dispatch({
-        type: ActionType.DELETE_EXPERIENCE_REQUEST,
-        id,
-      });
-      /* eslint-disable-next-line react-hooks/exhaustive-deps*/
-    }, []);
+                  dispatch({
+                    type: ActionType.TOGGLE_SHOW_DESCRIPTION,
+                    id,
+                  });
+                  /* eslint-disable-next-line react-hooks/exhaustive-deps*/
+                }}
+                className={descriptionControlClassName}
+              >
+                <a className="icon neutral-link" href="*">
+                  {showingDescription ? (
+                    <i
+                      className={makeClassNames({
+                        "fas fa-minus": true,
+                        [descriptionLessClassName]: true,
+                      })}
+                    ></i>
+                  ) : (
+                    <i
+                      className={makeClassNames({
+                        "fas fa-plus": true,
+                        [descriptionMoreClassName]: true,
+                      })}
+                    ></i>
+                  )}
+                </a>
 
-    const activateUpsertExperienceUi = useCallback((e) => {
-      e.preventDefault();
+                <strong className="description__label">Description</strong>
+              </div>
 
-      dispatch({
-        type: ActionType.ACTIVATE_UPSERT_EXPERIENCE,
-        experience,
-      });
-      /* eslint-disable-next-line react-hooks/exhaustive-deps*/
-    }, []);
+              <pre
+                className={makeClassNames({
+                  description__text: true,
+                  [descriptionFullClassName]: showingDescription,
+                  [descriptionSummaryClassName]: !showingDescription,
+                })}
+              >
+                {description}
+              </pre>
+            </div>
+          )}
+        </div>
+      </div>
 
-    const deactivateUpsertExperienceUi = useCallback((e) => {
-      e.preventDefault();
-
-      dispatch({
-        type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
-        experience,
-      });
-      /* eslint-disable-next-line react-hooks/exhaustive-deps*/
-    }, []);
-
-    return (
-      <article
-        id={id}
+      <div
         className={makeClassNames({
-          "experience box media": true,
-          [experienceDangerClassName]: onlineStatus === StateValue.offline,
-          [experienceWarningClassName]: onlineStatus === StateValue.partOffline,
+          "dropdown is-right": true,
+          [dropdownIsActiveClassName]: showingOptionsMenu,
         })}
       >
-        <div className="media-content">
-          <div className="content">
-            <div
-              id={makeScrollToDomId(id)}
-              className="my-experience__scroll-to"
-            />
+        <div className="dropdown-menu" role="menu">
+          <div className="dropdown-content">
+            <a
+              className={`neutral-link edit-experience-menu-item ${updateExperienceMenuItemId}`}
+              style={{
+                cursor: "pointer",
+                display: "block",
+              }}
+              onClick={(e) => {
+                e.preventDefault();
 
-            {showingUpdateSuccess && (
-              <div className="notification is-success">
-                <button
-                  onClick={deactivateUpsertExperienceUi}
-                  className={`${updateExperienceSuccessNotificationCloseClassName} delete`}
-                />
-                Updated successfully
-              </div>
-            )}
+                dispatch({
+                  type: ActionType.ACTIVATE_UPSERT_EXPERIENCE,
+                  experience,
+                });
+                /* eslint-disable-next-line react-hooks/exhaustive-deps*/
+              }}
+              href="a"
+            >
+              Edit
+            </a>
+          </div>
 
-            <Link className="neutral-link experience__title" to={detailPath}>
-              <strong>{title}</strong>
-            </Link>
+          <div className="dropdown-content">
+            <a
+              className="neutral-link delete-experience-menu-item"
+              style={{
+                cursor: "pointer",
+                display: "block",
+              }}
+              onClick={(e) => {
+                e.preventDefault();
 
-            {description && (
-              <div className="description">
-                <div
-                  onClick={onToggleShowDescription}
-                  className={descriptionControlClassName}
-                >
-                  <a className="icon neutral-link" href="*">
-                    {showingDescription ? (
-                      <i
-                        className={makeClassNames({
-                          "fas fa-minus": true,
-                          [descriptionLessClassName]: true,
-                        })}
-                      ></i>
-                    ) : (
-                      <i
-                        className={makeClassNames({
-                          "fas fa-plus": true,
-                          [descriptionMoreClassName]: true,
-                        })}
-                      ></i>
-                    )}
-                  </a>
-
-                  <strong className="description__label">Description</strong>
-                </div>
-
-                <pre
-                  className={makeClassNames({
-                    description__text: true,
-                    [descriptionFullClassName]: showingDescription,
-                    [descriptionSummaryClassName]: !showingDescription,
-                  })}
-                >
-                  {description}
-                </pre>
-              </div>
-            )}
+                dispatch({
+                  type: ActionType.DELETE_EXPERIENCE_REQUEST,
+                  id,
+                });
+                /* eslint-disable-next-line react-hooks/exhaustive-deps*/
+              }}
+              href="b"
+            >
+              Delete
+            </a>
           </div>
         </div>
+      </div>
 
-        <div
-          className={makeClassNames({
-            "dropdown is-right": true,
-            [dropdownIsActiveClassName]: showingOptionsMenu,
-          })}
-        >
-          <div className="dropdown-menu" role="menu">
-            <div className="dropdown-content">
-              <a
-                className={`neutral-link edit-experience-menu-item ${updateExperienceMenuItemId}`}
-                style={{
-                  cursor: "pointer",
-                  display: "block",
-                }}
-                onClick={activateUpsertExperienceUi}
-                href="a"
-              >
-                Edit
-              </a>
-            </div>
+      <a
+        className={dropdownTriggerClassName}
+        onClick={(e) => {
+          e.preventDefault();
 
-            <div className="dropdown-content">
-              <a
-                className="neutral-link delete-experience-menu-item"
-                style={{
-                  cursor: "pointer",
-                  display: "block",
-                }}
-                onClick={onDeleteExperience}
-                href="b"
-              >
-                Delete
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <a
-          className={dropdownTriggerClassName}
-          onClick={onToggleShowMenuOptions}
-          href="a"
-        >
-          <span className="icon is-small">
-            <i className="fas fa-ellipsis-v" aria-hidden="true" />
-          </span>
-        </a>
-      </article>
-    );
-  },
-
-  function ExperienceComponentPropsDiff(prevProps, currProps) {
-    return (
-      prevProps.experienceState.showingDescription ===
-        currProps.experienceState.showingDescription &&
-      prevProps.experienceState.showingOptionsMenu ===
-        currProps.experienceState.showingOptionsMenu &&
-      prevProps.experienceState.showingUpdateSuccess ===
-        currProps.experienceState.showingUpdateSuccess
-    );
-  },
-);
+          dispatch({
+            type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
+            id,
+          });
+          /* eslint-disable-next-line react-hooks/exhaustive-deps*/
+        }}
+        href="a"
+      >
+        <span className="icon is-small">
+          <i className="fas fa-ellipsis-v" aria-hidden="true" />
+        </span>
+      </a>
+    </article>
+  );
+}
 
 function SeitennummerierungKomponente() {
   const { nächsteSeiteAbrufen } = useContext(DispatchContext);
