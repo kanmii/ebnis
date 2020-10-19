@@ -12,8 +12,8 @@ import {
   noExperiencesActivateNewDomId,
   domPrefix,
   searchInputDomId,
-  experienceWarningClassName,
-  experienceDangerClassName,
+  isPartOfflineClassName,
+  isOfflineClassName,
   descriptionSummaryClassName,
   descriptionFullClassName,
   descriptionControlClassName,
@@ -376,12 +376,12 @@ describe("component", () => {
     const experiencesEls1 = await waitForElement(() => {
       return document.getElementById(mockPartOnlineId) as HTMLElement;
     });
-    expect(experiencesEls1.className).toContain(experienceWarningClassName);
-    expect(experiencesEls1.className).not.toContain(experienceDangerClassName);
+    expect(experiencesEls1.className).toContain(isPartOfflineClassName);
+    expect(experiencesEls1.className).not.toContain(isOfflineClassName);
 
     const experiencesEls2 = document.getElementById(offlineId) as HTMLElement;
-    expect(experiencesEls2.className).toContain(experienceDangerClassName);
-    expect(experiencesEls2.className).not.toContain(experienceWarningClassName);
+    expect(experiencesEls2.className).toContain(isOfflineClassName);
+    expect(experiencesEls2.className).not.toContain(isPartOfflineClassName);
 
     // do not show description UI if no description
     expect(

@@ -15,8 +15,8 @@ import {
   domPrefix,
   experiencesDomId,
   searchInputDomId,
-  experienceDangerClassName,
-  experienceWarningClassName,
+  isOfflineClassName,
+  isPartOfflineClassName,
   descriptionMoreClassName,
   descriptionSummaryClassName,
   descriptionFullClassName,
@@ -325,8 +325,8 @@ function ExperienceComponent(props: ExperienceProps) {
       id={id}
       className={makeClassNames({
         "experience box media": true,
-        [experienceDangerClassName]: onlineStatus === StateValue.offline,
-        [experienceWarningClassName]: onlineStatus === StateValue.partOffline,
+        [isOfflineClassName]: onlineStatus === StateValue.offline,
+        [isPartOfflineClassName]: onlineStatus === StateValue.partOffline,
       })}
     >
       <div className="media-content">

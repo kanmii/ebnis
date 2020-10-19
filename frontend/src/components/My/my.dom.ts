@@ -8,8 +8,8 @@ export const experiencesDomId = `${domPrefix}-experiences`;
 export const searchInputDomId = `${domPrefix}-search-input`;
 export const fetchErrorRetryDomId = `${domPrefix}-fetch-error-retry`;
 
-export const experienceDangerClassName = "experience--is-danger";
-export const experienceWarningClassName = "experience--is-warning";
+export const isOfflineClassName = "experience--is-danger";
+export const isPartOfflineClassName = "experience--is-warning";
 export const descriptionMoreClassName = "description__control--more";
 export const descriptionSummaryClassName = "description__text--summary";
 export const descriptionFullClassName = "description__text--full";
