@@ -58,7 +58,7 @@ import { updateExperiencesManualCacheUpdate } from "./update-experiences-manual-
 import { broadcastMessage } from "../utils/observable-manager";
 import { BroadcastMessageType } from "../utils/types";
 
-const WAIT_INTERVAL = 5 * 1000 * 60; // 5 minutes
+const WAIT_INTERVAL = 1 * 1000 * 60; // 1 minute
 
 export async function syncToServer() {
   let { canSync, isSyncing } = getSyncFlag();
