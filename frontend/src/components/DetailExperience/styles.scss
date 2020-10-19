@@ -45,21 +45,6 @@
     margin-bottom: 20px;
   }
 
-  .detailed-menu {
-    display: flex;
-    flex-direction: row-reverse;
-
-    &__menu {
-      top: 75%;
-    }
-
-    &__content {
-      padding-left: 20px;
-      cursor: pointer;
-      font-weight: 500;
-    }
-  }
-
   .no-entry-menu {
     margin-top: 10px;
   }
@@ -91,5 +76,28 @@
   &__next-entries {
     margin-top: 20px;
     text-align: center;
+  }
+}
+
+.detailed-experience-menu {
+  display: flex;
+  flex-direction: row-reverse;
+
+  &--is-danger {
+    color: $danger;
+  }
+
+  &--is-warning {
+    color: $warning;
+  }
+
+  &__menu {
+    top: 75%;
+  }
+
+  &__content {
+    padding-left: 20px;
+    cursor: pointer;
+    font-weight: 500;
   }
 }

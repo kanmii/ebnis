@@ -27,7 +27,11 @@ import { setUpRoutePage } from "../../utils/global-window";
 import { NewEntry } from "./detail-experience.lazy";
 import Loading from "../Loading/loading.component";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
-import { StateValue, ReactMouseAnchorEvent } from "../../utils/types";
+import {
+  StateValue,
+  ReactMouseAnchorEvent,
+  OnlineStatus,
+} from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 import {
   newEntryCreatedNotificationCloseId,
@@ -38,6 +42,8 @@ import {
   neueHolenEinträgeId,
   holenNächstenEinträgeId,
   updateExperienceSuccessNotificationId,
+  isPartOfflineClassName,
+  isOfflineClassName,
 } from "./detail-experience.dom";
 import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
@@ -57,7 +63,10 @@ type DispatchContextValue = Readonly<{
   onDeleteExperienceRequest: (e: ReactMouseAnchorEvent) => void;
   requestUpdateExperienceUi: (e: ReactMouseAnchorEvent) => void;
   cancelEditExperienceUiRequestCb: (e: ReactMouseAnchorEvent) => void;
-  onExperienceUpdatedSuccess: (e: ExperienceFragment) => void;
+  onExperienceUpdatedSuccess: (
+    e: ExperienceFragment,
+    onlineStatus: OnlineStatus,
+  ) => void;
   onToggleMenu: () => void;
   onRefetchEntries: () => void;
   holenNächstenEinträge: () => void;
@@ -176,10 +185,11 @@ export function DetailExperience(props: Props) {
           type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI,
         });
       },
-      onExperienceUpdatedSuccess: (experience: ExperienceFragment) => {
+      onExperienceUpdatedSuccess: (experience, onlineStatus) => {
         dispatch({
           type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI,
           experience,
+          onlineStatus,
         });
       },
       onUpdateExperienceError() {
@@ -416,7 +426,7 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
             Click here to create your first entry
           </button>
 
-          <Menu
+          <MenuComponent
             state={showingOptionsMenu}
             onToggleMenu={onToggleMenu}
             onDeleteExperienceRequest={onDeleteExperienceRequest}
@@ -428,7 +438,7 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
 
       {entries && entries.length > 0 && (
         <>
-          <Menu
+          <MenuComponent
             state={showingOptionsMenu}
             onToggleMenu={onToggleMenu}
             onDeleteExperienceRequest={onDeleteExperienceRequest}
@@ -671,7 +681,7 @@ function DeleteExperienceModal() {
   );
 }
 
-function Menu(props: MenuProps) {
+function MenuComponent(props: MenuProps) {
   const {
     state,
     onToggleMenu,
@@ -680,15 +690,26 @@ function Menu(props: MenuProps) {
     className = "",
   } = props;
 
+  const {
+    context: { onlineStatus },
+  } = useContext(DataStateContextC);
+
   return (
-    <div className={`detailed-menu ${className}`}>
+    <div
+      className={makeClassNames({
+        [`detailed-experience-menu ${className}`]: true,
+      })}
+    >
       <div
         className={makeClassNames({
           "dropdown is-right": true,
           [activeClassName]: state.value === StateValue.active,
         })}
       >
-        <div className="dropdown-menu detailed-menu__menu" role="menu">
+        <div
+          className="dropdown-menu detailed-experience-menu__menu"
+          role="menu"
+        >
           <a
             className="dropdown-content neutral-link detailed__edit-experience-link"
             onClick={requestUpdateExperienceUi}
@@ -697,7 +718,7 @@ function Menu(props: MenuProps) {
               display: "block",
             }}
           >
-            <div className="detailed-menu__content">Edit</div>
+            <div className="detailed-experience-menu__content">Edit</div>
           </a>
 
           <a
@@ -708,7 +729,7 @@ function Menu(props: MenuProps) {
               display: "block",
             }}
           >
-            <div className="detailed-menu__content">Delete</div>
+            <div className="detailed-experience-menu__content">Delete</div>
           </a>
         </div>
       </div>
@@ -717,6 +738,8 @@ function Menu(props: MenuProps) {
         className={makeClassNames({
           "button top-options-menu dropdown-trigger": true,
           [noTriggerDocumentEventClassName]: true,
+          [isOfflineClassName]: onlineStatus === StateValue.offline,
+          [isPartOfflineClassName]: onlineStatus === StateValue.partOffline,
         })}
         onClick={onToggleMenu}
       >

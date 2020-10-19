@@ -3,10 +3,10 @@ import { wrapReducer, wickelnStatten } from "../../logger";
 import { RouteChildrenProps, match } from "react-router-dom";
 import { DetailExperienceRouteMatch } from "../../utils/urls";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
-import { isOfflineId } from "../../utils/offlines";
 import {
   getUnsyncedExperience,
   removeUnsyncedExperiences,
+  getOnlineStatus,
 } from "../../apollo/unsynced-ledger";
 import immer, { Draft } from "immer";
 import dateFnFormat from "date-fns/format";
@@ -189,7 +189,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           case ActionType.REQUEST_UPDATE_EXPERIENCE_UI:
             handleUpdateExperienceUiRequestAction(
               proxy,
-              payload as WithMayBeExperiencePayload,
+              payload as UpdateExperiencePayload,
             );
             break;
 
@@ -424,7 +424,7 @@ function handleOnDataReceivedAction(
   switch (experienceData.key) {
     case StateValue.data:
       {
-        const { erfahrung, einträgeDaten } = experienceData;
+        const { erfahrung, einträgeDaten, onlineStatus } = experienceData;
 
         const dataState = states as Draft<DataState>;
         dataState.value = StateValue.data;
@@ -440,6 +440,7 @@ function handleOnDataReceivedAction(
         dataStateData.context = context;
         context.experience = erfahrung;
         context.syncErrors = syncErrors;
+        context.onlineStatus = onlineStatus;
 
         context.dataDefinitionIdToNameMap = makeDataDefinitionIdToNameMap(
           erfahrung.dataDefinitions,
@@ -656,7 +657,7 @@ function handhabenEinträgeErhieltenHandlung(
 
 function handleUpdateExperienceUiRequestAction(
   proxy: DraftState,
-  { experience }: WithMayBeExperiencePayload,
+  { experience, onlineStatus }: UpdateExperiencePayload,
 ) {
   const { states: globalStates, timeouts } = proxy;
 
@@ -688,6 +689,7 @@ function handleUpdateExperienceUiRequestAction(
     if (experience) {
       modifiedState.value = StateValue.erfolg;
       context.experience = experience;
+      context.onlineStatus = onlineStatus as OnlineStatus;
 
       context.dataDefinitionIdToNameMap = makeDataDefinitionIdToNameMap(
         experience.dataDefinitions,
@@ -735,6 +737,7 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
       offlineIdToOnlineExperienceMap,
       onlineExperienceIdToOfflineEntriesMap,
       syncErrors,
+      onlineExperienceUpdatedMap,
     } = payload;
 
     const {
@@ -794,6 +797,13 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
       if (createEntries) {
         updateEntries(einträgeStatten, createEntries);
       }
+    }
+
+    const isOnline =
+      onlineExperienceUpdatedMap && onlineExperienceUpdatedMap[id];
+
+    if (isOnline) {
+      context.onlineStatus = StateValue.online;
     }
   }
 }
@@ -1454,8 +1464,12 @@ function verarbeitenErfahrungAbfrage(
   syncErrors?: SyncError,
 ): GeholteErfahrungErhieltenNutzlast {
   if (erfahrung) {
+    const { id } = erfahrung;
+    const unsynced = getUnsyncedExperience(id);
+    const onlineStatus = getOnlineStatus(id, unsynced);
+
     const einträgeDaten = verarbeitenEinträgeAbfrage(
-      erfahrung.id,
+      id,
       kriegEinträgeAbfrage,
       syncErrors,
     );
@@ -1464,6 +1478,7 @@ function verarbeitenErfahrungAbfrage(
       key: StateValue.data,
       erfahrung,
       einträgeDaten,
+      onlineStatus,
     };
   }
 
@@ -1586,20 +1601,6 @@ export function formatDatetime(date: Date | string) {
       : // istanbul ignore next:
         date;
   return dateFnFormat(date, DISPLAY_DATETIME_FORMAT_STRING);
-}
-
-export function getOnlineStatus<T extends { id: string }>(
-  experience: string | T,
-) {
-  const id =
-    "string" === typeof experience
-      ? // istanbul ignore next:
-        experience
-      : experience.id;
-  const isOffline = isOfflineId(id);
-  const hasUnsaved = getUnsyncedExperience(id);
-  const isPartOffline = !isOffline && !!hasUnsaved;
-  return { isOffline, isPartOffline };
 }
 
 ////////////////////////// END HELPER FUNCTIONS ////////////////////////////
@@ -1846,7 +1847,7 @@ type Action =
     }
   | ({
       type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI;
-    } & WithMayBeExperiencePayload)
+    } & UpdateExperiencePayload)
   | ({
       type: ActionType.ON_SYNC;
     } & OnSyncedData);
@@ -1854,6 +1855,10 @@ type Action =
 type ReFetchOnlyPayload = {
   schlüssel: ReFetchOnlyVal;
   entries: GetEntries_getEntries_GetEntriesSuccess_entries;
+};
+
+type UpdateExperiencePayload = WithMayBeExperiencePayload & {
+  onlineStatus?: OnlineStatus;
 };
 
 type WithMayBeExperiencePayload = {
@@ -1874,6 +1879,7 @@ type GeholteErfahrungErhieltenNutzlast =
       key: DataVal;
       erfahrung: ExperienceFragment;
       einträgeDaten: VerarbeitenEinträgeAbfrageZurückgegebenerWert;
+      onlineStatus: OnlineStatus;
     }
   | {
       key: ErrorsVal;

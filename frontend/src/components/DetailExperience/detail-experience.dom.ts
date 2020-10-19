@@ -7,3 +7,5 @@ export const refetchExperienceId = `${domPrefix}-refetch-experience`;
 export const neueHolenEinträgeId = `${domPrefix}-neue-holen-einträge`;
 export const holenNächstenEinträgeId = `${domPrefix}-holen-nächste-einträge`;
 export const updateExperienceSuccessNotificationId = `${domPrefix}-update-experience-success-notification`;
+export const isOfflineClassName = "detailed-experience-menu--is-danger";
+export const isPartOfflineClassName = "detailed-experience-menu--is-warning";
