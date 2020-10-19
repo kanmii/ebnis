@@ -61,15 +61,21 @@ import { BroadcastMessageType } from "../utils/types";
 const WAIT_INTERVAL = 5 * 1000 * 60; // 5 minutes
 
 export async function syncToServer() {
-  let canSync = getSyncFlag().canSync;
+  let { canSync, isSyncing } = getSyncFlag();
 
   if (!canSync) {
+    putSyncFlag({
+      isSyncing: false,
+    } as SyncFlag);
+
     setTimeout(() => {
       syncToServer();
     }, WAIT_INTERVAL);
 
-    putSyncFlag({ isSyncing: false } as SyncFlag);
+    return;
+  }
 
+  if (isSyncing) {
     return;
   }
 
@@ -207,9 +213,15 @@ export async function syncToServer() {
     [[], []] as Variables,
   );
 
+  // let's check again to ensure someone has not set
+  // syncFlag since last time
   canSync = getSyncFlag().canSync;
 
   if (!canSync) {
+    putSyncFlag({
+      isSyncing: false,
+    } as SyncFlag);
+
     setTimeout(() => {
       syncToServer();
     }, WAIT_INTERVAL);
