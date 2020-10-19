@@ -28,9 +28,7 @@ import {
   purgeEntry,
 } from "../../apollo/update-get-experiences-mini-query";
 import { syncToServer } from "../../apollo/sync-to-server";
-import { putSyncFlag } from "../../apollo/sync-to-server-cache";
 import {
-  SyncFlag,
   OnSyncedData,
   OfflineIdToOnlineExperienceMap,
   OnlineExperienceIdToOfflineEntriesMap,
@@ -162,12 +160,12 @@ const syncToServerEffect: DefSyncToServerEffect["func"] = (
   _,
 ) => {
   if (!connected) {
-    putSyncFlag({ canSync: false } as SyncFlag);
     return;
   }
 
-  putSyncFlag({ canSync: true } as SyncFlag);
-  syncToServer();
+  setTimeout(() => {
+    syncToServer();
+  }, 100);
 };
 
 type DefSyncToServerEffect = EffectDefinition<
