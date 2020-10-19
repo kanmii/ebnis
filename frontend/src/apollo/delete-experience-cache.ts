@@ -1,13 +1,6 @@
 /* istanbul ignore file */
-import gql from "graphql-tag";
 import { makeVar } from "@apollo/client";
 import { DeletedVal, CancelledVal, RequestedVal } from "../utils/types";
-
-const DELETE_EXPERIENCES_QUERY = gql`
-  query {
-    deleteExperience @client
-  }
-`;
 
 export function putOrRemoveDeleteExperienceLedger(
   payload?: DeletedExperienceLedgerAction & {
@@ -29,13 +22,7 @@ export function putOrRemoveDeleteExperienceLedger(
 export function getDeleteExperienceLedger(
   id?: string,
 ): DeletedExperienceLedger | null {
-  const { cache } = window.____ebnis;
-
-  const data = cache.readQuery<DeleteExperienceQueryResult>({
-    query: DELETE_EXPERIENCES_QUERY,
-  });
-
-  const deleted = data && data.deleteExperience;
+  const deleted = deleteExperienceVar();
 
   if (!deleted || !id) {
     return deleted;
