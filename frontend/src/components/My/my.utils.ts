@@ -55,7 +55,10 @@ import { scrollIntoView } from "../../utils/scroll-into-view";
 import { nonsenseId } from "../../utils/utils.dom";
 import { handlePreFetchExperiences } from "./my.injectables";
 import { makeScrollToDomId } from "./my.dom";
-import { OfflineIdToOnlineExperienceMap } from "../../utils/sync-to-server.types";
+import {
+  OfflineIdToOnlineExperienceMap,
+  OnSyncedData,
+} from "../../utils/sync-to-server.types";
 import { broadcastMessage } from "../../utils/observable-manager";
 import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
 import { getSyncErrors } from "../../apollo/sync-to-server-cache";
@@ -612,29 +615,50 @@ function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
 
   // istanbul ignore else
   if (states.value === StateValue.data) {
+    const offlineIdToOnlineExperienceMap =
+      data.offlineIdToOnlineExperienceMap || {};
+
+    const syncErrors = data.syncErrors || {};
+    const onlineExperienceUpdatedMap = data.onlineExperienceUpdatedMap || {};
+
     const experiences = states.data.context.experiences;
     const len = experiences.length;
 
     for (let i = 0; i < len; i++) {
       const iter = experiences[i];
       const { id } = iter.experience;
-      const newExperience = data[id];
+      const newExperience = offlineIdToOnlineExperienceMap[id];
+      const syncError = syncErrors[id];
+      const isUpdated = onlineExperienceUpdatedMap[id];
+
+      // offline experience synced, may have sync error
       if (newExperience) {
-        experiences[i] = {
-          ...iter,
-          experience: newExperience,
-        };
+        iter.experience = newExperience;
+        iter.syncError = syncError;
+        iter.onlineStatus = syncError
+          ? StateValue.partOffline
+          : StateValue.online;
+      } else if (syncError) {
+        iter.syncError = syncError;
+        iter.onlineStatus = StateValue.partOffline;
+      } else if (isUpdated) {
+        iter.onlineStatus = StateValue.online;
       }
     }
 
-    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+    if (
+      data.offlineIdToOnlineExperienceMap &&
+      Object.keys(offlineIdToOnlineExperienceMap).length
+    ) {
+      const effects = getGeneralEffects<EffectType, DraftState>(proxy);
 
-    effects.push({
-      key: "postSyncEffect",
-      ownArgs: {
-        data,
-      },
-    });
+      effects.push({
+        key: "postSyncEffect",
+        ownArgs: {
+          data: offlineIdToOnlineExperienceMap,
+        },
+      });
+    }
   }
 }
 
@@ -1119,7 +1143,7 @@ type Action =
     } & OnSycPayload);
 
 type OnSycPayload = {
-  data: OfflineIdToOnlineExperienceMap;
+  data: OnSyncedData;
 };
 
 type SetTimeoutPayload = {

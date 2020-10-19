@@ -32,6 +32,7 @@ import {
   OfflineIdToCreateEntrySyncErrorMap,
   IdToUpdateEntrySyncErrorMap,
   IdToUpdateDataObjectSyncErrorMap,
+  OnlineExperienceUpdatedMap,
 } from "../utils/sync-to-server.types";
 
 export function updateExperiencesManualCacheUpdate(
@@ -52,6 +53,7 @@ export function updateExperiencesManualCacheUpdate(
 
   const onlineExperienceToOfflineEntriesMap: OnlineExperienceIdToOfflineEntriesMap = {};
   const syncErrors = maybeSyncErrors ? maybeSyncErrors : ({} as SyncErrors);
+  const onlineExperienceUpdatedMap: OnlineExperienceUpdatedMap = {};
 
   // istanbul ignore else
   if (updateExperiences.__typename === "UpdateExperiencesSomeSuccess") {
@@ -70,6 +72,8 @@ export function updateExperiencesManualCacheUpdate(
         if (!experience) {
           continue;
         }
+
+        onlineExperienceUpdatedMap[experienceId] = true;
 
         const getEntriesQuery: GetEntriesUnionFragment_GetEntriesSuccess_entries = getEntriesQuerySuccess(
           experienceId,
@@ -161,7 +165,11 @@ export function updateExperiencesManualCacheUpdate(
     }
   }
 
-  return [onlineExperienceToOfflineEntriesMap, syncErrors];
+  return [
+    onlineExperienceToOfflineEntriesMap,
+    syncErrors,
+    onlineExperienceUpdatedMap,
+  ];
 }
 
 function ownFieldsApplyUpdatesAndCleanUpUnsyncedData(

@@ -28,10 +28,15 @@ export type OfflineIdToOnlineExperienceMap = {
   [offlineExperienceId: string]: ExperienceFragment;
 };
 
+export type OnlineExperienceUpdatedMap = {
+  [onlineExperienceId: string]: true;
+};
+
 export type OnSyncedData = {
   onlineExperienceIdToOfflineEntriesMap?: OnlineExperienceIdToOfflineEntriesMap;
   offlineIdToOnlineExperienceMap?: OfflineIdToOnlineExperienceMap;
   syncErrors?: SyncErrors;
+  onlineExperienceUpdatedMap?: OnlineExperienceUpdatedMap;
 };
 
 export type SyncErrors = {
@@ -78,7 +83,7 @@ export type IdToDefinitionUpdateSyncErrorMap = {
 export type UpdateSyncReturnVal = [
   OnlineExperienceIdToOfflineEntriesMap,
   SyncErrors,
-  OfflineIdToOnlineExperienceMap,
+  OnlineExperienceUpdatedMap,
 ];
 
 export type SyncCreateReturnVal = [SyncErrors, OfflineIdToOnlineExperienceMap];

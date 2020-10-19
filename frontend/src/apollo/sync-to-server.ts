@@ -12,6 +12,7 @@ import {
   UpdateSyncReturnVal,
   OnlineExperienceIdToOfflineEntriesMap,
   SyncCreateReturnVal,
+  OnlineExperienceUpdatedMap,
 } from "../utils/sync-to-server.types";
 import {
   UpdateExperienceInput,
@@ -298,6 +299,10 @@ export async function syncToServer() {
     | OfflineIdToOnlineExperienceMap
     | undefined = undefined;
 
+  let onlineExperienceUpdatedMap:
+    | OnlineExperienceUpdatedMap
+    | undefined = undefined;
+
   if (updateResult) {
     const result = updateExperiencesManualCacheUpdate(cache, {
       data: {
@@ -308,6 +313,7 @@ export async function syncToServer() {
     if (result) {
       onlineExperienceIdToOfflineEntriesMap = result[0];
       syncErrors = result[1];
+      onlineExperienceUpdatedMap = result[2];
     }
   }
 
@@ -344,6 +350,7 @@ export async function syncToServer() {
           offlineIdToOnlineExperienceMap,
           syncErrors,
           onlineExperienceIdToOfflineEntriesMap,
+          onlineExperienceUpdatedMap,
         },
       },
       {

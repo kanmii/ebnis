@@ -99,10 +99,10 @@ export function My(props: Props) {
   const { onSyncData } = useContext(WithSubscriptionContext);
 
   useEffect(() => {
-    if (onSyncData && onSyncData.offlineIdToOnlineExperienceMap) {
+    if (onSyncData) {
       dispatch({
         type: ActionType.ON_SYNC,
-        data: onSyncData.offlineIdToOnlineExperienceMap,
+        data: onSyncData,
       });
     }
   }, [onSyncData]);
