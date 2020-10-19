@@ -5,6 +5,8 @@ import {
   UnsyncedLedger,
   UnsyncedModifiedExperience,
 } from "../utils/unsynced-ledger.types";
+import { isOfflineId } from "../utils/offlines";
+import { StateValue, OnlineStatus } from "../utils/types";
 
 const UNSYNCED_LEDGER_QUERY = gql`
   query {
@@ -64,6 +66,23 @@ export function getUnsyncedLedger() {
   const unsyncedLedger = data && data.unsyncedLedger;
 
   return unsyncedLedger || {};
+}
+
+export function getOnlineStatus(
+  id: string,
+  unsynced?: UnsyncedModifiedExperience | null,
+): OnlineStatus {
+  const isOffline = isOfflineId(id);
+
+  if (isOffline) {
+    return StateValue.offline;
+  }
+
+  if (unsynced) {
+    return StateValue.partOffline;
+  }
+
+  return StateValue.online;
 }
 
 interface UnsyncedLedgerQueryResult {

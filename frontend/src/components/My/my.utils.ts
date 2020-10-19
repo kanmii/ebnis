@@ -62,8 +62,10 @@ import {
 import { broadcastMessage } from "../../utils/observable-manager";
 import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
 import { getSyncErrors } from "../../apollo/sync-to-server-cache";
-import { isOfflineId } from "../../utils/offlines";
-import { getUnsyncedExperience } from "../../apollo/unsynced-ledger";
+import {
+  getUnsyncedExperience,
+  getOnlineStatus,
+} from "../../apollo/unsynced-ledger";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
@@ -955,11 +957,12 @@ function processGetExperiencesQuery(
       erfahrungenIds.push(id);
       idToExperienceMap[id] = experience;
       preparedExperiences.push(prepareExperienceForSearch(experience));
+      const unsynced = getUnsyncedExperience(id);
 
       neuenErfahrungen.push({
         experience,
         syncError,
-        onlineStatus: getOnlineStatus(id),
+        onlineStatus: getOnlineStatus(id, unsynced),
       });
 
       return [neuenErfahrungen, erfahrungenIds];
@@ -986,22 +989,6 @@ function processGetExperiencesQuery(
   };
 
   return [data, preparedExperiences];
-}
-
-function getOnlineStatus(id: string): OnlineStatus {
-  const isOffline = isOfflineId(id);
-
-  if (isOffline) {
-    return StateValue.offline;
-  }
-
-  const hasUnsaved = getUnsyncedExperience(id);
-
-  if (hasUnsaved) {
-    return StateValue.partOffline;
-  }
-
-  return StateValue.online;
 }
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////
