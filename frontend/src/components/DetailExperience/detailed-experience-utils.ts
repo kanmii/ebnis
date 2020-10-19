@@ -23,6 +23,7 @@ import {
   VersagenWert,
   EinträgeMitHolenFehlerWert,
   ReFetchOnly as ReFetchOnlyVal,
+  OnlineStatus,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -1181,7 +1182,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
   if (bestehendeZwischengespeicherteErgebnis) {
     const daten = bestehendeZwischengespeicherteErgebnis.data as GetDetailExperience;
 
-    const processedQuery = verarbeitenErfahrungAbfrage(
+    const experienceData = verarbeitenErfahrungAbfrage(
       daten.getExperience,
       daten.getEntries,
       syncErrors,
@@ -1189,7 +1190,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
 
     dispatch({
       type: ActionType.ON_DATA_RECEIVED,
-      experienceData: processedQuery,
+      experienceData,
     });
 
     return;
@@ -1209,13 +1210,15 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
 
       const daten = (data && data.data) || ({} as GetDetailExperience);
 
+      const experienceData = verarbeitenErfahrungAbfrage(
+        daten.getExperience || null,
+        daten.getEntries,
+        syncErrors,
+      );
+
       dispatch({
         type: ActionType.ON_DATA_RECEIVED,
-        experienceData: verarbeitenErfahrungAbfrage(
-          daten.getExperience || null,
-          daten.getEntries,
-          syncErrors,
-        ),
+        experienceData,
       });
     } catch (error) {
       dispatch({
@@ -1450,20 +1453,24 @@ function verarbeitenErfahrungAbfrage(
   kriegEinträgeAbfrage: GetEntriesUnionFragment | null,
   syncErrors?: SyncError,
 ): GeholteErfahrungErhieltenNutzlast {
-  return erfahrung
-    ? {
-        key: StateValue.data,
-        erfahrung,
-        einträgeDaten: verarbeitenEinträgeAbfrage(
-          erfahrung.id,
-          kriegEinträgeAbfrage,
-          syncErrors,
-        ),
-      }
-    : {
-        key: StateValue.errors,
-        error: DATA_FETCHING_FAILED,
-      };
+  if (erfahrung) {
+    const einträgeDaten = verarbeitenEinträgeAbfrage(
+      erfahrung.id,
+      kriegEinträgeAbfrage,
+      syncErrors,
+    );
+
+    return {
+      key: StateValue.data,
+      erfahrung,
+      einträgeDaten,
+    };
+  }
+
+  return {
+    key: StateValue.errors,
+    error: DATA_FETCHING_FAILED,
+  };
 }
 
 function verarbeitenEinträgeAbfrage(
@@ -1660,6 +1667,7 @@ export type DataStateContext = Readonly<{
   experience: ExperienceFragment;
   dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
   syncErrors?: SyncError;
+  onlineStatus: OnlineStatus;
 }>;
 
 export type DataStateContextEntry = Readonly<{
