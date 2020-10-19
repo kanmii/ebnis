@@ -3,37 +3,24 @@ import gql from "graphql-tag";
 import { FieldPolicy } from "@apollo/client/cache/inmemory/policies";
 import {
   SyncFlag,
-  SyncFlagQueryResult,
   SyncError,
   SyncErrors,
   SyncErrorsQueryResult,
 } from "../utils/sync-to-server.types";
+import { makeVar } from "@apollo/client";
 
 ////////////////////////// START SYNC FLAG ////////////////////////////
 
-const SYNC_FLAG = gql`
-  query {
-    syncFlag @client
-  }
-`;
-
 export function getSyncFlag() {
-  const { cache } = window.____ebnis;
-
-  const data = cache.readQuery<SyncFlagQueryResult>({
-    query: SYNC_FLAG,
-  });
-
-  return (data && data.syncFlag) || ({} as SyncFlag);
+  return syncFlagVar();
 }
 
 export function putSyncFlag(payload: SyncFlag) {
-  const { cache } = window.____ebnis;
-  cache.writeQuery({
-    query: SYNC_FLAG,
-    data: {
-      syncFlag: payload,
-    },
+  const flag = { ...syncFlagVar() };
+
+  syncFlagVar({
+    ...flag,
+    ...payload,
   });
 }
 
@@ -45,7 +32,7 @@ export function putOfflineExperienceIdInSyncFlag(arg: [string, string]) {
     [onlineId]: offlineId,
   };
 
-  putSyncFlag(data);
+  syncFlagVar(data);
 }
 
 export function getAndRemoveOfflineExperienceIdFromSyncFlag(
@@ -67,20 +54,10 @@ export function getAndRemoveOfflineExperienceIdFromSyncFlag(
   return null;
 }
 
-export const syncFlagPolicy: FieldPolicy<SyncFlag> = {
-  read(existing) {
-    return (
-      existing || {
-        canSync: true,
-        isSyncing: false,
-      }
-    );
-  },
-
-  merge(existing, incoming) {
-    return { ...existing, ...incoming };
-  },
-};
+export const syncFlagVar = makeVar<SyncFlag>({
+  canSync: true,
+  isSyncing: false,
+});
 
 ////////////////////////// END START SYNC FLAG ////////////////////////////
 

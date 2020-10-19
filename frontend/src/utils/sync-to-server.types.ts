@@ -8,10 +8,6 @@ import {
 import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "../graphql/apollo-types/CreateExperiences";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
 
-export interface SyncFlagQueryResult {
-  syncFlag: SyncFlag;
-}
-
 export type SyncFlag = Readonly<{
   canSync: boolean;
   isSyncing: boolean;
