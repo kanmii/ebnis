@@ -223,11 +223,25 @@ defmodule EbnisData.ExperienceApi do
         bearbeitet_erfahrung_komponenten = %{}
         einträge_komponenten = []
 
-        {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1} =
-          Enum.reduce(
-            update_params,
-            {bearbeitet_erfahrung_komponenten, einträge_komponenten},
-            &update_experience_p(&2, &1, experience)
+        {
+          bearbeitet_erfahrung_komponenten_1,
+          einträge_komponenten_1,
+          _updated_experience
+        } =
+          [
+            :delete_entries,
+            :update_definitions,
+            :update_entries,
+            :own_fields,
+            :add_entries
+          ]
+          |> Enum.reduce(
+            {
+              bearbeitet_erfahrung_komponenten,
+              einträge_komponenten,
+              experience
+            },
+            &update_experience_p(&2, &1, update_params[&1])
           )
 
         {:ok, bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
@@ -252,11 +266,19 @@ defmodule EbnisData.ExperienceApi do
       {:error, "experience not found"}
   end
 
+  defp update_experience_p(acc, _key, nil) do
+    acc
+  end
+
   # Delete entries
   defp update_experience_p(
-         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
-         {:delete_entries, ids},
-         experience
+         {
+           bearbeitet_erfahrung_komponenten,
+           einträge_komponenten,
+           experience
+         },
+         :delete_entries,
+         ids
        ) do
     bearbeitet_erfahrung_komponenten_1 =
       Map.merge(
@@ -275,14 +297,22 @@ defmodule EbnisData.ExperienceApi do
       | einträge_komponenten
     ]
 
-    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
+    {
+      bearbeitet_erfahrung_komponenten_1,
+      einträge_komponenten_1,
+      experience
+    }
   end
 
   # update definitions
   defp update_experience_p(
-         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
-         {:update_definitions, inputs},
-         experience
+         {
+           bearbeitet_erfahrung_komponenten,
+           einträge_komponenten,
+           experience
+         },
+         :update_definitions,
+         inputs
        ) do
     id_to_definition_type_map =
       Enum.reduce(
@@ -291,30 +321,53 @@ defmodule EbnisData.ExperienceApi do
         &Map.put(&2, &1.id, &1.type)
       )
 
+    {updated_definitions, id_to_updated_definition_map} =
+      Enum.reduce(
+        inputs,
+        {[], %{}},
+        &update_experiences_update_definition(
+          &1,
+          id_to_definition_type_map[&1.id],
+          &2
+        )
+      )
+
+    new_definitions_for_experience =
+      Enum.map(
+        experience.data_definitions,
+        &(id_to_updated_definition_map[&1.id] || &1)
+      )
+
+    new_experience = %{
+      experience
+      | data_definitions: new_definitions_for_experience
+    }
+
     bearbeitet_erfahrung_komponenten_1 =
       Map.merge(
         bearbeitet_erfahrung_komponenten,
         %{
           updated_at: experience.updated_at,
-          updated_definitions:
-            Enum.map(
-              inputs,
-              &update_experiences_update_definition(
-                &1,
-                id_to_definition_type_map[&1.id]
-              )
-            )
+          updated_definitions: Enum.reverse(updated_definitions)
         }
       )
 
-    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten}
+    {
+      bearbeitet_erfahrung_komponenten_1,
+      einträge_komponenten,
+      new_experience
+    }
   end
 
   # Update entries
   defp update_experience_p(
-         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
-         {:update_entries, inputs},
-         experience
+         {
+           bearbeitet_erfahrung_komponenten,
+           einträge_komponenten,
+           experience
+         },
+         :update_entries,
+         inputs
        ) do
     bearbeitet_erfahrung_komponenten_1 =
       Map.merge(
@@ -335,52 +388,77 @@ defmodule EbnisData.ExperienceApi do
       | einträge_komponenten
     ]
 
-    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
+    {
+      bearbeitet_erfahrung_komponenten_1,
+      einträge_komponenten_1,
+      experience
+    }
   end
 
   # Update own_fields
   defp update_experience_p(
-         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
-         {:own_fields, attrs},
-         experience
+         {
+           bearbeitet_erfahrung_komponenten,
+           einträge_komponenten,
+           experience
+         },
+         :own_fields,
+         attrs
        ) do
-    bearbeitet_erfahrung_komponenten_1 =
+    {
+      bearbeitet_erfahrung_komponenten_1,
+      updated_experience
+    } =
       experience
       |> Experience.changeset(attrs)
       |> Repo.update()
       |> case do
         {:ok, updated_experience} ->
-          Map.merge(
-            bearbeitet_erfahrung_komponenten,
-            %{
-              updated_at: updated_experience.updated_at,
-              own_fields:
-                Map.take(
-                  updated_experience,
-                  [:title, :description]
-                )
-            }
-          )
+          data =
+            Map.merge(
+              bearbeitet_erfahrung_komponenten,
+              %{
+                updated_at: updated_experience.updated_at,
+                own_fields:
+                  Map.take(
+                    updated_experience,
+                    [:title, :description]
+                  )
+              }
+            )
+
+          {data, updated_experience}
 
         {:error, changeset} ->
-          Map.merge(
-            bearbeitet_erfahrung_komponenten,
-            %{
-              updated_at: experience.updated_at,
-              own_fields: {:error, changeset}
-            }
-          )
+          data =
+            Map.merge(
+              bearbeitet_erfahrung_komponenten,
+              %{
+                updated_at: experience.updated_at,
+                own_fields: {:error, changeset}
+              }
+            )
+
+          {data, experience}
       end
 
-    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten}
+    {
+      bearbeitet_erfahrung_komponenten_1,
+      einträge_komponenten,
+      updated_experience
+    }
   end
 
   # Add entries
   # we must update definitions before adding entries
   defp update_experience_p(
-         {bearbeitet_erfahrung_komponenten, einträge_komponenten},
-         {:add_entries, inputs},
-         experience
+         {
+           bearbeitet_erfahrung_komponenten,
+           einträge_komponenten,
+           experience
+         },
+         :add_entries,
+         inputs
        ) do
     bearbeitet_erfahrung_komponenten_1 =
       Map.merge(
@@ -397,15 +475,23 @@ defmodule EbnisData.ExperienceApi do
       | einträge_komponenten
     ]
 
-    {bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
+    {
+      bearbeitet_erfahrung_komponenten_1,
+      einträge_komponenten_1,
+      experience
+    }
   end
 
-  defp update_experiences_update_definition(input, old_type) do
+  defp update_experiences_update_definition(
+         input,
+         old_type,
+         {updated_data_list, id_to_updated_definition_map}
+       ) do
     id = input.id
 
     case validate_update_defintion_type(input, old_type) do
       :error ->
-        {
+        data = {
           :error,
           %{
             id: id,
@@ -413,15 +499,31 @@ defmodule EbnisData.ExperienceApi do
           }
         }
 
+        {
+          [data | updated_data_list],
+          id_to_updated_definition_map
+        }
+
       func ->
         with %{} = definition <- get_definition(id),
              changeset <- DataDefinition.changeset(definition, input),
              {:ok, definition} <- Repo.update(changeset) do
           func.()
-          definition
+
+          new_id_to_updated_definition_map =
+            Map.put(
+              id_to_updated_definition_map,
+              definition.id,
+              definition
+            )
+
+          {
+            [definition | updated_data_list],
+            new_id_to_updated_definition_map
+          }
         else
           nil ->
-            {
+            data = {
               :error,
               %{
                 id: id,
@@ -429,8 +531,18 @@ defmodule EbnisData.ExperienceApi do
               }
             }
 
+            {
+              [data | updated_data_list],
+              id_to_updated_definition_map
+            }
+
           {:error, changeset} ->
-            {:error, changeset, id}
+            data = {:error, changeset, id}
+
+            {
+              [data | updated_data_list],
+              id_to_updated_definition_map
+            }
         end
     end
   rescue
@@ -445,12 +557,17 @@ defmodule EbnisData.ExperienceApi do
         ]
       end)
 
-      {
+      data = {
         :error,
         %{
           id: input.id,
           error: @bad_request
         }
+      }
+
+      {
+        [data | updated_data_list],
+        id_to_updated_definition_map
       }
   end
 

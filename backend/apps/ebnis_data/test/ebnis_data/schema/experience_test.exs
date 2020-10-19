@@ -2767,6 +2767,137 @@ defmodule EbnisData.Schema.ExperienceTest do
                data: ^new_data_from_db
              } = EbnisData.get_data_object(data_object0_id)
     end
+
+    test " erfolg: decimal to integer, entries added with update" do
+      user = RegFactory.insert()
+
+      definition_type_updated = "INTEGER"
+      definition_type_updated_lower = String.downcase(definition_type_updated)
+      new_data_value = 1
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id,
+            type: definition0_type
+          }
+        ]
+      } =
+        experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "decimal"
+          ]
+        )
+
+      %{
+        id: _entry_id,
+        data_objects: [
+          %{
+            id: data_object0_id
+          }
+        ]
+      } = _entry = EntryFactory.insert(%{}, experience)
+
+      refute definition0_type == definition_type_updated_lower
+
+      new_data_for_update = ~s({"#{definition_type_updated_lower}":#{new_data_value}})
+
+      definitions_variables = %{
+        "experienceId" => experience_id,
+        "updateDefinitions" => [
+          %{
+            "id" => definition0_id,
+            "type" => definition_type_updated
+          }
+        ],
+        "addEntries" => [
+          %{
+            "dataObjects" => [
+              %{
+                "definitionId" => definition0_id,
+                "data" => new_data_for_update,
+                "clientId" => "x"
+              }
+            ]
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          definitions_variables
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "experience" => %{
+                           "experienceId" => ^experience_id,
+                           "updatedDefinitions" => [
+                             %{
+                               "definition" => %{
+                                 "id" => ^definition0_id,
+                                 "type" => ^definition_type_updated
+                               }
+                             }
+                           ]
+                         },
+                         "entries" => %{
+                           "newEntries" => [
+                             %{
+                               "entry" => %{
+                                 "id" => _,
+                                 "dataObjects" => [
+                                   %{
+                                     "id" => data_object1_id,
+                                     "definitionId" => ^definition0_id,
+                                     "data" => ^new_data_for_update,
+                                     "clientId" => "x"
+                                   }
+                                 ]
+                               }
+                             }
+                           ]
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+
+      new_data_from_db0 =
+        Map.new([
+          {definition_type_updated_lower, 0}
+        ])
+
+      assert %{
+               data: ^new_data_from_db0
+             } = EbnisData.get_data_object(data_object0_id)
+
+      new_data_from_db1 =
+        Map.new([
+          {definition_type_updated_lower, new_data_value}
+        ])
+
+      assert %{
+               data: ^new_data_from_db1
+             } = EbnisData.get_data_object(data_object1_id)
+    end
   end
 
   describe "löschen erfahrungen" do
