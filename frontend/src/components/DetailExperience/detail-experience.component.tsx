@@ -315,36 +315,36 @@ function ExperienceComponent() {
         <DeleteExperienceModal />
       )}
 
+      {newEntryActiveState.value === StateValue.active && (
+        <Suspense fallback={<Loading />}>
+          <NewEntry
+            experience={experience}
+            bearbeitenEintrag={
+              newEntryActiveState.active.context.bearbeitenEintrag
+                ? newEntryActiveState.active.context.bearbeitenEintrag
+                : undefined
+            }
+            onSuccess={(entry) => {
+              const old =
+                newEntryActiveState.active.context.bearbeitenEintrag &&
+                newEntryActiveState.active.context.bearbeitenEintrag.entry;
+
+              dispatch({
+                type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
+                newData: entry,
+                old,
+              });
+            }}
+            onClose={() => {
+              dispatch({
+                type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,
+              });
+            }}
+          />
+        </Suspense>
+      )}
+
       <div className="container detailed-experience-component">
-        {newEntryActiveState.value === StateValue.active && (
-          <Suspense fallback={<Loading />}>
-            <NewEntry
-              experience={experience}
-              bearbeitenEintrag={
-                newEntryActiveState.active.context.bearbeitenEintrag
-                  ? newEntryActiveState.active.context.bearbeitenEintrag
-                  : undefined
-              }
-              onSuccess={(entry) => {
-                const old =
-                  newEntryActiveState.active.context.bearbeitenEintrag &&
-                  newEntryActiveState.active.context.bearbeitenEintrag.entry;
-
-                dispatch({
-                  type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
-                  newData: entry,
-                  old,
-                });
-              }}
-              onClose={() => {
-                dispatch({
-                  type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,
-                });
-              }}
-            />
-          </Suspense>
-        )}
-
         <EntriesErrorsNotification
           state={entriesErrors}
           onCloseEntriesErrorsNotification={onCloseEntriesErrorsNotification}
