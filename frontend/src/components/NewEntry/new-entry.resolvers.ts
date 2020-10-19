@@ -131,9 +131,11 @@ function updateUnsynced(experienceId: string) {
     return;
   }
 
-  const unsyncedExperience = (getUnsyncedExperience(experienceId) ||
-    // istanbul ignore next:
-    {}) as UnsyncedModifiedExperience;
+  const unsyncedExperience = {
+    ...((getUnsyncedExperience(experienceId) ||
+      // istanbul ignore next:
+      {}) as UnsyncedModifiedExperience),
+  };
 
   unsyncedExperience.newEntries = true;
   writeUnsyncedExperience(experienceId, unsyncedExperience);
