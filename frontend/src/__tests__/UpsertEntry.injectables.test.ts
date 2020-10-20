@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { upsertNewEntry } from "../components/NewEntry/new-entry.injectables";
+import { upsertNewEntry } from "../components/UpsertEntry/upsert-entry.injectables";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
 import {

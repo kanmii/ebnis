@@ -71,7 +71,7 @@ import { useWithSubscriptionContext } from "../apollo/injectables";
 import { GenericHasEffect } from "../utils/effects";
 import { scrollIntoView } from "../utils/scroll-into-view";
 import { getSyncError } from "../apollo/sync-to-server-cache";
-import { Props as NewEntryProps } from "../components/NewEntry/new-entry.utils";
+import { Props as NewEntryProps } from "../components/UpsertEntry/upsert-entry.utils";
 import { OfflineIdToCreateEntrySyncErrorMap } from "../utils/sync-to-server.types";
 
 jest.mock("../apollo/sync-to-server-cache");
@@ -138,7 +138,7 @@ const mockNewlyCreatedEntry = {
 const mockStateValue = StateValue;
 jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
   return {
-    NewEntry: ({ onSuccess, onClose }: NewEntryProps) => (
+    UpsertEntry: ({ onSuccess, onClose }: NewEntryProps) => (
       <div>
         <button
           id={mockCreateNewEntryId}
@@ -1007,7 +1007,7 @@ function getEntriesEl() {
 
 function getNewEntryTriggerEl() {
   return document
-    .getElementsByClassName("new-entry-trigger")
+    .getElementsByClassName("upsert-entry-trigger")
     .item(0) as HTMLElement;
 }
 

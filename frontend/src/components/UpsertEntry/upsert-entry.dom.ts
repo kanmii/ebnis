@@ -1,4 +1,4 @@
-export const domPrefix = "new-entry";
+export const domPrefix = "upsert-entry";
 export const submitBtnDomId = `${domPrefix}-submit-btn`;
 export const networkErrorDomId = `${domPrefix}-network-error`;
 export const scrollIntoViewNonFieldErrorDomId = `${domPrefix}-scroll-into-view-non-field-errors`;

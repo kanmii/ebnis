@@ -24,7 +24,7 @@ import {
   DataStateContextEntry,
 } from "./detailed-experience-utils";
 import { setUpRoutePage } from "../../utils/global-window";
-import { NewEntry } from "./detail-experience.lazy";
+import { UpsertEntry } from "./detail-experience.lazy";
 import Loading from "../Loading/loading.component";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
 import {
@@ -232,7 +232,7 @@ export function DetailExperience(props: Props) {
               <ExperienceComponent />
 
               <a
-                className="new-entry-trigger"
+                className="upsert-entry-trigger"
                 onClick={onOpenNewEntry}
                 href="*"
               >
@@ -327,7 +327,7 @@ function ExperienceComponent() {
 
       {newEntryActiveState.value === StateValue.active && (
         <Suspense fallback={<Loading />}>
-          <NewEntry
+          <UpsertEntry
             experience={experience}
             bearbeitenEintrag={
               newEntryActiveState.active.context.bearbeitenEintrag
@@ -363,7 +363,7 @@ function ExperienceComponent() {
           onCloseEntriesErrorsNotification={onCloseEntriesErrorsNotification}
         />
 
-        <NewEntryNotification
+        <UpsertEntryNotification
           state={newEntryCreated}
           onCloseNewEntryCreatedNotification={
             onCloseNewEntryCreatedNotification
@@ -608,7 +608,7 @@ function EntriesErrorsNotification(props: {
   );
 }
 
-function NewEntryNotification(props: {
+function UpsertEntryNotification(props: {
   state: DataState["data"]["states"]["newEntryCreated"];
   onCloseNewEntryCreatedNotification: () => void;
 }) {
@@ -653,7 +653,7 @@ function DeleteExperienceModal() {
           </div>
 
           <button
-            className="delete new-entry__delete"
+            className="delete upsert-entry__delete"
             aria-label="close"
             type="button"
             onClick={onDeclineDeleteExperience}

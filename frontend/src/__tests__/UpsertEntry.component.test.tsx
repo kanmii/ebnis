@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars*/
 import React, { ComponentType } from "react";
 import { render, cleanup, waitForElement, wait } from "@testing-library/react";
-import { NewEntry } from "../components/NewEntry/new-entry.component";
+import { UpsertEntry } from "../components/UpsertEntry/upsert-entry.component";
 import {
   Props,
   toISODateString,
@@ -13,7 +13,7 @@ import {
   GeneralEffect,
   effectFunctions,
   SubmissionErrors,
-} from "../components/NewEntry/new-entry.utils";
+} from "../components/UpsertEntry/upsert-entry.utils";
 import { defaultExperience, fillField } from "../tests.utils";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
 import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
@@ -21,14 +21,14 @@ import {
   submitBtnDomId,
   notificationCloseId,
   fieldErrorSelector,
-} from "../components/NewEntry/new-entry.dom";
+} from "../components/UpsertEntry/upsert-entry.dom";
 import { getIsConnected } from "../utils/connections";
 import {
   UpdateExperiencesOnlineMutationResult,
   CreateExperiencesMutationResult,
 } from "../utils/experience.gql.types";
 import { scrollIntoView } from "../utils/scroll-into-view";
-import { CreateOfflineEntryResult } from "../components/NewEntry/new-entry.resolvers";
+import { CreateOfflineEntryResult } from "../components/UpsertEntry/upsert-entry.resolvers";
 import { AppPersistor } from "../utils/app-context";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { E2EWindowObject } from "../utils/types";
@@ -50,7 +50,7 @@ const mockScrollIntoView = scrollIntoView as jest.Mock;
 jest.mock("../utils/connections");
 const mockIsConnected = getIsConnected as jest.Mock;
 
-jest.mock("../components/NewEntry/new-entry.injectables");
+jest.mock("../components/UpsertEntry/upsert-entry.injectables");
 
 jest.mock("../components/DateField/date-field.component", () => {
   return {
@@ -1026,14 +1026,14 @@ describe("reducer", () => {
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
-const NewEntryP = NewEntry as ComponentType<Partial<Props>>;
+const UpsertEntryP = UpsertEntry as ComponentType<Partial<Props>>;
 
 function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   const experience = props.experience || defaultExperience;
 
   return {
     ui: (
-      <NewEntryP
+      <UpsertEntryP
         {...props}
         createOfflineEntry={mockCreateOfflineEntry}
         updateExperiencesOnline={mockUpdateExperiencesOnline}
@@ -1058,6 +1058,6 @@ function getFieldError() {
 
 function getCloseComponentEl() {
   return document
-    .getElementsByClassName("new-entry__delete")
+    .getElementsByClassName("upsert-entry__delete")
     .item(0) as HTMLElement;
 }

@@ -6,7 +6,7 @@ import React, {
   ChangeEvent,
 } from "react";
 import makeClassNames from "classnames";
-import "./new-entry.styles.scss";
+import "./upsert-entry.styles.scss";
 import {
   CallerProps,
   Props,
@@ -18,13 +18,13 @@ import {
   FieldState,
   FormObjVal,
   Submission,
-} from "./new-entry.utils";
+} from "./upsert-entry.utils";
 import {
   useUpdateExperiencesOnlineMutation,
   useCreateExperiencesMutation,
 } from "../../utils/experience.gql.types";
-import { useCreateOfflineEntryMutation } from "./new-entry.resolvers";
-import { addResolvers } from "./new-entry.injectables";
+import { useCreateOfflineEntryMutation } from "./upsert-entry.resolvers";
+import { addResolvers } from "./upsert-entry.injectables";
 import Loading from "../Loading/loading.component";
 import { componentFromDataType } from "./component-from-data-type";
 import { DataTypes } from "../../graphql/apollo-types/globalTypes";
@@ -34,12 +34,12 @@ import {
   submitBtnDomId,
   notificationCloseId,
   fieldErrorSelector,
-} from "./new-entry.dom";
+} from "./upsert-entry.dom";
 import { StateValue } from "../../utils/types";
 import { errorClassName } from "../../utils/utils.dom";
 import { useRunEffects } from "../../utils/use-run-effects";
 
-export function NewEntry(props: Props) {
+export function UpsertEntry(props: Props) {
   const { experience, onClose } = props;
 
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
@@ -75,7 +75,7 @@ export function NewEntry(props: Props) {
     <>
       <form
         className={makeClassNames({
-          "modal is-active component-new-entry": true,
+          "modal is-active component-upsert-entry": true,
           submitting: submissionState.value === StateValue.active,
         })}
         onSubmit={onSubmit}
@@ -90,7 +90,7 @@ export function NewEntry(props: Props) {
             </div>
 
             <button
-              className="delete new-entry__delete"
+              className="delete upsert-entry__delete"
               aria-label="close"
               type="button"
               onClick={onClose}
@@ -285,7 +285,7 @@ export default (props: CallerProps) => {
   const [createExperiences] = useCreateExperiencesMutation();
 
   return (
-    <NewEntry
+    <UpsertEntry
       {...props}
       updateExperiencesOnline={updateExperiencesOnline}
       createOfflineEntry={createOfflineEntry}

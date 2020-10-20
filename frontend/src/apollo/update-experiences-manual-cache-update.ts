@@ -13,7 +13,7 @@ import {
 } from "./unsynced-ledger";
 import { EntryConnectionFragment_edges } from "../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
-import { entryToEdge } from "../components/NewEntry/entry-to-edge";
+import { entryToEdge } from "../components/UpsertEntry/entry-to-edge";
 import { UpdateExperienceSomeSuccessFragment_entries } from "../graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
 import {
   getEntriesQuerySuccess,

@@ -5,7 +5,7 @@ import { upsertExperiencesInGetExperiencesMiniQuery } from "./update-get-experie
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 import { EntryConnectionFragment_edges } from "../graphql/apollo-types/EntryConnectionFragment";
-import { entryToEdge } from "../components/NewEntry/entry-to-edge";
+import { entryToEdge } from "../components/UpsertEntry/entry-to-edge";
 import {
   getEntriesQuerySuccess,
   readExperienceFragment,

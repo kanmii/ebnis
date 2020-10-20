@@ -70,7 +70,7 @@ import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragmen
 import {
   parseDataObjectData,
   stringifyDataObjectData,
-} from "../NewEntry/new-entry.utils";
+} from "../UpsertEntry/upsert-entry.utils";
 import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/apollo-types/GetEntries";
 
 ////////////////////////// CREATE ////////////////////////////
@@ -155,9 +155,7 @@ const createOfflineExperienceResolver: LocalResolverFn<
     },
   });
 
-  upsertExperiencesInGetExperiencesMiniQuery([
-    [experienceId, experience],
-  ]);
+  upsertExperiencesInGetExperiencesMiniQuery([[experienceId, experience]]);
 
   writeUnsyncedExperience(experienceId, {
     isOffline: true,

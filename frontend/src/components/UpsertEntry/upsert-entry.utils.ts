@@ -11,11 +11,11 @@ import {
 } from "../../graphql/apollo-types/globalTypes";
 import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
-import { CreateOfflineEntryMutationComponentProps } from "./new-entry.resolvers";
+import { CreateOfflineEntryMutationComponentProps } from "./upsert-entry.resolvers";
 import { wrapReducer } from "../../logger";
 import { getIsConnected } from "../../utils/connections";
 import { scrollIntoView } from "../../utils/scroll-into-view";
-import { scrollIntoViewNonFieldErrorDomId } from "./new-entry.dom";
+import { scrollIntoViewNonFieldErrorDomId } from "./upsert-entry.dom";
 import {
   UpdateExperiencesOnlineComponentProps,
   updateExperiencesOnlineEffectHelperFunc,
@@ -60,19 +60,19 @@ import {
   CreateExperienceErrorsFragment_errors_dataDefinitions,
 } from "../../graphql/apollo-types/CreateExperienceErrorsFragment";
 import { removeUnsyncedExperiences } from "../../apollo/unsynced-ledger";
-import { experienceToCreateInput } from "./new-entry.helpers";
+import { experienceToCreateInput } from "./upsert-entry.helpers";
 
 const NEW_LINE_REGEX = /\n/g;
 export const ISO_DATE_FORMAT = "yyyy-MM-dd";
 const ISO_DATE_TIME_FORMAT = ISO_DATE_FORMAT + "'T'HH:mm:ssXXX";
 
 export enum ActionType {
-  ON_FORM_FIELD_CHANGED = "@new-entry/on-form-field-changed",
-  ON_CREATE_ENTRY_ERRORS = "@new-entry/set-create-entry-errors",
-  DISMISS_NOTIFICATION = "@new-entry/unset-server-errors",
-  ON_SUBMIT = "@new-entry/on-submit",
-  ON_COMMON_ERROR = "@new-entry/on-common-error",
-  ON_SYNC_OFFLINE_EXPERIENCE_ERRORS = "@new-entry/on-sync-offline-experience-errors",
+  ON_FORM_FIELD_CHANGED = "@upsert-entry/on-form-field-changed",
+  ON_CREATE_ENTRY_ERRORS = "@upsert-entry/set-create-entry-errors",
+  DISMISS_NOTIFICATION = "@upsert-entry/unset-server-errors",
+  ON_SUBMIT = "@upsert-entry/on-submit",
+  ON_COMMON_ERROR = "@upsert-entry/on-common-error",
+  ON_SYNC_OFFLINE_EXPERIENCE_ERRORS = "@upsert-entry/on-sync-offline-experience-errors",
 }
 
 export function toISODateString(date: Date) {

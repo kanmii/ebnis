@@ -4,8 +4,8 @@ import {
   newEntryResolvers,
   CreateOfflineEntryMutationVariables,
   CreateOfflineEntryMutationValid,
-} from "../components/NewEntry/new-entry.resolvers";
-import { upsertNewEntry } from "../components/NewEntry/new-entry.injectables";
+} from "../components/UpsertEntry/upsert-entry.resolvers";
+import { upsertNewEntry } from "../components/UpsertEntry/upsert-entry.injectables";
 import { isOfflineId, makeOfflineId } from "../utils/offlines";
 import {
   getUnsyncedExperience,
@@ -16,7 +16,7 @@ import {
   getEntriesQuerySuccess,
 } from "../apollo/get-detailed-experience-query";
 
-jest.mock("../components/NewEntry/new-entry.injectables");
+jest.mock("../components/UpsertEntry/upsert-entry.injectables");
 const mockUpsertWithEntry = upsertNewEntry as jest.Mock;
 
 jest.mock("../apollo/unsynced-ledger");

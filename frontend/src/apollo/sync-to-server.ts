@@ -30,7 +30,7 @@ import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import {
   experienceToCreateInput,
   entryToCreateInput,
-} from "../components/NewEntry/new-entry.helpers";
+} from "../components/UpsertEntry/upsert-entry.helpers";
 import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
 import { EntryConnectionFragment_edges } from "../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";

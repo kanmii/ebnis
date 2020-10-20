@@ -10,7 +10,7 @@ import {
   singleLineInputDomSelector,
   dateComponentDomSelector,
   datetimeComponentDomSelector,
-} from "./new-entry.dom";
+} from "./upsert-entry.dom";
 
 const componentsObject: {
   [k: string]: (props: ComponentProps) => JSX.Element;

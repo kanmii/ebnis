@@ -1,13 +1,13 @@
 @import "../../styles/extensions";
 
-.component-new-entry {
+.component-upsert-entry {
   @extend %modal;
 
   &.submitting * {
     pointer-events: none;
   }
 
-  .new-entry {
+  .upsert-entry {
     &__delete {
       position: absolute;
       right: 15px;

@@ -65,7 +65,7 @@ import {
 import { GetDetailExperience } from "../../graphql/apollo-types/GetDetailExperience";
 import { PaginationInput } from "../../graphql/apollo-types/globalTypes";
 import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/apollo-types/GetEntries";
-import { entryToEdge } from "../NewEntry/entry-to-edge";
+import { entryToEdge } from "../UpsertEntry/entry-to-edge";
 import { ApolloError } from "@apollo/client";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { nonsenseId } from "../../utils/utils.dom";
@@ -90,13 +90,13 @@ import {
 } from "../../apollo/sync-to-server-cache";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
-import { UpdatingEntryPayload } from "../NewEntry/new-entry.utils";
+import { UpdatingEntryPayload } from "../UpsertEntry/upsert-entry.utils";
 import { purgeEntry } from "../../apollo/update-get-experiences-mini-query";
 
 export enum ActionType {
-  TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-new-entry",
+  TOGGLE_NEW_ENTRY_ACTIVE = "@detailed-experience/deactivate-upsert-entry",
   ON_UPSERT_ENTRY_SUCCESS = "@detailed-experience/on-upsert-entry-success",
-  ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION = "@detailed-experience/on-close-new-entry-created-notification",
+  ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION = "@detailed-experience/on-close-upsert-entry-created-notification",
   SET_TIMEOUT = "@detailed-experience/set-timeout",
   ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION = "@detailed-experience/on-close-entries-errors-notification",
   DELETE_EXPERIENCE_REQUEST = "@detailed-experience/delete-experience-request",
@@ -844,7 +844,7 @@ function handleOnUpsertEntrySuccessAction(
     effects.push({
       key: "timeoutsEffect",
       ownArgs: {
-        set: "set-close-new-entry-created-notification",
+        set: "set-close-upsert-entry-created-notification",
       },
     });
 
@@ -1016,7 +1016,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
     let timeoutCb = (undefined as unknown) as () => void;
 
     switch (set) {
-      case "set-close-new-entry-created-notification":
+      case "set-close-upsert-entry-created-notification":
         timeoutCb = () => {
           dispatch({
             type: ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION,
@@ -1048,7 +1048,7 @@ type DefTimeoutsEffect = EffectDefinition<
   "timeoutsEffect",
   {
     set?:
-      | "set-close-new-entry-created-notification"
+      | "set-close-upsert-entry-created-notification"
       | "set-close-update-experience-success-notification";
     clear?: NodeJS.Timeout;
   }

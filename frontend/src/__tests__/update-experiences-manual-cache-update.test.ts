@@ -17,7 +17,7 @@ import {
   writeUnsyncedExperience,
 } from "../apollo/unsynced-ledger";
 import { UnsyncedModifiedExperience } from "../utils/unsynced-ledger.types";
-import { entryToEdge } from "../components/NewEntry/entry-to-edge";
+import { entryToEdge } from "../components/UpsertEntry/entry-to-edge";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "../graphql/apollo-types/GetEntriesUnionFragment";
 import { UpdateExperienceSomeSuccessFragment } from "../graphql/apollo-types/UpdateExperienceSomeSuccessFragment";

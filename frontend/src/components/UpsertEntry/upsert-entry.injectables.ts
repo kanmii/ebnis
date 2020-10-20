@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { ApolloClient } from "@apollo/client";
-import { newEntryResolvers } from "./new-entry.resolvers";
+import { newEntryResolvers } from "./upsert-entry.resolvers";
 import immer from "immer";
 import {
   EntryConnectionFragment_edges_node,

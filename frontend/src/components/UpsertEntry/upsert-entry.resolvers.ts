@@ -19,7 +19,7 @@ import gql from "graphql-tag";
 import {
   upsertNewEntry,
   UpsertNewEntryReturnVal,
-} from "./new-entry.injectables";
+} from "./upsert-entry.injectables";
 import { ENTRY_FRAGMENT } from "../../graphql/entry.gql";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
