@@ -34,10 +34,6 @@ import { act } from "react-dom/test-utils";
 import { makeOfflineId } from "../utils/offlines";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
 import {
-  getSyncingExperience,
-  putOrRemoveSyncingExperience,
-} from "../apollo/syncing-experience-ledger";
-import {
   upsertExperiencesInGetExperiencesMiniQuery,
   purgeExperience,
 } from "../apollo/update-get-experiences-mini-query";
@@ -98,8 +94,6 @@ jest.mock("../apollo/delete-experience-cache");
 const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
 const mockPutOrRemoveDeleteExperienceLedger = putOrRemoveDeleteExperienceLedger as jest.Mock;
 
-jest.mock("../apollo/syncing-experience-ledger");
-
 jest.mock("../utils/experience.gql.types");
 const mockManuallyFetchDetailedExperience = manuallyFetchDetailedExperience as jest.Mock;
 const mockManuallyFetchEntries = manuallyFetchEntries as jest.Mock;
@@ -111,10 +105,6 @@ jest.mock("../apollo/delete-experience-cache");
 
 jest.mock("../components/DetailExperience/detail-experience.injectables");
 const mockScrollDocumentToTop = scrollDocumentToTop as jest.Mock;
-
-jest.mock("../apollo/syncing-experience-ledger");
-const mockGetSyncingExperience = getSyncingExperience as jest.Mock;
-const mockPutOrRemoveSyncingExperience = putOrRemoveSyncingExperience as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
 const mockReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = upsertExperiencesInGetExperiencesMiniQuery as jest.Mock;

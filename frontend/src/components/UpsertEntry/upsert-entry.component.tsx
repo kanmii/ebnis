@@ -218,29 +218,15 @@ function Notification({
   submissionState: Submission;
   onCloseNotification: () => void;
 }) {
-  let errorNode = "" as React.ReactNode;
+  let errorNode =
+    submissionState.value === StateValue.errors &&
+    submissionState.errors.context.errors;
 
-  switch (submissionState.value) {
-    case StateValue.errors:
-      errorNode = submissionState.errors.context.errors;
-      break;
-
-    case StateValue.syncOfflineExperienceErrors:
-      errorNode = submissionState.syncOfflineExperienceErrors.context.errors.map(
-        ([label, key, val], index) => {
-          return (
-            <div key={index}>
-              <span>{label} &nbsp;</span>
-              <span>{key}: &nbsp;</span>
-              <span>{val}</span>
-            </div>
-          );
-        },
-      );
-      break;
+  if (!errorNode) {
+    return null;
   }
 
-  return errorNode ? (
+  return (
     <div
       className={makeClassNames({
         notification: true,
@@ -256,7 +242,7 @@ function Notification({
       <div>
         <strong>
           <p>
-            Following errors were received while trying to create/sync the
+            Following errors were received while trying to create/Update the
             Eintrag
           </p>
         </strong>
@@ -265,7 +251,7 @@ function Notification({
       <div>Eintrag:</div>
       {errorNode}
     </div>
-  ) : null;
+  );
 }
 
 function makeDateChangedFn(dispatch: DispatchType, index: number) {
