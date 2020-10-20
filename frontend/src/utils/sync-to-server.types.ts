@@ -1,12 +1,10 @@
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
-import {
-  UpdateExperienceSomeSuccessFragment_experience_updatedDefinitions_DefinitionErrors_errors,
-  UpdateExperienceSomeSuccessFragment_experience_ownFields_UpdateExperienceOwnFieldsErrors_errors,
-  UpdateExperienceSomeSuccessFragment_entries_updatedEntries_UpdateEntrySomeSuccess_entry_dataObjects_DataObjectErrors_errors,
-} from "../graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
-import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "../graphql/apollo-types/CreateExperiences";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
+import { DefinitionErrorFragment } from "../graphql/apollo-types/DefinitionErrorFragment";
+import { UpdateExperienceOwnFieldsErrorFragment } from "../graphql/apollo-types/UpdateExperienceOwnFieldsErrorFragment";
+import { DataObjectErrorFragment } from "../graphql/apollo-types/DataObjectErrorFragment";
+import { CreateExperienceErrorsFragment_errors } from "../graphql/apollo-types/CreateExperienceErrorsFragment";
 
 export type SyncFlag = Readonly<{
   canSync: boolean;
@@ -48,13 +46,13 @@ export type SyncErrors = {
 
 export type SyncError = {
   // Only offline experience we are unable to create online
-  createExperience?: CreateExperiences_createExperiences_CreateExperienceErrors_errors;
+  createExperience?: CreateExperienceErrorsFragment_errors;
 
   createEntries?: OfflineIdToCreateEntrySyncErrorMap;
 
   updateEntries?: IdToUpdateEntrySyncErrorMap;
 
-  ownFields?: UpdateExperienceSomeSuccessFragment_experience_ownFields_UpdateExperienceOwnFieldsErrors_errors;
+  ownFields?: UpdateExperienceOwnFieldsErrorFragment;
 
   definitions?: IdToDefinitionUpdateSyncErrorMap;
 };
@@ -65,9 +63,7 @@ export type IdToUpdateEntrySyncErrorMap = {
 };
 
 export type IdToUpdateDataObjectSyncErrorMap = {
-  [
-    dataObjectId: string
-  ]: UpdateExperienceSomeSuccessFragment_entries_updatedEntries_UpdateEntrySomeSuccess_entry_dataObjects_DataObjectErrors_errors;
+  [dataObjectId: string]: DataObjectErrorFragment;
 };
 
 export type OfflineIdToCreateEntrySyncErrorMap = {
@@ -75,9 +71,7 @@ export type OfflineIdToCreateEntrySyncErrorMap = {
 };
 
 export type IdToDefinitionUpdateSyncErrorMap = {
-  [
-    definitionId: string
-  ]: UpdateExperienceSomeSuccessFragment_experience_updatedDefinitions_DefinitionErrors_errors;
+  [definitionId: string]: DefinitionErrorFragment;
 };
 
 export type UpdateSyncReturnVal = [
