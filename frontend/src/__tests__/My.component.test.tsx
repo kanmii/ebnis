@@ -560,6 +560,12 @@ describe("component", () => {
             title: "aa",
           },
         },
+        {
+          node: {
+            id: "bb",
+            title: "bb",
+          },
+        },
       ] as GetExperienceConnectionMini_getExperiences_edges[],
       pageInfo: {},
     } as GetExperienceConnectionMini_getExperiences);
@@ -573,11 +579,15 @@ describe("component", () => {
     const { ui } = makeComp();
     render(ui);
 
+    expect(document.getElementById(mockOnlineId)).toBeNull();
+
     const deleteSuccessEl = await waitForElement(() => {
       return document.getElementById(
         onDeleteExperienceSuccessNotificationId,
       ) as HTMLElement;
     });
+
+    expect(document.getElementById("bb")).not.toBeNull();
 
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
     expect(mockPurgeExperiencesFromCache1.mock.calls[0][0][0]).toBe(
@@ -598,6 +608,7 @@ describe("component", () => {
     expect(
       document.getElementById(onDeleteExperienceSuccessNotificationId),
     ).toBeNull();
+
     jest.runAllTimers();
   });
 

@@ -723,6 +723,9 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
   if (zwischengespeicherteErgebnis) {
     const [experiences, preparedExperiences] = processGetExperiencesQuery(
       zwischengespeicherteErgebnis,
+      {
+        deletedExperience,
+      },
     );
 
     dispatch({
@@ -784,8 +787,10 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 
         const [ergebnisse, preparedExperiences] = processGetExperiencesQuery(
           sammelnErfahrungen,
-          !!paginationInput,
-          zwischengespeicherteErgebnis,
+          {
+            isPaginating: !!paginationInput,
+            existingData: zwischengespeicherteErgebnis || null,
+          },
         );
 
         dispatch({
@@ -932,10 +937,19 @@ async function deleteExperienceProcessedEffectHelper({ dispatch }: EffectArgs) {
 
 function processGetExperiencesQuery(
   { edges, pageInfo }: GetExperienceConnectionMini_getExperiences,
-  preFetchEntries?: boolean,
-  storeData?: GetExperienceConnectionMini_getExperiences | null,
+  {
+    isPaginating,
+    existingData,
+    deletedExperience,
+  }: {
+    isPaginating?: boolean;
+    deletedExperience?: DeletedExperienceLedger;
+    existingData?: GetExperienceConnectionMini_getExperiences | null;
+  },
 ): [ExperiencesData, PreparedExperience[]] {
-  const previousEdges = ((storeData && storeData.edges) ||
+  const deletedId = deletedExperience ? deletedExperience.id : "";
+
+  const previousEdges = ((existingData && existingData.edges) ||
     []) as GetExperienceConnectionMini_getExperiences_edges[];
 
   const newEdges = edges as GetExperienceConnectionMini_getExperiences_edges[];
@@ -951,9 +965,16 @@ function processGetExperiencesQuery(
   } = {};
 
   const [experiences, erfahrungenIds] = newEdges.reduce(
-    ([neuenErfahrungen, erfahrungenIds], edge) => {
+    (acc, edge) => {
+      const [neuenErfahrungen, erfahrungenIds] = acc;
+
       const experience = edge.node as ExperienceMiniFragment;
       const { id } = experience;
+
+      if (id === deletedId) {
+        return acc;
+      }
+
       const syncError = syncErrors[id];
       erfahrungenIds.push(id);
       idToExperienceMap[id] = experience;
@@ -966,19 +987,19 @@ function processGetExperiencesQuery(
         onlineStatus: getOnlineStatus(id, unsynced),
       });
 
-      return [neuenErfahrungen, erfahrungenIds];
+      return acc;
     },
     [[], []] as [ExperienceData[], string[]],
   );
 
-  if (preFetchEntries) {
+  if (isPaginating) {
     writeGetExperiencesMiniQuery({
       edges: allEdges,
       pageInfo,
     });
   }
 
-  if (arguments.length > 1 && erfahrungenIds.length) {
+  if (existingData !== undefined && erfahrungenIds.length) {
     setTimeout(() => {
       handlePreFetchExperiences(erfahrungenIds, idToExperienceMap);
     });
