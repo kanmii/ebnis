@@ -27,7 +27,7 @@
     "react-dom": "npm:@hot-loader/react-dom",
     "react-hot-loader": "^4.12.20",
     "react-router-dom": "^5.1.2",
-    "react-scripts": "3.4.1",
+    "react-scripts": "3.4.4",
     "typescript": "~3.7.2",
     "uuid": "^8.3.0",
     "zen-observable-ts": "^0.8.21"

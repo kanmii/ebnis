@@ -15,6 +15,7 @@ import {
   effectFunctions,
   EinträgeDatenErfolg,
   EinträgeDatenVersagen,
+  ExperienceSyncError,
 } from "../components/DetailExperience/detailed-experience-utils";
 import {
   EntryConnectionFragment,
@@ -24,11 +25,16 @@ import { scrollDocumentToTop } from "../components/DetailExperience/detail-exper
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import {
   newEntryCreatedNotificationCloseId,
-  entriesErrorsNotificationCloseId,
+  syncErrorsNotificationId,
   noEntryTriggerId,
   refetchExperienceId,
   neueHolenEinträgeId,
   holenNächstenEinträgeId,
+  closeSyncErrorsMsgId,
+  fixSyncErrorsId,
+  closeSyncErrorsMsgBtnId,
+  syncEntriesErrorsMsgId,
+  syncExperienceErrorsMsgId,
 } from "../components/DetailExperience/detail-experience.dom";
 import { act } from "react-dom/test-utils";
 import { makeOfflineId } from "../utils/offlines";
@@ -68,7 +74,14 @@ import { GenericHasEffect } from "../utils/effects";
 import { scrollIntoView } from "../utils/scroll-into-view";
 import { getSyncError } from "../apollo/sync-to-server-cache";
 import { Props as NewEntryProps } from "../components/UpsertEntry/upsert-entry.utils";
-import { OfflineIdToCreateEntrySyncErrorMap } from "../utils/sync-to-server.types";
+import {
+  OfflineIdToCreateEntrySyncErrorMap,
+  SyncError,
+  UpdateEntrySyncErrors,
+} from "../utils/sync-to-server.types";
+import { DefinitionErrorFragment } from "../graphql/apollo-types/DefinitionErrorFragment";
+import { Props as UpsertExperienceProps } from "../components/UpsertExperience/upsert-experience.utils";
+import { DataObjectErrorFragment } from "../graphql/apollo-types/DataObjectErrorFragment";
 
 jest.mock("../apollo/sync-to-server-cache");
 const mockGetSyncError = getSyncError as jest.Mock;
@@ -110,8 +123,8 @@ jest.mock("../apollo/update-get-experiences-mini-query");
 const mockReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = upsertExperiencesInGetExperiencesMiniQuery as jest.Mock;
 const mockPurgeExperience = purgeExperience as jest.Mock;
 
-const mockCreateNewEntryId = "?a?";
-const mockDismissNewEntryUiId = "?b?";
+const mockUpsertEntrySuccessId = "?a?";
+const mockDismissUpsertEntryUiId = "?b?";
 const mockActionType = ActionType;
 const mockNewlyCreatedEntry = {
   updatedAt: "2020-05-08T06:49:19Z",
@@ -131,13 +144,13 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
     UpsertEntry: ({ onSuccess, onClose }: NewEntryProps) => (
       <div>
         <button
-          id={mockCreateNewEntryId}
+          id={mockUpsertEntrySuccessId}
           onClick={() => {
             onSuccess(mockNewlyCreatedEntry, mockStateValue.online);
           }}
         />
 
-        <button id={mockDismissNewEntryUiId} onClick={onClose} />
+        <button id={mockDismissUpsertEntryUiId} onClick={onClose} />
       </div>
     ),
   };
@@ -150,6 +163,17 @@ const mockLoadingId = "l-o-a-d-i-n-g";
 jest.mock("../components/Loading/loading.component", () => {
   return () => <div id={mockLoadingId}></div>;
 });
+
+const mockCloseUpsertExperienceId = "?c?";
+jest.mock("../components/My/my.lazy", () => ({
+  UpsertExperience: ({ onClose }: UpsertExperienceProps) => {
+    return (
+      <div>
+        <button id={mockCloseUpsertExperienceId} onClick={onClose} />
+      </div>
+    );
+  },
+}));
 
 const mockHistoryPushFn = jest.fn();
 
@@ -180,12 +204,13 @@ afterEach(() => {
 });
 
 const onlineId = "onlineId";
+const onlineDefinitionId = "1";
 
 const DEFAULT_ERFAHRUNG = {
   id: onlineId,
   dataDefinitions: [
     {
-      id: "1",
+      id: onlineDefinitionId,
       name: "aa",
       type: DataTypes.INTEGER,
     },
@@ -195,9 +220,10 @@ const DEFAULT_ERFAHRUNG = {
 const entryOfflineClassName = "entry--is-danger";
 
 const EINTRAG_KLIENT_ID = "aa";
+const EINTRAG_ID = "a";
 
-const EINTRAG = {
-  id: "a",
+const onlineEntry = {
+  id: EINTRAG_ID,
   clientId: EINTRAG_KLIENT_ID,
   insertedAt: "2020-09-16T20:00:37Z",
   updatedAt: "2020-09-16T20:00:37Z",
@@ -210,12 +236,54 @@ const EINTRAG = {
   ],
 };
 
-const einträgeErfolg = {
+const onlineEntrySuccess = {
   __typename: "GetEntriesSuccess",
   entries: {
     edges: [
       {
-        node: EINTRAG,
+        node: onlineEntry,
+      },
+    ],
+    pageInfo: {},
+  },
+};
+
+const offlineEntryId = makeOfflineId("b");
+const offlineEntry = {
+  id: offlineEntryId,
+  clientId: offlineEntryId,
+  insertedAt: "2020-09-16T20:00:37Z",
+  updatedAt: "2020-09-16T20:00:37Z",
+  dataObjects: [
+    {
+      id: "a",
+      definitionId: "1",
+      data: `{"integer":1}`,
+    },
+  ],
+};
+
+const offlineEntrySuccess = {
+  __typename: "GetEntriesSuccess",
+  entries: {
+    edges: [
+      {
+        node: offlineEntry,
+      },
+    ],
+    pageInfo: {},
+  },
+};
+
+const onlineOfflineEntriesSuccess = {
+  __typename: "GetEntriesSuccess",
+  entries: {
+    edges: [
+      {
+        node: onlineEntry,
+      },
+      {
+        node: offlineEntry,
       },
     ],
     pageInfo: {},
@@ -268,7 +336,7 @@ describe("components", () => {
     mockManuallyFetchEntries.mockResolvedValueOnce({
       data: {
         getEntries: {
-          ...einträgeErfolg,
+          ...onlineEntrySuccess,
           entries: {
             edges: [] as any,
             pageInfo: {},
@@ -285,41 +353,41 @@ describe("components", () => {
     jest.runAllTimers();
     const noEntryEl = await waitForElement(getNoEntryEl);
 
-    expect(document.getElementById(mockDismissNewEntryUiId)).toBeNull();
+    expect(document.getElementById(mockDismissUpsertEntryUiId)).toBeNull();
 
     act(() => {
       noEntryEl.click();
     });
 
     const entlassenNeuEintragUiEl = await waitForElement(() => {
-      return document.getElementById(mockDismissNewEntryUiId) as HTMLElement;
+      return document.getElementById(mockDismissUpsertEntryUiId) as HTMLElement;
     });
 
     act(() => {
       entlassenNeuEintragUiEl.click();
     });
 
-    expect(document.getElementById(mockDismissNewEntryUiId)).toBeNull();
+    expect(document.getElementById(mockDismissUpsertEntryUiId)).toBeNull();
 
-    expect(document.getElementById(mockCreateNewEntryId)).toBeNull();
+    expect(document.getElementById(mockUpsertEntrySuccessId)).toBeNull();
 
     act(() => {
       noEntryEl.click();
     });
 
     const entryEl = document.getElementById(
-      mockCreateNewEntryId,
+      mockUpsertEntrySuccessId,
     ) as HTMLElement;
 
     expect(getNewEntryNotificationEl()).toBeNull();
-    expect(getEntriesErrorsNotificationEl()).toBeNull();
+    expect(getSyncErrorsNotificationEl()).toBeNull();
 
     act(() => {
       entryEl.click();
     });
 
     const schließNeuEintragEl = getNewEntryNotificationEl();
-    const eintragFehlerNachrichten = getEntriesErrorsNotificationEl();
+    const eintragFehlerNachrichten = getSyncErrorsNotificationEl();
 
     act(() => {
       schließNeuEintragEl.click();
@@ -336,7 +404,7 @@ describe("components", () => {
         getExperience: {
           ...DEFAULT_ERFAHRUNG,
         },
-        getEntries: einträgeErfolg,
+        getEntries: onlineEntrySuccess,
       },
     } as DetailedExperienceQueryResult);
 
@@ -421,7 +489,7 @@ describe("components", () => {
           entries: {
             edges: [
               {
-                node: EINTRAG,
+                node: onlineEntry,
               },
             ],
             pageInfo: {
@@ -454,12 +522,12 @@ describe("components", () => {
     mockManuallyFetchEntries.mockResolvedValueOnce({
       data: {
         getEntries: {
-          ...einträgeErfolg,
+          ...onlineEntrySuccess,
           entries: {
             edges: [
               {
                 node: {
-                  ...EINTRAG,
+                  ...onlineEntry,
                   id: "b",
                 },
               },
@@ -492,7 +560,7 @@ describe("components", () => {
 
     mockGetSyncError.mockReturnValue({
       createEntries: {
-        [EINTRAG.id]: {
+        [onlineEntry.id]: {
           error: "a",
         },
       } as OfflineIdToCreateEntrySyncErrorMap,
@@ -508,7 +576,7 @@ describe("components", () => {
           entries: {
             edges: [
               {
-                node: EINTRAG,
+                node: onlineEntry,
               },
             ],
             pageInfo: {
@@ -521,14 +589,16 @@ describe("components", () => {
 
     const { ui } = makeComp();
     render(ui);
-    expect(document.getElementById(mockCreateNewEntryId)).toBeNull();
+    expect(document.getElementById(mockUpsertEntrySuccessId)).toBeNull();
 
     act(() => {
       kriegNichtSynchronisiertFehler().click();
     });
 
     act(() => {
-      (document.getElementById(mockCreateNewEntryId) as HTMLElement).click();
+      (document.getElementById(
+        mockUpsertEntrySuccessId,
+      ) as HTMLElement).click();
     });
 
     act(() => {
@@ -913,7 +983,7 @@ describe("reducers", () => {
     mockManuallyFetchEntries.mockResolvedValueOnce({
       data: {
         getEntries: {
-          ...einträgeErfolg,
+          ...onlineEntrySuccess,
           entries: {
             edges: [
               {
@@ -935,7 +1005,7 @@ describe("reducers", () => {
     mockManuallyFetchEntries.mockResolvedValueOnce({
       data: {
         getEntries: {
-          ...einträgeErfolg,
+          ...onlineEntrySuccess,
           entries: {
             edges: [] as any,
             pageInfo: {},
@@ -958,6 +1028,267 @@ describe("reducers", () => {
     await wirkungFunc(ownArgs, props, effectArgs);
     jest.runAllTimers();
     expect(mockScrollIntoView.mock.calls[2][0]).toBe("t");
+  });
+});
+
+describe("upsert experience on sync", () => {
+  it("displays sync errors for definitions update", () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    // Given an experience has definition sync errors
+    mockGetSyncError.mockReturnValue({
+      definitions: {
+        [onlineDefinitionId]: {
+          id: onlineDefinitionId,
+          type: "a",
+          error: null,
+        } as DefinitionErrorFragment,
+      },
+    } as ExperienceSyncError);
+
+    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...DEFAULT_ERFAHRUNG,
+        },
+        getEntries: onlineEntrySuccess,
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    // Then error notification should be visible
+    expect(getSyncErrorsNotificationEl()).not.toBeNull();
+
+    const upsertEntryUiTrigger = getUpsertEntryTriggerEl();
+
+    // When user clicks on 'upsert entry' button
+    act(() => {
+      upsertEntryUiTrigger.click();
+    });
+
+    // Then user gets message to first fix the errors
+    const closeSyncErrorsCloseEl = getSyncErrorsMessageClose();
+
+    // UpsertEntry UI should not visible
+    expect(getUpsertEntrySuccess()).toBeNull();
+
+    // When user closes message to fix sync errors
+    act(() => {
+      closeSyncErrorsCloseEl.click();
+    });
+
+    // Then message should no longer be visible
+    expect(getSyncErrorsMessageClose()).toBeNull();
+
+    // When user clicks on 'upsert entry' button again
+    act(() => {
+      upsertEntryUiTrigger.click();
+    });
+
+    // Then user gets message to first fix the errors
+    const fixSyncErrorsEl = getSyncErrorsMessageFix();
+
+    // UI to update experience should not be visible
+    expect(getCloseUpsertExperienceUI()).toBeNull();
+
+    // Experience sync errors specific message should be visible
+    expect(getSyncExperienceErrors()).not.toBeNull();
+
+    // Entries errors specific message should not be visible
+    expect(getSyncEntriesErrors()).toBeNull();
+
+    // When user clicks on button to fix sync errors
+    act(() => {
+      fixSyncErrorsEl.click();
+    });
+
+    // UI to update experience should be visible
+    const closeUpsertExpEl = getCloseUpsertExperienceUI();
+
+    // Sync errors message should not be visible
+    expect(getSyncErrorsMessageClose()).toBeNull();
+
+    // When user closes update experience UI
+    act(() => {
+      closeUpsertExpEl.click();
+    });
+
+    // UI to update experience should not be visible
+    expect(getCloseUpsertExperienceUI()).toBeNull();
+  });
+
+  it("displays sync errors for create entries errors", () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    // Given an experience has definition sync errors
+    mockGetSyncError.mockReturnValue({
+      createEntries: {
+        [offlineEntryId]: {
+          meta: {
+            index: 0,
+          },
+          error: "a",
+          clientId: null,
+          dataObjects: [
+            {
+              meta: {
+                index: 0,
+              },
+              data: "b",
+              definition: null,
+            },
+          ],
+        } as CreateEntryErrorFragment,
+      },
+    } as ExperienceSyncError);
+
+    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...DEFAULT_ERFAHRUNG,
+        },
+        getEntries: offlineEntrySuccess,
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    // Then error notification should be visible
+    expect(getSyncErrorsNotificationEl()).not.toBeNull();
+
+    // When user clicks on 'upsert entry' button
+
+    const upsertEntryUiTrigger = getUpsertEntryTriggerEl();
+
+    act(() => {
+      upsertEntryUiTrigger.click();
+    });
+
+    // Then user gets message that there are errors
+    let closeSyncErrorsCloseEl = getCloseSyncErrorsMsgBtn();
+
+    // There is button user can click to edit entry
+    const triggerUpdateEntryEl = kriegNichtSynchronisiertFehler();
+
+    // UpsertEntry UI should be visible
+    expect(getUpsertEntrySuccess()).toBeNull();
+
+    // When user closes sync errors message
+    act(() => {
+      closeSyncErrorsCloseEl.click();
+    });
+
+    // Then message should no longer be visible
+    expect(getSyncErrorsMessageClose()).toBeNull();
+
+    // When user clicks on 'upsert entry' button again
+    act(() => {
+      upsertEntryUiTrigger.click();
+    });
+
+    // Fix sync error button should not be visible
+    expect(getSyncErrorsMessageFix()).toBeNull();
+
+    // Experience sync errors specific message should not be visible
+    expect(getSyncExperienceErrors()).toBeNull();
+
+    // Entries errors specific message should be visible
+    expect(getSyncEntriesErrors()).not.toBeNull();
+
+    // When user closes sync errors message
+
+    closeSyncErrorsCloseEl = getCloseSyncErrorsMsgBtn();
+
+    act(() => {
+      closeSyncErrorsCloseEl.click();
+    });
+
+    // Then message should no longer be visible
+    expect(getSyncErrorsMessageClose()).toBeNull();
+
+    // When user clicks on button to update entry
+    act(() => {
+      triggerUpdateEntryEl.click();
+    });
+
+    // Update entry Ui should be visible
+    const dismissUpdateEntryEl = getDismissUpsertEntryUi();
+
+    // When update entry Ui is closed
+
+    act(() => {
+      dismissUpdateEntryEl.click();
+    });
+
+    // update entry UI should not be visible
+    expect(getDismissUpsertEntryUi()).toBeNull();
+  });
+
+  it("displays sync errors for update entries", () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    // Given an experience has update entries sync errors
+    mockGetSyncError.mockReturnValue({
+      updateEntries: {
+        [EINTRAG_ID]: "a" as UpdateEntrySyncErrors,
+        [offlineEntryId]: {
+          a: {
+            meta: {
+              index: 1,
+            },
+            data: "a",
+            error: "",
+          } as DataObjectErrorFragment,
+        } as UpdateEntrySyncErrors,
+      },
+    } as ExperienceSyncError);
+
+    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...DEFAULT_ERFAHRUNG,
+        },
+        getEntries: onlineOfflineEntriesSuccess,
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    // Then error notification should be visible
+    expect(getSyncErrorsNotificationEl()).not.toBeNull();
+
+    // When user clicks on 'upsert entry' button
+
+    const upsertEntryUiTrigger = getUpsertEntryTriggerEl();
+
+    act(() => {
+      upsertEntryUiTrigger.click();
+    });
+
+    // Then user gets message that there are errors
+    expect(getCloseSyncErrorsMsgBtn).not.toBeNull();
+
+    // When user clicks on button to update entry
+    const triggerUpdateEntryEl = kriegNichtSynchronisiertFehler();
+    act(() => {
+      triggerUpdateEntryEl.click();
+    });
+
+    // Update entry Ui should be visible
+    const dismissUpdateEntryEl = getUpsertEntrySuccess();
+
+    // When update entry Ui is closed
+
+    act(() => {
+      dismissUpdateEntryEl.click();
+    });
+
+    // update entry UI should not be visible
+    expect(getUpsertEntrySuccess()).toBeNull();
   });
 });
 
@@ -995,7 +1326,7 @@ function getEntriesEl() {
   return document.getElementsByClassName("entries").item(0) as HTMLElement;
 }
 
-function getNewEntryTriggerEl() {
+function getUpsertEntryTriggerEl() {
   return document
     .getElementsByClassName("upsert-entry-trigger")
     .item(0) as HTMLElement;
@@ -1007,10 +1338,8 @@ function getNewEntryNotificationEl() {
   ) as HTMLElement;
 }
 
-function getEntriesErrorsNotificationEl() {
-  return document.getElementById(
-    entriesErrorsNotificationCloseId,
-  ) as HTMLElement;
+function getSyncErrorsNotificationEl() {
+  return document.getElementById(syncErrorsNotificationId) as HTMLElement;
 }
 
 function getMenuEl() {
@@ -1049,4 +1378,36 @@ function kriegNichtSynchronisiertFehler(index: number = 0) {
   return document
     .getElementsByClassName("detailed-experience__entry-edit")
     .item(index) as HTMLElement;
+}
+
+function getUpsertEntrySuccess() {
+  return document.getElementById(mockUpsertEntrySuccessId) as HTMLElement;
+}
+
+function getDismissUpsertEntryUi() {
+  return document.getElementById(mockDismissUpsertEntryUiId) as HTMLElement;
+}
+
+function getSyncErrorsMessageClose() {
+  return document.getElementById(closeSyncErrorsMsgId) as HTMLElement;
+}
+
+function getSyncErrorsMessageFix() {
+  return document.getElementById(fixSyncErrorsId) as HTMLElement;
+}
+
+function getCloseUpsertExperienceUI() {
+  return document.getElementById(mockCloseUpsertExperienceId) as HTMLElement;
+}
+
+function getCloseSyncErrorsMsgBtn() {
+  return document.getElementById(closeSyncErrorsMsgBtnId) as HTMLElement;
+}
+
+function getSyncEntriesErrors() {
+  return document.getElementById(syncEntriesErrorsMsgId) as HTMLElement;
+}
+
+function getSyncExperienceErrors() {
+  return document.getElementById(syncExperienceErrorsMsgId) as HTMLElement;
 }

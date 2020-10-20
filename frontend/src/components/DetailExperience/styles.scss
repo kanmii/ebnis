@@ -101,3 +101,15 @@
     font-weight: 500;
   }
 }
+
+.detailed-experience {
+  &__data-object-errors {
+    position: relative;
+    left: 10px;
+  }
+
+  &__data-object-error {
+    position: relative;
+    left: 10px;
+  }
+}
