@@ -796,6 +796,7 @@ export interface CallerProps {
 export type Props = CallerProps &
   UpdateExperiencesOnlineComponentProps &
   CreateOfflineEntryMutationComponentProps &
+  // TODO: remove createExperiences because we are no longer doing this
   CreateExperiencesOnlineComponentProps;
 
 export type UpdatingEntryPayload = {

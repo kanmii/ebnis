@@ -78,7 +78,9 @@ it("creates offline experience/success", () => {
 
   expect(mockWriteUnsyncedExperience.mock.calls[0]).toEqual([
     erfahrungId,
-    true,
+    {
+      isOffline: true,
+    },
   ]);
 
   expect(isOfflineId(erfahrungId)).toBe(true);

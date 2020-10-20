@@ -4,7 +4,6 @@ import {
   updateExperiencesManualCacheUpdate,
   // StateValue,
 } from "../apollo/update-experiences-manual-cache-update";
-import { E2EWindowObject } from "../utils/types";
 import {
   writeExperienceFragmentToCache,
   readExperienceFragment,
@@ -37,15 +36,9 @@ jest.mock("../apollo/get-detailed-experience-query");
 const mockWriteExperienceFragmentToCache = writeExperienceFragmentToCache as jest.Mock;
 const mockReadExperienceFragment = readExperienceFragment as jest.Mock;
 
-const app = {} as E2EWindowObject;
 const dataProxy = {} as DataProxy;
 
-beforeEach(() => {
-  window.____ebnis = app;
-});
-
 afterEach(() => {
-  delete window.____ebnis;
   jest.resetAllMocks();
 });
 
@@ -181,6 +174,9 @@ it("data definitions failed", () => {
       updatedDefinitions: [
         {
           __typename: "DefinitionErrors",
+          errors: {
+            id: "b",
+          },
         },
       ],
     },
@@ -342,7 +338,7 @@ it("updated entries success", () => {
     },
   } as UnsyncedModifiedExperience);
 
-  mockReadExperienceFragment.mockReturnValueOnce({})
+  mockReadExperienceFragment.mockReturnValueOnce({});
 
   call({
     entries: {
@@ -409,6 +405,9 @@ test("updated entries errors", () => {
       updatedEntries: [
         {
           __typename: "UpdateEntryErrors",
+          errors: {
+            entryId: "a",
+          },
         },
       ],
     },

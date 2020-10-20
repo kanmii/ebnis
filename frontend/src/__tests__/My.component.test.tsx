@@ -27,7 +27,11 @@ import {
 } from "../components/My/my.dom";
 import { makeOfflineId } from "../utils/offlines";
 import { fillField } from "../tests.utils";
-import { StateValue, FETCH_EXPERIENCES_TIMEOUTS } from "../utils/types";
+import {
+  StateValue,
+  FETCH_EXPERIENCES_TIMEOUTS,
+  BroadcastMessageType,
+} from "../utils/types";
 import { GenericHasEffect } from "../utils/effects";
 import {
   manuallyFetchExperienceConnectionMini,
@@ -45,18 +49,26 @@ import {
   GetExperienceConnectionMini_getExperiences,
 } from "../graphql/apollo-types/GetExperienceConnectionMini";
 import { useWithSubscriptionContext } from "../apollo/injectables";
-import { purgeExperiencesFromCache1 } from "../apollo/update-get-experiences-mini-query";
+import {
+  purgeExperiencesFromCache1,
+  writeGetExperiencesMiniQuery,
+} from "../apollo/update-get-experiences-mini-query";
 import { AppPersistor } from "../utils/app-context";
 import { E2EWindowObject } from "../utils/types";
-import { BroadcastMessageType } from "../utils/observable-manager";
 import { handlePreFetchExperiences } from "../components/My/my.injectables";
 import { act } from "react-dom/test-utils";
+import { getSyncErrors } from "../apollo/sync-to-server-cache";
+import { getOnlineStatus } from "../apollo/unsynced-ledger";
+
+jest.mock("../apollo/sync-to-server-cache");
+const mockGetSyncErrors = getSyncErrors as jest.Mock;
 
 jest.mock("../components/My/my.injectables");
 const mockHandlePreFetchExperiences = handlePreFetchExperiences as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
 const mockPurgeExperiencesFromCache1 = purgeExperiencesFromCache1 as jest.Mock;
+const mockWriteGetExperiencesMiniQuery = writeGetExperiencesMiniQuery as jest.Mock;
 
 jest.mock("../apollo/delete-experience-cache");
 const mockPutOrRemoveDeleteExperienceLedger = putOrRemoveDeleteExperienceLedger as jest.Mock;
@@ -107,11 +119,8 @@ jest.mock("../components/My/my.lazy", () => ({
 const mockPartOnlineId = "2";
 const offlineId = makeOfflineId(3);
 
-jest.mock("../apollo/unsynced-ledger", () => ({
-  getUnsyncedExperience: (id: string) => {
-    return id === mockPartOnlineId ? {} : null;
-  },
-}));
+jest.mock("../apollo/unsynced-ledger");
+const mockGetOnlineStatus = getOnlineStatus as jest.Mock;
 
 jest.mock("react-router-dom", () => ({
   Link: ({ className = "", to, children }: any) => {
@@ -351,6 +360,11 @@ describe("component", () => {
 
   it("interacts with description / offline Erfahrungen / teilweise online Erfahrungen", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetOnlineStatus
+      .mockReturnValueOnce(StateValue.partOffline)
+      .mockReturnValueOnce(StateValue.offline);
+
     mockGetExperiencesMiniQuery.mockReturnValue({
       edges: [
         {
@@ -532,8 +546,7 @@ describe("component", () => {
     expect(
       document.getElementsByClassName(searchNoResultClassName).length,
     ).toBe(0);
-        jest.runAllTimers();
-
+    jest.runAllTimers();
   });
 
   it("Löschen ErfahrungAnforderung Gelingen", async () => {
@@ -585,8 +598,7 @@ describe("component", () => {
     expect(
       document.getElementById(onDeleteExperienceSuccessNotificationId),
     ).toBeNull();
-        jest.runAllTimers();
-
+    jest.runAllTimers();
   });
 
   it("Löschen ErfahrungAnforderung storniert", async () => {

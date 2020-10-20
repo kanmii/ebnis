@@ -771,6 +771,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
       );
 
       const { data, error } = abfrageDaten;
+
       if (error) {
         dispatch({
           type: ActionType.ON_DATA_RECEIVED,
@@ -941,7 +942,7 @@ function processGetExperiencesQuery(
 
   const allEdges = [...previousEdges, ...newEdges];
 
-  const syncErrors = getSyncErrors();
+  const syncErrors = getSyncErrors() || {};
 
   const preparedExperiences: PreparedExperience[] = [];
 
@@ -977,7 +978,7 @@ function processGetExperiencesQuery(
     });
   }
 
-  if (arguments.length > 1) {
+  if (arguments.length > 1 && erfahrungenIds.length) {
     setTimeout(() => {
       handlePreFetchExperiences(erfahrungenIds, idToExperienceMap);
     });

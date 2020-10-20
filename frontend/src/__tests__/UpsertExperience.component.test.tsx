@@ -48,7 +48,7 @@ import { AppPersistor } from "../utils/app-context";
 import { scrollIntoView } from "../utils/scroll-into-view";
 import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "../graphql/apollo-types/CreateExperiences";
 import { CreateExperienceOfflineMutationResult } from "../components/UpsertExperience/upsert-experience.resolvers";
-import { E2EWindowObject } from "../utils/types";
+import { E2EWindowObject, StateValue } from "../utils/types";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import {
   getExperienceQuery,
@@ -386,7 +386,7 @@ describe("components", () => {
     expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it("updates experience online", async () => {
+  it("updates experience online, submit empty form, reset form, change integer to decimal", async () => {
     mockIsConnected.mockReturnValue(true);
     const nameValue = "bb";
 
@@ -472,11 +472,22 @@ describe("components", () => {
     expect(definition0NameEl.value).toBe(nameValue);
     expect(definition0TypeEl.value).toBe(DataTypes.INTEGER);
 
-    // update and submit
+    // update with error (integer can only be changed to decimal) and submit
     fillField(titleInputEl, "tt");
     fillField(descriptionInputEl, "dd");
     fillField(definition0NameEl, "nn");
     fillField(definition0TypeEl, DataTypes.DATE);
+    const definition0TypeFieldEl = getParentFieldEl(definition0TypeEl);
+    expect(getFieldErrorEl(definition0TypeFieldEl)).toBeNull();
+    submitEl.click();
+
+    notificationCloseEl = await waitForElement(getNotificationCloseEl);
+    expect(getFieldErrorEl(definition0TypeFieldEl)).not.toBeNull();
+    notificationCloseEl.click();
+    expect(getNotificationCloseEl()).toBeNull();
+
+    // update form correctly and submit
+    fillField(definition0TypeEl, DataTypes.DECIMAL);
     submitEl.click();
     await wait(() => true);
 
@@ -504,7 +515,7 @@ describe("components", () => {
     await onUpdateSuccess({ experience: { experienceId: onlineId } });
 
     expect(mockManuallyGetDataObjects.mock.calls[0][0].ids[0]).toBe("xx");
-    expect(mockOnSuccess).toHaveBeenCalledWith(x);
+    expect(mockOnSuccess).toHaveBeenCalledWith(x, StateValue.online);
 
     act(() => {
       onError("a");

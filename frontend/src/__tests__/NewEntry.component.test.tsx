@@ -34,10 +34,7 @@ import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { E2EWindowObject } from "../utils/types";
 import { makeOfflineId } from "../utils/offlines";
 import { windowChangeUrl } from "../utils/global-window";
-import {
-  removeUnsyncedExperiences,
-  getUnSyncEntriesErrorsLedger,
-} from "../apollo/unsynced-ledger";
+import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
 import { putOrRemoveSyncingExperience } from "../apollo/syncing-experience-ledger";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
@@ -95,7 +92,6 @@ const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
 
 jest.mock("../apollo/unsynced-ledger");
 const mockRemoveUnsyncedExperience = removeUnsyncedExperiences as jest.Mock;
-const mockGetUnSyncEntriesErrorsLedger = getUnSyncEntriesErrorsLedger as jest.Mock;
 
 jest.mock("../apollo/syncing-experience-ledger");
 const mockPutOrRemoveSyncingExperience = putOrRemoveSyncingExperience as jest.Mock;
@@ -104,8 +100,9 @@ const mockDispatch = jest.fn();
 const mockCreateOfflineEntry = jest.fn();
 const mockCreateExperiencesOnline = jest.fn();
 const mockUpdateExperiencesOnline = jest.fn();
-const mockDetailedExperienceDispatch = jest.fn();
 const mockPersistFn = jest.fn();
+const mockOnSuccess = jest.fn();
+const mockOnClose = jest.fn();
 
 const persistor = {
   persist: mockPersistFn as any,
@@ -279,9 +276,7 @@ describe("component", () => {
     await waitForElement(getNotificationEl);
     expect(getFieldError()).not.toBeNull();
 
-    expect(mockDetailedExperienceDispatch).not.toHaveBeenCalled();
     getCloseComponentEl().click();
-    expect(mockDetailedExperienceDispatch).toHaveBeenCalled();
     expect(
       mockUpdateExperiencesOnline.mock.calls[0][0].variables.input[0]
         .addEntries[0],
@@ -386,12 +381,10 @@ describe("component", () => {
     const inputEl = document.getElementById("1") as HTMLInputElement;
     const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
     fillField(inputEl, "1.0");
-    expect(mockDetailedExperienceDispatch).not.toHaveBeenCalled();
     expect(mockPersistFn).not.toHaveBeenCalled();
 
     submitEl.click();
     await wait(() => true);
-    expect(mockDetailedExperienceDispatch).toHaveBeenCalled();
     expect(mockPersistFn).toHaveBeenCalled();
     expect(
       mockCreateOfflineEntry.mock.calls[0][0].variables.dataObjects[0],
@@ -492,25 +485,23 @@ describe("component", () => {
     const nowJson = now.toJSON();
 
     const bearbeitenEintrag = {
-      id: "a",
-      clientId: "a",
-      dataObjects: [
-        {
-          id: "a1",
-          data: `{"integer":1}`,
-          definitionId: "1",
-        },
-        {
-          id: "a2",
-          data: `{"date":"${nowJson}"}`,
-          definitionId: "2",
-        },
-      ],
-    } as EntryFragment;
-
-    mockGetUnSyncEntriesErrorsLedger.mockReturnValueOnce({
-      [bearbeitenEintrag.id]: {},
-    });
+      entry: {
+        id: "a",
+        clientId: "a",
+        dataObjects: [
+          {
+            id: "a1",
+            data: `{"integer":1}`,
+            definitionId: "1",
+          },
+          {
+            id: "a2",
+            data: `{"date":"${nowJson}"}`,
+            definitionId: "2",
+          },
+        ],
+      } as EntryFragment,
+    };
 
     mockIsConnected.mockReturnValue(true);
 
@@ -568,8 +559,6 @@ describe("component", () => {
     });
 
     const { debug } = render(ui);
-    getNotificationEl().click()
-
 
     const inputEl = document.getElementById("1") as HTMLInputElement;
     expect(inputEl.value).toBe("1");
@@ -582,9 +571,7 @@ describe("component", () => {
     await waitForElement(getNotificationEl);
     expect(getFieldError()).not.toBeNull();
 
-    expect(mockDetailedExperienceDispatch).not.toHaveBeenCalled();
     getCloseComponentEl().click();
-    expect(mockDetailedExperienceDispatch).toHaveBeenCalled();
     expect(
       mockUpdateExperiencesOnline.mock.calls[0][0].variables.input[0]
         .addEntries[0],
@@ -620,11 +607,15 @@ describe("reducer", () => {
   const effectArgs = {
     dispatch: mockDispatch,
   };
-  const props = {
+
+  // TODO: remove createExperiences because we are no longer doing this
+  const props = ({
     updateExperiencesOnline: mockUpdateExperiencesOnline as any,
-    detailedExperienceDispatch: mockDetailedExperienceDispatch as any,
     experience,
-  } as Props;
+    onSuccess: mockOnSuccess,
+    onClose: mockOnClose,
+    createOfflineEntry: mockCreateOfflineEntry,
+  } as unknown) as Props;
 
   it("sets decimal to default zero/connected/success", async () => {
     mockIsConnected.mockResolvedValue(true);
@@ -666,13 +657,11 @@ describe("reducer", () => {
       },
     } as UpdateExperiencesOnlineMutationResult);
 
-    expect(mockDetailedExperienceDispatch).not.toHaveBeenCalled();
     expect(mockPersistFn).not.toHaveBeenCalled();
 
     effectFunctions[key](ownArgs as any, props, effectArgs);
     await wait(() => true);
     expect(mockUpdateExperiencesOnline).toHaveBeenCalled();
-    expect(mockDetailedExperienceDispatch).toHaveBeenCalled();
     expect(mockPersistFn).toHaveBeenCalled();
   });
 
@@ -708,7 +697,6 @@ describe("reducer", () => {
 
     effectFunctions[key](ownArgs as any, props, effectArgs);
     await wait(() => true);
-    expect(mockDetailedExperienceDispatch).not.toHaveBeenCalled();
     expect(mockPersistFn).not.toHaveBeenCalled();
     expect(mockDispatch.mock.calls[0][0].type).toBe(ActionType.ON_COMMON_ERROR);
   });
@@ -1050,8 +1038,9 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
         createOfflineEntry={mockCreateOfflineEntry}
         updateExperiencesOnline={mockUpdateExperiencesOnline}
         experience={experience}
-        detailedExperienceDispatch={mockDetailedExperienceDispatch}
         createExperiences={mockCreateExperiencesOnline}
+        onSuccess={mockOnSuccess}
+        onClose={mockOnClose}
       />
     ),
   };

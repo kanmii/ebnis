@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ComponentType } from "react";
 import { render, cleanup, wait } from "@testing-library/react";
-import { E2EWindowObject, BroadcastMessageType } from "../utils/types";
+import { E2EWindowObject } from "../utils/types";
 import {
   cleanupWithSubscriptions,
   useOnExperiencesDeletedSubscription,
@@ -10,7 +10,7 @@ import { WithSubscriptions } from "../components/WithSubscriptions/with-subscrip
 import {
   makeObservable,
   EmitActionType,
-  onBcMessage,
+  makeBChannel,
 } from "../utils/observable-manager";
 import { act } from "react-dom/test-utils";
 import {
@@ -19,6 +19,9 @@ import {
   ChangeUrlType,
 } from "../utils/global-window";
 import { MY_URL } from "../utils/urls";
+
+// jest.mock("../utils/observable-manager");
+// const { makeObservable } = jest.requireActual("../utils/observable-manager");
 
 jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
@@ -35,6 +38,9 @@ jest.mock(
     },
     cleanupWithSubscriptions: jest.fn(),
     useOnExperiencesDeletedSubscription: jest.fn(),
+    WithSubscriptionsDispatchProvider: ({ children }: any) => {
+      return children;
+    },
   }),
 );
 const mockCleanupWithSubscription = cleanupWithSubscriptions as jest.Mock;
@@ -50,25 +56,25 @@ const globals = {
   persistor,
 } as E2EWindowObject;
 
-const bc = {
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-} as any;
-
 beforeAll(() => {
+  makeBChannel(globals);
   window.____ebnis = globals;
 });
 
 afterAll(() => {
+  const { bc, emitter } = globals;
+  bc.close();
+  emitter.complete();
+  delete globals.bc;
+  delete globals.emitter;
+  delete globals.observable
+
   delete window.____ebnis;
 });
 
 afterEach(() => {
   cleanup();
   jest.resetAllMocks();
-  (globals.observable as any) = null;
-  (globals.emitData as any) = null;
-  (globals.bc as any) = null;
 });
 
 it("renders", async (done) => {
@@ -84,7 +90,7 @@ it("renders", async (done) => {
     },
   });
 
-  mockGetLocation.mockReturnValueOnce({
+  mockGetLocation.mockReturnValue({
     pathname: MY_URL,
   });
 
@@ -125,32 +131,12 @@ it("renders", async (done) => {
   done();
 });
 
-it("utils/on broadcast channel message", () => {
-  mockGetLocation.mockReturnValueOnce({
-    pathname: MY_URL,
-  });
-
-  onBcMessage({
-    type: BroadcastMessageType.experienceDeleted,
-    payload: {
-      id: "a",
-      title: "b",
-    },
-  });
-
-  expect(mockWindowChangeUrl.mock.calls[0]).toEqual([
-    MY_URL,
-    ChangeUrlType.replace,
-  ]);
-});
-
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
 const WithSubscriptionsP = WithSubscriptions as ComponentType<Partial<{}>>;
 
 function makeComp() {
   makeObservable(globals);
-  globals.bc = bc;
 
   return {
     ui: (

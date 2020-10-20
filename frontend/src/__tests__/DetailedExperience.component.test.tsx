@@ -6,7 +6,6 @@ import { DetailExperience } from "../components/DetailExperience/detail-experien
 import {
   Props,
   ActionType,
-  DetailedExperienceChildDispatchProps,
   Match,
   initState,
   reducer,
@@ -47,10 +46,7 @@ import {
   StateValue,
   FETCH_EXPERIENCES_TIMEOUTS,
 } from "../utils/types";
-import {
-  getUnSyncEntriesErrorsLedger,
-  removeUnsyncedExperiences,
-} from "../apollo/unsynced-ledger";
+import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
 import {
   getDeleteExperienceLedger,
   putOrRemoveDeleteExperienceLedger,
@@ -74,6 +70,12 @@ import { activeClassName, nonsenseId } from "../utils/utils.dom";
 import { useWithSubscriptionContext } from "../apollo/injectables";
 import { GenericHasEffect } from "../utils/effects";
 import { scrollIntoView } from "../utils/scroll-into-view";
+import { getSyncError } from "../apollo/sync-to-server-cache";
+import { Props as NewEntryProps } from "../components/NewEntry/new-entry.utils";
+import { OfflineIdToCreateEntrySyncErrorMap } from "../utils/sync-to-server.types";
+
+jest.mock("../apollo/sync-to-server-cache");
+const mockGetSyncError = getSyncError as jest.Mock;
 
 jest.mock("../utils/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
@@ -133,60 +135,25 @@ const mockNewlyCreatedEntry = {
     },
   ],
 } as EntryFragment;
+const mockStateValue = StateValue;
 jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
   return {
-    NewEntry: ({
-      detailedExperienceDispatch,
-    }: DetailedExperienceChildDispatchProps) => (
+    NewEntry: ({ onSuccess, onClose }: NewEntryProps) => (
       <div>
         <button
           id={mockCreateNewEntryId}
           onClick={() => {
-            detailedExperienceDispatch({
-              type:
-                mockActionType.ON_UPSERT_ENTRY_SUCCESS,
-              mayBeNewEntry: {
-                neuEintragDaten: mockNewlyCreatedEntry,
-                zustand: "synchronisiert",
-              },
-              mayBeEntriesErrors: [
-                {
-                  meta: {
-                    index: 1,
-                    clientId: "b",
-                  },
-                  error: "a",
-                  experienceId: null,
-                  dataObjects: [
-                    {
-                      meta: {
-                        index: 2,
-                      },
-                      data: "a",
-                      definition: null,
-                    },
-                  ],
-                } as CreateEntryErrorFragment,
-              ],
-            });
+            onSuccess(mockNewlyCreatedEntry, mockStateValue.online);
           }}
         />
 
-        <button
-          id={mockDismissNewEntryUiId}
-          onClick={() => {
-            detailedExperienceDispatch({
-              type: mockActionType.TOGGLE_NEW_ENTRY_ACTIVE,
-            });
-          }}
-        />
+        <button id={mockDismissNewEntryUiId} onClick={onClose} />
       </div>
     ),
   };
 });
 
 jest.mock("../apollo/unsynced-ledger");
-const mockGetSyncEntriesErrorsLedger = getUnSyncEntriesErrorsLedger as jest.Mock;
 const mockRemoveUnsyncedExperiences = removeUnsyncedExperiences as jest.Mock;
 
 const mockLoadingId = "l-o-a-d-i-n-g";
@@ -367,12 +334,8 @@ describe("components", () => {
     act(() => {
       schließNeuEintragEl.click();
     });
-    expect(getNewEntryNotificationEl()).toBeNull();
 
-    act(() => {
-      eintragFehlerNachrichten.click();
-    });
-    expect(getEntriesErrorsNotificationEl()).toBeNull();
+    expect(getNewEntryNotificationEl()).toBeNull();
   });
 
   it("es gibt Einträge von zwischengespeicherte/löschen erfahrung", async () => {
@@ -457,9 +420,6 @@ describe("components", () => {
 
   it("Einträge paginierung", async () => {
     mockUseWithSubscriptionContext.mockReturnValueOnce({ connected: true });
-    mockGetSyncEntriesErrorsLedger.mockReturnValueOnce({
-      [EINTRAG_KLIENT_ID]: {},
-    });
 
     mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
       data: {
@@ -539,8 +499,13 @@ describe("components", () => {
 
   it("nichtSynchronisiertFehler ", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
-    mockGetSyncEntriesErrorsLedger.mockReturnValueOnce({
-      [EINTRAG_KLIENT_ID]: {},
+
+    mockGetSyncError.mockReturnValue({
+      createEntries: {
+        [EINTRAG.id]: {
+          error: "a",
+        },
+      } as OfflineIdToCreateEntrySyncErrorMap,
     });
 
     mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
@@ -576,8 +541,6 @@ describe("components", () => {
       (document.getElementById(mockCreateNewEntryId) as HTMLElement).click();
     });
 
-    expect(getNewEntryNotificationEl()).not.toBeNull();
-
     act(() => {
       jest.runAllTimers();
     });
@@ -605,11 +568,14 @@ describe("reducers", () => {
 
     statten = reducer(statten, {
       type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      erfahrung: DEFAULT_ERFAHRUNG,
-      einträgeDaten: {
-        schlüssel: StateValue.versagen,
-        fehler: "a",
+      experienceData: {
+        key: StateValue.data,
+        erfahrung: DEFAULT_ERFAHRUNG,
+        einträgeDaten: {
+          schlüssel: StateValue.versagen,
+          fehler: "a",
+        },
+        onlineStatus: StateValue.online,
       },
     });
 
@@ -620,9 +586,9 @@ describe("reducers", () => {
 
     statten = reducer(statten, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
-      mayBeNewEntry: {
-        neuEintragDaten: mockNewlyCreatedEntry,
-        zustand: "synchronisiert",
+      newData: {
+        entry: mockNewlyCreatedEntry,
+        onlineStatus: StateValue.online,
       },
     });
 
@@ -640,9 +606,9 @@ describe("reducers", () => {
 
     statten = reducer(statten, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
-      mayBeNewEntry: {
-        neuEintragDaten: mockNewlyCreatedEntry,
-        zustand: "synchronisiert",
+      newData: {
+        entry: mockNewlyCreatedEntry,
+        onlineStatus: StateValue.online,
       },
     });
 
@@ -660,15 +626,18 @@ describe("reducers", () => {
 
     statten = reducer(statten, {
       type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      erfahrung: DEFAULT_ERFAHRUNG,
-      einträgeDaten: {
-        schlüssel: StateValue.versagen,
-        fehler: "a",
+      experienceData: {
+        key: StateValue.data,
+        erfahrung: DEFAULT_ERFAHRUNG,
+        einträgeDaten: {
+          schlüssel: StateValue.versagen,
+          fehler: "a",
+        },
+        onlineStatus: StateValue.offline,
       },
     });
 
-    const [wirkung1, wirkung2] = (statten.effects.general as GenericHasEffect<
+    const [wirkung2] = (statten.effects.general as GenericHasEffect<
       EffectType
     >).hasEffects.context.effects;
 
@@ -685,43 +654,6 @@ describe("reducers", () => {
       type: ActionType.DELETE_EXPERIENCE_REQUEST,
       key: StateValue.requested,
     });
-
-    const offlineExperienceId = "a";
-    mockGetSyncingExperience.mockReturnValueOnce({
-      offlineExperienceId,
-      newEntryClientId: "c",
-      entriesErrors: {},
-    });
-
-    const eintragDaten = {
-      clientId: "c",
-    };
-
-    const wirkungOwnArgs1 = {
-      ...wirkung1.ownArgs,
-      einträge: [
-        {
-          eintragDaten,
-        },
-      ],
-    };
-
-    expect(mockPersistFunc).not.toHaveBeenCalled();
-    const wirkungFunc1 = effectFunctions[wirkung1.key];
-    wirkungFunc1(wirkungOwnArgs1 as any, props, effectArgs);
-
-    expect(mockPutOrRemoveSyncingExperience.mock.calls[0][0]).toEqual(onlineId);
-    expect(mockPurgeExperience.mock.calls[0][0]).toEqual(offlineExperienceId);
-    expect(mockPersistFunc).toHaveBeenCalled();
-
-    expect(mockDispatchFn.mock.calls[1][0]).toEqual({
-      type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
-      mayBeNewEntry: {
-        neuEintragDaten: eintragDaten,
-        zustand: "ganz-nue",
-      },
-      mayBeEntriesErrors: {},
-    });
   });
 
   it("Erhalten Einträge handhaben erfolg, wenn Einträge mit Fehler", () => {
@@ -729,19 +661,22 @@ describe("reducers", () => {
 
     statten = reducer(statten, {
       type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      erfahrung: DEFAULT_ERFAHRUNG,
-      einträgeDaten: {
-        schlüssel: StateValue.versagen,
-        fehler: "a",
+      experienceData: {
+        key: StateValue.data,
+        erfahrung: DEFAULT_ERFAHRUNG,
+        einträgeDaten: {
+          schlüssel: StateValue.versagen,
+          fehler: "a",
+        },
+        onlineStatus: StateValue.online,
       },
     });
 
     statten = reducer(statten, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
-      mayBeNewEntry: {
-        neuEintragDaten: mockNewlyCreatedEntry,
-        zustand: "synchronisiert",
+      newData: {
+        entry: mockNewlyCreatedEntry,
+        onlineStatus: StateValue.online, // oldEntry too ??
       },
     });
 
@@ -782,19 +717,22 @@ describe("reducers", () => {
 
     statten = reducer(statten, {
       type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      erfahrung: DEFAULT_ERFAHRUNG,
-      einträgeDaten: {
-        schlüssel: StateValue.versagen,
-        fehler: "a",
+      experienceData: {
+        key: StateValue.data,
+        erfahrung: DEFAULT_ERFAHRUNG,
+        einträgeDaten: {
+          schlüssel: StateValue.versagen,
+          fehler: "a",
+        },
+        onlineStatus: StateValue.online,
       },
     });
 
     statten = reducer(statten, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
-      mayBeNewEntry: {
-        neuEintragDaten: mockNewlyCreatedEntry,
-        zustand: "synchronisiert",
+      newData: {
+        entry: mockNewlyCreatedEntry,
+        onlineStatus: StateValue.online,
       },
     });
 
@@ -827,11 +765,14 @@ describe("reducers", () => {
 
     statten = reducer(statten, {
       type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      erfahrung: DEFAULT_ERFAHRUNG,
-      einträgeDaten: {
-        schlüssel: StateValue.versagen,
-        fehler: "a",
+      experienceData: {
+        key: StateValue.data,
+        erfahrung: DEFAULT_ERFAHRUNG,
+        einträgeDaten: {
+          schlüssel: StateValue.versagen,
+          fehler: "a",
+        },
+        onlineStatus: StateValue.online,
       },
     });
 
@@ -868,11 +809,14 @@ describe("reducers", () => {
 
     statten = reducer(statten, {
       type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      erfahrung: DEFAULT_ERFAHRUNG,
-      einträgeDaten: {
-        schlüssel: StateValue.versagen,
-        fehler: "a",
+      experienceData: {
+        key: StateValue.data,
+        erfahrung: DEFAULT_ERFAHRUNG,
+        einträgeDaten: {
+          schlüssel: StateValue.versagen,
+          fehler: "a",
+        },
+        onlineStatus: StateValue.online,
       },
     });
 
@@ -918,11 +862,14 @@ describe("reducers", () => {
 
     statten = reducer(statten, {
       type: ActionType.ON_DATA_RECEIVED,
-      key: StateValue.data,
-      erfahrung: DEFAULT_ERFAHRUNG,
-      einträgeDaten: {
-        schlüssel: StateValue.versagen,
-        fehler: "a",
+      experienceData: {
+        key: StateValue.data,
+        erfahrung: DEFAULT_ERFAHRUNG,
+        einträgeDaten: {
+          schlüssel: StateValue.versagen,
+          fehler: "a",
+        },
+        onlineStatus: StateValue.online,
       },
     });
 
@@ -1015,7 +962,7 @@ describe("reducers", () => {
           },
         },
       ],
-      pageInfo: {}
+      pageInfo: {},
     });
 
     await wirkungFunc(ownArgs, props, effectArgs);
