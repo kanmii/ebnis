@@ -105,7 +105,7 @@ export enum ActionType {
   DELETE_EXPERIENCE_REQUEST = "@detailed-experience/delete-experience-request",
   DELETE_EXPERIENCE_CANCELLED = "@detailed-experience/delete-experience-cancelled",
   DELETE_EXPERIENCE_CONFIRMED = "@detailed-experience/delete-experience-confirmed",
-  TOGGLE_SHOW_OPTIONS_MENU = "@detailed-experience/toggle-options-menu",
+  TOGGLE_EXPERIENCE_MENU = "@detailed-experience/toggle-experience-menu",
   ON_DATA_RECEIVED = "@detailed-experience/on-data-received",
   RE_FETCH_EXPERIENCE = "@detailed-experience/re-fetch-experience",
   RE_FETCH_ENTRIES = "@detailed-experience/re-fetch-entries",
@@ -156,10 +156,10 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             handleDeleteExperienceConfirmedAction(proxy);
             break;
 
-          case ActionType.TOGGLE_SHOW_OPTIONS_MENU:
-            handleToggleShowOptionsMenuAction(
+          case ActionType.TOGGLE_EXPERIENCE_MENU:
+            handleToggleExperienceMenuAction(
               proxy,
-              payload as ToggleOptionsMenuPayload,
+              payload as ToggleMenuPayload,
             );
             break;
 
@@ -387,9 +387,9 @@ function handleDeleteExperienceConfirmedAction(proxy: DraftState) {
   }
 }
 
-function handleToggleShowOptionsMenuAction(
+function handleToggleExperienceMenuAction(
   proxy: DraftState,
-  payload: ToggleOptionsMenuPayload,
+  payload: ToggleMenuPayload,
 ) {
   const { states: globalStates } = proxy;
 
@@ -2028,8 +2028,8 @@ type Action =
       type: ActionType.DELETE_EXPERIENCE_CONFIRMED;
     }
   | ({
-      type: ActionType.TOGGLE_SHOW_OPTIONS_MENU;
-    } & ToggleOptionsMenuPayload)
+      type: ActionType.TOGGLE_EXPERIENCE_MENU;
+    } & ToggleMenuPayload)
   | ({
       type: ActionType.ON_DATA_RECEIVED;
     } & OnDataReceivedPayload)
@@ -2097,7 +2097,7 @@ type GeholteErfahrungErhieltenNutzlast =
       error: Error | string;
     };
 
-interface ToggleOptionsMenuPayload {
+interface ToggleMenuPayload {
   key?: "close" | "open";
 }
 

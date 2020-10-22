@@ -74,7 +74,7 @@ type DispatchContextValue = Readonly<{
     e: ExperienceFragment,
     onlineStatus: OnlineStatus,
   ) => void;
-  onToggleMenu: () => void;
+  toggleExperienceMenu: () => void;
   onRefetchEntries: () => void;
   holenNächstenEinträge: () => void;
   dispatch: DispatchType;
@@ -159,9 +159,9 @@ export function DetailExperience(props: Props) {
           type: ActionType.DELETE_EXPERIENCE_REQUEST,
         });
       },
-      onToggleMenu: () => {
+      toggleExperienceMenu: () => {
         dispatch({
-          type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
+          type: ActionType.TOGGLE_EXPERIENCE_MENU,
         });
       },
       onRefetchEntries: () => {
@@ -304,7 +304,7 @@ function ExperienceComponent() {
       }
 
       dispatch({
-        type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
+        type: ActionType.TOGGLE_EXPERIENCE_MENU,
         key: "close",
       });
     }
@@ -418,7 +418,7 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
 
   const {
     onOpenNewEntry,
-    onToggleMenu,
+    toggleExperienceMenu,
     onDeleteExperienceRequest,
     requestUpdateExperienceUi,
     holenNächstenEinträge,
@@ -448,9 +448,9 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
             Click here to create your first entry
           </button>
 
-          <MenuComponent
+          <ExperienceMenuComponent
             state={showingOptionsMenu}
-            onToggleMenu={onToggleMenu}
+            toggleExperienceMenu={toggleExperienceMenu}
             onDeleteExperienceRequest={onDeleteExperienceRequest}
             requestUpdateExperienceUi={requestUpdateExperienceUi}
             className="no-entry-menu"
@@ -460,9 +460,9 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
 
       {entries && entries.length > 0 && (
         <>
-          <MenuComponent
+          <ExperienceMenuComponent
             state={showingOptionsMenu}
-            onToggleMenu={onToggleMenu}
+            toggleExperienceMenu={toggleExperienceMenu}
             onDeleteExperienceRequest={onDeleteExperienceRequest}
             requestUpdateExperienceUi={requestUpdateExperienceUi}
           />
@@ -731,10 +731,10 @@ function DeleteExperienceModal() {
   );
 }
 
-function MenuComponent(props: MenuProps) {
+function ExperienceMenuComponent(props: MenuProps) {
   const {
     state,
-    onToggleMenu,
+    toggleExperienceMenu,
     onDeleteExperienceRequest,
     requestUpdateExperienceUi,
     className = "",
@@ -791,7 +791,7 @@ function MenuComponent(props: MenuProps) {
           [isOfflineClassName]: onlineStatus === StateValue.offline,
           [isPartOfflineClassName]: onlineStatus === StateValue.partOffline,
         })}
-        onClick={onToggleMenu}
+        onClick={toggleExperienceMenu}
       >
         <span
           className={makeClassNames({
@@ -901,7 +901,7 @@ function SyncErrorsMessageNotificationComponent() {
 
 interface MenuProps {
   state: ShowingOptionsMenuState;
-  onToggleMenu: () => void;
+  toggleExperienceMenu: () => void;
   onDeleteExperienceRequest: (event: ReactMouseAnchorEvent) => void;
   className?: string;
   requestUpdateExperienceUi: (event: ReactMouseAnchorEvent) => void;

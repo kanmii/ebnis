@@ -888,7 +888,7 @@ describe("reducers", () => {
     ).toBe(StateValue.inactive);
 
     statten = reducer(statten, {
-      type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
+      type: ActionType.TOGGLE_EXPERIENCE_MENU,
     });
 
     expect(
@@ -896,7 +896,7 @@ describe("reducers", () => {
     ).toBe(StateValue.active);
 
     statten = reducer(statten, {
-      type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
+      type: ActionType.TOGGLE_EXPERIENCE_MENU,
     });
 
     expect(
