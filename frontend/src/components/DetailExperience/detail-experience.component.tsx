@@ -24,6 +24,7 @@ import {
   EinträgeDatenErfolg,
   DataStateContextEntry,
   ExperienceSyncError,
+  OldEntryData,
 } from "./detailed-experience-utils";
 import { setUpRoutePage } from "../../utils/global-window";
 import { UpsertEntry } from "./detail-experience.lazy";
@@ -349,13 +350,24 @@ function ExperienceComponent() {
             experience={experience}
             bearbeitenEintrag={oldEditedEntryProps}
             onSuccess={(entry, onlineStatus) => {
+              let oldData: undefined | OldEntryData = undefined;
+
+              if (oldEditedEntryProps) {
+                const { entry, index } = oldEditedEntryProps;
+
+                oldData = {
+                  entry,
+                  index,
+                };
+              }
+
               dispatch({
                 type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
                 newData: {
                   entry,
                   onlineStatus,
                 },
-                old: oldEditedEntryProps && oldEditedEntryProps.entry,
+                oldData,
               });
             }}
             onClose={() => {
@@ -458,7 +470,11 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
           <div className="entries">
             {entries.map((daten, index) => {
               return (
-                <EntryComponent key={daten.eintragDaten.id} state={daten} />
+                <EntryComponent
+                  key={daten.eintragDaten.id}
+                  state={daten}
+                  index={index}
+                />
               );
             })}
           </div>
@@ -487,7 +503,10 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
   );
 }
 
-function EntryComponent(props: { state: DataStateContextEntry }) {
+function EntryComponent(props: {
+  state: DataStateContextEntry;
+  index: number;
+}) {
   const { dispatch } = useContext(DispatchContext);
 
   const {
@@ -496,6 +515,7 @@ function EntryComponent(props: { state: DataStateContextEntry }) {
 
   const {
     state: { eintragDaten, nichtSynchronisiertFehler },
+    index,
   } = props;
 
   const { updatedAt, dataObjects: dObjects, id: entryId } = eintragDaten;
@@ -529,7 +549,8 @@ function EntryComponent(props: { state: DataStateContextEntry }) {
                     bearbeitenEintrag: {
                       entry: eintragDaten,
                       // TODO: remove any type
-                      errors: nichtSynchronisiertFehler as any
+                      errors: nichtSynchronisiertFehler as any,
+                      index,
                     },
                   });
                 }}

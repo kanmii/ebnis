@@ -47,11 +47,6 @@ import {
 import { isOfflineId } from "../../utils/offlines";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
-import { getSyncError } from "../../apollo/sync-to-server-cache";
-import {
-  SyncError,
-  UpdateEntrySyncErrors,
-} from "../../utils/sync-to-server.types";
 
 const NEW_LINE_REGEX = /\n/g;
 export const ISO_DATE_FORMAT = "yyyy-MM-dd";
@@ -181,12 +176,9 @@ async function createOnlineEntryEffect(
   } = props;
 
   const { dispatch } = effectArgs;
-  let oldEntryId = "";
 
   if (bearbeitenEintrag) {
     const { entry } = bearbeitenEintrag;
-    oldEntryId = entry.id;
-
     const datenGegenständen = entry.dataObjects.map((d, index) => {
       const { clientId, updatedAt, insertedAt } = d as DataObjectFragment;
 
@@ -231,17 +223,7 @@ async function createOnlineEntryEffect(
         }
 
         await window.____ebnis.persistor.persist();
-
-        const newEntry = entry0.entry;
-
-        if (bearbeitenEintrag) {
-          const { createEntries, updateEntries } =
-            getSyncError(experienceId) || ({} as SyncError);
-
-          const syncError = (createEntries || updateEntries || {})[oldEntryId];
-        }
-
-        onSuccess(newEntry, StateValue.online);
+        onSuccess(entry0.entry, StateValue.online);
 
         return;
       }
@@ -595,11 +577,7 @@ export function parseDataObjectData(datum: string) {
 export interface CallerProps {
   experience: ExperienceFragment;
   bearbeitenEintrag?: UpdatingEntryPayload;
-  onSuccess: (
-    entry: EntryFragment,
-    onlineStatus: OnlineStatus,
-    entrySyncError?: CreateEntryErrorFragment | UpdateEntrySyncErrors,
-  ) => void;
+  onSuccess: (entry: EntryFragment, onlineStatus: OnlineStatus) => void;
   onClose: () => void;
 }
 

@@ -840,7 +840,7 @@ function handleOnUpsertEntrySuccessAction(
     notification.value = StateValue.inactive;
 
     const {
-      old,
+      oldData,
       newData: { entry: newEntry, onlineStatus: newOnlineStatus },
     } = payload;
 
@@ -856,7 +856,7 @@ function handleOnUpsertEntrySuccessAction(
     });
 
     // completely new entry created online
-    if (!old) {
+    if (!oldData) {
       const newEntryState = newEntryCreated as Draft<
         NewEntryCreatedNotification
       >;
@@ -914,7 +914,23 @@ function handleOnUpsertEntrySuccessAction(
       }
     } else {
       // updated entry: either offline entry synced / online entry updated
-      const { id } = old;
+      const { entry, index } = oldData;
+      const { id } = entry;
+      const { syncErrors } = context;
+
+      if (syncErrors && syncErrors.entriesErrors) {
+        const index1 = index + 1;
+
+        const entriesErrors = syncErrors.entriesErrors.filter((d) => {
+          return d[0] !== index1;
+        });
+
+        if (entriesErrors.length) {
+          syncErrors.entriesErrors = entriesErrors;
+        } else {
+          delete syncErrors.entriesErrors;
+        }
+      }
 
       updateEntriesFn(
         einträgeStatten,
@@ -930,7 +946,7 @@ function handleOnUpsertEntrySuccessAction(
 
       // offline entry synced
       if (id !== newEntry.id) {
-        cleanUpData.createErrors = [old];
+        cleanUpData.createErrors = [entry];
       }
 
       effects.push({
@@ -1539,17 +1555,17 @@ function verarbeitenErfahrungAbfrage(
     const unsynced = getUnsyncedExperience(id);
     const onlineStatus = getOnlineStatus(id, unsynced);
 
-    const { data: einträgeDaten, entriesErrors } = verarbeitenEinträgeAbfrage(
-      id,
-      kriegEinträgeAbfrage,
-      syncErrors,
-    );
+    const {
+      data: einträgeDaten,
+      entriesErrors,
+      processedSyncErrors,
+    } = verarbeitenEinträgeAbfrage(id, kriegEinträgeAbfrage, syncErrors);
 
     let errors = syncErrors as ExperienceSyncError;
 
     if (syncErrors && entriesErrors) {
       errors = {
-        ...syncErrors,
+        ...processedSyncErrors,
         entriesErrors,
       };
     }
@@ -1579,6 +1595,7 @@ function verarbeitenEinträgeAbfrage(
 ): {
   data: VerarbeitenEinträgeAbfrageZurückgegebenerWert;
   entriesErrors?: IndexToEntryErrorsList;
+  processedSyncErrors?: SyncError;
 } {
   if (!kriegEinträgeAbfrage) {
     const data = {
@@ -1642,6 +1659,7 @@ function verarbeitenEinträgeAbfrage(
     return {
       data,
       entriesErrors: entriesErrors.length ? entriesErrors : undefined,
+      processedSyncErrors: syncErrors1,
     };
   } else {
     const data = {
@@ -1744,12 +1762,7 @@ function processUpdateEntriesErrors(
   index: number,
 ) {
   const processedErrors: EntryErrorsList = {};
-  entryErrors.push([index, processedErrors]);
-  // export type IdToUpdateDataObjectSyncErrorMap = {
-  //   [
-  //     dataObjectId: string
-  //   ]: UpdateExperienceSomeSuccessFragment_entries_updatedEntries_UpdateEntrySomeSuccess_entry_dataObjects_DataObjectErrors_errors;
-  // };
+  entryErrors.push([index + 1, processedErrors]);
 
   if ("string" === typeof data) {
     processedErrors.others = [["", data]];
@@ -1961,9 +1974,7 @@ type DeleteExperienceActiveState = Readonly<{
 type UpsertEntryActive = Readonly<{
   value: ActiveVal;
   active: Readonly<{
-    context: Readonly<{
-      bearbeitenEintrag?: UpdatingEntryPayload;
-    }>;
+    context: Readonly<NewEntryActivePayload>;
   }>;
 }>;
 
@@ -2058,7 +2069,9 @@ type WithMayBeExperiencePayload = {
 };
 
 type NewEntryActivePayload = {
-  bearbeitenEintrag?: UpdatingEntryPayload;
+  bearbeitenEintrag?: UpdatingEntryPayload & {
+    index: number;
+  };
 };
 
 export type ExperienceSyncError = SyncError & {
@@ -2096,8 +2109,13 @@ export interface DataDefinitionIdToNameMap {
   [dataDefinitionId: string]: string;
 }
 
+export type OldEntryData = {
+  entry: EntryFragment;
+  index: number;
+};
+
 interface OnEntryCreatedPayload {
-  old?: EntryFragment;
+  oldData?: OldEntryData;
   newData: {
     entry: EntryFragment;
     onlineStatus: OnlineStatus;

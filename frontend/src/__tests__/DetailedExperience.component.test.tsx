@@ -127,6 +127,7 @@ const mockUpsertEntrySuccessId = "?a?";
 const mockDismissUpsertEntryUiId = "?b?";
 const mockActionType = ActionType;
 const mockNewlyCreatedEntry = {
+  __typename: "Entry",
   updatedAt: "2020-05-08T06:49:19Z",
   id: "c",
   clientId: "d",
@@ -223,6 +224,7 @@ const EINTRAG_KLIENT_ID = "aa";
 const EINTRAG_ID = "a";
 
 const onlineEntry = {
+  __typename: "Entry",
   id: EINTRAG_ID,
   clientId: EINTRAG_KLIENT_ID,
   insertedAt: "2020-09-16T20:00:37Z",
@@ -250,6 +252,7 @@ const onlineEntrySuccess = {
 
 const offlineEntryId = makeOfflineId("b");
 const offlineEntry = {
+  __typename: "Entry",
   id: offlineEntryId,
   clientId: offlineEntryId,
   insertedAt: "2020-09-16T20:00:37Z",
@@ -1029,6 +1032,70 @@ describe("reducers", () => {
     jest.runAllTimers();
     expect(mockScrollIntoView.mock.calls[2][0]).toBe("t");
   });
+
+  it("deletes 'createEntries' and 'updateErrors' keys from sync errors", async () => {
+    let state = initState();
+
+    const [wirkung] = (state.effects.general as GenericHasEffect<
+      EffectType
+    >).hasEffects.context.effects;
+
+    const wirkungFunc = effectFunctions[wirkung.key];
+
+    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...DEFAULT_ERFAHRUNG,
+        },
+        getEntries: onlineOfflineEntriesSuccess,
+      },
+    } as DetailedExperienceQueryResult);
+
+    mockGetSyncError.mockReturnValue({
+      createEntries: {
+        [offlineEntryId]: {
+          meta: {
+            index: 0,
+          },
+          error: "a",
+          clientId: null,
+        } as CreateEntryErrorFragment,
+      },
+      updateEntries: {
+        [EINTRAG_ID]: "a" as UpdateEntrySyncErrors,
+        [offlineEntryId]: {
+          a: {
+            meta: {
+              index: 1,
+            },
+            data: "a",
+            error: "",
+          } as DataObjectErrorFragment,
+        } as UpdateEntrySyncErrors,
+      },
+    } as ExperienceSyncError);
+
+    await wirkungFunc(wirkung.ownArgs as any, props, effectArgs);
+
+    const callArgs = mockDispatchFn.mock.calls[0][0];
+
+    expect(callArgs.syncErrors).toEqual({
+      entriesErrors: [
+        [
+          1,
+          {
+            others: [["", "a"]],
+          },
+        ],
+        [
+          2,
+          {
+            others: [["error", "a"]],
+          },
+        ],
+      ],
+    });
+  });
 });
 
 describe("upsert experience on sync", () => {
@@ -1169,6 +1236,7 @@ describe("upsert experience on sync", () => {
 
     // Then user gets message that there are errors
     let closeSyncErrorsCloseEl = getCloseSyncErrorsMsgBtn();
+    expect(kriegNichtSynchronisiertFehler()).not.toBeNull();
 
     // There is button user can click to edit entry
     const triggerUpdateEntryEl = kriegNichtSynchronisiertFehler();
@@ -1215,19 +1283,23 @@ describe("upsert experience on sync", () => {
     });
 
     // Update entry Ui should be visible
-    const dismissUpdateEntryEl = getDismissUpsertEntryUi();
+    const updateEntrySuccessEl = getUpsertEntrySuccess();
 
     // When update entry Ui is closed
 
     act(() => {
-      dismissUpdateEntryEl.click();
+      updateEntrySuccessEl.click();
     });
 
     // update entry UI should not be visible
     expect(getDismissUpsertEntryUi()).toBeNull();
+
+    // Error notification should not be visible
+    expect(getSyncErrorsNotificationEl()).toBeNull();
+    expect(kriegNichtSynchronisiertFehler()).toBeNull();
   });
 
-  fit("displays sync errors for update entries", () => {
+  it("displays sync errors for update entries", () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
     // Given an experience has update entries sync errors
@@ -1279,20 +1351,16 @@ describe("upsert experience on sync", () => {
     });
 
     // Update entry Ui should be visible
-    const dismissUpdateEntrySuccessEl = getUpsertEntrySuccess();
+    const closeUpdateEntryEl = getDismissUpsertEntryUi();
 
     // When update entry Ui is closed
 
     act(() => {
-      dismissUpdateEntrySuccessEl.click();
+      closeUpdateEntryEl.click();
     });
 
     // update entry UI should not be visible
     expect(getUpsertEntrySuccess()).toBeNull();
-
-
-    // Then error notification should not be visible
-    expect(getSyncErrorsNotificationEl()).toBeNull();
   });
 });
 
