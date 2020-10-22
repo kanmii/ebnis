@@ -583,13 +583,9 @@ function EntryComponent(props: {
 }
 
 function SyncErrorsNotificationComponent(props: {
-  state: DataState["data"]["context"]["syncErrors"];
+  state: ExperienceSyncError;
 }) {
   const { state } = props;
-
-  if (!state) {
-    return null;
-  }
 
   const { entriesErrors, ownFields, definitionsErrors } = state;
 
