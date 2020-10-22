@@ -57,9 +57,11 @@ export type SyncError = {
   definitions?: IdToDefinitionUpdateSyncErrorMap;
 };
 
+// string represents entry error
+export type UpdateEntrySyncErrors = string | IdToUpdateDataObjectSyncErrorMap;
+
 export type IdToUpdateEntrySyncErrorMap = {
-  [entryId: string]: // string represents entry error
-  string | IdToUpdateDataObjectSyncErrorMap;
+  [entryId: string]: UpdateEntrySyncErrors;
 };
 
 export type IdToUpdateDataObjectSyncErrorMap = {

@@ -7,6 +7,7 @@ import React, {
   useMemo,
   createContext,
   useContext,
+  Fragment,
 } from "react";
 import "./styles.scss";
 import Header from "../Header/header.component";
@@ -22,6 +23,7 @@ import {
   DataState,
   EinträgeDatenErfolg,
   DataStateContextEntry,
+  ExperienceSyncError,
 } from "./detailed-experience-utils";
 import { setUpRoutePage } from "../../utils/global-window";
 import { UpsertEntry } from "./detail-experience.lazy";
@@ -35,7 +37,7 @@ import {
 import { useRunEffects } from "../../utils/use-run-effects";
 import {
   newEntryCreatedNotificationCloseId,
-  entriesErrorsNotificationCloseId,
+  syncErrorsNotificationId,
   noTriggerDocumentEventClassName,
   noEntryTriggerId,
   refetchExperienceId,
@@ -44,6 +46,11 @@ import {
   updateExperienceSuccessNotificationId,
   isPartOfflineClassName,
   isOfflineClassName,
+  fixSyncErrorsId,
+  closeSyncErrorsMsgId,
+  closeSyncErrorsMsgBtnId,
+  syncEntriesErrorsMsgId,
+  syncExperienceErrorsMsgId,
 } from "./detail-experience.dom";
 import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
@@ -57,7 +64,6 @@ import { WithSubscriptionContext } from "../../utils/app-context";
 type DispatchContextValue = Readonly<{
   onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
   onCloseNewEntryCreatedNotification: () => void;
-  onCloseEntriesErrorsNotification: () => void;
   onDeclineDeleteExperience: () => void;
   onConfirmDeleteExperience: () => void;
   onDeleteExperienceRequest: (e: ReactMouseAnchorEvent) => void;
@@ -72,6 +78,7 @@ type DispatchContextValue = Readonly<{
   holenNächstenEinträge: () => void;
   dispatch: DispatchType;
   onUpdateExperienceError: (error: string) => void;
+  closeSyncErrorsMsg: (e: ReactMouseAnchorEvent) => void;
 }>;
 const DispatchContext = createContext<DispatchContextValue>(
   {} as DispatchContextValue,
@@ -121,7 +128,7 @@ export function DetailExperience(props: Props) {
     e.preventDefault();
 
     dispatch({
-      type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,
+      type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE,
     });
   }, []);
 
@@ -132,11 +139,6 @@ export function DetailExperience(props: Props) {
       onCloseNewEntryCreatedNotification: () => {
         dispatch({
           type: ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION,
-        });
-      },
-      onCloseEntriesErrorsNotification: () => {
-        dispatch({
-          type: ActionType.ON_CLOSE_ENTRIES_ERRORS_NOTIFICATION,
         });
       },
       onDeclineDeleteExperience: () => {
@@ -194,6 +196,13 @@ export function DetailExperience(props: Props) {
       },
       onUpdateExperienceError() {
         //
+      },
+      closeSyncErrorsMsg: (e: ReactMouseAnchorEvent) => {
+        e.preventDefault();
+
+        dispatch({
+          type: ActionType.CLOSE_SYNC_ERRORS_MSG,
+        });
       },
     };
     /* eslint-disable-next-line react-hooks/exhaustive-deps*/
@@ -260,7 +269,6 @@ export default DetailExperience;
 function ExperienceComponent() {
   const {
     dispatch,
-    onCloseEntriesErrorsNotification,
     onCloseNewEntryCreatedNotification,
     onRefetchEntries,
     cancelEditExperienceUiRequestCb,
@@ -272,15 +280,15 @@ function ExperienceComponent() {
     context,
     states: {
       deleteExperience: deleteExperienceState,
-      newEntryActive: newEntryActiveState,
+      upsertEntryActive,
       newEntryCreated,
-      entriesErrors,
       einträge: einträgeStatten,
       updateExperienceUiActive,
+      syncErrorsMsg,
     },
   } = useContext(DataStateContextC);
 
-  const { experience } = context;
+  const { experience, syncErrors } = context;
 
   useLayoutEffect(() => {
     setUpRoutePage({
@@ -308,6 +316,11 @@ function ExperienceComponent() {
     /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, [experience]);
 
+  const oldEditedEntryProps =
+    upsertEntryActive.value === StateValue.active
+      ? upsertEntryActive.active.context.bearbeitenEintrag
+      : undefined;
+
   return (
     <>
       {updateExperienceUiActive.value === StateValue.active && (
@@ -325,32 +338,29 @@ function ExperienceComponent() {
         <DeleteExperienceModal />
       )}
 
-      {newEntryActiveState.value === StateValue.active && (
+      {syncErrorsMsg.value === StateValue.active && (
+        <SyncErrorsMessageNotificationComponent />
+      )}
+
+      {(oldEditedEntryProps ||
+        (!syncErrors && upsertEntryActive.value === StateValue.active)) && (
         <Suspense fallback={<Loading />}>
           <UpsertEntry
             experience={experience}
-            bearbeitenEintrag={
-              newEntryActiveState.active.context.bearbeitenEintrag
-                ? newEntryActiveState.active.context.bearbeitenEintrag
-                : undefined
-            }
+            bearbeitenEintrag={oldEditedEntryProps}
             onSuccess={(entry, onlineStatus) => {
-              const old =
-                newEntryActiveState.active.context.bearbeitenEintrag &&
-                newEntryActiveState.active.context.bearbeitenEintrag.entry;
-
               dispatch({
                 type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
                 newData: {
                   entry,
                   onlineStatus,
                 },
-                old,
+                old: oldEditedEntryProps && oldEditedEntryProps.entry,
               });
             }}
             onClose={() => {
               dispatch({
-                type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,
+                type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE,
               });
             }}
           />
@@ -358,10 +368,7 @@ function ExperienceComponent() {
       )}
 
       <div className="container detailed-experience-component">
-        <EntriesErrorsNotification
-          state={entriesErrors}
-          onCloseEntriesErrorsNotification={onCloseEntriesErrorsNotification}
-        />
+        {syncErrors && <SyncErrorsNotificationComponent state={syncErrors} />}
 
         <UpsertEntryNotification
           state={newEntryCreated}
@@ -518,10 +525,11 @@ function EntryComponent(props: { state: DataStateContextEntry }) {
                 detailed-experience__entry-edit"
                 onClick={() => {
                   dispatch({
-                    type: ActionType.TOGGLE_NEW_ENTRY_ACTIVE,
+                    type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE,
                     bearbeitenEintrag: {
                       entry: eintragDaten,
-                      errors: nichtSynchronisiertFehler,
+                      // TODO: remove any type
+                      errors: nichtSynchronisiertFehler as any
                     },
                   });
                 }}
@@ -553,56 +561,78 @@ function EntryComponent(props: { state: DataStateContextEntry }) {
   );
 }
 
-function EntriesErrorsNotification(props: {
-  state: DataState["data"]["states"]["entriesErrors"];
-  onCloseEntriesErrorsNotification: () => void;
+function SyncErrorsNotificationComponent(props: {
+  state: DataState["data"]["context"]["syncErrors"];
 }) {
-  const { state, onCloseEntriesErrorsNotification } = props;
+  const { state } = props;
 
-  if (state.value === StateValue.inactive) {
+  if (!state) {
+    return null;
+  }
+
+  const { entriesErrors, ownFields, definitionsErrors } = state;
+
+  if (!(entriesErrors || ownFields || definitionsErrors)) {
     return null;
   }
 
   return (
-    <div className="message is-danger">
+    <div className="message is-danger" id={syncErrorsNotificationId}>
       <div className="message-header">
-        <p>There were errors while syncing entry to our server</p>
-        <button
-          id={entriesErrorsNotificationCloseId}
-          className="delete"
-          aria-label="delete"
-          onClick={onCloseEntriesErrorsNotification}
-        />
+        <p>There were errors while uploading changes for this item</p>
       </div>
 
       <div className="message-body">
-        {Object.entries(state.active.context.errors).map(
-          ([id, entryErrorsList]) => {
+        {definitionsErrors &&
+          definitionsErrors.map(([k, v]) => {
             return (
-              <div key={id} id={id}>
-                {entryErrorsList.map((entryErrors, entryErrorsIndex) => {
-                  const [label, errors] = entryErrors;
-
-                  return (
-                    <div key={entryErrorsIndex}>
-                      {label && <div> Data object: {label}</div>}
-
-                      {errors.map((entryError, index) => {
-                        const [key, value] = entryError;
-                        return (
-                          <div key={index}>
-                            <span>{key}</span>
-                            <span>{value}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
+              <div key={k}>
+                <span>{k}: </span>
+                <span>{v}</span>
               </div>
             );
-          },
-        )}
+          })}
+
+        {entriesErrors &&
+          entriesErrors.map(([entryIndex, { others, dataObjects }]) => {
+            return (
+              <Fragment key={entryIndex}>
+                <strong>Entry #{entryIndex}</strong>
+
+                <div className="detailed-experience__data-object-errors">
+                  {others &&
+                    others.map(([k, v]) => {
+                      return (
+                        <div key={k}>
+                          <span>{k} </span>
+                          <span>{v}</span>
+                        </div>
+                      );
+                    })}
+
+                  {dataObjects &&
+                    dataObjects.map(([dataIndex, errors]) => {
+                      return (
+                        <div key={dataIndex}>
+                          <div>Data #{dataIndex}</div>
+                          {errors.map(([k, v]) => {
+                            return (
+                              <div
+                                key={k}
+                                className="detailed-experience__data-object-error"
+                              >
+                                <span>{k} </span>
+                                <span>{v}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                </div>
+              </Fragment>
+            );
+          })}
       </div>
     </div>
   );
@@ -776,6 +806,78 @@ function UpdateExperienceSuccessNotification() {
         onClick={requestUpdateExperienceUi}
       />
       Update was successful
+    </div>
+  );
+}
+
+function SyncErrorsMessageNotificationComponent() {
+  const { closeSyncErrorsMsg, requestUpdateExperienceUi } = useContext(
+    DispatchContext,
+  );
+
+  const {
+    context: { syncErrors },
+  } = useContext(DataStateContextC);
+
+  const {
+    definitionsErrors,
+    entriesErrors,
+  } = syncErrors as ExperienceSyncError;
+
+  return (
+    <div className="modal is-active delete-experience-component">
+      <div className="modal-background"></div>
+
+      <div className="modal-card">
+        <header className="modal-card-head">
+          <div className="modal-card-title"></div>
+
+          <button
+            className="delete upsert-entry__delete"
+            aria-label="close"
+            type="button"
+            onClick={closeSyncErrorsMsg}
+            id={closeSyncErrorsMsgBtnId}
+          />
+        </header>
+
+        <section className="modal-card-body">
+          {definitionsErrors && (
+            <strong id={syncExperienceErrorsMsgId}>
+              There are errors while syncing the experience. Click on 'Fix'
+              button below
+            </strong>
+          )}
+
+          {entriesErrors && (
+            <strong id={syncEntriesErrorsMsgId}>
+              There are entries errors. Click on the entry to fix.
+            </strong>
+          )}
+        </section>
+
+        <footer className="modal-card-foot">
+          {definitionsErrors && (
+            <button
+              className="button is-success delete-experience__ok-button"
+              id={fixSyncErrorsId}
+              type="button"
+              onClick={requestUpdateExperienceUi}
+            >
+              Fix errors
+            </button>
+          )}
+
+          <button
+            className="button is-warning delete-experience__cancel-button"
+            id={closeSyncErrorsMsgId}
+            type="button"
+            onClick={closeSyncErrorsMsg}
+          >
+            Cancel
+          </button>
+        </footer>
+      </div>
     </div>
   );
 }
