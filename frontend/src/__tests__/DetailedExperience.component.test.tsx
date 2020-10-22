@@ -1227,7 +1227,7 @@ describe("upsert experience on sync", () => {
     expect(getDismissUpsertEntryUi()).toBeNull();
   });
 
-  it("displays sync errors for update entries", () => {
+  fit("displays sync errors for update entries", () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
     // Given an experience has update entries sync errors
@@ -1279,16 +1279,20 @@ describe("upsert experience on sync", () => {
     });
 
     // Update entry Ui should be visible
-    const dismissUpdateEntryEl = getUpsertEntrySuccess();
+    const dismissUpdateEntrySuccessEl = getUpsertEntrySuccess();
 
     // When update entry Ui is closed
 
     act(() => {
-      dismissUpdateEntryEl.click();
+      dismissUpdateEntrySuccessEl.click();
     });
 
     // update entry UI should not be visible
     expect(getUpsertEntrySuccess()).toBeNull();
+
+
+    // Then error notification should not be visible
+    expect(getSyncErrorsNotificationEl()).toBeNull();
   });
 });
 
