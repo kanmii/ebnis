@@ -1427,6 +1427,50 @@ describe("update experience", () => {
 
     expect(getUpdateExperienceEl()).not.toBeNull();
   });
+
+  it("updates experience successfully", async () => {
+    mockUpdatedExperience = DEFAULT_ERFAHRUNG;
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...DEFAULT_ERFAHRUNG,
+        },
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    const { debug } = render(ui);
+
+    // When show update experience UI button is clicked
+    act(() => {
+      getUpdateExperienceEl().click();
+    });
+
+    // Experience updated success notification should not be visible
+    expect(getUpdateExperienceSuccessNotification()).toBeNull();
+
+    // When experience updated successfully
+    act(() => {
+      getMockUpsertExperienceSuccess().click();
+    });
+
+    // Experience updated success notification should be visible
+    const updateSuccessUi = await waitForElement(
+      getUpdateExperienceSuccessNotification,
+    );
+
+    expect(updateSuccessUi).not.toBeNull();
+
+    // After a little while
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    // Experience updated success notification should not be visible
+    expect(getUpdateExperienceSuccessNotification()).toBeNull();
+  });
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
@@ -1559,4 +1603,8 @@ function getUpdateExperienceSuccessNotification() {
   return document.getElementById(
     updateExperienceSuccessNotificationId,
   ) as HTMLElement;
+}
+
+function getMockUpsertExperienceSuccess() {
+  return document.getElementById(mockUpsertExperienceSuccessId) as HTMLElement;
 }
