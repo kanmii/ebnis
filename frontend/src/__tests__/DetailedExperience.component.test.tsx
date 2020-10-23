@@ -35,6 +35,7 @@ import {
   closeSyncErrorsMsgBtnId,
   syncEntriesErrorsMsgId,
   syncExperienceErrorsMsgId,
+  updateExperienceSuccessNotificationId,
 } from "../components/DetailExperience/detail-experience.dom";
 import { act } from "react-dom/test-utils";
 import { makeOfflineId } from "../utils/offlines";
@@ -47,6 +48,7 @@ import {
   E2EWindowObject,
   StateValue,
   FETCH_EXPERIENCES_TIMEOUTS,
+  OnlineStatus,
 } from "../utils/types";
 import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
 import {
@@ -166,11 +168,23 @@ jest.mock("../components/Loading/loading.component", () => {
 });
 
 const mockCloseUpsertExperienceId = "?c?";
+const mockUpsertExperienceSuccessId = "?d?";
+let mockUpdatedExperience: undefined | ExperienceFragment = undefined;
+let mockUpdatedExperienceOnlineStatus: undefined | OnlineStatus = undefined;
 jest.mock("../components/My/my.lazy", () => ({
-  UpsertExperience: ({ onClose }: UpsertExperienceProps) => {
+  UpsertExperience: ({ onClose, onSuccess }: UpsertExperienceProps) => {
     return (
       <div>
         <button id={mockCloseUpsertExperienceId} onClick={onClose} />
+        <button
+          id={mockUpsertExperienceSuccessId}
+          onClick={() => {
+            onSuccess(
+              mockUpdatedExperience as ExperienceFragment,
+              mockUpdatedExperienceOnlineStatus as OnlineStatus,
+            );
+          }}
+        />
       </div>
     );
   },
@@ -202,6 +216,8 @@ afterEach(() => {
   cleanup();
   jest.clearAllTimers();
   jest.resetAllMocks();
+  mockUpdatedExperience = undefined;
+  mockUpdatedExperienceOnlineStatus = undefined;
 });
 
 const onlineId = "onlineId";
@@ -289,6 +305,14 @@ const onlineOfflineEntriesSuccess = {
         node: offlineEntry,
       },
     ],
+    pageInfo: {},
+  },
+};
+
+const emptyEntriesSuccessList = {
+  __typename: "GetEntriesSuccess",
+  entries: {
+    edges: [] as any,
     pageInfo: {},
   },
 };
@@ -1364,6 +1388,47 @@ describe("upsert experience on sync", () => {
   });
 });
 
+describe("update experience", () => {
+  it("shows experience menu when entries can not be fetched", () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...DEFAULT_ERFAHRUNG,
+        },
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    const { debug } = render(ui);
+
+    // experience menu should be visible
+
+    expect(getUpdateExperienceEl()).not.toBeNull();
+  });
+
+  it("shows experience menu when entries list is empty", () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...DEFAULT_ERFAHRUNG,
+        },
+        getEntries: emptyEntriesSuccessList,
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    const { debug } = render(ui);
+
+    // experience menu should be visible
+
+    expect(getUpdateExperienceEl()).not.toBeNull();
+  });
+});
+
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
 const DetailExperienceP = DetailExperience as ComponentType<Partial<Props>>;
@@ -1482,4 +1547,16 @@ function getSyncEntriesErrors() {
 
 function getSyncExperienceErrors() {
   return document.getElementById(syncExperienceErrorsMsgId) as HTMLElement;
+}
+
+function getUpdateExperienceEl(index: number = 0) {
+  return document
+    .getElementsByClassName("detailed__edit-experience-link")
+    .item(index) as HTMLElement;
+}
+
+function getUpdateExperienceSuccessNotification() {
+  return document.getElementById(
+    updateExperienceSuccessNotificationId,
+  ) as HTMLElement;
 }

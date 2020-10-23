@@ -19,7 +19,6 @@ import {
   formatDatetime,
   effectFunctions,
   DispatchType,
-  ShowingOptionsMenuState,
   DataState,
   EinträgeDatenErfolg,
   DataStateContextEntry,
@@ -398,15 +397,19 @@ function ExperienceComponent() {
         )}
 
         {einträgeStatten.wert === StateValue.versagen && (
-          <div>
-            {einträgeStatten.fehler}
+          <>
+            <ExperienceMenuComponent className="no-entry-menu" />
 
-            <button
-              id={neueHolenEinträgeId}
-              className="button"
-              onClick={onRefetchEntries}
-            />
-          </div>
+            <div>
+              {einträgeStatten.fehler}
+
+              <button
+                id={neueHolenEinträgeId}
+                className="button"
+                onClick={onRefetchEntries}
+              />
+            </div>
+          </>
         )}
       </div>
     </>
@@ -416,17 +419,7 @@ function ExperienceComponent() {
 function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
   const { connected } = useWithSubscriptionContext();
 
-  const {
-    onOpenNewEntry,
-    toggleExperienceMenu,
-    onDeleteExperienceRequest,
-    requestUpdateExperienceUi,
-    holenNächstenEinträge,
-  } = useContext(DispatchContext);
-
-  const {
-    states: { showingOptionsMenu },
-  } = useContext(DataStateContextC);
+  const { onOpenNewEntry, holenNächstenEinträge } = useContext(DispatchContext);
 
   const {
     context: {
@@ -448,24 +441,13 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
             Click here to create your first entry
           </button>
 
-          <ExperienceMenuComponent
-            state={showingOptionsMenu}
-            toggleExperienceMenu={toggleExperienceMenu}
-            onDeleteExperienceRequest={onDeleteExperienceRequest}
-            requestUpdateExperienceUi={requestUpdateExperienceUi}
-            className="no-entry-menu"
-          />
+          <ExperienceMenuComponent className="no-entry-menu" />
         </div>
       )}
 
       {entries && entries.length > 0 && (
         <>
-          <ExperienceMenuComponent
-            state={showingOptionsMenu}
-            toggleExperienceMenu={toggleExperienceMenu}
-            onDeleteExperienceRequest={onDeleteExperienceRequest}
-            requestUpdateExperienceUi={requestUpdateExperienceUi}
-          />
+          <ExperienceMenuComponent />
 
           <div className="entries">
             {entries.map((daten, index) => {
@@ -731,18 +713,19 @@ function DeleteExperienceModal() {
   );
 }
 
-function ExperienceMenuComponent(props: MenuProps) {
-  const {
-    state,
-    toggleExperienceMenu,
-    onDeleteExperienceRequest,
-    requestUpdateExperienceUi,
-    className = "",
-  } = props;
+function ExperienceMenuComponent(props: { className?: string }) {
+  const { className = "" } = props;
 
   const {
     context: { onlineStatus },
+    states: { showingOptionsMenu: state },
   } = useContext(DataStateContextC);
+
+  const {
+    toggleExperienceMenu,
+    onDeleteExperienceRequest,
+    requestUpdateExperienceUi,
+  } = useContext(DispatchContext);
 
   return (
     <div
@@ -897,12 +880,4 @@ function SyncErrorsMessageNotificationComponent() {
       </div>
     </div>
   );
-}
-
-interface MenuProps {
-  state: ShowingOptionsMenuState;
-  toggleExperienceMenu: () => void;
-  onDeleteExperienceRequest: (event: ReactMouseAnchorEvent) => void;
-  className?: string;
-  requestUpdateExperienceUi: (event: ReactMouseAnchorEvent) => void;
 }
