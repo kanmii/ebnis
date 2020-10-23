@@ -747,6 +747,7 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
 
     const {
       experience: { id },
+      syncErrors: contextSyncErrors,
     } = context;
 
     if (offlineIdToOnlineExperienceMap) {
@@ -781,7 +782,7 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
       const offlineIdToOnlineEntryMap =
         onlineExperienceIdToOfflineEntriesMap[id];
 
-      // we have offline experiences now synced
+      // we have offline entries from online experience now synced
       if (offlineIdToOnlineEntryMap) {
         updateEntriesFn(einträgeStatten, offlineIdToOnlineEntryMap);
       }
@@ -798,11 +799,19 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
 
     if (errors) {
       const { createEntries, updateEntries } = errors;
+      let entriesErrors: undefined | IndexToEntryErrorsList = undefined;
 
       if (createEntries) {
-        updateEntriesFn(einträgeStatten, createEntries);
+        entriesErrors = updateEntriesFn(einträgeStatten, createEntries);
       } else if (updateEntries) {
-        updateEntriesFn(einträgeStatten, updateEntries);
+        entriesErrors = updateEntriesFn(einträgeStatten, updateEntries);
+      }
+
+      if (entriesErrors) {
+        context.syncErrors = {
+          ...(contextSyncErrors || {}),
+          entriesErrors,
+        };
       }
     }
 
@@ -993,9 +1002,17 @@ function updateEntriesFn(
     EinträgeDatenErfolg["erfolg"]
   >;
 
-  const { context } = ob;
+  const {
+    context: { einträge },
+  } = ob;
 
-  for (const daten of context.einträge) {
+  const entryErrors: IndexToEntryErrorsList = [];
+  const len = einträge.length;
+  let i = 0;
+  let hasErrors = false;
+
+  for (; i < len; i++) {
+    const daten = einträge[i];
     const { id } = daten.eintragDaten;
     const updated = payload[id];
 
@@ -1004,6 +1021,8 @@ function updateEntriesFn(
     }
 
     const updatedEntry = updated as EntryFragment;
+    const createdErrors = updated as CreateEntryErrorFragment;
+    const updateErrors = updated as UpdateEntrySyncErrors;
 
     if (updatedEntry.__typename === "Entry") {
       daten.eintragDaten = updatedEntry;
@@ -1011,20 +1030,18 @@ function updateEntriesFn(
       daten.nichtSynchronisiertFehler = update
         ? undefined
         : daten.nichtSynchronisiertFehler;
-
-      continue;
-    }
-
-    const createdErrors = updated as CreateEntryErrorFragment;
-
-    if (createdErrors.__typename === "CreateEntryError") {
+    } else if (createdErrors.__typename === "CreateEntryError") {
       daten.nichtSynchronisiertFehler = createdErrors;
-      continue;
+      processCreateEntriesErrors(entryErrors, createdErrors, i);
+      hasErrors = true;
+    } else {
+      daten.nichtSynchronisiertFehler = updateErrors;
+      processUpdateEntriesErrors(entryErrors, updateErrors, i);
+      hasErrors = true;
     }
-
-    const updateErrors = updated as UpdateEntrySyncErrors;
-    daten.nichtSynchronisiertFehler = updateErrors;
   }
+
+  return hasErrors ? entryErrors : undefined;
 }
 
 function processSyncErrors(

@@ -80,10 +80,20 @@ import {
   OfflineIdToCreateEntrySyncErrorMap,
   SyncError,
   UpdateEntrySyncErrors,
+  OnSyncedData,
 } from "../utils/sync-to-server.types";
 import { DefinitionErrorFragment } from "../graphql/apollo-types/DefinitionErrorFragment";
 import { Props as UpsertExperienceProps } from "../components/UpsertExperience/upsert-experience.utils";
 import { DataObjectErrorFragment } from "../graphql/apollo-types/DataObjectErrorFragment";
+import { WithSubscriptionContextProps } from "../utils/app-context";
+import {
+  cleanUpOfflineExperiences,
+  cleanUpSyncedOfflineEntries,
+} from "../components/WithSubscriptions/with-subscriptions.utils";
+
+jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
+const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
+const mockCleanUpSyncedOfflineEntries = cleanUpSyncedOfflineEntries as jest.Mock;
 
 jest.mock("../apollo/sync-to-server-cache");
 const mockGetSyncError = getSyncError as jest.Mock;
@@ -252,7 +262,7 @@ const onlineEntry = {
       data: `{"integer":1}`,
     },
   ],
-};
+} as EntryFragment;
 
 const onlineEntrySuccess = {
   __typename: "GetEntriesSuccess",
@@ -280,7 +290,7 @@ const offlineEntry = {
       data: `{"integer":1}`,
     },
   ],
-};
+} as EntryFragment;
 
 const offlineEntrySuccess = {
   __typename: "GetEntriesSuccess",
@@ -504,7 +514,7 @@ describe("components", () => {
   });
 
   it("Einträge paginierung", async () => {
-    mockUseWithSubscriptionContext.mockReturnValueOnce({ connected: true });
+    mockUseWithSubscriptionContext.mockReturnValue({ connected: true });
 
     mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
       data: {
@@ -1470,6 +1480,56 @@ describe("update experience", () => {
 
     // Experience updated success notification should not be visible
     expect(getUpdateExperienceSuccessNotification()).toBeNull();
+  });
+});
+
+describe("sync", () => {
+  it("syncs part online experience success, but with update errors", async () => {
+    const onlineExperienceIdToOfflineEntriesMap = {
+      [onlineId]: {
+        [offlineEntryId]: offlineEntry,
+      },
+    };
+
+    mockUseWithSubscriptionContext.mockReturnValue({
+      onSyncData: {
+        onlineExperienceIdToOfflineEntriesMap,
+        offlineIdToOnlineExperienceMap: {},
+        syncErrors: {
+          [onlineId]: {
+            updateEntries: {
+              [offlineEntryId]: "a",
+            },
+          },
+        },
+        onlineExperienceUpdatedMap: {
+          [onlineId]: true,
+        },
+      } as OnSyncedData,
+    } as WithSubscriptionContextProps);
+
+    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...DEFAULT_ERFAHRUNG,
+        },
+        getEntries: offlineEntrySuccess,
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    // Then error notification should be visible
+    expect(getSyncErrorsNotificationEl()).not.toBeNull();
+
+    // Offline entries should be removed from cache
+    expect(mockCleanUpSyncedOfflineEntries).toHaveBeenCalledWith(
+      onlineExperienceIdToOfflineEntriesMap,
+    );
+
+    // No experience should be removed from cache
+    expect(mockCleanUpOfflineExperiences).not.toHaveBeenCalled();
   });
 });
 
