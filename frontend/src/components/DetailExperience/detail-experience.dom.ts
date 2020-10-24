@@ -1,11 +1,11 @@
 const domPrefix = "detail-experience";
-export const newEntryCreatedNotificationCloseId = `${domPrefix}-new-entry-created-notification`;
+export const closeUpsertEntryNotificationId = `${domPrefix}-new-entry-created-notification`;
 export const syncErrorsNotificationId = `${domPrefix}-entries-errors-notification`;
 export const noTriggerDocumentEventClassName = `js-${domPrefix}-no-trigger-document`;
 export const noEntryTriggerId = `${domPrefix}-no-entry-trigger`;
 export const refetchExperienceId = `${domPrefix}-refetch-experience`;
-export const neueHolenEinträgeId = `${domPrefix}-neue-holen-einträge`;
-export const holenNächstenEinträgeId = `${domPrefix}-holen-nächste-einträge`;
+export const refetchEntriesId = `${domPrefix}-refetch-entries-btn`;
+export const fetchNextEntriesId = `${domPrefix}-fetch-next-entries-btn`;
 export const updateExperienceSuccessNotificationId = `${domPrefix}-update-experience-success-notification`;
 export const isOfflineClassName = "detailed-experience-menu--is-danger";
 export const isPartOfflineClassName = "detailed-experience-menu--is-warning";

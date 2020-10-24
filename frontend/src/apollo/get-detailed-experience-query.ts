@@ -46,7 +46,7 @@ export function readExperienceFragment(experienceId: string) {
   return experience;
 }
 
-export function sammelnZwischengespeicherteErfahrung(erfahrungId: string) {
+export function getCachedExperience(erfahrungId: string) {
   const getExperience = getExperienceQuery(erfahrungId);
 
   if (!getExperience) {

@@ -10,11 +10,11 @@ import {
   initState,
   reducer,
   DataState,
-  EinträgeMitHolenFehler,
+  FetchEntriesErrorState,
   EffectType,
   effectFunctions,
-  EinträgeDatenErfolg,
-  EinträgeDatenVersagen,
+  EntriesDataSuccessSate,
+  EntriesDataFailureState,
   ExperienceSyncError,
 } from "../components/DetailExperience/detailed-experience-utils";
 import {
@@ -24,12 +24,12 @@ import {
 import { scrollDocumentToTop } from "../components/DetailExperience/detail-experience.injectables";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import {
-  newEntryCreatedNotificationCloseId,
+  closeUpsertEntryNotificationId,
   syncErrorsNotificationId,
   noEntryTriggerId,
   refetchExperienceId,
-  neueHolenEinträgeId,
-  holenNächstenEinträgeId,
+  refetchEntriesId,
+  fetchNextEntriesId,
   closeSyncErrorsMsgId,
   fixSyncErrorsId,
   closeSyncErrorsMsgBtnId,
@@ -67,7 +67,7 @@ import { useDeleteExperiencesMutation } from "../components/DetailExperience/det
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
 import {
-  sammelnZwischengespeicherteErfahrung,
+  getCachedExperience,
   getEntriesQuerySuccess,
 } from "../apollo/get-detailed-experience-query";
 import { activeClassName, nonsenseId } from "../utils/utils.dom";
@@ -105,7 +105,7 @@ jest.mock("../apollo/injectables");
 const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
 
 jest.mock("../apollo/get-detailed-experience-query");
-const mockSammelnZwischengespeicherteErfahrung = sammelnZwischengespeicherteErfahrung as jest.Mock;
+const mockGetCachedExperience = getCachedExperience as jest.Mock;
 
 const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
 
@@ -233,7 +233,7 @@ afterEach(() => {
 const onlineId = "onlineId";
 const onlineDefinitionId = "1";
 
-const DEFAULT_ERFAHRUNG = {
+const onlineExperience = {
   id: onlineId,
   dataDefinitions: [
     {
@@ -246,13 +246,13 @@ const DEFAULT_ERFAHRUNG = {
 
 const entryOfflineClassName = "entry--is-danger";
 
-const EINTRAG_KLIENT_ID = "aa";
-const EINTRAG_ID = "a";
+const onlineEntryClientId = "aa";
+const onlineEntryId = "a";
 
 const onlineEntry = {
   __typename: "Entry",
-  id: EINTRAG_ID,
-  clientId: EINTRAG_KLIENT_ID,
+  id: onlineEntryId,
+  clientId: onlineEntryClientId,
   insertedAt: "2020-09-16T20:00:37Z",
   updatedAt: "2020-09-16T20:00:37Z",
   dataObjects: [
@@ -330,7 +330,7 @@ const emptyEntriesSuccessList = {
 ////////////////////////// TESTS //////////////////////////////
 
 describe("components", () => {
-  it("has connection/holen erzeugt Ausnahme/entry added/entry errors auto close notification", async () => {
+  it("has connection/fetch throws exception/entry added/entry errors auto close notification", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
     mockGetIsConnected.mockReturnValue(true);
 
@@ -345,13 +345,13 @@ describe("components", () => {
     expect(document.getElementById(refetchExperienceId)).toBeNull();
 
     jest.runAllTimers();
-    const wiederholenErfahrungTaste = await waitForElement(() => {
+    const refetchExperienceBtn = await waitForElement(() => {
       return document.getElementById(refetchExperienceId) as HTMLElement;
     });
 
     mockManuallyFetchDetailedExperience.mockRejectedValueOnce(new Error("b"));
 
-    wiederholenErfahrungTaste.click();
+    refetchExperienceBtn.click();
     jest.runAllTimers();
 
     await wait(() => true);
@@ -359,16 +359,16 @@ describe("components", () => {
     mockManuallyFetchDetailedExperience.mockResolvedValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
       },
     } as DetailedExperienceQueryResult);
 
-    wiederholenErfahrungTaste.click();
+    refetchExperienceBtn.click();
     jest.runAllTimers();
 
-    expect(kriegNeueHolenEinträge()).toBeNull();
-    const neueHolenEinträgeEl = await waitForElement(kriegNeueHolenEinträge);
+    expect(getRefetchEntries()).toBeNull();
+    const refetchEntriesEl = await waitForElement(getRefetchEntries);
 
     mockManuallyFetchEntries.mockResolvedValueOnce({
       data: {
@@ -383,7 +383,7 @@ describe("components", () => {
     } as GetEntriesQueryResult);
 
     act(() => {
-      neueHolenEinträgeEl.click();
+      refetchEntriesEl.click();
     });
 
     expect(getNoEntryEl()).toBeNull();
@@ -416,30 +416,30 @@ describe("components", () => {
       mockUpsertEntrySuccessId,
     ) as HTMLElement;
 
-    expect(getNewEntryNotificationEl()).toBeNull();
+    expect(getCloseUpsertEntryNotificationEl()).toBeNull();
     expect(getSyncErrorsNotificationEl()).toBeNull();
 
     act(() => {
       entryEl.click();
     });
 
-    const schließNeuEintragEl = getNewEntryNotificationEl();
-    const eintragFehlerNachrichten = getSyncErrorsNotificationEl();
+    const schließNeuEintragEl = getCloseUpsertEntryNotificationEl();
+    const entryErrorMsgEl = getSyncErrorsNotificationEl();
 
     act(() => {
       schließNeuEintragEl.click();
     });
 
-    expect(getNewEntryNotificationEl()).toBeNull();
+    expect(getCloseUpsertEntryNotificationEl()).toBeNull();
   });
 
-  it("es gibt Einträge von zwischengespeicherte/löschen erfahrung", async () => {
+  it("fetches entries from cache/deletes experience", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+    mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
         getEntries: onlineEntrySuccess,
       },
@@ -448,35 +448,32 @@ describe("components", () => {
     const { ui } = makeComp();
     render(ui);
 
-    const menüEl = getMenuEl();
-    const menüElEltern = menüEl.previousSibling as HTMLElement;
+    const menuEl = getMenuEl();
+    const menuSiblingEl = menuEl.previousSibling as HTMLElement;
 
-    expect(menüElEltern.classList).not.toContain(activeClassName);
+    expect(menuSiblingEl.classList).not.toContain(activeClassName);
 
     act(() => {
-      menüEl.click();
+      menuEl.click();
     });
 
-    expect(menüElEltern.classList).toContain(activeClassName);
+    expect(menuSiblingEl.classList).toContain(activeClassName);
 
-    const erfahrungLöschenEl = document
-      .getElementsByClassName("delete-experience-link")
-      .item(0) as HTMLElement;
-
-    expect(kriegStornierenErfahrungLöschenEl()).toBeNull();
+    const deleteExperienceEl = getDeleteExperienceEl();
+    expect(getCancelDeleteExperienceEl()).toBeNull();
 
     act(() => {
-      erfahrungLöschenEl.click();
+      deleteExperienceEl.click();
     });
 
     act(() => {
-      kriegStornierenErfahrungLöschenEl().click();
+      getCancelDeleteExperienceEl().click();
     });
 
-    expect(kriegOkErfahrungLöschenEl()).toBeNull();
+    expect(getOkDeleteExperienceEl()).toBeNull();
 
     act(() => {
-      erfahrungLöschenEl.click();
+      deleteExperienceEl.click();
     });
 
     mockDeleteExperiences.mockResolvedValueOnce({
@@ -497,7 +494,7 @@ describe("components", () => {
     } as DeleteExperiencesMutationResult);
 
     act(() => {
-      kriegOkErfahrungLöschenEl().click();
+      getOkDeleteExperienceEl().click();
     });
 
     await wait(() => true);
@@ -513,13 +510,13 @@ describe("components", () => {
     expect(mockHistoryPushFn).toHaveBeenCalled();
   });
 
-  it("Einträge paginierung", async () => {
+  it("entries pagination", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({ connected: true });
 
-    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+    mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
         getEntries: {
           __typename: "GetEntriesSuccess",
@@ -541,18 +538,18 @@ describe("components", () => {
     render(ui);
     // return;
 
-    const holenNächstenEinträgeEl = kriegHolenNächstenEinträgeEl();
+    const fetchNextEntriesEl = getFetchNextEntriesEl();
     mockUseWithSubscriptionContext.mockReturnValue({ connected: true });
 
     mockManuallyFetchEntries.mockResolvedValueOnce({ error: "a" });
 
     act(() => {
-      holenNächstenEinträgeEl.click();
+      fetchNextEntriesEl.click();
     });
 
-    expect(kriegPaginierungFehlerEl()).toBeNull();
+    expect(getExperiencePaginationErrorEl()).toBeNull();
 
-    await waitForElement(kriegPaginierungFehlerEl);
+    await waitForElement(getExperiencePaginationErrorEl);
 
     mockUseWithSubscriptionContext.mockReturnValue({});
 
@@ -578,7 +575,7 @@ describe("components", () => {
     } as GetEntriesQueryResult);
 
     act(() => {
-      holenNächstenEinträgeEl.click();
+      fetchNextEntriesEl.click();
     });
 
     expect(document.getElementById("b")).toBeNull();
@@ -587,12 +584,12 @@ describe("components", () => {
       return document.getElementById("b");
     });
 
-    expect(kriegPaginierungFehlerEl()).toBeNull();
+    expect(getExperiencePaginationErrorEl()).toBeNull();
     // weil es gibt kein Netzwerk
-    expect(kriegHolenNächstenEinträgeEl()).toBeNull();
+    expect(getFetchNextEntriesEl()).toBeNull();
   });
 
-  it("nichtSynchronisiertFehler ", async () => {
+  it("entry sync errors", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
     mockGetSyncError.mockReturnValue({
@@ -603,10 +600,10 @@ describe("components", () => {
       } as OfflineIdToCreateEntrySyncErrorMap,
     });
 
-    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+    mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
         getEntries: {
           __typename: "GetEntriesSuccess",
@@ -629,7 +626,7 @@ describe("components", () => {
     expect(document.getElementById(mockUpsertEntrySuccessId)).toBeNull();
 
     act(() => {
-      kriegNichtSynchronisiertFehler().click();
+      getUpdateEntryLaunchEl().click();
     });
 
     act(() => {
@@ -660,28 +657,28 @@ describe("reducers", () => {
     dispatch: mockDispatchFn,
   } as any;
 
-  it("Neu Eintrag erstelltet als Einträge könnten nicht holen", () => {
-    let statten = initState();
+  it("creates new entry, even if entries can not be fetched", () => {
+    let state = initState();
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.ON_DATA_RECEIVED,
       experienceData: {
         key: StateValue.data,
-        erfahrung: DEFAULT_ERFAHRUNG,
-        einträgeDaten: {
-          schlüssel: StateValue.versagen,
-          fehler: "a",
+        experience: onlineExperience,
+        entriesData: {
+          key: StateValue.fail,
+          error: "a",
         },
         onlineStatus: StateValue.online,
       },
     });
 
-    const holenEinträgeScheitertStatten = (statten.states as DataState).data
-      .states.einträge;
+    const fetchEntriesFailState = (state.states as DataState).data.states
+      .entries;
 
-    expect(holenEinträgeScheitertStatten.wert).toBe(StateValue.versagen);
+    expect(fetchEntriesFailState.value).toBe(StateValue.fail);
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       newData: {
         entry: mockNewlyCreatedEntry,
@@ -689,19 +686,16 @@ describe("reducers", () => {
       },
     });
 
-    const stattenNachEintragErstelltet = (statten.states as DataState).data
-      .states.einträge as EinträgeMitHolenFehler;
+    const stateAfterEntryCreated = (state.states as DataState).data.states
+      .entries as FetchEntriesErrorState;
 
-    expect(stattenNachEintragErstelltet.wert).toBe(
-      StateValue.einträgeMitHolenFehler,
-    );
+    expect(stateAfterEntryCreated.value).toBe(StateValue.fetchEntriesError);
 
     expect(
-      stattenNachEintragErstelltet.einträgeMitHolenFehler.context.einträge
-        .length,
+      stateAfterEntryCreated.fetchEntriesError.context.entries.length,
     ).toBe(1);
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       newData: {
         entry: mockNewlyCreatedEntry,
@@ -709,42 +703,41 @@ describe("reducers", () => {
       },
     });
 
-    const stattenNachEintragErstelltet1 = (statten.states as DataState).data
-      .states.einträge as EinträgeMitHolenFehler;
+    const stateAfterEntryCreated1 = (state.states as DataState).data.states
+      .entries as FetchEntriesErrorState;
 
     expect(
-      stattenNachEintragErstelltet1.einträgeMitHolenFehler.context.einträge
-        .length,
+      stateAfterEntryCreated1.fetchEntriesError.context.entries.length,
     ).toBe(2);
   });
 
-  it("löschen Erfahrung Anforderung", () => {
-    let statten = initState();
+  it("request 'delete experience'", () => {
+    let state = initState();
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.ON_DATA_RECEIVED,
       experienceData: {
         key: StateValue.data,
-        erfahrung: DEFAULT_ERFAHRUNG,
-        einträgeDaten: {
-          schlüssel: StateValue.versagen,
-          fehler: "a",
+        experience: onlineExperience,
+        entriesData: {
+          key: StateValue.fail,
+          error: "a",
         },
         onlineStatus: StateValue.offline,
       },
     });
 
-    const [wirkung2] = (statten.effects.general as GenericHasEffect<
+    const [effect] = (state.effects.general as GenericHasEffect<
       EffectType
     >).hasEffects.context.effects;
 
-    const wirkungFunc2 = effectFunctions[wirkung2.key];
+    const effectFunc = effectFunctions[effect.key];
 
     mockGetDeleteExperienceLedger.mockReturnValueOnce({
       key: StateValue.requested,
     });
 
-    wirkungFunc2(wirkung2.ownArgs as any, props, effectArgs);
+    effectFunc(effect.ownArgs as any, props, effectArgs);
 
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
     expect(mockDispatchFn.mock.calls[0][0]).toEqual({
@@ -753,23 +746,23 @@ describe("reducers", () => {
     });
   });
 
-  it("Erhalten Einträge handhaben erfolg, wenn Einträge mit Fehler", () => {
-    let statten = initState();
+  it("fetches entries successfully even when there was previous error", () => {
+    let state = initState();
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.ON_DATA_RECEIVED,
       experienceData: {
         key: StateValue.data,
-        erfahrung: DEFAULT_ERFAHRUNG,
-        einträgeDaten: {
-          schlüssel: StateValue.versagen,
-          fehler: "a",
+        experience: onlineExperience,
+        entriesData: {
+          key: StateValue.fail,
+          error: "a",
         },
         onlineStatus: StateValue.online,
       },
     });
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       newData: {
         entry: mockNewlyCreatedEntry,
@@ -777,55 +770,55 @@ describe("reducers", () => {
       },
     });
 
-    const stattenNachEintragErstelltet = (statten.states as DataState).data
-      .states.einträge as EinträgeMitHolenFehler;
+    const stateAfterEntryCreated = (state.states as DataState).data.states
+      .entries as FetchEntriesErrorState;
 
-    expect(stattenNachEintragErstelltet.wert).toBe(
-      StateValue.einträgeMitHolenFehler,
+    expect(stateAfterEntryCreated.value).toBe(
+      StateValue.fetchEntriesError,
     );
 
-    statten = reducer(statten, {
-      type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
-      schlüssel: StateValue.erfolg,
+    state = reducer(state, {
+      type: ActionType.ENTRIES_RECEIVED,
+      key: StateValue.success,
       seiteInfo: {} as any,
-      einträge: [
+      entries: [
         {
-          eintragDaten: {} as any,
+          entryData: {} as any,
         },
       ],
     });
 
-    const stattenHolenEinträgeErfolg = (statten.states as DataState).data.states
-      .einträge as EinträgeDatenErfolg;
+    const stateAfterFetchEntriesSuccess = (state.states as DataState).data.states
+      .entries as EntriesDataSuccessSate;
 
-    expect(stattenHolenEinträgeErfolg.wert).toBe(StateValue.erfolg);
-    expect(stattenHolenEinträgeErfolg.erfolg.context).toEqual({
+    expect(stateAfterFetchEntriesSuccess.value).toBe(StateValue.success);
+    expect(stateAfterFetchEntriesSuccess.success.context).toEqual({
       seiteInfo: {},
-      einträge: [
+      entries: [
         {
-          eintragDaten: {},
+          entryData: {},
         },
       ],
     });
   });
 
-  it("Erhalten Einträge handhaben scheitern, wenn Einträge mit Fehler", () => {
-    let statten = initState();
+  it("fails to fetch entry, when entry fetch / creation fails", () => {
+    let state = initState();
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.ON_DATA_RECEIVED,
       experienceData: {
         key: StateValue.data,
-        erfahrung: DEFAULT_ERFAHRUNG,
-        einträgeDaten: {
-          schlüssel: StateValue.versagen,
-          fehler: "a",
+        experience: onlineExperience,
+        entriesData: {
+          key: StateValue.fail,
+          error: "a",
         },
         onlineStatus: StateValue.online,
       },
     });
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       newData: {
         entry: mockNewlyCreatedEntry,
@@ -833,56 +826,53 @@ describe("reducers", () => {
       },
     });
 
-    const stattenNachEintragErstelltet = (statten.states as DataState).data
-      .states.einträge as EinträgeMitHolenFehler;
+    const stateAfterEntryCreated = (state.states as DataState).data.states
+      .entries as FetchEntriesErrorState;
 
-    expect(stattenNachEintragErstelltet.wert).toBe(
-      StateValue.einträgeMitHolenFehler,
-    );
+    expect(stateAfterEntryCreated.value).toBe(StateValue.fetchEntriesError);
 
-    statten = reducer(statten, {
-      type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
-      schlüssel: StateValue.versagen,
-      fehler: "a",
+    state = reducer(state, {
+      type: ActionType.ENTRIES_RECEIVED,
+      key: StateValue.fail,
+      error: "a",
     });
 
-    const stattenHolenEinträgeVersagen = (statten.states as DataState).data
-      .states.einträge as EinträgeMitHolenFehler;
+    const stateAfterFetchEntriesFail = (state.states as DataState).data.states
+      .entries as FetchEntriesErrorState;
 
-    expect(stattenHolenEinträgeVersagen.wert).toBe(
-      StateValue.einträgeMitHolenFehler,
-    );
+    expect(stateAfterFetchEntriesFail.value).toBe(StateValue.fetchEntriesError);
+
     expect(
-      stattenHolenEinträgeVersagen.einträgeMitHolenFehler.context.holenFehler,
+      stateAfterFetchEntriesFail.fetchEntriesError.context.fetchError,
     ).toEqual("a");
   });
 
-  it("stornieren löschen Erfahrung", () => {
-    let statten = initState();
+  it("cancel delete experience", () => {
+    let state = initState();
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.ON_DATA_RECEIVED,
       experienceData: {
         key: StateValue.data,
-        erfahrung: DEFAULT_ERFAHRUNG,
-        einträgeDaten: {
-          schlüssel: StateValue.versagen,
-          fehler: "a",
+        experience: onlineExperience,
+        entriesData: {
+          key: StateValue.fail,
+          error: "a",
         },
         onlineStatus: StateValue.online,
       },
     });
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.DELETE_EXPERIENCE_REQUEST,
       key: StateValue.requested,
     });
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.DELETE_EXPERIENCE_CANCELLED,
     });
 
-    const [wirkung] = (statten.effects.general as GenericHasEffect<
+    const [wirkung] = (state.effects.general as GenericHasEffect<
       EffectType
     >).hasEffects.context.effects;
 
@@ -895,53 +885,53 @@ describe("reducers", () => {
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0]).toEqual({
       key: StateValue.cancelled,
       id: onlineId,
-      title: DEFAULT_ERFAHRUNG.title,
+      title: onlineExperience.title,
     });
 
     expect(mockHistoryPushFn).toBeCalled();
   });
 
-  it("handhaben zeigen vollständig optionen menü", () => {
-    let statten = initState();
+  it("shows experience menu", () => {
+    let state = initState();
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.ON_DATA_RECEIVED,
       experienceData: {
         key: StateValue.data,
-        erfahrung: DEFAULT_ERFAHRUNG,
-        einträgeDaten: {
-          schlüssel: StateValue.versagen,
-          fehler: "a",
+        experience: onlineExperience,
+        entriesData: {
+          key: StateValue.fail,
+          error: "a",
         },
         onlineStatus: StateValue.online,
       },
     });
 
     expect(
-      (statten.states as DataState).data.states.showingOptionsMenu.value,
+      (state.states as DataState).data.states.showingOptionsMenu.value,
     ).toBe(StateValue.inactive);
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.TOGGLE_EXPERIENCE_MENU,
     });
 
     expect(
-      (statten.states as DataState).data.states.showingOptionsMenu.value,
+      (state.states as DataState).data.states.showingOptionsMenu.value,
     ).toBe(StateValue.active);
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.TOGGLE_EXPERIENCE_MENU,
     });
 
     expect(
-      (statten.states as DataState).data.states.showingOptionsMenu.value,
+      (state.states as DataState).data.states.showingOptionsMenu.value,
     ).toBe(StateValue.inactive);
   });
 
-  it("holen Erfahrungen mit timeouts", async () => {
-    let statten = initState();
+  it("fetch experiences with timeouts", async () => {
+    let state = initState();
 
-    const [wirkung] = (statten.effects.general as GenericHasEffect<
+    const [wirkung] = (state.effects.general as GenericHasEffect<
       EffectType
     >).hasEffects.context.effects;
 
@@ -954,27 +944,27 @@ describe("reducers", () => {
     jest.runTimersToTime(FETCH_EXPERIENCES_TIMEOUTS[0]);
   });
 
-  it("holen Einträge warf Ausnahme, dann ohne erfolg", async () => {
-    let statten = initState();
+  it("throws error while fetching entries, then no success", async () => {
+    let state = initState();
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.ON_DATA_RECEIVED,
       experienceData: {
         key: StateValue.data,
-        erfahrung: DEFAULT_ERFAHRUNG,
-        einträgeDaten: {
-          schlüssel: StateValue.versagen,
-          fehler: "a",
+        experience: onlineExperience,
+        entriesData: {
+          key: StateValue.fail,
+          error: "a",
         },
         onlineStatus: StateValue.online,
       },
     });
 
-    statten = reducer(statten, {
+    state = reducer(state, {
       type: ActionType.RE_FETCH_ENTRIES,
     });
 
-    const [wirkung] = (statten.effects.general as GenericHasEffect<
+    const [wirkung] = (state.effects.general as GenericHasEffect<
       EffectType
     >).hasEffects.context.effects;
 
@@ -988,9 +978,9 @@ describe("reducers", () => {
     await wirkungFunc(ownArgs, props, effectArgs);
 
     expect(mockDispatchFn.mock.calls[0][0]).toEqual({
-      type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
-      schlüssel: StateValue.versagen,
-      fehler: error,
+      type: ActionType.ENTRIES_RECEIVED,
+      key: StateValue.fail,
+      error: error,
     });
 
     mockManuallyFetchEntries.mockResolvedValueOnce({
@@ -1007,9 +997,9 @@ describe("reducers", () => {
     await wirkungFunc(ownArgs, props, effectArgs);
 
     expect(mockDispatchFn.mock.calls[1][0]).toEqual({
-      type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
-      schlüssel: StateValue.versagen,
-      fehler: "b",
+      type: ActionType.ENTRIES_RECEIVED,
+      key: StateValue.fail,
+      error: "b",
     });
 
     await wirkungFunc(ownArgs, props, effectArgs);
@@ -1076,10 +1066,10 @@ describe("reducers", () => {
 
     const wirkungFunc = effectFunctions[wirkung.key];
 
-    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+    mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
         getEntries: onlineOfflineEntriesSuccess,
       },
@@ -1096,7 +1086,7 @@ describe("reducers", () => {
         } as CreateEntryErrorFragment,
       },
       updateEntries: {
-        [EINTRAG_ID]: "a" as UpdateEntrySyncErrors,
+        [onlineEntryId]: "a" as UpdateEntrySyncErrors,
         [offlineEntryId]: {
           a: {
             meta: {
@@ -1147,10 +1137,10 @@ describe("upsert experience on sync", () => {
       },
     } as ExperienceSyncError);
 
-    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+    mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
         getEntries: onlineEntrySuccess,
       },
@@ -1245,10 +1235,10 @@ describe("upsert experience on sync", () => {
       },
     } as ExperienceSyncError);
 
-    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+    mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
         getEntries: offlineEntrySuccess,
       },
@@ -1270,10 +1260,10 @@ describe("upsert experience on sync", () => {
 
     // Then user gets message that there are errors
     let closeSyncErrorsCloseEl = getCloseSyncErrorsMsgBtn();
-    expect(kriegNichtSynchronisiertFehler()).not.toBeNull();
+    expect(getUpdateEntryLaunchEl()).not.toBeNull();
 
     // There is button user can click to edit entry
-    const triggerUpdateEntryEl = kriegNichtSynchronisiertFehler();
+    const triggerUpdateEntryEl = getUpdateEntryLaunchEl();
 
     // UpsertEntry UI should be visible
     expect(getUpsertEntrySuccess()).toBeNull();
@@ -1330,7 +1320,7 @@ describe("upsert experience on sync", () => {
 
     // Error notification should not be visible
     expect(getSyncErrorsNotificationEl()).toBeNull();
-    expect(kriegNichtSynchronisiertFehler()).toBeNull();
+    expect(getUpdateEntryLaunchEl()).toBeNull();
   });
 
   it("displays sync errors for update entries", () => {
@@ -1339,7 +1329,7 @@ describe("upsert experience on sync", () => {
     // Given an experience has update entries sync errors
     mockGetSyncError.mockReturnValue({
       updateEntries: {
-        [EINTRAG_ID]: "a" as UpdateEntrySyncErrors,
+        [onlineEntryId]: "a" as UpdateEntrySyncErrors,
         [offlineEntryId]: {
           a: {
             meta: {
@@ -1352,10 +1342,10 @@ describe("upsert experience on sync", () => {
       },
     } as ExperienceSyncError);
 
-    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+    mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
         getEntries: onlineOfflineEntriesSuccess,
       },
@@ -1379,7 +1369,7 @@ describe("upsert experience on sync", () => {
     expect(getCloseSyncErrorsMsgBtn).not.toBeNull();
 
     // When user clicks on button to update entry
-    const triggerUpdateEntryEl = kriegNichtSynchronisiertFehler();
+    const triggerUpdateEntryEl = getUpdateEntryLaunchEl();
     act(() => {
       triggerUpdateEntryEl.click();
     });
@@ -1402,10 +1392,10 @@ describe("update experience", () => {
   it("shows experience menu when entries can not be fetched", () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+    mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
       },
     } as DetailedExperienceQueryResult);
@@ -1421,10 +1411,10 @@ describe("update experience", () => {
   it("shows experience menu when entries list is empty", () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+    mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
         getEntries: emptyEntriesSuccessList,
       },
@@ -1439,13 +1429,13 @@ describe("update experience", () => {
   });
 
   it("updates experience successfully", async () => {
-    mockUpdatedExperience = DEFAULT_ERFAHRUNG;
+    mockUpdatedExperience = onlineExperience;
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+    mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
       },
     } as DetailedExperienceQueryResult);
@@ -1508,10 +1498,10 @@ describe("sync", () => {
       } as OnSyncedData,
     } as WithSubscriptionContextProps);
 
-    mockSammelnZwischengespeicherteErfahrung.mockReturnValueOnce({
+    mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
-          ...DEFAULT_ERFAHRUNG,
+          ...onlineExperience,
         },
         getEntries: offlineEntrySuccess,
       },
@@ -1550,7 +1540,7 @@ function makeComp({
 
   props.match = {
     params: {
-      experienceId: DEFAULT_ERFAHRUNG.id,
+      experienceId: onlineExperience.id,
     },
   } as Match;
 
@@ -1573,10 +1563,8 @@ function getUpsertEntryTriggerEl() {
     .item(0) as HTMLElement;
 }
 
-function getNewEntryNotificationEl() {
-  return document.getElementById(
-    newEntryCreatedNotificationCloseId,
-  ) as HTMLElement;
+function getCloseUpsertEntryNotificationEl() {
+  return document.getElementById(closeUpsertEntryNotificationId) as HTMLElement;
 }
 
 function getSyncErrorsNotificationEl() {
@@ -1589,33 +1577,33 @@ function getMenuEl() {
     .item(0) as HTMLDivElement;
 }
 
-function kriegStornierenErfahrungLöschenEl() {
+function getCancelDeleteExperienceEl() {
   return document
     .getElementsByClassName("delete-experience__cancel-button")
     .item(0) as HTMLElement;
 }
 
-function kriegOkErfahrungLöschenEl() {
+function getOkDeleteExperienceEl() {
   return document
     .getElementsByClassName("delete-experience__ok-button")
     .item(0) as HTMLElement;
 }
 
-function kriegNeueHolenEinträge() {
-  return document.getElementById(neueHolenEinträgeId) as HTMLElement;
+function getRefetchEntries() {
+  return document.getElementById(refetchEntriesId) as HTMLElement;
 }
 
-function kriegHolenNächstenEinträgeEl() {
-  return document.getElementById(holenNächstenEinträgeId) as HTMLElement;
+function getFetchNextEntriesEl() {
+  return document.getElementById(fetchNextEntriesId) as HTMLElement;
 }
 
-function kriegPaginierungFehlerEl() {
+function getExperiencePaginationErrorEl() {
   return document
-    .getElementsByClassName("detailed-experience__paginierung-fehler")
+    .getElementsByClassName("detailed-experience__paginierung-error")
     .item(0);
 }
 
-function kriegNichtSynchronisiertFehler(index: number = 0) {
+function getUpdateEntryLaunchEl(index: number = 0) {
   return document
     .getElementsByClassName("detailed-experience__entry-edit")
     .item(index) as HTMLElement;
@@ -1667,4 +1655,10 @@ function getUpdateExperienceSuccessNotification() {
 
 function getMockUpsertExperienceSuccess() {
   return document.getElementById(mockUpsertExperienceSuccessId) as HTMLElement;
+}
+
+function getDeleteExperienceEl() {
+  return document
+    .getElementsByClassName("delete-experience-link")
+    .item(0) as HTMLElement;
 }

@@ -1,5 +1,5 @@
 import { Reducer, Dispatch } from "react";
-import { wrapReducer, wickelnStatten } from "../../logger";
+import { wrapReducer, wrapState } from "../../logger";
 import { RouteChildrenProps, match } from "react-router-dom";
 import { DetailExperienceRouteMatch } from "../../utils/urls";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
@@ -19,9 +19,9 @@ import {
   DataVal,
   LoadingState,
   FETCH_EXPERIENCES_TIMEOUTS,
-  ErfolgWert,
-  VersagenWert,
-  EinträgeMitHolenFehlerWert,
+  SuccessVal,
+  FailVal,
+  FetchEntriesErrorVal,
   ReFetchOnly as ReFetchOnlyVal,
   OnlineStatus,
 } from "../../utils/types";
@@ -48,12 +48,12 @@ import { manuallyFetchDetailedExperience } from "../../utils/experience.gql.type
 import {
   parseStringError,
   DATA_FETCHING_FAILED,
-  HOLEN_EINTRÄGE_GESCHEITERT,
+  FETCH_ENTRIES_FAIL_ERROR_MSG,
   FieldError,
 } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";
 import {
-  sammelnZwischengespeicherteErfahrung,
+  getCachedExperience,
   getEntriesQuerySuccess,
   writeGetEntriesQuery,
 } from "../../apollo/get-detailed-experience-query";
@@ -109,8 +109,8 @@ export enum ActionType {
   ON_DATA_RECEIVED = "@detailed-experience/on-data-received",
   RE_FETCH_EXPERIENCE = "@detailed-experience/re-fetch-experience",
   RE_FETCH_ENTRIES = "@detailed-experience/re-fetch-entries",
-  HOLEN_NÄCHSTE_EINTRÄGE = "@detailed-experience/holen-nächste-einträge",
-  AUF_EINTRÄGE_ERHIELTEN = "@detailed-experience/on-entries-received",
+  FETCH_NEXT_ENTRIES = "@detailed-experience/fetch-next-entries",
+  ENTRIES_RECEIVED = "@detailed-experience/on-entries-received",
   REQUEST_UPDATE_EXPERIENCE_UI = "@detailed-experience/request-update-experience-ui",
   ON_SYNC = "@detailed-experience/on-sync",
   CLOSE_SYNC_ERRORS_MSG = "@detailed-experience/close-sync-errors-message",
@@ -129,7 +129,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           case ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE:
             handleToggleUpsertEntryActiveAction(
               proxy,
-              payload as NewEntryActivePayload,
+              payload as UpsertEntryActivePayload,
             );
             break;
 
@@ -172,18 +172,18 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             break;
 
           case ActionType.RE_FETCH_ENTRIES:
-            handleRefetchEntries(proxy);
+            handleRefetchEntriesAction(proxy);
             break;
 
-          case ActionType.AUF_EINTRÄGE_ERHIELTEN:
-            handhabenEinträgeErhieltenHandlung(
+          case ActionType.ENTRIES_RECEIVED:
+            handleEntriesReceivedAction(
               proxy,
-              payload as VerarbeitenEinträgeAbfrageZurückgegebenerWert,
+              payload as ProcessedEntriesQueryReturnVal,
             );
             break;
 
-          case ActionType.HOLEN_NÄCHSTE_EINTRÄGE:
-            handhabenHolenNächsteEinträgeHandlung(proxy);
+          case ActionType.FETCH_NEXT_ENTRIES:
+            handleFetchNextEntriesAction(proxy);
             break;
 
           case ActionType.REQUEST_UPDATE_EXPERIENCE_UI:
@@ -239,12 +239,12 @@ export function initState(): StateMachine {
     timeouts: {},
   };
 
-  return wickelnStatten(state);
+  return wrapState(state);
 }
 
 function handleToggleUpsertEntryActiveAction(
   proxy: DraftState,
-  payload: NewEntryActivePayload,
+  payload: UpsertEntryActivePayload,
 ) {
   const { states: globalStates } = proxy;
 
@@ -254,18 +254,18 @@ function handleToggleUpsertEntryActiveAction(
       states,
       context: { syncErrors },
     } = globalStates.data;
-    const { bearbeitenEintrag } = payload;
+    const { updatingEntry } = payload;
 
     const {
       upsertEntryActive: { value },
     } = states;
 
-    if (bearbeitenEintrag) {
+    if (updatingEntry) {
       const state = states.upsertEntryActive as Draft<UpsertEntryActive>;
       state.value = StateValue.active;
       state.active = {
         context: {
-          bearbeitenEintrag,
+          updatingEntry: updatingEntry,
         },
       };
 
@@ -364,7 +364,7 @@ function handleDeleteExperienceCancelledAction(proxy: DraftState) {
       effects.push({
         key: "cancelDeleteExperienceEffect",
         ownArgs: {
-          schlüssel: deleteExperienceActive.active.context.key,
+          key: deleteExperienceActive.active.context.key,
           experience,
         },
       });
@@ -381,7 +381,7 @@ function handleDeleteExperienceConfirmedAction(proxy: DraftState) {
     effects.push({
       key: "deleteExperienceEffect",
       ownArgs: {
-        erfahrungId: states.data.context.experience.id,
+        experienceId: states.data.context.experience.id,
       },
     });
   }
@@ -426,7 +426,7 @@ function handleOnDataReceivedAction(
   switch (experienceData.key) {
     case StateValue.data:
       {
-        const { erfahrung, einträgeDaten, onlineStatus } = experienceData;
+        const { experience, entriesData, onlineStatus } = experienceData;
 
         const dataState = states as Draft<DataState>;
         dataState.value = StateValue.data;
@@ -440,12 +440,12 @@ function handleOnDataReceivedAction(
           dataStateData.context || ({} as Draft<DataStateContext>);
 
         dataStateData.context = context;
-        context.experience = erfahrung;
+        context.experience = experience;
         processSyncErrors(context, syncErrors);
         context.onlineStatus = onlineStatus;
 
         context.dataDefinitionIdToNameMap = makeDataDefinitionIdToNameMap(
-          erfahrung.dataDefinitions,
+          experience.dataDefinitions,
         );
 
         dataStateData.states = {
@@ -467,20 +467,20 @@ function handleOnDataReceivedAction(
           showingOptionsMenu: {
             value: StateValue.inactive,
           },
-          einträge:
-            einträgeDaten.schlüssel === StateValue.erfolg
+          entries:
+            entriesData.key === StateValue.success
               ? {
-                  wert: StateValue.erfolg,
-                  erfolg: {
+                  value: StateValue.success,
+                  success: {
                     context: {
-                      einträge: einträgeDaten.einträge,
-                      seiteInfo: einträgeDaten.seiteInfo,
+                      entries: entriesData.entries,
+                      seiteInfo: entriesData.seiteInfo,
                     },
                   },
                 }
               : {
-                  wert: StateValue.versagen,
-                  fehler: parseStringError(einträgeDaten.fehler),
+                  value: StateValue.fail,
+                  error: parseStringError(entriesData.error),
                 },
 
           syncErrorsMsg: {
@@ -491,7 +491,7 @@ function handleOnDataReceivedAction(
         effects.push({
           key: "deleteExperienceRequestedEffect",
           ownArgs: {
-            experienceId: erfahrung.id,
+            experienceId: experience.id,
           },
         });
       }
@@ -518,7 +518,7 @@ function handleRefetchExperienceAction(proxy: DraftState) {
   });
 }
 
-function handleRefetchEntries(proxy: DraftState) {
+function handleRefetchEntriesAction(proxy: DraftState) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else
@@ -526,18 +526,18 @@ function handleRefetchEntries(proxy: DraftState) {
     const { states } = globalStates.data;
 
     // istanbul ignore else
-    if (states.einträge.wert !== StateValue.erfolg) {
+    if (states.entries.value !== StateValue.success) {
       const effects = getGeneralEffects(proxy);
 
       effects.push({
-        key: "holenEinträgeWirkung",
+        key: "fetchEntriesEffect",
         ownArgs: {},
       });
     }
   }
 }
 
-function handhabenHolenNächsteEinträgeHandlung(proxy: DraftState) {
+function handleFetchNextEntriesAction(proxy: DraftState) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else
@@ -545,18 +545,18 @@ function handhabenHolenNächsteEinträgeHandlung(proxy: DraftState) {
     const { states } = globalStates.data;
 
     // istanbul ignore else
-    if (states.einträge.wert === StateValue.erfolg) {
+    if (states.entries.value === StateValue.success) {
       const {
         hasNextPage,
         endCursor,
-      } = states.einträge.erfolg.context.seiteInfo;
+      } = states.entries.success.context.seiteInfo;
 
       // istanbul ignore else
       if (hasNextPage) {
         const effects = getGeneralEffects(proxy);
 
         effects.push({
-          key: "holenEinträgeWirkung",
+          key: "fetchEntriesEffect",
           ownArgs: {
             pagination: {
               first: 10,
@@ -569,26 +569,26 @@ function handhabenHolenNächsteEinträgeHandlung(proxy: DraftState) {
   }
 }
 
-function handhabenEinträgeErhieltenHandlung(
+function handleEntriesReceivedAction(
   proxy: DraftState,
-  payload: VerarbeitenEinträgeAbfrageZurückgegebenerWert | ReFetchOnlyPayload,
+  payload: ProcessedEntriesQueryReturnVal | ReFetchOnlyPayload,
 ) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const { states } = globalStates.data;
-    const einträgeStatten = states.einträge;
+    const entriesState = states.entries;
 
-    switch (einträgeStatten.wert) {
-      case StateValue.erfolg:
+    switch (entriesState.value) {
+      case StateValue.success:
         {
-          const { context } = einträgeStatten.erfolg;
+          const { context } = entriesState.success;
 
-          switch (payload.schlüssel) {
-            case StateValue.erfolg:
+          switch (payload.key) {
+            case StateValue.success:
               context.seiteInfo = payload.seiteInfo;
-              context.einträge = [...context.einträge, ...payload.einträge];
+              context.entries = [...context.entries, ...payload.entries];
               break;
 
             case StateValue.reFetchOnly:
@@ -602,55 +602,55 @@ function handhabenEinträgeErhieltenHandlung(
                 {} as { [entryId: string]: EntryFragment },
               );
 
-              context.einträge = context.einträge.map((val) => {
-                const oldEntry = val.eintragDaten;
-                val.eintragDaten = idToEntryMap[oldEntry.id];
+              context.entries = context.entries.map((val) => {
+                const oldEntry = val.entryData;
+                val.entryData = idToEntryMap[oldEntry.id];
                 return val;
               });
 
               break;
 
-            case StateValue.versagen:
-              context.paginierungFehler = parseStringError(payload.fehler);
+            case StateValue.fail:
+              context.pagingError = parseStringError(payload.error);
               break;
           }
         }
         break;
 
-      case StateValue.versagen:
+      case StateValue.fail:
         // istanbul ignore else:
-        if (payload.schlüssel === StateValue.erfolg) {
-          const einträgeErfolgStatten = states.einträge as Draft<
-            EinträgeDatenErfolg
+        if (payload.key === StateValue.success) {
+          const entriesSuccessState = states.entries as Draft<
+            EntriesDataSuccessSate
           >;
 
-          einträgeErfolgStatten.wert = StateValue.erfolg;
-          einträgeErfolgStatten.erfolg = {
+          entriesSuccessState.value = StateValue.success;
+          entriesSuccessState.success = {
             context: {
-              einträge: payload.einträge,
+              entries: payload.entries,
               seiteInfo: payload.seiteInfo,
             },
           };
         }
         break;
 
-      case StateValue.einträgeMitHolenFehler:
-        if (payload.schlüssel === StateValue.erfolg) {
-          const einträgeErfolgStatten = states.einträge as Draft<
-            EinträgeDatenErfolg
+      case StateValue.fetchEntriesError:
+        if (payload.key === StateValue.success) {
+          const entriesSuccessState = states.entries as Draft<
+            EntriesDataSuccessSate
           >;
 
-          einträgeErfolgStatten.wert = StateValue.erfolg;
+          entriesSuccessState.value = StateValue.success;
 
-          einträgeErfolgStatten.erfolg = {
+          entriesSuccessState.success = {
             context: {
-              einträge: payload.einträge,
+              entries: payload.entries,
               seiteInfo: payload.seiteInfo,
             },
           };
         } else {
-          einträgeStatten.einträgeMitHolenFehler.context.holenFehler = parseStringError(
-            (payload as any).fehler,
+          entriesState.fetchEntriesError.context.fetchError = parseStringError(
+            (payload as ProcessedEntriesQueryErrorReturnVal).error,
           );
         }
         break;
@@ -674,7 +674,7 @@ function handleUpdateExperienceUiRequestAction(
     const modifiedState = state;
     const effects = getGeneralEffects<EffectType, DraftState>(proxy);
 
-    if (state.value === StateValue.erfolg) {
+    if (state.value === StateValue.success) {
       modifiedState.value = StateValue.inactive;
 
       effects.push({
@@ -690,7 +690,7 @@ function handleUpdateExperienceUiRequestAction(
     }
 
     if (experience) {
-      modifiedState.value = StateValue.erfolg;
+      modifiedState.value = StateValue.success;
       context.experience = experience;
       context.onlineStatus = onlineStatus as OnlineStatus;
 
@@ -700,7 +700,7 @@ function handleUpdateExperienceUiRequestAction(
 
       effects.push(
         {
-          key: "holenEinträgeWirkung",
+          key: "fetchEntriesEffect",
           ownArgs: {
             reFetchFromCache: true,
           },
@@ -736,7 +736,7 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
 
     const {
       context,
-      states: { einträge: einträgeStatten },
+      states: { entries: entriesState },
     } = globalStates.data;
     const {
       offlineIdToOnlineExperienceMap,
@@ -784,7 +784,7 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
 
       // we have offline entries from online experience now synced
       if (offlineIdToOnlineEntryMap) {
-        updateEntriesFn(einträgeStatten, offlineIdToOnlineEntryMap);
+        updateEntriesFn(entriesState, offlineIdToOnlineEntryMap);
       }
 
       effects.push({
@@ -802,9 +802,9 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
       let entriesErrors: undefined | IndexToEntryErrorsList = undefined;
 
       if (createEntries) {
-        entriesErrors = updateEntriesFn(einträgeStatten, createEntries);
+        entriesErrors = updateEntriesFn(entriesState, createEntries);
       } else if (updateEntries) {
-        entriesErrors = updateEntriesFn(einträgeStatten, updateEntries);
+        entriesErrors = updateEntriesFn(entriesState, updateEntries);
       }
 
       if (entriesErrors) {
@@ -842,7 +842,7 @@ function handleOnUpsertEntrySuccessAction(
       upsertEntryActive,
       notification,
       newEntryCreated,
-      einträge: einträgeStatten,
+      entries: entriesState,
     } = states;
 
     upsertEntryActive.value = StateValue.inactive;
@@ -885,37 +885,37 @@ function handleOnUpsertEntrySuccessAction(
         ownArgs: {},
       });
 
-      switch (einträgeStatten.wert) {
-        case StateValue.erfolg:
-        case StateValue.einträgeMitHolenFehler:
-          const ob = (einträgeStatten[StateValue.erfolg] ||
-            einträgeStatten[StateValue.einträgeMitHolenFehler]) as Draft<
-            EinträgeDatenErfolg["erfolg"]
+      switch (entriesState.value) {
+        case StateValue.success:
+        case StateValue.fetchEntriesError:
+          const ob = (entriesState[StateValue.success] ||
+            entriesState[StateValue.fetchEntriesError]) as Draft<
+            EntriesDataSuccessSate["success"]
           >;
 
           const { context } = ob;
 
-          context.einträge.unshift({
-            eintragDaten: newEntry,
+          context.entries.unshift({
+            entryData: newEntry,
           });
 
           break;
 
-        case StateValue.versagen:
+        case StateValue.fail:
           {
-            const einträgeMitHolenFehler = states.einträge as Draft<
-              EinträgeMitHolenFehler
+            const fetchEntriesError = states.entries as Draft<
+              FetchEntriesErrorState
             >;
 
-            einträgeMitHolenFehler.wert = StateValue.einträgeMitHolenFehler;
-            einträgeMitHolenFehler.einträgeMitHolenFehler = {
+            fetchEntriesError.value = StateValue.fetchEntriesError;
+            fetchEntriesError.fetchEntriesError = {
               context: {
-                einträge: [
+                entries: [
                   {
-                    eintragDaten: newEntry,
+                    entryData: newEntry,
                   },
                 ],
-                holenFehler: einträgeStatten.fehler,
+                fetchError: entriesState.error,
               },
             };
           }
@@ -942,7 +942,7 @@ function handleOnUpsertEntrySuccessAction(
       }
 
       updateEntriesFn(
-        einträgeStatten,
+        entriesState,
         {
           [id]: newEntry,
         },
@@ -989,7 +989,7 @@ function makeDataDefinitionIdToNameMap(definitions: DataDefinitionFragment[]) {
 }
 
 function updateEntriesFn(
-  state: EinträgeDaten,
+  state: EntriesData,
   payload:
     | {
         [entryId: string]: EntryFragment | CreateEntryErrorFragment;
@@ -997,23 +997,23 @@ function updateEntriesFn(
     | IdToUpdateEntrySyncErrorMap,
   update?: true,
 ) {
-  const ob = (state[StateValue.erfolg] ||
-    state[StateValue.einträgeMitHolenFehler]) as Draft<
-    EinträgeDatenErfolg["erfolg"]
+  const ob = (state[StateValue.success] ||
+    state[StateValue.fetchEntriesError]) as Draft<
+    EntriesDataSuccessSate["success"]
   >;
 
   const {
-    context: { einträge },
+    context: { entries },
   } = ob;
 
   const entryErrors: IndexToEntryErrorsList = [];
-  const len = einträge.length;
+  const len = entries.length;
   let i = 0;
   let hasErrors = false;
 
   for (; i < len; i++) {
-    const daten = einträge[i];
-    const { id } = daten.eintragDaten;
+    const daten = entries[i];
+    const { id } = daten.entryData;
     const updated = payload[id];
 
     if (!updated) {
@@ -1025,17 +1025,15 @@ function updateEntriesFn(
     const updateErrors = updated as UpdateEntrySyncErrors;
 
     if (updatedEntry.__typename === "Entry") {
-      daten.eintragDaten = updatedEntry;
+      daten.entryData = updatedEntry;
 
-      daten.nichtSynchronisiertFehler = update
-        ? undefined
-        : daten.nichtSynchronisiertFehler;
+      daten.entrySyncError = update ? undefined : daten.entrySyncError;
     } else if (createdErrors.__typename === "CreateEntryError") {
-      daten.nichtSynchronisiertFehler = createdErrors;
+      daten.entrySyncError = createdErrors;
       processCreateEntriesErrors(entryErrors, createdErrors, i);
       hasErrors = true;
     } else {
-      daten.nichtSynchronisiertFehler = updateErrors;
+      daten.entrySyncError = updateErrors;
       processUpdateEntriesErrors(entryErrors, updateErrors, i);
       hasErrors = true;
     }
@@ -1181,10 +1179,10 @@ type DefDeleteExperienceRequestedEffect = EffectDefinition<
 >;
 
 const cancelDeleteExperienceEffect: DefCancelDeleteExperienceEffect["func"] = (
-  { schlüssel, experience: { id, title } },
+  { key, experience: { id, title } },
   props,
 ) => {
-  if (schlüssel) {
+  if (key) {
     const { history } = props;
 
     putOrRemoveDeleteExperienceLedger({
@@ -1201,12 +1199,12 @@ type DefCancelDeleteExperienceEffect = EffectDefinition<
   "cancelDeleteExperienceEffect",
   {
     experience: ExperienceFragment;
-    schlüssel: string;
+    key: string;
   }
 >;
 
 const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
-  { erfahrungId },
+  { experienceId },
   props,
   effectArgs,
 ) => {
@@ -1217,7 +1215,7 @@ const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
   try {
     const response = await deleteExperiences({
       variables: {
-        input: [erfahrungId],
+        input: [experienceId],
       },
     });
 
@@ -1263,7 +1261,7 @@ const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
 type DefDeleteExperienceEffect = EffectDefinition<
   "deleteExperienceEffect",
   {
-    erfahrungId: string;
+    experienceId: string;
   }
 >;
 
@@ -1277,9 +1275,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
   let timeoutId: null | NodeJS.Timeout = null;
   const timeoutsLen = FETCH_EXPERIENCES_TIMEOUTS.length - 1;
 
-  let bestehendeZwischengespeicherteErgebnis = sammelnZwischengespeicherteErfahrung(
-    experienceId,
-  );
+  let cachedResult = getCachedExperience(experienceId);
 
   const offlineId = getAndRemoveOfflineExperienceIdFromSyncFlag(experienceId);
 
@@ -1291,10 +1287,10 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
 
   const syncErrors = getSyncError(experienceId) || undefined;
 
-  if (bestehendeZwischengespeicherteErgebnis) {
-    const daten = bestehendeZwischengespeicherteErgebnis.data as GetDetailExperience;
+  if (cachedResult) {
+    const daten = cachedResult.data as GetDetailExperience;
 
-    const [experienceData, newSyncErrors] = verarbeitenErfahrungAbfrage(
+    const [experienceData, newSyncErrors] = processGetExperienceQuery(
       daten.getExperience,
       daten.getEntries,
       syncErrors,
@@ -1323,7 +1319,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
 
       const daten = (data && data.data) || ({} as GetDetailExperience);
 
-      const [experienceData, newSyncErrors] = verarbeitenErfahrungAbfrage(
+      const [experienceData, newSyncErrors] = processGetExperienceQuery(
         daten.getExperience || null,
         daten.getEntries,
         syncErrors,
@@ -1382,28 +1378,28 @@ type DefFetchDetailedExperienceEffect = EffectDefinition<
   "fetchDetailedExperienceEffect"
 >;
 
-const holenEinträgeWirkung: DefHolenEinträgeWirkung["func"] = async (
+const fetchEntriesEffect: DefFetchEntriesEffect["func"] = async (
   { pagination, reFetchFromCache },
   props,
   effectArgs,
 ) => {
-  const erfahrungId = getExperienceId(props);
+  const experienceId = getExperienceId(props);
   const { dispatch } = effectArgs;
 
   const variables = {
-    experienceId: erfahrungId,
+    experienceId,
     pagination: pagination || {
       first: 10,
     },
   };
 
-  const zuletztEinträge = getEntriesQuerySuccess(erfahrungId);
+  const previousEntries = getEntriesQuerySuccess(experienceId);
 
-  if (reFetchFromCache && zuletztEinträge) {
+  if (reFetchFromCache && previousEntries) {
     dispatch({
-      type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
-      schlüssel: StateValue.reFetchOnly,
-      entries: zuletztEinträge,
+      type: ActionType.ENTRIES_RECEIVED,
+      key: StateValue.reFetchOnly,
+      entries: previousEntries,
     });
 
     return;
@@ -1416,16 +1412,16 @@ const holenEinträgeWirkung: DefHolenEinträgeWirkung["func"] = async (
       ({} as GetEntriesQueryResult);
 
     if (data) {
-      let { data: verarbeitetEinträge } = verarbeitenEinträgeAbfrage(
-        erfahrungId,
+      let { data: processedEntries } = processEntriesQuery(
+        experienceId,
         data.getEntries,
       );
 
       if (pagination) {
-        const blätternZuId = anhängenZuletztEinträge(
-          erfahrungId,
-          verarbeitetEinträge,
-          zuletztEinträge,
+        const blätternZuId = appendToPreviousEntries(
+          experienceId,
+          processedEntries,
+          previousEntries,
         );
 
         setTimeout(() => {
@@ -1434,27 +1430,27 @@ const holenEinträgeWirkung: DefHolenEinträgeWirkung["func"] = async (
       }
 
       dispatch({
-        type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
-        ...verarbeitetEinträge,
+        type: ActionType.ENTRIES_RECEIVED,
+        ...processedEntries,
       });
     } else {
       dispatch({
-        type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
-        schlüssel: StateValue.versagen,
-        fehler: error as ApolloError,
+        type: ActionType.ENTRIES_RECEIVED,
+        key: StateValue.fail,
+        error: error as ApolloError,
       });
     }
   } catch (error) {
     dispatch({
-      type: ActionType.AUF_EINTRÄGE_ERHIELTEN,
-      schlüssel: StateValue.versagen,
-      fehler: error,
+      type: ActionType.ENTRIES_RECEIVED,
+      key: StateValue.fail,
+      error: error,
     });
   }
 };
 
-type DefHolenEinträgeWirkung = EffectDefinition<
-  "holenEinträgeWirkung",
+type DefFetchEntriesEffect = EffectDefinition<
+  "fetchEntriesEffect",
   {
     pagination?: PaginationInput;
     reFetchFromCache?: boolean;
@@ -1556,27 +1552,27 @@ export const effectFunctions = {
   deleteExperienceRequestedEffect,
   deleteExperienceEffect,
   fetchDetailedExperienceEffect,
-  holenEinträgeWirkung,
+  fetchEntriesEffect,
   postOfflineExperiencesSyncEffect,
   postOfflineEntriesSyncEffect,
   deleteCreateEntrySyncErrorEffect,
 };
 
-function verarbeitenErfahrungAbfrage(
-  erfahrung: ExperienceFragment | null,
-  kriegEinträgeAbfrage: GetEntriesUnionFragment | null,
+function processGetExperienceQuery(
+  experience: ExperienceFragment | null,
+  entriesQueryResult: GetEntriesUnionFragment | null,
   syncErrors?: SyncError,
-): [GeholteErfahrungErhieltenNutzlast, ExperienceSyncError | undefined] {
-  if (erfahrung) {
-    const { id } = erfahrung;
+): [FetchedExperiencePayload, ExperienceSyncError | undefined] {
+  if (experience) {
+    const { id } = experience;
     const unsynced = getUnsyncedExperience(id);
     const onlineStatus = getOnlineStatus(id, unsynced);
 
     const {
-      data: einträgeDaten,
+      data: entriesData,
       entriesErrors,
       processedSyncErrors,
-    } = verarbeitenEinträgeAbfrage(id, kriegEinträgeAbfrage, syncErrors);
+    } = processEntriesQuery(id, entriesQueryResult, syncErrors);
 
     let errors = syncErrors as ExperienceSyncError;
 
@@ -1589,8 +1585,8 @@ function verarbeitenErfahrungAbfrage(
 
     const result = {
       key: StateValue.data,
-      erfahrung,
-      einträgeDaten,
+      experience,
+      entriesData,
       onlineStatus,
     };
 
@@ -1605,19 +1601,19 @@ function verarbeitenErfahrungAbfrage(
   return [result, undefined];
 }
 
-function verarbeitenEinträgeAbfrage(
-  erfahrungId: string,
-  kriegEinträgeAbfrage?: GetEntriesUnionFragment | null,
+function processEntriesQuery(
+  experienceId: string,
+  entriesQueryResult?: GetEntriesUnionFragment | null,
   syncErrors?: SyncError,
 ): {
-  data: VerarbeitenEinträgeAbfrageZurückgegebenerWert;
+  data: ProcessedEntriesQueryReturnVal;
   entriesErrors?: IndexToEntryErrorsList;
   processedSyncErrors?: SyncError;
 } {
-  if (!kriegEinträgeAbfrage) {
+  if (!entriesQueryResult) {
     const data = {
-      schlüssel: StateValue.versagen,
-      fehler: HOLEN_EINTRÄGE_GESCHEITERT,
+      key: StateValue.fail,
+      error: FETCH_ENTRIES_FAIL_ERROR_MSG,
     };
 
     return {
@@ -1640,13 +1636,13 @@ function verarbeitenEinträgeAbfrage(
 
   const entriesErrors: IndexToEntryErrorsList = [];
 
-  if (kriegEinträgeAbfrage.__typename === "GetEntriesSuccess") {
-    const daten = kriegEinträgeAbfrage.entries as EntryConnectionFragment;
+  if (entriesQueryResult.__typename === "GetEntriesSuccess") {
+    const daten = entriesQueryResult.entries as EntryConnectionFragment;
 
-    const einträge = (daten.edges as EntryConnectionFragment_edges[]).map(
+    const entries = (daten.edges as EntryConnectionFragment_edges[]).map(
       (edge, index) => {
-        const eintrag = edge.node as EntryFragment;
-        const { id, clientId } = eintrag;
+        const entry = edge.node as EntryFragment;
+        const { id, clientId } = entry;
         const errorId = id || (clientId as string);
         const createError = createSyncErrors[errorId];
         const updateError = updateSyncErrors[id];
@@ -1658,8 +1654,8 @@ function verarbeitenEinträgeAbfrage(
         }
 
         return {
-          eintragDaten: eintrag,
-          nichtSynchronisiertFehler: createError || updateError,
+          entryData: entry,
+          entrySyncError: createError || updateError,
         };
       },
     );
@@ -1668,8 +1664,8 @@ function verarbeitenEinträgeAbfrage(
     delete syncErrors1.updateEntries;
 
     const data = {
-      schlüssel: StateValue.erfolg,
-      einträge,
+      key: StateValue.success,
+      entries,
       seiteInfo: daten.pageInfo,
     };
 
@@ -1680,8 +1676,8 @@ function verarbeitenEinträgeAbfrage(
     };
   } else {
     const data = {
-      schlüssel: StateValue.versagen,
-      fehler: kriegEinträgeAbfrage.errors.error,
+      key: StateValue.fail,
+      error: entriesQueryResult.errors.error,
     };
 
     return {
@@ -1690,49 +1686,47 @@ function verarbeitenEinträgeAbfrage(
   }
 }
 
-function anhängenZuletztEinträge(
-  erfahrungId: string,
-  eintragDaten: VerarbeitenEinträgeAbfrageZurückgegebenerWert,
-  zuletztEinträge?: GetEntries_getEntries_GetEntriesSuccess_entries,
+function appendToPreviousEntries(
+  experienceId: string,
+  newEntriesData: ProcessedEntriesQueryReturnVal,
+  previousEntries?: GetEntries_getEntries_GetEntriesSuccess_entries,
 ) {
   let blätternZuId = nonsenseId;
 
-  if (eintragDaten.schlüssel === StateValue.versagen) {
+  if (newEntriesData.key === StateValue.fail) {
     return blätternZuId;
   }
 
-  const { einträge, seiteInfo } = eintragDaten;
+  const { entries, seiteInfo } = newEntriesData;
 
-  const zurzeitEinträgeKanten = einträge.map((e) =>
-    entryToEdge(e.eintragDaten),
-  );
+  const newEntryEdges = entries.map((e) => entryToEdge(e.entryData));
 
-  const zuletztEinträgeKanten = ((
-    zuletztEinträge ||
+  const previousEntryEdges = ((
+    previousEntries ||
     // istanbul ignore next:
     ({} as GetEntries_getEntries_GetEntriesSuccess_entries)
   ).edges ||
     // istanbul ignore next:
     []) as EntryConnectionFragment_edges[];
 
-  const kanten = [...zuletztEinträgeKanten, ...zurzeitEinträgeKanten];
+  const allEdges = [...previousEntryEdges, ...newEntryEdges];
 
   const y = toGetEntriesSuccessQuery({
-    edges: kanten,
+    edges: allEdges,
     pageInfo: seiteInfo,
     __typename: "EntryConnection",
   });
 
-  writeGetEntriesQuery(erfahrungId, y);
+  writeGetEntriesQuery(experienceId, y);
 
   const { persistor } = window.____ebnis;
   persistor.persist();
 
-  if (zuletztEinträgeKanten.length) {
-    blätternZuId = (zuletztEinträgeKanten[zuletztEinträgeKanten.length - 1]
+  if (previousEntryEdges.length) {
+    blätternZuId = (previousEntryEdges[previousEntryEdges.length - 1]
       .node as EntryFragment).id;
   } else {
-    blätternZuId = (zurzeitEinträgeKanten[0].node as EntryFragment).id;
+    blätternZuId = (newEntryEdges[0].node as EntryFragment).id;
   }
 
   return (
@@ -1851,47 +1845,49 @@ type ErrorState = Readonly<{
   }>;
 }>;
 
-type VerarbeitenEinträgeAbfrageZurückgegebenerWert =
+type ProcessedEntriesQueryErrorReturnVal = {
+  key: FailVal;
+  error: string | Error;
+};
+
+type ProcessedEntriesQueryReturnVal =
   | {
-      schlüssel: ErfolgWert;
-      einträge: DataStateContextEntries;
+      key: SuccessVal;
+      entries: DataStateContextEntries;
       seiteInfo: PageInfoFragment;
     }
-  | {
-      schlüssel: VersagenWert;
-      fehler: string | Error;
-    };
+  | ProcessedEntriesQueryErrorReturnVal;
 
-export type EinträgeDatenErfolg = {
-  wert: ErfolgWert;
-  erfolg: {
+export type EntriesDataSuccessSate = {
+  value: SuccessVal;
+  success: {
     context: Readonly<{
-      einträge: DataStateContextEntries;
+      entries: DataStateContextEntries;
       seiteInfo: PageInfoFragment;
-      paginierungFehler?: string;
+      pagingError?: string;
     }>;
   };
 };
 
-export type EinträgeDatenVersagen = Readonly<{
-  wert: VersagenWert;
-  fehler: string;
+export type EntriesDataFailureState = Readonly<{
+  value: FailVal;
+  error: string;
 }>;
 
-export type EinträgeMitHolenFehler = Readonly<{
-  wert: EinträgeMitHolenFehlerWert;
-  einträgeMitHolenFehler: {
+export type FetchEntriesErrorState = Readonly<{
+  value: FetchEntriesErrorVal;
+  fetchEntriesError: {
     context: Readonly<{
-      einträge: DataStateContextEntries;
-      holenFehler?: string;
+      entries: DataStateContextEntries;
+      fetchError?: string;
     }>;
   };
 }>;
 
-type EinträgeDaten =
-  | EinträgeDatenErfolg
-  | EinträgeMitHolenFehler
-  | EinträgeDatenVersagen;
+type EntriesData =
+  | EntriesDataSuccessSate
+  | FetchEntriesErrorState
+  | EntriesDataFailureState;
 
 export type DataStateContext = Readonly<{
   experience: ExperienceFragment;
@@ -1901,8 +1897,8 @@ export type DataStateContext = Readonly<{
 }>;
 
 export type DataStateContextEntry = Readonly<{
-  eintragDaten: EntryFragment;
-  nichtSynchronisiertFehler?: CreateEntryErrorFragment | UpdateEntrySyncErrors;
+  entryData: EntryFragment;
+  entrySyncError?: CreateEntryErrorFragment | UpdateEntrySyncErrors;
 }>;
 
 export type DataStateContextEntries = DataStateContextEntry[];
@@ -1937,7 +1933,7 @@ export type DataState = Readonly<{
 
       showingOptionsMenu: ShowingOptionsMenuState;
 
-      einträge: EinträgeDaten;
+      entries: EntriesData;
 
       updateExperienceUiActive: Readonly<
         | {
@@ -1947,7 +1943,7 @@ export type DataState = Readonly<{
             value: ActiveVal;
           }
         | {
-            value: ErfolgWert;
+            value: SuccessVal;
           }
       >;
 
@@ -1991,7 +1987,7 @@ type DeleteExperienceActiveState = Readonly<{
 type UpsertEntryActive = Readonly<{
   value: ActiveVal;
   active: Readonly<{
-    context: Readonly<NewEntryActivePayload>;
+    context: Readonly<UpsertEntryActivePayload>;
   }>;
 }>;
 
@@ -2025,7 +2021,7 @@ export type Match = match<DetailExperienceRouteMatch>;
 type Action =
   | ({
       type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE;
-    } & NewEntryActivePayload)
+    } & UpsertEntryActivePayload)
   | ({
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS;
     } & OnEntryCreatedPayload)
@@ -2057,10 +2053,10 @@ type Action =
       type: ActionType.RE_FETCH_ENTRIES;
     }
   | ({
-      type: ActionType.AUF_EINTRÄGE_ERHIELTEN;
-    } & (VerarbeitenEinträgeAbfrageZurückgegebenerWert | ReFetchOnlyPayload))
+      type: ActionType.ENTRIES_RECEIVED;
+    } & (ProcessedEntriesQueryReturnVal | ReFetchOnlyPayload))
   | {
-      type: ActionType.HOLEN_NÄCHSTE_EINTRÄGE;
+      type: ActionType.FETCH_NEXT_ENTRIES;
     }
   | ({
       type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI;
@@ -2073,7 +2069,7 @@ type Action =
     };
 
 type ReFetchOnlyPayload = {
-  schlüssel: ReFetchOnlyVal;
+  key: ReFetchOnlyVal;
   entries: GetEntries_getEntries_GetEntriesSuccess_entries;
 };
 
@@ -2085,8 +2081,8 @@ type WithMayBeExperiencePayload = {
   experience?: ExperienceFragment;
 };
 
-type NewEntryActivePayload = {
-  bearbeitenEintrag?: UpdatingEntryPayload & {
+type UpsertEntryActivePayload = {
+  updatingEntry?: UpdatingEntryPayload & {
     index: number;
   };
 };
@@ -2098,15 +2094,15 @@ export type ExperienceSyncError = SyncError & {
 };
 
 type OnDataReceivedPayload = {
-  experienceData: GeholteErfahrungErhieltenNutzlast;
+  experienceData: FetchedExperiencePayload;
   syncErrors?: ExperienceSyncError;
 };
 
-type GeholteErfahrungErhieltenNutzlast =
+type FetchedExperiencePayload =
   | {
       key: DataVal;
-      erfahrung: ExperienceFragment;
-      einträgeDaten: VerarbeitenEinträgeAbfrageZurückgegebenerWert;
+      experience: ExperienceFragment;
+      entriesData: ProcessedEntriesQueryReturnVal;
       onlineStatus: OnlineStatus;
     }
   | {
@@ -2161,7 +2157,7 @@ export type EffectType =
   | DefDeleteExperienceRequestedEffect
   | DefDeleteExperienceEffect
   | DefFetchDetailedExperienceEffect
-  | DefHolenEinträgeWirkung
+  | DefFetchEntriesEffect
   | DefPostOfflineExperiencesSyncEffect
   | DefPostOfflineEntriesSyncEffect
   | DefDeleteCreateEntrySyncErrorEffect;

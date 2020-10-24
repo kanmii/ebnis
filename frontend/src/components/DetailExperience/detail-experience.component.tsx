@@ -20,7 +20,7 @@ import {
   effectFunctions,
   DispatchType,
   DataState,
-  EinträgeDatenErfolg,
+  EntriesDataSuccessSate,
   DataStateContextEntry,
   ExperienceSyncError,
   OldEntryData,
@@ -36,13 +36,13 @@ import {
 } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 import {
-  newEntryCreatedNotificationCloseId,
+  closeUpsertEntryNotificationId,
   syncErrorsNotificationId,
   noTriggerDocumentEventClassName,
   noEntryTriggerId,
   refetchExperienceId,
-  neueHolenEinträgeId,
-  holenNächstenEinträgeId,
+  refetchEntriesId,
+  fetchNextEntriesId,
   updateExperienceSuccessNotificationId,
   isPartOfflineClassName,
   isOfflineClassName,
@@ -74,7 +74,7 @@ type DispatchContextValue = Readonly<{
   ) => void;
   toggleExperienceMenu: () => void;
   onRefetchEntries: () => void;
-  holenNächstenEinträge: () => void;
+  fetchNextEntries: () => void;
   dispatch: DispatchType;
   onUpdateExperienceError: (error: string) => void;
   closeSyncErrorsMsg: (e: ReactMouseAnchorEvent) => void;
@@ -169,9 +169,9 @@ export function DetailExperience(props: Props) {
           type: ActionType.RE_FETCH_ENTRIES,
         });
       },
-      holenNächstenEinträge: () => {
+      fetchNextEntries: () => {
         dispatch({
-          type: ActionType.HOLEN_NÄCHSTE_EINTRÄGE,
+          type: ActionType.FETCH_NEXT_ENTRIES,
         });
       },
       requestUpdateExperienceUi: (e: ReactMouseAnchorEvent) => {
@@ -283,7 +283,7 @@ function ExperienceComponent() {
       deleteExperience: deleteExperienceState,
       upsertEntryActive,
       newEntryCreated,
-      einträge: einträgeStatten,
+      entries: entriesState,
       updateExperienceUiActive,
       syncErrorsMsg,
     },
@@ -319,7 +319,7 @@ function ExperienceComponent() {
 
   const oldEditedEntryProps =
     upsertEntryActive.value === StateValue.active
-      ? upsertEntryActive.active.context.bearbeitenEintrag
+      ? upsertEntryActive.active.context.updatingEntry
       : undefined;
 
   return (
@@ -389,23 +389,23 @@ function ExperienceComponent() {
           }
         />
 
-        {updateExperienceUiActive.value === StateValue.erfolg && (
+        {updateExperienceUiActive.value === StateValue.success && (
           <UpdateExperienceSuccessNotification />
         )}
 
-        {einträgeStatten.wert === StateValue.erfolg && (
-          <EntriesComponent state={einträgeStatten.erfolg} />
+        {entriesState.value === StateValue.success && (
+          <EntriesComponent state={entriesState.success} />
         )}
 
-        {einträgeStatten.wert === StateValue.versagen && (
+        {entriesState.value === StateValue.fail && (
           <>
             <ExperienceMenuComponent className="no-entry-menu" />
 
             <div>
-              {einträgeStatten.fehler}
+              {entriesState.error}
 
               <button
-                id={neueHolenEinträgeId}
+                id={refetchEntriesId}
                 className="button"
                 onClick={onRefetchEntries}
               />
@@ -417,16 +417,16 @@ function ExperienceComponent() {
   );
 }
 
-function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
+function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
   const { connected } = useWithSubscriptionContext();
 
-  const { onOpenNewEntry, holenNächstenEinträge } = useContext(DispatchContext);
+  const { onOpenNewEntry, fetchNextEntries } = useContext(DispatchContext);
 
   const {
     context: {
-      einträge: entries,
+      entries,
       seiteInfo: { hasNextPage },
-      paginierungFehler,
+      pagingError,
     },
   } = props.state;
 
@@ -454,7 +454,7 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
             {entries.map((daten, index) => {
               return (
                 <EntryComponent
-                  key={daten.eintragDaten.id}
+                  key={daten.entryData.id}
                   state={daten}
                   index={index}
                 />
@@ -464,17 +464,17 @@ function EntriesComponent(props: { state: EinträgeDatenErfolg["erfolg"] }) {
 
           {connected && hasNextPage && (
             <div className="detailed-experience__next-entries">
-              {paginierungFehler && (
-                <div className="detailed-experience__paginierung-fehler">
+              {pagingError && (
+                <div className="detailed-experience__paginierung-error">
                   Unable to fetch more entries
-                  {paginierungFehler}
+                  {pagingError}
                 </div>
               )}
 
               <button
-                id={holenNächstenEinträgeId}
+                id={fetchNextEntriesId}
                 className="button is-primary"
-                onClick={holenNächstenEinträge}
+                onClick={fetchNextEntries}
               >
                 More
               </button>
@@ -497,7 +497,7 @@ function EntryComponent(props: {
   } = useContext(DataStateContextC);
 
   const {
-    state: { eintragDaten, nichtSynchronisiertFehler },
+    state: { entryData: eintragDaten, entrySyncError },
     index,
   } = props;
 
@@ -514,7 +514,7 @@ function EntryComponent(props: {
       })}
     >
       <div className="media-content">
-        {nichtSynchronisiertFehler && (
+        {entrySyncError && (
           <div>
             <div className="subtitle is-6 entry__unsynced-error">
               <p>Entry has errors and can not be created/uploaded!</p>
@@ -529,10 +529,10 @@ function EntryComponent(props: {
                 onClick={() => {
                   dispatch({
                     type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE,
-                    bearbeitenEintrag: {
+                    updatingEntry: {
                       entry: eintragDaten,
                       // TODO: remove any type
-                      errors: nichtSynchronisiertFehler as any,
+                      errors: entrySyncError as any,
                       index,
                     },
                   });
@@ -651,7 +651,7 @@ function UpsertEntryNotification(props: {
   return (
     <div className="notification is-success">
       <button
-        id={newEntryCreatedNotificationCloseId}
+        id={closeUpsertEntryNotificationId}
         className="delete"
         onClick={onCloseNewEntryCreatedNotification}
       />

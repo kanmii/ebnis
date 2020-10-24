@@ -104,8 +104,8 @@ export function doNotLog() {
   );
 }
 
-export function wickelnStatten(state: any, sollenWickeln?: boolean) {
-  if ((sollenWickeln && !doNotLog()) || isDevEnv) {
+export function wrapState(state: any, shouldWrap?: boolean) {
+  if ((shouldWrap && !doNotLog()) || isDevEnv) {
     console.log("\ninitial state = \n\t", objectForEnv(state));
   }
 

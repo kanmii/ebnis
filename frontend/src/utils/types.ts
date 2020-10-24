@@ -131,9 +131,9 @@ export type DataVal = "data";
 export type CancelledVal = "cancelled";
 export type DeletedVal = "deleted";
 export type RequestedVal = "requested";
-export type ErfolgWert = "erfolg";
-export type VersagenWert = "versagen";
-export type EinträgeMitHolenFehlerWert = "einträgeMitHolenFehler";
+export type SuccessVal = "success";
+export type FailVal = "fail";
+export type FetchEntriesErrorVal = "fetchEntriesError";
 export type UpdateVal = "update";
 export type InsertVal = "insert";
 export type ReFetchOnly = "re-fetch-only";
@@ -162,9 +162,9 @@ export const StateValue = {
   cancelled: "cancelled" as CancelledVal,
   deleted: "deleted" as DeletedVal,
   requested: "requested" as RequestedVal,
-  erfolg: "erfolg" as ErfolgWert,
-  versagen: "versagen" as VersagenWert,
-  einträgeMitHolenFehler: "einträgeMitHolenFehler" as EinträgeMitHolenFehlerWert,
+  success: "success" as SuccessVal,
+  fail: "fail" as FailVal,
+  fetchEntriesError: "fetchEntriesError" as FetchEntriesErrorVal,
   update: "update" as UpdateVal,
   insert: "insert" as InsertVal,
   reFetchOnly: "re-fecht-only" as ReFetchOnly,
