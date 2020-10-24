@@ -406,15 +406,13 @@ describe("components", () => {
 
     expect(document.getElementById(mockDismissUpsertEntryUiId)).toBeNull();
 
-    expect(document.getElementById(mockUpsertEntrySuccessId)).toBeNull();
+    expect(getUpsertEntrySuccess()).toBeNull();
 
     act(() => {
       noEntryEl.click();
     });
 
-    const entryEl = document.getElementById(
-      mockUpsertEntrySuccessId,
-    ) as HTMLElement;
+    const entryEl = getUpsertEntrySuccess();
 
     expect(getCloseUpsertEntryNotificationEl()).toBeNull();
     expect(getSyncErrorsNotificationEl()).toBeNull();
@@ -623,16 +621,14 @@ describe("components", () => {
 
     const { ui } = makeComp();
     render(ui);
-    expect(document.getElementById(mockUpsertEntrySuccessId)).toBeNull();
+    expect(getUpsertEntrySuccess()).toBeNull();
 
     act(() => {
       getUpdateEntryLaunchEl().click();
     });
 
     act(() => {
-      (document.getElementById(
-        mockUpsertEntrySuccessId,
-      ) as HTMLElement).click();
+      getUpsertEntrySuccess().click();
     });
 
     act(() => {
