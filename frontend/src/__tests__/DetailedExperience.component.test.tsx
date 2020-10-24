@@ -1166,7 +1166,7 @@ describe("upsert experience on cached sync errors", () => {
     const closeSyncErrorsCloseEl = getSyncErrorsMessageClose();
 
     // UpsertEntry UI should not visible
-    expect(getUpsertEntrySuccess()).toBeNull();
+    expect(getCloseUpsertExperienceUI()).toBeNull();
 
     // When user closes message to fix sync errors
     act(() => {
