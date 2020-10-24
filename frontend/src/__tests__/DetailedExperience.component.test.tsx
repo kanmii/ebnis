@@ -773,9 +773,7 @@ describe("reducers", () => {
     const stateAfterEntryCreated = (state.states as DataState).data.states
       .entries as FetchEntriesErrorState;
 
-    expect(stateAfterEntryCreated.value).toBe(
-      StateValue.fetchEntriesError,
-    );
+    expect(stateAfterEntryCreated.value).toBe(StateValue.fetchEntriesError);
 
     state = reducer(state, {
       type: ActionType.ENTRIES_RECEIVED,
@@ -788,8 +786,8 @@ describe("reducers", () => {
       ],
     });
 
-    const stateAfterFetchEntriesSuccess = (state.states as DataState).data.states
-      .entries as EntriesDataSuccessSate;
+    const stateAfterFetchEntriesSuccess = (state.states as DataState).data
+      .states.entries as EntriesDataSuccessSate;
 
     expect(stateAfterFetchEntriesSuccess.value).toBe(StateValue.success);
     expect(stateAfterFetchEntriesSuccess.success.context).toEqual({
@@ -872,15 +870,15 @@ describe("reducers", () => {
       type: ActionType.DELETE_EXPERIENCE_CANCELLED,
     });
 
-    const [wirkung] = (state.effects.general as GenericHasEffect<
+    const [effect] = (state.effects.general as GenericHasEffect<
       EffectType
     >).hasEffects.context.effects;
 
-    const wirkungFunc = effectFunctions[wirkung.key];
+    const cancelDeleteExperienceEffect = effectFunctions[effect.key];
 
     expect(mockHistoryPushFn).not.toBeCalled();
 
-    wirkungFunc(wirkung.ownArgs as any, props, effectArgs);
+    cancelDeleteExperienceEffect(effect.ownArgs as any, props, effectArgs);
 
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0]).toEqual({
       key: StateValue.cancelled,
@@ -931,15 +929,15 @@ describe("reducers", () => {
   it("fetch experiences with timeouts", async () => {
     let state = initState();
 
-    const [wirkung] = (state.effects.general as GenericHasEffect<
+    const [effect] = (state.effects.general as GenericHasEffect<
       EffectType
     >).hasEffects.context.effects;
 
-    const wirkungFunc = effectFunctions[wirkung.key];
-    wirkungFunc(wirkung.ownArgs as any, props, effectArgs);
+    const fetchDetailedExperienceEffect = effectFunctions[effect.key];
+    fetchDetailedExperienceEffect(effect.ownArgs as any, props, effectArgs);
     jest.runAllTimers();
 
-    wirkungFunc(wirkung.ownArgs as any, props, effectArgs);
+    fetchDetailedExperienceEffect(effect.ownArgs as any, props, effectArgs);
     mockGetIsConnected.mockReturnValue(true);
     jest.runTimersToTime(FETCH_EXPERIENCES_TIMEOUTS[0]);
   });
@@ -964,18 +962,19 @@ describe("reducers", () => {
       type: ActionType.RE_FETCH_ENTRIES,
     });
 
-    const [wirkung] = (state.effects.general as GenericHasEffect<
+    const [effect] = (state.effects.general as GenericHasEffect<
       EffectType
     >).hasEffects.context.effects;
 
     const ownArgs = {
       pagination: {},
     } as any;
-    const wirkungFunc = effectFunctions[wirkung.key];
+
+    const fetchEntriesEffect = effectFunctions[effect.key];
 
     const error = new Error("a");
     mockManuallyFetchEntries.mockRejectedValueOnce(error);
-    await wirkungFunc(ownArgs, props, effectArgs);
+    await fetchEntriesEffect(ownArgs, props, effectArgs);
 
     expect(mockDispatchFn.mock.calls[0][0]).toEqual({
       type: ActionType.ENTRIES_RECEIVED,
@@ -994,7 +993,7 @@ describe("reducers", () => {
       },
     } as GetEntriesQueryResult);
 
-    await wirkungFunc(ownArgs, props, effectArgs);
+    await fetchEntriesEffect(ownArgs, props, effectArgs);
 
     expect(mockDispatchFn.mock.calls[1][0]).toEqual({
       type: ActionType.ENTRIES_RECEIVED,
@@ -1002,7 +1001,7 @@ describe("reducers", () => {
       error: "b",
     });
 
-    await wirkungFunc(ownArgs, props, effectArgs);
+    await fetchEntriesEffect(ownArgs, props, effectArgs);
     expect(mockScrollIntoView).not.toHaveBeenCalled();
     jest.runAllTimers();
     expect(mockScrollIntoView.mock.calls[0][0]).toBe(nonsenseId);
@@ -1025,7 +1024,7 @@ describe("reducers", () => {
       },
     } as GetEntriesQueryResult);
 
-    await wirkungFunc(ownArgs, props, effectArgs);
+    await fetchEntriesEffect(ownArgs, props, effectArgs);
     jest.runAllTimers();
     expect(mockScrollIntoView.mock.calls[1][0]).toBe("z");
 
@@ -1052,7 +1051,7 @@ describe("reducers", () => {
       pageInfo: {},
     });
 
-    await wirkungFunc(ownArgs, props, effectArgs);
+    await fetchEntriesEffect(ownArgs, props, effectArgs);
     jest.runAllTimers();
     expect(mockScrollIntoView.mock.calls[2][0]).toBe("t");
   });
@@ -1060,11 +1059,11 @@ describe("reducers", () => {
   it("deletes 'createEntries' and 'updateErrors' keys from sync errors", async () => {
     let state = initState();
 
-    const [wirkung] = (state.effects.general as GenericHasEffect<
+    const [effect] = (state.effects.general as GenericHasEffect<
       EffectType
     >).hasEffects.context.effects;
 
-    const wirkungFunc = effectFunctions[wirkung.key];
+    const fetchDetailedExperienceEffect = effectFunctions[effect.key];
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
@@ -1099,7 +1098,11 @@ describe("reducers", () => {
       },
     } as ExperienceSyncError);
 
-    await wirkungFunc(wirkung.ownArgs as any, props, effectArgs);
+    await fetchDetailedExperienceEffect(
+      effect.ownArgs as any,
+      props,
+      effectArgs,
+    );
 
     const callArgs = mockDispatchFn.mock.calls[0][0];
 
@@ -1122,7 +1125,7 @@ describe("reducers", () => {
   });
 });
 
-describe("upsert experience on sync", () => {
+describe("upsert experience on cached sync errors", () => {
   it("displays sync errors for definitions update", () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
