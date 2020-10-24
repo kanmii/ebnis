@@ -2,7 +2,6 @@ import React, {
   useLayoutEffect,
   Suspense,
   useReducer,
-  useCallback,
   useEffect,
   useMemo,
   createContext,
@@ -62,9 +61,9 @@ import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragmen
 
 type DispatchContextValue = Readonly<{
   onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
-  onCloseNewEntryCreatedNotification: () => void;
-  onDeclineDeleteExperience: () => void;
-  onConfirmDeleteExperience: () => void;
+  onCloseNewEntryCreatedNotification: (e: ReactMouseAnchorEvent) => void;
+  onDeclineDeleteExperience: (e: ReactMouseAnchorEvent) => void;
+  onConfirmDeleteExperience: (e: ReactMouseAnchorEvent) => void;
   onDeleteExperienceRequest: (e: ReactMouseAnchorEvent) => void;
   requestUpdateExperienceUi: (e: ReactMouseAnchorEvent) => void;
   cancelEditExperienceUiRequestCb: (e: ReactMouseAnchorEvent) => void;
@@ -72,12 +71,13 @@ type DispatchContextValue = Readonly<{
     e: ExperienceFragment,
     onlineStatus: OnlineStatus,
   ) => void;
-  toggleExperienceMenu: () => void;
-  onRefetchEntries: () => void;
-  fetchNextEntries: () => void;
+  toggleExperienceMenu: (e: ReactMouseAnchorEvent) => void;
+  refetchEntries: (e: ReactMouseAnchorEvent) => void;
+  fetchNextEntries: (e: ReactMouseAnchorEvent) => void;
   dispatch: DispatchType;
   onUpdateExperienceError: (error: string) => void;
   closeSyncErrorsMsg: (e: ReactMouseAnchorEvent) => void;
+  refetchExperience: (e: ReactMouseAnchorEvent) => void;
 }>;
 const DispatchContext = createContext<DispatchContextValue>(
   {} as DispatchContextValue,
@@ -125,70 +125,68 @@ export function DetailExperience(props: Props) {
     };
   }, [genericTimeout]);
 
-  const onOpenNewEntry = useCallback((e: ReactMouseAnchorEvent) => {
-    e.preventDefault();
-
-    dispatch({
-      type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE,
-    });
-  }, []);
-
   const contextVal: DispatchContextValue = useMemo(() => {
     return {
       dispatch,
-      onOpenNewEntry,
-      onCloseNewEntryCreatedNotification: () => {
+      onOpenNewEntry(e) {
+        e.preventDefault();
+
+        dispatch({
+          type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE,
+        });
+      },
+      onCloseNewEntryCreatedNotification() {
         dispatch({
           type: ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION,
         });
       },
-      onDeclineDeleteExperience: () => {
+      onDeclineDeleteExperience() {
         dispatch({
           type: ActionType.DELETE_EXPERIENCE_CANCELLED,
         });
       },
-      onConfirmDeleteExperience: () => {
+      onConfirmDeleteExperience() {
         dispatch({
           type: ActionType.DELETE_EXPERIENCE_CONFIRMED,
         });
       },
-      onDeleteExperienceRequest: (e: ReactMouseAnchorEvent) => {
+      onDeleteExperienceRequest(e) {
         e.preventDefault();
 
         dispatch({
           type: ActionType.DELETE_EXPERIENCE_REQUEST,
         });
       },
-      toggleExperienceMenu: () => {
+      toggleExperienceMenu() {
         dispatch({
           type: ActionType.TOGGLE_EXPERIENCE_MENU,
         });
       },
-      onRefetchEntries: () => {
+      refetchEntries() {
         dispatch({
           type: ActionType.RE_FETCH_ENTRIES,
         });
       },
-      fetchNextEntries: () => {
+      fetchNextEntries(e) {
         dispatch({
           type: ActionType.FETCH_NEXT_ENTRIES,
         });
       },
-      requestUpdateExperienceUi: (e: ReactMouseAnchorEvent) => {
+      requestUpdateExperienceUi(e) {
         e.preventDefault();
 
         dispatch({
           type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI,
         });
       },
-      cancelEditExperienceUiRequestCb: (e: ReactMouseAnchorEvent) => {
+      cancelEditExperienceUiRequestCb(e) {
         e.preventDefault();
 
         dispatch({
           type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI,
         });
       },
-      onExperienceUpdatedSuccess: (experience, onlineStatus) => {
+      onExperienceUpdatedSuccess(experience, onlineStatus) {
         dispatch({
           type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI,
           experience,
@@ -198,21 +196,21 @@ export function DetailExperience(props: Props) {
       onUpdateExperienceError() {
         //
       },
-      closeSyncErrorsMsg: (e: ReactMouseAnchorEvent) => {
+      closeSyncErrorsMsg(e) {
         e.preventDefault();
 
         dispatch({
           type: ActionType.CLOSE_SYNC_ERRORS_MSG,
         });
       },
-    };
-    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
-  }, []);
+      refetchExperience(e) {
+        e.preventDefault();
 
-  const onRefetchExperience = useCallback(() => {
-    dispatch({
-      type: ActionType.RE_FETCH_EXPERIENCE,
-    });
+        dispatch({
+          type: ActionType.RE_FETCH_EXPERIENCE,
+        });
+      },
+    };
   }, []);
 
   function render() {
@@ -228,7 +226,7 @@ export function DetailExperience(props: Props) {
             <button
               id={refetchExperienceId}
               className="button is-link refetch-btn"
-              onClick={onRefetchExperience}
+              onClick={contextVal.refetchExperience}
             >
               Refetch
             </button>
@@ -237,19 +235,21 @@ export function DetailExperience(props: Props) {
 
       case StateValue.data: {
         return (
-          <DispatchProvider value={contextVal}>
-            <DataStateProvider value={states.data}>
-              <ExperienceComponent />
+          <>
+            <DispatchProvider value={contextVal}>
+              <DataStateProvider value={states.data}>
+                <ExperienceComponent />
+              </DataStateProvider>
+            </DispatchProvider>
 
-              <a
-                className="upsert-entry-trigger"
-                onClick={onOpenNewEntry}
-                href="*"
-              >
-                <span>+</span>
-              </a>
-            </DataStateProvider>
-          </DispatchProvider>
+            <a
+              className="upsert-entry-trigger"
+              onClick={contextVal.onOpenNewEntry}
+              href="*"
+            >
+              <span>+</span>
+            </a>
+          </>
         );
       }
     }
@@ -271,7 +271,7 @@ function ExperienceComponent() {
   const {
     dispatch,
     onCloseNewEntryCreatedNotification,
-    onRefetchEntries,
+    refetchEntries,
     cancelEditExperienceUiRequestCb,
     onExperienceUpdatedSuccess,
     onUpdateExperienceError,
@@ -382,12 +382,7 @@ function ExperienceComponent() {
       <div className="container detailed-experience-component">
         {syncErrors && <SyncErrorsNotificationComponent state={syncErrors} />}
 
-        <UpsertEntryNotification
-          state={newEntryCreated}
-          onCloseNewEntryCreatedNotification={
-            onCloseNewEntryCreatedNotification
-          }
-        />
+        <UpsertEntryNotification state={newEntryCreated} />
 
         {updateExperienceUiActive.value === StateValue.success && (
           <UpdateExperienceSuccessNotification />
@@ -407,7 +402,7 @@ function ExperienceComponent() {
               <button
                 id={refetchEntriesId}
                 className="button"
-                onClick={onRefetchEntries}
+                onClick={refetchEntries}
               />
             </div>
           </>
@@ -640,9 +635,9 @@ function SyncErrorsNotificationComponent(props: {
 
 function UpsertEntryNotification(props: {
   state: DataState["data"]["states"]["newEntryCreated"];
-  onCloseNewEntryCreatedNotification: () => void;
 }) {
-  const { state, onCloseNewEntryCreatedNotification } = props;
+  const { state } = props;
+  const { onCloseNewEntryCreatedNotification } = useContext(DispatchContext);
 
   if (state.value === StateValue.inactive) {
     return null;
