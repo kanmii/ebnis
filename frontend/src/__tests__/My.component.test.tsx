@@ -35,7 +35,7 @@ import {
 import { GenericHasEffect } from "../utils/effects";
 import {
   manuallyFetchExperienceConnectionMini,
-  KleinErfahrüngenAbfrageErgebnisse,
+  GetExperienceConnectionMiniQueryResult,
 } from "../utils/experience.gql.types";
 import { getExperiencesMiniQuery } from "../apollo/get-experiences-mini-query";
 import { getIsConnected } from "../utils/connections";
@@ -83,7 +83,6 @@ jest.mock("../apollo/delete-experience-cache");
 jest.mock("../components/Header/header.component", () => () => null);
 jest.mock("../utils/global-window");
 
-const mockActivateUpsertExperienceUiId = "activate-upsert-experience-ui";
 const mockCloseUpsertExperienceUiId = "close-upsert-experience-ui";
 const mockOnUpsertExperienceSuccessUiId = "con-upsert-experience-success-ui";
 const mockOnlineId = "1";
@@ -98,8 +97,6 @@ jest.mock("../components/My/my.lazy", () => ({
   }) => {
     return (
       <div>
-        <button id={mockActivateUpsertExperienceUiId} />
-
         <button
           id={mockOnUpsertExperienceSuccessUiId}
           onClick={() => {
@@ -154,6 +151,7 @@ const mockHistoryPush = jest.fn();
 const mockPersistFn = jest.fn();
 const mockEvictFn = jest.fn();
 const mockPostMsg = jest.fn();
+const mockDispatch = jest.fn();
 
 const persistor = {
   persist: mockPersistFn as any,
@@ -179,6 +177,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  jest.runTimersToTime(10000);
   jest.clearAllTimers();
   jest.resetAllMocks();
 });
@@ -188,27 +187,22 @@ function getContainer() {
 }
 
 describe("component", () => {
-  const dropdownMenuClassName = "dropdown";
-  const descriptionClassName = "description";
-
-  it("verbunden/sammeln Erfahrüngen Fehler/wiederholen aber kein Erfahrung/erstellen eine Erfahrung aktivieren/deaktivieren", async () => {
+  it("connected/fetch experiences error/refetch but no experiences/activate upsert experience/deactivate", async () => {
     mockGetIsConnected.mockResolvedValue(true);
     mockUseWithSubscriptionContext.mockReturnValue({});
 
     mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
       error: new Error("a"),
-    } as KleinErfahrüngenAbfrageErgebnisse);
+    } as GetExperienceConnectionMiniQueryResult);
 
     const { ui } = makeComp();
     render(ui);
     jest.runAllTimers();
 
     expect(document.getElementById(mockLoadingId)).not.toBeNull();
-    expect(document.getElementById(fetchErrorRetryDomId)).toBeNull();
+    expect(getFetchErrorRetry()).toBeNull();
 
-    let wiederholenTaste = await waitForElement(() => {
-      return document.getElementById(fetchErrorRetryDomId) as HTMLElement;
-    });
+    let reFetchEl = await waitForElement(getFetchErrorRetry);
 
     mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
       data: {
@@ -216,38 +210,29 @@ describe("component", () => {
           edges: [] as any,
         },
       },
-    } as KleinErfahrüngenAbfrageErgebnisse);
+    } as GetExperienceConnectionMiniQueryResult);
 
-    wiederholenTaste.click();
+    reFetchEl.click();
 
-    expect(document.getElementById(noExperiencesActivateNewDomId)).toBeNull();
+    expect(getNoExperiencesActivateNew()).toBeNull();
     jest.runAllTimers();
 
-    const aktivierenNeueErfahrungTaste = await waitForElement(() => {
-      return document.getElementById(
-        noExperiencesActivateNewDomId,
-      ) as HTMLElement;
-    });
+    const activateInsertExperienceBtnEl = await waitForElement(
+      getNoExperiencesActivateNew,
+    );
 
-    expect(
-      document.getElementById(mockActivateUpsertExperienceUiId),
-    ).toBeNull();
+    expect(getMockCloseUpsertExperienceUi()).toBeNull();
 
-    aktivierenNeueErfahrungTaste.click();
+    activateInsertExperienceBtnEl.click();
 
-    const neuenErfahrungEl = document.getElementById(
-      mockCloseUpsertExperienceUiId,
-    ) as HTMLElement;
+    getMockCloseUpsertExperienceUi().click(); // exists
 
-    neuenErfahrungEl.click(); // exists
     jest.runAllTimers();
 
-    expect(
-      document.getElementById(mockActivateUpsertExperienceUiId),
-    ).toBeNull();
+    expect(getMockCloseUpsertExperienceUi()).toBeNull();
   });
 
-  it("Holen Erfahrungen erzeuge Ausnahme / es gibt zwischengespeicherte Erfahrungen / wiederholen ErfahrungenAnforderung", async () => {
+  it("throws errors while fetching experiences/fetches cached experiences/re-fetch experiences request", async () => {
     mockGetIsConnected.mockResolvedValue(true);
     mockUseWithSubscriptionContext.mockReturnValue({
       connected: true,
@@ -261,11 +246,9 @@ describe("component", () => {
 
     expect(document.getElementById(mockLoadingId)).not.toBeNull();
 
-    expect(document.getElementById(fetchErrorRetryDomId)).toBeNull();
+    expect(getFetchErrorRetry()).toBeNull();
 
-    let wiederholenTaste = await waitForElement(() => {
-      return document.getElementById(fetchErrorRetryDomId) as HTMLElement;
-    });
+    let reFetchEl = await waitForElement(getFetchErrorRetry);
 
     mockManuallyFetchExperienceConnectionMini.mockResolvedValueOnce({
       data: {
@@ -283,25 +266,21 @@ describe("component", () => {
           },
         },
       },
-    } as KleinErfahrüngenAbfrageErgebnisse);
+    } as GetExperienceConnectionMiniQueryResult);
 
-    wiederholenTaste.click();
+    reFetchEl.click();
     jest.runAllTimers();
 
-    expect(document.getElementById(noExperiencesActivateNewDomId)).toBeNull();
+    expect(getNoExperiencesActivateNew()).toBeNull();
 
-    expect(
-      document.getElementsByClassName("my-experiences__next").item(0),
-    ).toBeNull();
+    expect(getFetchNextExperience()).toBeNull();
 
-    const näschteErfahrungenTaste = await waitForElement(() => {
-      return document
-        .getElementsByClassName("my-experiences__next")
-        .item(0) as HTMLDivElement;
-    });
+    const fetchMoreExperiencesBtnEl = await waitForElement(
+      getFetchNextExperience,
+    );
 
-    expect(document.getElementById(mockOnlineId)).not.toBeNull();
-    expect(document.getElementById("b")).toBeNull();
+    expect(getExperienceEl).not.toBeNull();
+    expect(getExperienceEl("b")).toBeNull();
     jest.runAllTimers();
     expect(mockHandlePreFetchExperiences.mock.calls[0]).toEqual([
       [mockOnlineId],
@@ -341,21 +320,18 @@ describe("component", () => {
           pageInfo: {},
         },
       },
-    } as KleinErfahrüngenAbfrageErgebnisse);
+    } as GetExperienceConnectionMiniQueryResult);
 
-    näschteErfahrungenTaste.click();
+    fetchMoreExperiencesBtnEl.click();
     jest.runAllTimers();
 
     await waitForElement(() => {
-      return document.getElementById("b");
+      return getExperienceEl("b");
     });
 
-    expect(
-      document.getElementsByClassName("my-experiences__next").item(0),
-    ).toBeNull();
+    expect(getFetchNextExperience()).toBeNull();
 
-    expect(document.getElementById(mockOnlineId)).not.toBeNull();
-    jest.runAllTimers();
+    expect(getExperienceEl()).not.toBeNull();
   });
 
   it("interacts with description / offline Erfahrungen / teilweise online Erfahrungen", async () => {
@@ -388,29 +364,23 @@ describe("component", () => {
     render(ui);
 
     const experiencesEls1 = await waitForElement(() => {
-      return document.getElementById(mockPartOnlineId) as HTMLElement;
+      return getExperienceEl(mockPartOnlineId);
     });
     expect(experiencesEls1.className).toContain(isPartOfflineClassName);
     expect(experiencesEls1.className).not.toContain(isOfflineClassName);
 
-    const experiencesEls2 = document.getElementById(offlineId) as HTMLElement;
+    const experiencesEls2 = getExperienceEl(offlineId);
     expect(experiencesEls2.className).toContain(isOfflineClassName);
     expect(experiencesEls2.className).not.toContain(isPartOfflineClassName);
 
     // do not show description UI if no description
-    expect(
-      experiencesEls1.getElementsByClassName(descriptionClassName).length,
-    ).toBe(0);
+    expect((getDescriptionEl(experiencesEls1) as any).length).toBe(0);
 
     // zweite Erfahrung besitz Beschreibung
-    const descriptionEl2 = experiencesEls2
-      .getElementsByClassName(descriptionClassName)
-      .item(0) as HTMLElement;
+    const descriptionEl2 = getDescriptionEl(experiencesEls2, 0) as HTMLElement;
 
     // aber nur übersicht
-    expect(
-      descriptionEl2.getElementsByClassName(descriptionSummaryClassName).length,
-    ).toBe(1);
+    expect((getDescriptionEl(experiencesEls2) as any).length).toBe(1);
 
     // nicht vollständig Beschreibung
     expect(
@@ -431,11 +401,9 @@ describe("component", () => {
     expect(
       descriptionEl2.getElementsByClassName(descriptionFullClassName).length,
     ).toBe(1);
-
-    jest.runAllTimers();
   });
 
-  it("Optionen Menü", async () => {
+  it("interacts with options menu", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
     mockGetExperiencesMiniQuery.mockReturnValue({
       edges: [
@@ -453,12 +421,10 @@ describe("component", () => {
     render(ui);
 
     const experiencesEls0 = await waitForElement(() => {
-      return document.getElementById(mockPartOnlineId) as HTMLElement;
+      return getExperienceEl(mockPartOnlineId);
     });
 
-    const dropdownMenuEl0 = experiencesEls0
-      .getElementsByClassName(dropdownMenuClassName)
-      .item(0) as HTMLElement;
+    const dropdownMenuEl0 = getDropdownMenu(experiencesEls0);
 
     expect(dropdownMenuEl0.classList).not.toContain(dropdownIsActiveClassName);
 
@@ -476,9 +442,7 @@ describe("component", () => {
 
     dropdownTriggerEl.click();
 
-    (document
-      .getElementsByClassName("delete-experience-menu-item")
-      .item(0) as HTMLElement).click();
+    getDeleteExperienceMenu().click();
 
     await wait(() => true);
 
@@ -487,11 +451,9 @@ describe("component", () => {
     );
 
     expect(mockHistoryPush).toHaveBeenCalled();
-
-    jest.runAllTimers();
   });
 
-  it("Suchen", async () => {
+  it("Searches", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
     mockGetExperiencesMiniQuery.mockReturnValue({
       edges: [
@@ -512,44 +474,30 @@ describe("component", () => {
       return document.getElementById(mockOnlineId) as HTMLElement;
     });
 
-    const searchLinkClassName = "search__link";
-    const searchNoResultClassName = "search__no-results";
+    expect((getSearchLinks() as any).length).toBe(0);
 
-    expect(document.getElementsByClassName(searchLinkClassName).length).toBe(0);
-
-    const searchInputEl = document.getElementById(
-      searchInputDomId,
-    ) as HTMLElement;
+    const searchInputEl = getSearchInputEl();
 
     fillField(searchInputEl, "a");
 
-    const searchLinkEl = document
-      .getElementsByClassName(searchLinkClassName)
-      .item(0) as HTMLAnchorElement;
+    const searchLinkEl = getSearchLinks(0) as HTMLAnchorElement;
 
     expect(searchLinkEl.href).toContain(mockOnlineId);
 
-    expect(
-      document.getElementsByClassName(searchNoResultClassName).length,
-    ).toBe(0);
+    expect(getSearchNoResultsEl().length).toBe(0);
 
     fillField(searchInputEl, "aaaaa");
 
-    expect(
-      document.getElementsByClassName(searchNoResultClassName).length,
-    ).toBe(1);
+    expect(getSearchNoResultsEl().length).toBe(1);
 
-    expect(document.getElementsByClassName(searchLinkClassName).length).toBe(0);
+    expect((getSearchLinks() as any).length).toBe(0);
 
     getContainer().click();
 
-    expect(
-      document.getElementsByClassName(searchNoResultClassName).length,
-    ).toBe(0);
-    jest.runAllTimers();
+    expect(getSearchNoResultsEl().length).toBe(0);
   });
 
-  it("Löschen ErfahrungAnforderung Gelingen", async () => {
+  it("deletes experience successfully", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
     mockGetExperiencesMiniQuery.mockReturnValue({
@@ -579,15 +527,13 @@ describe("component", () => {
     const { ui } = makeComp();
     render(ui);
 
-    expect(document.getElementById(mockOnlineId)).toBeNull();
+    expect(getExperienceEl()).toBeNull();
 
-    const deleteSuccessEl = await waitForElement(() => {
-      return document.getElementById(
-        onDeleteExperienceSuccessNotificationId,
-      ) as HTMLElement;
-    });
+    const deleteSuccessEl = await waitForElement(
+      getDeleteExperienceSuccessNotification,
+    );
 
-    expect(document.getElementById("bb")).not.toBeNull();
+    expect(getExperienceEl("bb")).not.toBeNull();
 
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
     expect(mockPurgeExperiencesFromCache1.mock.calls[0][0][0]).toBe(
@@ -605,14 +551,10 @@ describe("component", () => {
 
     deleteSuccessEl.click();
 
-    expect(
-      document.getElementById(onDeleteExperienceSuccessNotificationId),
-    ).toBeNull();
-
-    jest.runAllTimers();
+    expect(getDeleteExperienceSuccessNotification()).toBeNull();
   });
 
-  it("Löschen ErfahrungAnforderung storniert", async () => {
+  it("cancels experience deletion", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
     mockGetExperiencesMiniQuery.mockReturnValue({
@@ -635,11 +577,9 @@ describe("component", () => {
     const { ui } = makeComp();
     render(ui);
 
-    const löschenStorniertEl = await waitForElement(() => {
-      return document.getElementById(
-        onDeleteExperienceCancelledNotificationId,
-      ) as HTMLElement;
-    });
+    const deleteExperienceCancelledEl = await waitForElement(
+      getDeleteExperienceCancelledNotification,
+    );
 
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
 
@@ -649,16 +589,12 @@ describe("component", () => {
     expect(mockPersistFn).not.toHaveBeenCalled();
     expect(mockPostMsg).not.toHaveBeenCalled();
 
-    löschenStorniertEl.click();
+    deleteExperienceCancelledEl.click();
 
-    expect(
-      document.getElementById(onDeleteExperienceCancelledNotificationId),
-    ).toBeNull();
-
-    jest.runAllTimers();
+    expect(getDeleteExperienceCancelledNotification()).toBeNull();
   });
 
-  it("update experience", async () => {
+  it("updates experience", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
     mockGetExperiencesMiniQuery.mockReturnValue({
       edges: [
@@ -675,85 +611,51 @@ describe("component", () => {
     const { ui } = makeComp();
     render(ui);
 
-    const updateEl = await waitForElement(() => {
-      return document
-        .getElementsByClassName(updateExperienceMenuItemId)
-        .item(0) as HTMLElement;
-    });
+    const updateEl = await waitForElement(getUpdateExperienceMenuItem);
 
     updateEl.click();
 
-    let updateSuccessEl = document.getElementById(
-      mockOnUpsertExperienceSuccessUiId,
-    ) as HTMLElement;
+    getMockOnUpsertExperienceSuccessUi().click();
 
-    updateSuccessEl.click();
+    expect(getMockOnUpsertExperienceSuccessUi()).toBeNull();
 
-    expect(
-      document.getElementById(mockOnUpsertExperienceSuccessUiId),
-    ).toBeNull();
+    getUpdateExperienceSuccessNotificationCloseEl().click();
 
-    const closeSuccessNotificationEl = document
-      .getElementsByClassName(updateExperienceSuccessNotificationCloseClassName)
-      .item(0) as HTMLElement;
-
-    closeSuccessNotificationEl.click();
-
-    expect(
-      document
-        .getElementsByClassName(
-          updateExperienceSuccessNotificationCloseClassName,
-        )
-        .item(0),
-    ).toBeNull();
+    expect(getUpdateExperienceSuccessNotificationCloseEl()).toBeNull();
 
     ////////////////////////// 2nd update ////////////////////////////
 
     updateEl.click();
 
-    updateSuccessEl = document.getElementById(
-      mockOnUpsertExperienceSuccessUiId,
-    ) as HTMLElement;
+    getMockOnUpsertExperienceSuccessUi().click();
 
-    updateSuccessEl.click();
+    expect(getMockOnUpsertExperienceSuccessUi()).toBeNull();
 
-    expect(
-      document.getElementById(mockOnUpsertExperienceSuccessUiId),
-    ).toBeNull();
-
-    expect(
-      document
-        .getElementsByClassName(
-          updateExperienceSuccessNotificationCloseClassName,
-        )
-        .item(0),
-    ).not.toBeNull();
+    expect(getUpdateExperienceSuccessNotificationCloseEl()).not.toBeNull();
 
     act(() => {
       jest.runAllTimers();
     });
 
-    expect(
-      document
-        .getElementsByClassName(
-          updateExperienceSuccessNotificationCloseClassName,
-        )
-        .item(0),
-    ).toBeNull();
+    expect(getUpdateExperienceSuccessNotificationCloseEl()).toBeNull();
   });
 });
 
 describe("reducer", () => {
-  it("holen Erfahrüngen:  kein Netzwerk", async () => {
+  const effectArgs = {
+    dispatch: mockDispatch,
+  } as any;
+
+  const props = {} as any;
+
+  it("fetches experiences when no network", async () => {
     let state = initState();
 
     const effect = (state.effects.general as GenericHasEffect<EffectType>)
       .hasEffects.context.effects[0];
 
-    const mockDispatch = jest.fn();
-
     const fn = effectFunctions[effect.key];
-    await fn({} as any, {} as any, { dispatch: mockDispatch } as any);
+    await fn({} as any, props, effectArgs);
     expect(mockDispatch).not.toHaveBeenCalled();
 
     jest.runAllTimers();
@@ -763,16 +665,14 @@ describe("reducer", () => {
     mockGetIsConnected.mockReturnValue(true);
   });
 
-  it("holen Erfahrüngen: erstmal ist Netzwerk nicht vorhandel, dann später kommt", async () => {
+  it("fetches experiences: first no network, then later there is network", async () => {
     let state = initState();
 
     const effect = (state.effects.general as GenericHasEffect<EffectType>)
       .hasEffects.context.effects[0];
 
-    const mockDispatch = jest.fn();
-
     const fn = effectFunctions[effect.key];
-    await fn({} as any, {} as any, { dispatch: mockDispatch } as any);
+    await fn({} as any, props, effectArgs);
     mockGetIsConnected.mockReturnValue(true);
 
     jest.runTimersToTime(FETCH_EXPERIENCES_TIMEOUTS[0]);
@@ -798,4 +698,87 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   return {
     ui: <MyP {...props} location={location} history={history} />,
   };
+}
+
+function getFetchErrorRetry() {
+  return document.getElementById(fetchErrorRetryDomId) as HTMLElement;
+}
+
+function getNoExperiencesActivateNew() {
+  return document.getElementById(noExperiencesActivateNewDomId) as HTMLElement;
+}
+
+function getMockCloseUpsertExperienceUi() {
+  return document.getElementById(mockCloseUpsertExperienceUiId) as HTMLElement;
+}
+
+function getFetchNextExperience(index: number = 0) {
+  return document
+    .getElementsByClassName("my-experiences__next")
+    .item(index) as HTMLElement;
+}
+
+function getExperienceEl(id: string = mockOnlineId) {
+  return document.getElementById(id) as HTMLElement;
+}
+
+function getDropdownMenu(parentEl: HTMLElement, index: number = 0) {
+  return parentEl.getElementsByClassName("dropdown").item(0) as HTMLElement;
+}
+
+function getDeleteExperienceMenu(index: number = 0) {
+  return document
+    .getElementsByClassName("delete-experience-menu-item")
+    .item(index) as HTMLElement;
+}
+
+function getSearchLinks(index?: number) {
+  const parentEl = document.getElementsByClassName("search__link  ");
+  return index === undefined
+    ? parentEl
+    : (parentEl.item(index) as HTMLAnchorElement);
+}
+
+function getSearchNoResultsEl() {
+  return document.getElementsByClassName("search__no-results");
+}
+
+function getSearchInputEl() {
+  return document.getElementById(searchInputDomId) as HTMLElement;
+}
+
+function getDeleteExperienceSuccessNotification() {
+  return document.getElementById(
+    onDeleteExperienceSuccessNotificationId,
+  ) as HTMLElement;
+}
+
+function getDeleteExperienceCancelledNotification() {
+  return document.getElementById(
+    onDeleteExperienceCancelledNotificationId,
+  ) as HTMLElement;
+}
+
+function getUpdateExperienceMenuItem(index: number = 0) {
+  return document
+    .getElementsByClassName(updateExperienceMenuItemId)
+    .item(index) as HTMLElement;
+}
+
+function getMockOnUpsertExperienceSuccessUi() {
+  return document.getElementById(
+    mockOnUpsertExperienceSuccessUiId,
+  ) as HTMLElement;
+}
+
+function getUpdateExperienceSuccessNotificationCloseEl(index: number = 0) {
+  return document
+    .getElementsByClassName(updateExperienceSuccessNotificationCloseClassName)
+    .item(index) as HTMLElement;
+}
+
+function getDescriptionEl(parentEl: HTMLElement, index?: number) {
+  const els = parentEl.getElementsByClassName("description");
+
+  return index === undefined ? els : (els.item(index) as HTMLElement);
 }

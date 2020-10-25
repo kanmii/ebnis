@@ -291,7 +291,7 @@ export function manuallyFetchExperienceConnectionMini(
   });
 }
 
-export type KleinErfahrüngenAbfrageErgebnisse = ApolloQueryResult<
+export type GetExperienceConnectionMiniQueryResult = ApolloQueryResult<
   GetExperienceConnectionMini
 >;
 
