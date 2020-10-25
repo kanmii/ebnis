@@ -171,14 +171,14 @@ async function createOnlineEntryEffect(
   const {
     experience: { id: experienceId },
     updateExperiencesOnline,
-    bearbeitenEintrag,
+    updatingEntry,
     onSuccess,
   } = props;
 
   const { dispatch } = effectArgs;
 
-  if (bearbeitenEintrag) {
-    const { entry } = bearbeitenEintrag;
+  if (updatingEntry) {
+    const { entry } = updatingEntry;
     const datenGegenständen = entry.dataObjects.map((d, index) => {
       const { clientId, updatedAt, insertedAt } = d as DataObjectFragment;
 
@@ -323,8 +323,8 @@ export const effectFunctions = {
 ////////////////////////// STATE UPDATE SECTION ////////////////////////////
 
 export function initState(props: Props): StateMachine {
-  const { experience, bearbeitenEintrag } = props;
-  const { entry, errors } = bearbeitenEintrag || ({} as UpdatingEntryPayload);
+  const { experience, updatingEntry } = props;
+  const { entry, errors } = updatingEntry || ({} as UpdatingEntryPayload);
 
   const definitionIdToDataMap = mapDefinitionIdToDataHelper(experience, entry);
 
@@ -360,7 +360,7 @@ export function initState(props: Props): StateMachine {
       },
     },
 
-    context: { experience, bearbeitenEintrag },
+    context: { experience, updatingEntry },
 
     effects: {
       general: {
@@ -378,17 +378,17 @@ export function initState(props: Props): StateMachine {
 
 function mapDefinitionIdToDataHelper(
   experience: ExperienceFragment,
-  bearbeitenEintrag?: EntryFragment,
+  updatingEntry?: EntryFragment,
 ) {
   const result = {} as {
     [dataDefinitionId: string]: FormObjVal;
   };
 
-  if (!bearbeitenEintrag) {
+  if (!updatingEntry) {
     return result;
   }
 
-  bearbeitenEintrag.dataObjects.forEach((d) => {
+  updatingEntry.dataObjects.forEach((d) => {
     const { definitionId, data } = d as DataObjectFragment;
     const json = JSON.parse(data);
     const [type, stringData] = Object.entries(json)[0];
@@ -408,7 +408,7 @@ function mapDefinitionIdToDataHelper(
 
 function handleSubmissionAction(proxy: DraftState) {
   const {
-    context: { experience, bearbeitenEintrag },
+    context: { experience, updatingEntry },
     states,
   } = proxy;
 
@@ -427,8 +427,8 @@ function handleSubmissionAction(proxy: DraftState) {
 
   let erstelltenNeuEintragKlientId = "";
 
-  if (bearbeitenEintrag) {
-    const { id, clientId } = bearbeitenEintrag.entry;
+  if (updatingEntry) {
+    const { id, clientId } = updatingEntry.entry;
 
     // das bedeutet ein vollständig Offline-Eintrag und ein nue Eintrag muss
     // erstellten werden
@@ -576,7 +576,7 @@ export function parseDataObjectData(datum: string) {
 
 export interface CallerProps {
   experience: ExperienceFragment;
-  bearbeitenEintrag?: UpdatingEntryPayload;
+  updatingEntry?: UpdatingEntryPayload;
   onSuccess: (entry: EntryFragment, onlineStatus: OnlineStatus) => void;
   onClose: () => void;
 }
@@ -630,7 +630,7 @@ type DraftState = Draft<StateMachine>;
 
 type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
   Readonly<{
-    context: Zusammenhang;
+    context: GlobalContext;
 
     states: Readonly<{
       submission: Submission;
@@ -640,9 +640,9 @@ type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
     }>;
   }>;
 
-type Zusammenhang = Readonly<{
+type GlobalContext = Readonly<{
   experience: Readonly<ExperienceFragment>;
-  bearbeitenEintrag?: UpdatingEntryPayload;
+  updatingEntry?: UpdatingEntryPayload;
 }>;
 
 export type Submission = Readonly<

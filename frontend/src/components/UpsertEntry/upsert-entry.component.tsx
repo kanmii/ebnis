@@ -100,7 +100,7 @@ export function UpsertEntry(props: Props) {
           <div className="modal-card-body">
             <span className="scroll-into-view" />
 
-            <Notification
+            <NotificationComponent
               submissionState={submissionState}
               onCloseNotification={onCloseNotification}
             />
@@ -211,7 +211,7 @@ const DataComponent = React.memo(
   },
 );
 
-function Notification({
+function NotificationComponent({
   submissionState,
   onCloseNotification,
 }: {

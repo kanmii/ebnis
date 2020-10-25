@@ -347,7 +347,7 @@ function ExperienceComponent() {
         <Suspense fallback={<Loading />}>
           <UpsertEntry
             experience={experience}
-            bearbeitenEintrag={oldEditedEntryProps}
+            updatingEntry={oldEditedEntryProps}
             onSuccess={(entry, onlineStatus) => {
               let oldData: undefined | OldEntryData = undefined;
 

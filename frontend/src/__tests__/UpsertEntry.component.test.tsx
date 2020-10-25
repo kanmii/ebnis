@@ -394,7 +394,7 @@ describe("component", () => {
     const now = new Date();
     const nowJson = now.toJSON();
 
-    const bearbeitenEintrag = {
+    const updatingEntry = {
       entry: {
         id: "a",
         clientId: "a",
@@ -449,7 +449,7 @@ describe("component", () => {
 
     const { ui } = makeComp({
       props: {
-        bearbeitenEintrag,
+        updatingEntry,
         experience: {
           ...defaultExperience,
           dataDefinitions: [
