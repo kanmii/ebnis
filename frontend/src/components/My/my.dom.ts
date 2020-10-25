@@ -1,7 +1,7 @@
 export const MY_TITLE = "Experiences";
 export const domPrefix = "my";
 
-export const activateNewDomId = `${domPrefix}-activate-new`;
+export const activateInsertExperienceDomId = `${domPrefix}-activate-insert-experience`;
 export const fetchExperiencesErrorsDomId = `${domPrefix}-fetch-experiences-errors`;
 export const noExperiencesActivateNewDomId = `${domPrefix}-no-experiences-activate-new`;
 export const experiencesDomId = `${domPrefix}-experiences`;

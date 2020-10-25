@@ -10,7 +10,7 @@ import React, {
 } from "react";
 import {
   MY_TITLE,
-  activateNewDomId,
+  activateInsertExperienceDomId,
   noExperiencesActivateNewDomId,
   domPrefix,
   experiencesDomId,
@@ -63,7 +63,6 @@ import Header from "../Header/header.component";
 import { unstable_batchedUpdates } from "react-dom";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
-import { WithSubscriptionContext } from "../../utils/app-context";
 import { ExperienceData } from "../../utils/experience.gql.types";
 
 type DispatchContextValue = Readonly<{
@@ -72,7 +71,7 @@ type DispatchContextValue = Readonly<{
   onCloseDeleteExperienceNotification: () => void;
   deactivateUpsertExperienceUiCb: (e: ReactMouseAnchorEvent) => void;
   onExperienceUpsertSuccess: (e: ExperienceFragment, o: OnlineStatus) => void;
-  nächsteSeiteAbrufen: () => void;
+  fetchMoreExperiences: () => void;
   onUpdateExperienceError: (error: string) => void;
 }>;
 const DispatchContext = createContext<DispatchContextValue>(
@@ -96,16 +95,18 @@ export function My(props: Props) {
 
   useRunEffects(generalEffects, effectFunctions, props, { dispatch });
 
-  const { onSyncData } = useContext(WithSubscriptionContext);
+  const stateValue = states.value;
+
+  const { onSyncData } = useWithSubscriptionContext();
 
   useEffect(() => {
-    if (onSyncData) {
+    if (onSyncData && stateValue === StateValue.data) {
       dispatch({
         type: ActionType.ON_SYNC,
         data: onSyncData,
       });
     }
-  }, [onSyncData]);
+  }, [onSyncData, stateValue]);
 
   useEffect(() => {
     return () => {
@@ -168,13 +169,15 @@ export function My(props: Props) {
           onlineStatus,
         });
       },
-      nächsteSeiteAbrufen() {
+      fetchMoreExperiences() {
         dispatch({
           type: ActionType.FETCH_NEXT_EXPERIENCES_PAGE,
         });
       },
       onUpdateExperienceError() {
-        //
+        dispatch({
+          type: ActionType.CANCEL_UPSERT_EXPERIENCE,
+        });
       },
     };
     /* eslint-disable-next-line react-hooks/exhaustive-deps*/
@@ -264,7 +267,7 @@ function MyExperiences() {
 
       <a
         href="*"
-        id={activateNewDomId}
+        id={activateInsertExperienceDomId}
         className="new-experience-trigger"
         onClick={onUpsertExperienceActivated}
       >
@@ -301,7 +304,7 @@ function ExperiencesComponent() {
           );
         })}
 
-        <SeitennummerierungKomponente />
+        <PaginationComponent />
       </div>
     );
   }, [experiencesStates, experiences]);
@@ -481,8 +484,8 @@ function ExperienceComponent(props: ExperienceProps) {
   );
 }
 
-function SeitennummerierungKomponente() {
-  const { nächsteSeiteAbrufen } = useContext(DispatchContext);
+function PaginationComponent() {
+  const { fetchMoreExperiences } = useContext(DispatchContext);
 
   const {
     context: {
@@ -500,7 +503,7 @@ function SeitennummerierungKomponente() {
     <div className="my-experiences__prev-next">
       <button
         className="button my-experiences__next"
-        onClick={nächsteSeiteAbrufen}
+        onClick={fetchMoreExperiences}
       >
         Next
       </button>

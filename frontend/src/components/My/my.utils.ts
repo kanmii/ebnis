@@ -461,6 +461,7 @@ function handleFetchPrevNextExperiencesPageAction(proxy: DraftState) {
     let previousLastId = nonsenseId;
     const len = experiences.length;
 
+    // istanbul ignore else:
     if (len) {
       previousLastId = experiences[len - 1].experience.id;
     }
@@ -618,10 +619,19 @@ function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
   // istanbul ignore else
   if (states.value === StateValue.data) {
     const offlineIdToOnlineExperienceMap =
-      data.offlineIdToOnlineExperienceMap || {};
+      data.offlineIdToOnlineExperienceMap ||
+      // istanbul ignore next:
+      {};
 
-    const syncErrors = data.syncErrors || {};
-    const onlineExperienceUpdatedMap = data.onlineExperienceUpdatedMap || {};
+    const syncErrors =
+      data.syncErrors ||
+      // istanbul ignore next:
+      {};
+
+    const onlineExperienceUpdatedMap =
+      data.onlineExperienceUpdatedMap ||
+      // istanbul ignore next:
+      {};
 
     const experiences = states.data.context.experiences;
     const len = experiences.length;
@@ -640,14 +650,19 @@ function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
         iter.onlineStatus = syncError
           ? StateValue.partOffline
           : StateValue.online;
-      } else if (syncError) {
+      }
+
+      if (!newExperience && syncError) {
         iter.syncError = syncError;
         iter.onlineStatus = StateValue.partOffline;
-      } else if (isUpdated) {
+      }
+
+      if (isUpdated) {
         iter.onlineStatus = StateValue.online;
       }
     }
 
+    // istanbul ignore else:
     if (
       data.offlineIdToOnlineExperienceMap &&
       Object.keys(offlineIdToOnlineExperienceMap).length
@@ -709,7 +724,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 
   // bei seitennummerierung wurden wir zwischengespeicherte Erfahrungen nicht
   // gebraucht
-  const zwischengespeicherteErgebnis = getExperiencesMiniQuery();
+  const cachedExperiencesResult = getExperiencesMiniQuery();
 
   const deletedExperience = await deleteExperienceProcessedEffectHelper(
     effectArgs,
@@ -720,9 +735,9 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
     return;
   }
 
-  if (zwischengespeicherteErgebnis) {
+  if (cachedExperiencesResult) {
     const [experiences, preparedExperiences] = processGetExperiencesQuery(
-      zwischengespeicherteErgebnis,
+      cachedExperiencesResult,
       {
         deletedExperience,
       },
@@ -766,14 +781,14 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 
   async function fetchExperiences() {
     try {
-      const abfrageDaten = await manuallyFetchExperienceConnectionMini(
+      const networkFetchResult = await manuallyFetchExperienceConnectionMini(
         "network-only",
         paginationInput || {
           first: EXPERIENCES_MINI_FETCH_COUNT,
         },
       );
 
-      const { data, error } = abfrageDaten;
+      const { data, error } = networkFetchResult;
 
       if (error) {
         dispatch({
@@ -782,21 +797,21 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
           error,
         });
       } else {
-        const sammelnErfahrungen = (data &&
+        const fetchedExperiences = (data &&
           data.getExperiences) as GetExperienceConnectionMini_getExperiences;
 
-        const [ergebnisse, preparedExperiences] = processGetExperiencesQuery(
-          sammelnErfahrungen,
-          {
-            isPaginating: !!paginationInput,
-            existingData: zwischengespeicherteErgebnis || null,
-          },
-        );
+        const [
+          processedResults,
+          preparedExperiences,
+        ] = processGetExperiencesQuery(fetchedExperiences, {
+          isPaginating: !!paginationInput,
+          existingData: cachedExperiencesResult || null,
+        });
 
         dispatch({
           type: ActionType.ON_DATA_RECEIVED,
           key: StateValue.data,
-          data: ergebnisse,
+          data: processedResults,
           preparedExperiences,
           deletedExperience,
           paginating: !!paginationInput,

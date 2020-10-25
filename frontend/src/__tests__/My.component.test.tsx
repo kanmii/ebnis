@@ -7,6 +7,9 @@ import {
   initState,
   EffectType,
   effectFunctions,
+  reducer,
+  ActionType,
+  DataState,
 } from "../components/My/my.utils";
 import {
   noExperiencesActivateNewDomId,
@@ -24,6 +27,7 @@ import {
   onDeleteExperienceCancelledNotificationId,
   updateExperienceMenuItemId,
   updateExperienceSuccessNotificationCloseClassName,
+  activateInsertExperienceDomId,
 } from "../components/My/my.dom";
 import { makeOfflineId } from "../utils/offlines";
 import { fillField } from "../tests.utils";
@@ -49,26 +53,26 @@ import {
   GetExperienceConnectionMini_getExperiences,
 } from "../graphql/apollo-types/GetExperienceConnectionMini";
 import { useWithSubscriptionContext } from "../apollo/injectables";
-import {
-  purgeExperiencesFromCache1,
-  writeGetExperiencesMiniQuery,
-} from "../apollo/update-get-experiences-mini-query";
+import { purgeExperiencesFromCache1 } from "../apollo/update-get-experiences-mini-query";
 import { AppPersistor } from "../utils/app-context";
 import { E2EWindowObject } from "../utils/types";
 import { handlePreFetchExperiences } from "../components/My/my.injectables";
 import { act } from "react-dom/test-utils";
-import { getSyncErrors } from "../apollo/sync-to-server-cache";
 import { getOnlineStatus } from "../apollo/unsynced-ledger";
+import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
+import { cleanUpOfflineExperiences } from "../components/WithSubscriptions/with-subscriptions.utils";
+import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
+
+jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
+const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
 
 jest.mock("../apollo/sync-to-server-cache");
-const mockGetSyncErrors = getSyncErrors as jest.Mock;
 
 jest.mock("../components/My/my.injectables");
 const mockHandlePreFetchExperiences = handlePreFetchExperiences as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
 const mockPurgeExperiencesFromCache1 = purgeExperiencesFromCache1 as jest.Mock;
-const mockWriteGetExperiencesMiniQuery = writeGetExperiencesMiniQuery as jest.Mock;
 
 jest.mock("../apollo/delete-experience-cache");
 const mockPutOrRemoveDeleteExperienceLedger = putOrRemoveDeleteExperienceLedger as jest.Mock;
@@ -83,38 +87,48 @@ jest.mock("../apollo/delete-experience-cache");
 jest.mock("../components/Header/header.component", () => () => null);
 jest.mock("../utils/global-window");
 
-const mockCloseUpsertExperienceUiId = "close-upsert-experience-ui";
-const mockOnUpsertExperienceSuccessUiId = "con-upsert-experience-success-ui";
-const mockOnlineId = "1";
-const mockTitle = "yo";
+const mockCloseUpsertExperienceUiId = "?-1?";
+const mockOnUpsertExperienceSuccessUiId = "?-2?";
+const mockUpsertExperienceOnErrorUiId = "?-3?";
+const mockOnlineId = "?0?";
+const mockTitle = "?1?";
+const mockOnlineExperience = {
+  id: mockOnlineId,
+  title: mockTitle,
+} as ExperienceFragment;
 jest.mock("../components/My/my.lazy", () => ({
   UpsertExperience: ({
     onSuccess,
     onClose,
+    onError,
   }: {
     onSuccess: (experience: any) => void;
     onClose: () => void;
+    onError: () => void;
   }) => {
     return (
       <div>
         <button
           id={mockOnUpsertExperienceSuccessUiId}
           onClick={() => {
-            onSuccess({
-              id: mockOnlineId,
-              title: mockTitle,
-            });
+            onSuccess(mockOnlineExperience);
           }}
         />
 
         <button id={mockCloseUpsertExperienceUiId} onClick={onClose} />
+
+        <button id={mockUpsertExperienceOnErrorUiId} onClick={onError} />
       </div>
     );
   },
 }));
 
-const mockPartOnlineId = "2";
+const mockPartOfflineId = "?2?";
 const offlineId = makeOfflineId(3);
+const offlineExperience = {
+  id: offlineId,
+  title: "a",
+} as ExperienceMiniFragment;
 
 jest.mock("../apollo/unsynced-ledger");
 const mockGetOnlineStatus = getOnlineStatus as jest.Mock;
@@ -181,10 +195,6 @@ afterEach(() => {
   jest.clearAllTimers();
   jest.resetAllMocks();
 });
-
-function getContainer() {
-  return document.getElementById(domPrefix) as HTMLElement;
-}
 
 describe("component", () => {
   it("connected/fetch experiences error/refetch but no experiences/activate upsert experience/deactivate", async () => {
@@ -345,7 +355,7 @@ describe("component", () => {
       edges: [
         {
           node: {
-            id: mockPartOnlineId,
+            id: mockPartOfflineId,
             title: "bb",
           },
         },
@@ -363,18 +373,18 @@ describe("component", () => {
     const { ui } = makeComp();
     render(ui);
 
-    const experiencesEls1 = await waitForElement(() => {
-      return getExperienceEl(mockPartOnlineId);
+    const partOfflineExperienceEl = await waitForElement(() => {
+      return getExperienceEl(mockPartOfflineId);
     });
-    expect(experiencesEls1.className).toContain(isPartOfflineClassName);
-    expect(experiencesEls1.className).not.toContain(isOfflineClassName);
+    expect(partOfflineExperienceEl.className).toContain(isPartOfflineClassName);
+    expect(partOfflineExperienceEl.className).not.toContain(isOfflineClassName);
 
     const experiencesEls2 = getExperienceEl(offlineId);
     expect(experiencesEls2.className).toContain(isOfflineClassName);
     expect(experiencesEls2.className).not.toContain(isPartOfflineClassName);
 
     // do not show description UI if no description
-    expect((getDescriptionEl(experiencesEls1) as any).length).toBe(0);
+    expect((getDescriptionEl(partOfflineExperienceEl) as any).length).toBe(0);
 
     // zweite Erfahrung besitz Beschreibung
     const descriptionEl2 = getDescriptionEl(experiencesEls2, 0) as HTMLElement;
@@ -409,7 +419,7 @@ describe("component", () => {
       edges: [
         {
           node: {
-            id: mockPartOnlineId,
+            id: mockPartOfflineId,
             title: "bb",
           },
         },
@@ -421,7 +431,7 @@ describe("component", () => {
     render(ui);
 
     const experiencesEls0 = await waitForElement(() => {
-      return getExperienceEl(mockPartOnlineId);
+      return getExperienceEl(mockPartOfflineId);
     });
 
     const dropdownMenuEl0 = getDropdownMenu(experiencesEls0);
@@ -447,7 +457,7 @@ describe("component", () => {
     await wait(() => true);
 
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0].id).toBe(
-      mockPartOnlineId,
+      mockPartOfflineId,
     );
 
     expect(mockHistoryPush).toHaveBeenCalled();
@@ -639,6 +649,82 @@ describe("component", () => {
 
     expect(getUpdateExperienceSuccessNotificationCloseEl()).toBeNull();
   });
+
+  it("updates experiences on sync / upsert experience on error", async () => {
+    mockGetOnlineStatus
+      .mockReturnValueOnce(StateValue.offline)
+      .mockReturnValueOnce(StateValue.partOffline);
+
+    // Given data just synced to backend
+    mockUseWithSubscriptionContext.mockReturnValue({
+      onSyncData: {
+        offlineIdToOnlineExperienceMap: {
+          [offlineId]: mockOnlineExperience,
+        },
+
+        onlineExperienceUpdatedMap: {
+          [mockPartOfflineId]: {},
+        },
+
+        syncErrors: {
+          [offlineId]: {},
+          [mockPartOfflineId]: {},
+        },
+      },
+    });
+
+    // And there is 1 offline and 1 part offline experiences in the system
+    mockGetExperiencesMiniQuery.mockReturnValue({
+      edges: [
+        {
+          node: offlineExperience,
+        },
+        {
+          node: {
+            id: mockPartOfflineId,
+            title: "b",
+          },
+        },
+      ] as GetExperienceConnectionMini_getExperiences_edges[],
+      pageInfo: {},
+    } as GetExperienceConnectionMini_getExperiences);
+
+    // When component is rendered
+    const { ui } = makeComp();
+    render(ui);
+
+    // Then offline experience should be visible
+    await waitForElement(() => {
+      return getExperienceEl(offlineId);
+    });
+
+    // But after a while, offline experience should not be visible
+    expect(getExperienceEl(offlineId)).toBeNull();
+
+    // Online experience should be visible
+    const onlineExperienceEl = getExperienceEl();
+    expect(onlineExperienceEl.className).toContain(isPartOfflineClassName);
+    expect(onlineExperienceEl.className).not.toContain(isOfflineClassName);
+
+    // Part offline experience should be visible and become online
+    const partOfflineExperienceEl = getExperienceEl(mockPartOfflineId);
+    expect(partOfflineExperienceEl.className).not.toContain(
+      isPartOfflineClassName,
+    );
+    expect(partOfflineExperienceEl.className).not.toContain(isOfflineClassName);
+
+    expect(mockCleanUpOfflineExperiences).toBeCalledWith({
+      [offlineId]: mockOnlineExperience,
+    });
+
+    expect(getMockUpsertExperienceOnError()).toBeNull();
+
+    getActivateInsertExperience().click();
+
+    getMockUpsertExperienceOnError().click();
+
+    expect(getMockUpsertExperienceOnError()).toBeNull();
+  });
 });
 
 describe("reducer", () => {
@@ -682,6 +768,50 @@ describe("reducer", () => {
 
     mockGetIsConnected.mockReturnValue(true);
   });
+
+  it("sets online status to 'online' when on synced experience has no errors", () => {
+    let state = initState();
+
+    state = reducer(state, {
+      type: ActionType.ON_DATA_RECEIVED,
+      key: StateValue.data,
+      preparedExperiences: [],
+      data: {
+        experiences: [
+          {
+            experience: offlineExperience,
+            onlineStatus: StateValue.partOffline,
+            syncError: {},
+          },
+        ],
+        pageInfo: {} as any,
+      },
+    });
+
+    let context = (state.states as DataState).data.context;
+
+    expect(context.experiences[0]).toEqual({
+      experience: offlineExperience,
+      onlineStatus: StateValue.partOffline,
+      syncError: {},
+    });
+
+    state = reducer(state, {
+      type: ActionType.ON_SYNC,
+      data: {
+        offlineIdToOnlineExperienceMap: {
+          [offlineId]: mockOnlineExperience,
+        },
+      },
+    });
+
+    context = (state.states as DataState).data.context;
+
+    expect(context.experiences[0]).toEqual({
+      experience: mockOnlineExperience,
+      onlineStatus: StateValue.online,
+    });
+  });
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
@@ -698,6 +828,10 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   return {
     ui: <MyP {...props} location={location} history={history} />,
   };
+}
+
+function getContainer() {
+  return document.getElementById(domPrefix) as HTMLElement;
 }
 
 function getFetchErrorRetry() {
@@ -781,4 +915,14 @@ function getDescriptionEl(parentEl: HTMLElement, index?: number) {
   const els = parentEl.getElementsByClassName("description");
 
   return index === undefined ? els : (els.item(index) as HTMLElement);
+}
+
+function getActivateInsertExperience() {
+  return document.getElementById(activateInsertExperienceDomId) as HTMLElement;
+}
+
+function getMockUpsertExperienceOnError() {
+  return document.getElementById(
+    mockUpsertExperienceOnErrorUiId,
+  ) as HTMLElement;
 }
