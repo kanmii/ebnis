@@ -1,6 +1,4 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { ApolloClient } from "@apollo/client";
-import { newEntryResolvers } from "./upsert-entry.resolvers";
 import immer from "immer";
 import {
   EntryConnectionFragment_edges_node,
@@ -16,16 +14,6 @@ import {
 import { GetEntriesUnionFragment } from "../../graphql/apollo-types/GetEntriesUnionFragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/apollo-types/GetEntries";
-
-// istanbul ignore next:
-export function addResolvers(client: ApolloClient<{}>) {
-  if (window.____ebnis.newEntryResolversAdded) {
-    return;
-  }
-
-  client.addResolvers(newEntryResolvers);
-  window.____ebnis.newEntryResolversAdded = true;
-}
 
 /**
  * Upsert the entry into the experience and updates the Get full experience

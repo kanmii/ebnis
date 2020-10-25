@@ -47,7 +47,6 @@ import { windowChangeUrl } from "../utils/global-window";
 import { AppPersistor } from "../utils/app-context";
 import { scrollIntoView } from "../utils/scroll-into-view";
 import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "../graphql/apollo-types/CreateExperiences";
-import { CreateExperienceOfflineMutationResult } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { E2EWindowObject, StateValue } from "../utils/types";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import {
@@ -55,6 +54,10 @@ import {
   getEntriesQuerySuccess,
 } from "../apollo/get-detailed-experience-query";
 import { act } from "react-dom/test-utils";
+import { createOfflineExperience } from "../components/UpsertExperience/upsert-experience.resolvers";
+
+jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
+const mockCreateOfflineExperience = createOfflineExperience as jest.Mock;
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockGetEntriesQuery = getExperienceQuery as jest.Mock;
@@ -64,8 +67,6 @@ jest.mock("../utils/experience.gql.types");
 const mockManuallyFetchExperience = manuallyFetchExperience as jest.Mock;
 const mockUpdateExperiencesOnlineEffectHelperFunc = updateExperiencesOnlineEffectHelperFunc as jest.Mock;
 const mockManuallyGetDataObjects = manuallyGetDataObjects as jest.Mock;
-
-jest.mock("../components/UpsertExperience/upsert-experience.injectables");
 
 jest.mock("../utils/connections");
 const mockIsConnected = getIsConnected as jest.Mock;
@@ -80,7 +81,6 @@ const mockOnClose = jest.fn();
 const mockOnError = jest.fn();
 const mockOnSuccess = jest.fn();
 const mockDispatch = jest.fn();
-const mockCreateOfflineExperience = jest.fn();
 const mockCreateExperiencesOnline = jest.fn();
 const mockUpdateExperiencesOnline = jest.fn();
 const mockPersistFn = jest.fn();
@@ -525,7 +525,6 @@ describe("components", () => {
 
 describe("reducer", () => {
   const props = {
-    createExperienceOffline: mockCreateOfflineExperience as any,
     createExperiences: mockCreateExperiencesOnline as any,
   } as Props;
 
@@ -550,14 +549,8 @@ describe("reducer", () => {
 
     const effectFn = effectFunctions[effect.key];
 
-    mockCreateOfflineExperience.mockResolvedValue({
-      data: {
-        createOfflineExperience: {
-          experience: {
-            id: "1",
-          },
-        },
-      },
+    mockCreateOfflineExperience.mockReturnValue({
+      id: "1",
     });
 
     expect(mockWindowChangeUrl).not.toHaveBeenCalled();
@@ -569,9 +562,7 @@ describe("reducer", () => {
     expect(mockPersistFn).toHaveBeenCalled();
     expect(mockDispatch).not.toHaveBeenCalled();
 
-    expect(
-      mockCreateOfflineExperience.mock.calls[0][0].variables.input[0],
-    ).toEqual({
+    expect(mockCreateOfflineExperience.mock.calls[0][0].input[0]).toEqual({
       title: "tt",
       dataDefinitions: [
         {
@@ -603,9 +594,7 @@ describe("reducer", () => {
 
     const effectFn = effectFunctions[effect.key];
 
-    mockCreateOfflineExperience.mockResolvedValueOnce({
-      data: {},
-    });
+    mockCreateOfflineExperience.mockReturnValue(undefined);
 
     expect(mockDispatch).not.toHaveBeenCalled();
     effectFn(effect.ownArgs as any, props, effectArgs);
@@ -616,15 +605,6 @@ describe("reducer", () => {
     expect(mockDispatch.mock.calls[0][0].type).toEqual(
       ActionType.ON_COMMON_ERROR,
     );
-
-    const error = new Error("z");
-    mockCreateOfflineExperience.mockRejectedValueOnce(error);
-    effectFn(effect.ownArgs as any, props, effectArgs);
-    await wait(() => true);
-    expect(mockDispatch.mock.calls[1][0]).toEqual({
-      type: ActionType.ON_COMMON_ERROR,
-      error,
-    });
   });
 
   it("submits offline: field errors", async () => {
@@ -648,16 +628,7 @@ describe("reducer", () => {
 
     const effectFn = effectFunctions[effect.key];
 
-    mockCreateOfflineExperience.mockResolvedValue({
-      data: {
-        createOfflineExperience: {
-          __typename: "CreateExperienceErrors",
-          errors: {
-            title: "a",
-          },
-        },
-      },
-    } as CreateExperienceOfflineMutationResult);
+    mockCreateOfflineExperience.mockReturnValue("a");
 
     expect(mockDispatch).not.toHaveBeenCalled();
     effectFn(effect.ownArgs as any, props, effectArgs);
@@ -852,7 +823,6 @@ function makeComp({ props = {} }: { props?: Partial<{}> } = {}) {
     ui: (
       <UpsertExperienceP
         createExperiences={mockCreateExperiencesOnline}
-        createExperienceOffline={mockCreateOfflineExperience}
         updateExperiencesOnline={mockUpdateExperiencesOnline}
         onClose={mockOnClose}
         onError={mockOnError}

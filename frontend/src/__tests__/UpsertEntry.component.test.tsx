@@ -28,7 +28,7 @@ import {
   CreateExperiencesMutationResult,
 } from "../utils/experience.gql.types";
 import { scrollIntoView } from "../utils/scroll-into-view";
-import { CreateOfflineEntryResult } from "../components/UpsertEntry/upsert-entry.resolvers";
+import { createOfflineEntryMutation } from "../components/UpsertEntry/upsert-entry.resolvers";
 import { AppPersistor } from "../utils/app-context";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { E2EWindowObject } from "../utils/types";
@@ -39,6 +39,9 @@ import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { getEntriesQuerySuccess } from "../apollo/get-detailed-experience-query";
 import { emptyGetEntries } from "../graphql/utils.gql";
+
+jest.mock("../components/UpsertEntry/upsert-entry.resolvers");
+const mockCreateOfflineEntry = createOfflineEntryMutation as jest.Mock;
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
@@ -93,8 +96,6 @@ jest.mock("../apollo/unsynced-ledger");
 const mockRemoveUnsyncedExperience = removeUnsyncedExperiences as jest.Mock;
 
 const mockDispatch = jest.fn();
-const mockCreateOfflineEntry = jest.fn();
-const mockCreateExperiencesOnline = jest.fn();
 const mockUpdateExperiencesOnline = jest.fn();
 const mockPersistFn = jest.fn();
 const mockOnSuccess = jest.fn();
@@ -289,7 +290,7 @@ describe("component", () => {
 
   it("unconnected/renders single line text/javascript exception", async () => {
     mockIsConnected.mockReturnValue(false);
-    mockCreateOfflineEntry.mockRejectedValue("a");
+    mockCreateOfflineEntry.mockReturnValue(undefined);
 
     const { ui } = makeComp({
       props: {
@@ -313,14 +314,13 @@ describe("component", () => {
 
     submitEl.click();
     await waitForElement(getNotificationEl);
-    expect(
-      mockCreateOfflineEntry.mock.calls[0][0].variables.dataObjects[0].data,
-    ).toEqual(`{"single_line_text":"b"}`);
+    expect(mockCreateOfflineEntry.mock.calls[0][0].dataObjects[0].data).toEqual(
+      `{"single_line_text":"b"}`,
+    );
   });
-
   it("unconnected/renders multi line text/invalid response", async () => {
     mockIsConnected.mockReturnValue(false);
-    mockCreateOfflineEntry.mockResolvedValue({});
+    mockCreateOfflineEntry.mockReturnValue(undefined);
 
     const { ui } = makeComp({
       props: {
@@ -344,20 +344,16 @@ describe("component", () => {
 
     submitEl.click();
     await waitForElement(getNotificationEl);
-    expect(
-      mockCreateOfflineEntry.mock.calls[0][0].variables.dataObjects[0].data,
-    ).toEqual(`{"multi_line_text":"a"}`);
+    expect(mockCreateOfflineEntry.mock.calls[0][0].dataObjects[0].data).toEqual(
+      `{"multi_line_text":"a"}`,
+    );
   });
 
   it("unconnected/renders decimal/ok", async () => {
     mockIsConnected.mockReturnValue(false);
-    mockCreateOfflineEntry.mockResolvedValue({
-      data: {
-        createOfflineEntry: {
-          entry: {},
-        },
-      },
-    } as CreateOfflineEntryResult);
+    mockCreateOfflineEntry.mockReturnValue({
+      entry: {},
+    });
 
     const { ui } = makeComp({
       props: {
@@ -382,9 +378,8 @@ describe("component", () => {
     submitEl.click();
     await wait(() => true);
     expect(mockPersistFn).toHaveBeenCalled();
-    expect(
-      mockCreateOfflineEntry.mock.calls[0][0].variables.dataObjects[0],
-    ).toEqual({
+
+    expect(mockCreateOfflineEntry.mock.calls[0][0].dataObjects[0]).toEqual({
       data: `{"decimal":"1.0"}`,
       definitionId: "1",
     });
@@ -518,13 +513,11 @@ describe("reducer", () => {
     dispatch: mockDispatch,
   };
 
-  // TODO: remove createExperiences because we are no longer doing this
   const props = ({
     updateExperiencesOnline: mockUpdateExperiencesOnline as any,
     experience,
     onSuccess: mockOnSuccess,
     onClose: mockOnClose,
-    createOfflineEntry: mockCreateOfflineEntry,
   } as unknown) as Props;
 
   it("sets decimal to default zero/connected/success", async () => {
@@ -635,10 +628,8 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
     ui: (
       <UpsertEntryP
         {...props}
-        createOfflineEntry={mockCreateOfflineEntry}
         updateExperiencesOnline={mockUpdateExperiencesOnline}
         experience={experience}
-        createExperiences={mockCreateExperiencesOnline}
         onSuccess={mockOnSuccess}
         onClose={mockOnClose}
       />

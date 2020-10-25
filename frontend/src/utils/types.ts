@@ -42,8 +42,6 @@ export interface E2EWindowObject extends ObservableUtils {
   connectionStatus: ConnectionStatus;
   emitter: ZenObservable.SubscriptionObserver<EmitPayload>;
   emitting: boolean;
-  experienceDefinitionResolversAdded?: boolean;
-  newEntryResolversAdded?: boolean;
   logApolloQueries?: boolean;
   bc: BChannel;
 }

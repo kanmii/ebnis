@@ -39,7 +39,7 @@ import {
 import { createExperiencesManualUpdate } from "../../apollo/create-experiences-manual-update";
 import { scrollIntoViewDomId } from "./upsert-experience.dom";
 import {
-  CreateExperienceOfflineMutationComponentProps,
+  createOfflineExperience,
   updateExperienceOfflineFn,
 } from "./upsert-experience.resolvers";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
@@ -238,43 +238,32 @@ async function createExperienceOfflineEffect(
   props: Props,
   effectArgs: EffectArgs,
 ) {
-  const { createExperienceOffline } = props;
   const { dispatch } = effectArgs;
   const variables = ceateExperienceInputMutationFunctionVariable(input);
 
-  try {
-    const result = await createExperienceOffline({
-      variables,
-    });
+  const result = createOfflineExperience(variables);
 
-    const validResponse =
-      result && result.data && result.data.createOfflineExperience;
-
-    if (!validResponse) {
-      dispatch({
-        type: ActionType.ON_COMMON_ERROR,
-        error: GENERIC_SERVER_ERROR,
-      });
-    } else {
-      if (validResponse.__typename === "CreateExperienceErrors") {
-        dispatch({
-          type: ActionType.ON_SERVER_ERRORS,
-          errors: validResponse.errors,
-        });
-      } else {
-        const experienceId = validResponse.experience.id;
-        await window.____ebnis.persistor.persist();
-        windowChangeUrl(
-          makeDetailedExperienceRoute(experienceId),
-          ChangeUrlType.goTo,
-        );
-      }
-    }
-  } catch (error) {
+  if (!result) {
     dispatch({
       type: ActionType.ON_COMMON_ERROR,
-      error,
+      error: GENERIC_SERVER_ERROR,
     });
+  } else {
+    if ("string" === typeof result) {
+      dispatch({
+        type: ActionType.ON_SERVER_ERRORS,
+        errors: {
+          title: result,
+        } as CreateExperiences_createExperiences_CreateExperienceErrors_errors,
+      });
+    } else {
+      const experienceId = result.id;
+      await window.____ebnis.persistor.persist();
+      windowChangeUrl(
+        makeDetailedExperienceRoute(experienceId),
+        ChangeUrlType.goTo,
+      );
+    }
   }
 }
 
@@ -1446,7 +1435,6 @@ export type CallerProps = {
 };
 
 export type Props = CreateExperiencesOnlineComponentProps &
-  CreateExperienceOfflineMutationComponentProps &
   UpdateExperiencesOnlineComponentProps &
   CallerProps;
 

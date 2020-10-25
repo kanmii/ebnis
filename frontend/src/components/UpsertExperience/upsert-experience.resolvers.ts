@@ -1,9 +1,4 @@
 /* eslint-disable react-hooks/rules-of-hooks*/
-import gql from "graphql-tag";
-import {
-  LocalResolverFn,
-  MUTATION_NAME_createExperienceOffline,
-} from "../../apollo/resolvers";
 import {
   CreateDataDefinition,
   UpdateExperienceInput,
@@ -15,10 +10,7 @@ import {
   ExperienceFragment_dataDefinitions,
   ExperienceFragment,
 } from "../../graphql/apollo-types/ExperienceFragment";
-import {
-  EXPERIENCE_FRAGMENT,
-  GET_COMPLETE_EXPERIENCE_QUERY,
-} from "../../graphql/experience.gql";
+import { GET_COMPLETE_EXPERIENCE_QUERY } from "../../graphql/experience.gql";
 import {
   upsertExperiencesInGetExperiencesMiniQuery,
   purgeEntry,
@@ -28,19 +20,7 @@ import {
   writeUnsyncedExperience,
   getUnsyncedExperience,
 } from "../../apollo/unsynced-ledger";
-import {
-  MutationFunction,
-  MutationFunctionOptions,
-  MutationResult,
-  useMutation,
-} from "@apollo/client";
-import { ExecutionResult } from "graphql/execution/execute";
-import {
-  CreateExperiencesVariables,
-  CreateExperiences_createExperiences,
-  CreateExperiences_createExperiences_CreateExperienceErrors_errors,
-  CreateExperiences_createExperiences_ExperienceSuccess,
-} from "../../graphql/apollo-types/CreateExperiences";
+import { CreateExperiencesVariables } from "../../graphql/apollo-types/CreateExperiences";
 import { v4 } from "uuid";
 import { getExperiencesMiniQuery } from "../../apollo/get-experiences-mini-query";
 import {
@@ -75,10 +55,9 @@ import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/a
 
 ////////////////////////// CREATE ////////////////////////////
 
-const createOfflineExperienceResolver: LocalResolverFn<
-  CreateExperiencesVariables,
-  CreateExperiences_createExperiences
-> = (_, variables, { cache }) => {
+export function createOfflineExperience(
+  variables: CreateExperiencesVariables,
+): string | ExperienceFragment {
   const { input: inputs } = variables;
   const input = inputs[0];
 
@@ -97,13 +76,7 @@ const createOfflineExperienceResolver: LocalResolverFn<
   });
 
   if (exists) {
-    return {
-      __typename: "CreateExperienceErrors",
-      errors: {
-        __typename: "CreateExperienceError",
-        title: "has already been taken",
-      } as CreateExperiences_createExperiences_CreateExperienceErrors_errors,
-    };
+    return "has already been taken";
   }
 
   const today = new Date();
@@ -141,6 +114,8 @@ const createOfflineExperienceResolver: LocalResolverFn<
     dataDefinitions,
   };
 
+  const { cache } = window.____ebnis;
+
   cache.writeQuery<GetDetailExperience, GetDetailExperienceVariables>({
     query: GET_COMPLETE_EXPERIENCE_QUERY,
     data: {
@@ -161,67 +136,7 @@ const createOfflineExperienceResolver: LocalResolverFn<
     isOffline: true,
   });
 
-  return {
-    __typename: "ExperienceSuccess",
-    experience,
-  } as CreateExperiences_createExperiences_ExperienceSuccess;
-};
-
-export const CREATE_OFFLINE_EXPERIENCE_MUTATION = gql`
-  mutation CreateOfflineExperienceMutation($input: CreateExperienceInput!) {
-    createOfflineExperience(input: $input) @client {
-      __typename
-      ... on ExperienceSuccess {
-        experience {
-          ...ExperienceFragment
-        }
-      }
-      ... on CreateExperienceErrors {
-        errors {
-          title
-        }
-      }
-    }
-  }
-
-  ${EXPERIENCE_FRAGMENT}
-`;
-
-export interface CreateExperienceOfflineMutationReturned {
-  createOfflineExperience: CreateExperiences_createExperiences;
-}
-
-// istanbul ignore next:
-export function useCreateExperienceOfflineMutation() {
-  return useMutation<
-    CreateExperienceOfflineMutationReturned,
-    CreateExperiencesVariables
-  >(CREATE_OFFLINE_EXPERIENCE_MUTATION);
-}
-
-export type CreateExperienceOfflineMutationResult = ExecutionResult<
-  CreateExperienceOfflineMutationReturned
->;
-
-export type CreateExperienceOfflineMutationFn = MutationFunction<
-  CreateExperienceOfflineMutationReturned,
-  CreateExperiencesVariables
->;
-
-// used to type check test mock calls
-export type CreateOfflineExperienceMutationFnOptions = MutationFunctionOptions<
-  CreateExperienceOfflineMutationReturned,
-  CreateExperiencesVariables
->;
-
-export type UseCreateExperienceOfflineMutation = [
-  CreateExperienceOfflineMutationFn,
-  MutationResult<CreateExperienceOfflineMutationReturned>,
-];
-
-// component's props should extend this
-export interface CreateExperienceOfflineMutationComponentProps {
-  createExperienceOffline: CreateExperienceOfflineMutationFn;
+  return experience;
 }
 
 ////////////////////////// END CREATE ////////////////////////////
@@ -417,11 +332,3 @@ type ImmerUpdate = [
 ];
 
 ////////////////////////// END UPDATE ////////////////////////////
-
-export const upsertExperienceResolvers = {
-  Mutation: {
-    [MUTATION_NAME_createExperienceOffline]: createOfflineExperienceResolver,
-  },
-
-  Query: {},
-};

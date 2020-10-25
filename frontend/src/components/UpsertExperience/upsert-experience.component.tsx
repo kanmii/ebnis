@@ -1,10 +1,4 @@
-import React, {
-  useReducer,
-  useEffect,
-  useCallback,
-  FormEvent,
-  ChangeEvent,
-} from "react";
+import React, { useReducer, useCallback, FormEvent, ChangeEvent } from "react";
 import makeClassNames from "classnames";
 import "./upsert-experience.styles.scss";
 import {
@@ -43,7 +37,6 @@ import {
   disposeComponentDomId,
   domPrefix,
 } from "./upsert-experience.dom";
-import { useCreateExperienceOfflineMutation } from "./upsert-experience.resolvers";
 import {
   useCreateExperiencesMutation,
   useUpdateExperiencesOnlineMutation,
@@ -52,7 +45,6 @@ import { DataTypes } from "../../graphql/apollo-types/globalTypes";
 import Loading from "../Loading/loading.component";
 import { FormCtrlError } from "../FormCtrlError/form-ctrl-error.component";
 import { FieldError } from "../../utils/common-errors";
-import { addResolvers } from "./upsert-experience.injectables";
 import {
   warningClassName,
   errorClassName, //
@@ -82,11 +74,6 @@ export function UpsertExperience(props: Props) {
   } = stateMachine;
 
   useRunEffects(generalEffects, effectFunctions, props, { dispatch });
-
-  useEffect(() => {
-    addResolvers(window.____ebnis.client);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const onSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
@@ -613,7 +600,6 @@ function DataDefinitionsComponent(props: DataDefinitionsProps) {
 
 // istanbul ignore next:
 export default (props: CallerProps) => {
-  const [createExperienceOffline] = useCreateExperienceOfflineMutation();
   const [createExperiences] = useCreateExperiencesMutation();
   const [updateExperiencesOnline] = useUpdateExperiencesOnlineMutation();
 
@@ -621,7 +607,6 @@ export default (props: CallerProps) => {
     <UpsertExperience
       {...props}
       createExperiences={createExperiences}
-      createExperienceOffline={createExperienceOffline}
       updateExperiencesOnline={updateExperiencesOnline}
     />
   );

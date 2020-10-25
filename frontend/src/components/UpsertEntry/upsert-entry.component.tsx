@@ -1,10 +1,4 @@
-import React, {
-  useEffect,
-  useReducer,
-  useCallback,
-  FormEvent,
-  ChangeEvent,
-} from "react";
+import React, { useReducer, useCallback, FormEvent, ChangeEvent } from "react";
 import makeClassNames from "classnames";
 import "./upsert-entry.styles.scss";
 import {
@@ -19,12 +13,7 @@ import {
   FormObjVal,
   Submission,
 } from "./upsert-entry.utils";
-import {
-  useUpdateExperiencesOnlineMutation,
-  useCreateExperiencesMutation,
-} from "../../utils/experience.gql.types";
-import { useCreateOfflineEntryMutation } from "./upsert-entry.resolvers";
-import { addResolvers } from "./upsert-entry.injectables";
+import { useUpdateExperiencesOnlineMutation } from "../../utils/experience.gql.types";
 import Loading from "../Loading/loading.component";
 import { componentFromDataType } from "./component-from-data-type";
 import { DataTypes } from "../../graphql/apollo-types/globalTypes";
@@ -62,11 +51,6 @@ export function UpsertEntry(props: Props) {
     dispatch({
       type: ActionType.DISMISS_NOTIFICATION,
     });
-  }, []);
-
-  useEffect(() => {
-    addResolvers(window.____ebnis.client);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const { dataDefinitions, title } = experience;
@@ -243,12 +227,11 @@ function NotificationComponent({
         <strong>
           <p>
             Following errors were received while trying to create/Update the
-            Eintrag
+            entry
           </p>
         </strong>
       </div>
       <hr />
-      <div>Eintrag:</div>
       {errorNode}
     </div>
   );
@@ -267,16 +250,9 @@ function makeDateChangedFn(dispatch: DispatchType, index: number) {
 // istanbul ignore next:
 export default (props: CallerProps) => {
   const [updateExperiencesOnline] = useUpdateExperiencesOnlineMutation();
-  const [createOfflineEntry] = useCreateOfflineEntryMutation();
-  const [createExperiences] = useCreateExperiencesMutation();
 
   return (
-    <UpsertEntry
-      {...props}
-      updateExperiencesOnline={updateExperiencesOnline}
-      createOfflineEntry={createOfflineEntry}
-      createExperiences={createExperiences}
-    />
+    <UpsertEntry {...props} updateExperiencesOnline={updateExperiencesOnline} />
   );
 };
 

@@ -11,7 +11,7 @@ import {
 } from "../../graphql/apollo-types/globalTypes";
 import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
-import { CreateOfflineEntryMutationComponentProps } from "./upsert-entry.resolvers";
+import { createOfflineEntryMutation } from "./upsert-entry.resolvers";
 import { wrapReducer } from "../../logger";
 import { getIsConnected } from "../../utils/connections";
 import { scrollIntoView } from "../../utils/scroll-into-view";
@@ -19,7 +19,6 @@ import { scrollIntoViewNonFieldErrorDomId } from "./upsert-entry.dom";
 import {
   UpdateExperiencesOnlineComponentProps,
   updateExperiencesOnlineEffectHelperFunc,
-  CreateExperiencesOnlineComponentProps,
 } from "../../utils/experience.gql.types";
 import {
   StringyErrorPayload,
@@ -249,45 +248,32 @@ async function createOfflineEntryEffect(
   isOffline: boolean,
 ) {
   const {
-    createOfflineEntry,
     experience: { id: experienceId },
     onSuccess,
   } = props;
 
   const { dispatch } = effectArgs;
 
-  try {
-    const response = await createOfflineEntry({
-      variables: {
-        experienceId,
-        dataObjects: input.dataObjects as CreateDataObject[],
-      },
-    });
+  const validResponse = createOfflineEntryMutation({
+    experienceId,
+    dataObjects: input.dataObjects as CreateDataObject[],
+  });
 
-    const validResponse =
-      response && response.data && response.data.createOfflineEntry;
-
-    if (!validResponse) {
-      dispatch({
-        type: ActionType.ON_COMMON_ERROR,
-        error: GENERIC_SERVER_ERROR,
-      });
-
-      return;
-    }
-
-    onSuccess(
-      validResponse.entry,
-      isOffline ? StateValue.offline : StateValue.partOffline,
-    );
-
-    await window.____ebnis.persistor.persist();
-  } catch (error) {
+  if (!validResponse) {
     dispatch({
       type: ActionType.ON_COMMON_ERROR,
-      error,
+      error: GENERIC_SERVER_ERROR,
     });
+
+    return;
   }
+
+  onSuccess(
+    validResponse.entry,
+    isOffline ? StateValue.offline : StateValue.partOffline,
+  );
+
+  await window.____ebnis.persistor.persist();
 }
 
 interface CreateEntryEffectArgs {
@@ -581,11 +567,7 @@ export interface CallerProps {
   onClose: () => void;
 }
 
-export type Props = CallerProps &
-  UpdateExperiencesOnlineComponentProps &
-  CreateOfflineEntryMutationComponentProps &
-  // TODO: remove createExperiences because we are no longer doing this
-  CreateExperiencesOnlineComponentProps;
+export type Props = CallerProps & UpdateExperiencesOnlineComponentProps;
 
 export type UpdatingEntryPayload = {
   entry: EntryFragment;

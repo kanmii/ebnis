@@ -1,16 +1,12 @@
-import { upsertExperienceResolvers } from "../components/UpsertExperience/upsert-experience.resolvers";
-import { MUTATION_NAME_createExperienceOffline } from "../apollo/resolvers";
-import {
-  CreateExperiencesVariables,
-  CreateExperiences_createExperiences_CreateExperienceErrors,
-  CreateExperiences_createExperiences_ExperienceSuccess,
-} from "../graphql/apollo-types/CreateExperiences";
+import { createOfflineExperience } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
 import { upsertExperiencesInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
 import { writeUnsyncedExperience } from "../apollo/unsynced-ledger";
 import { isOfflineId } from "../utils/offlines";
 import { getExperiencesMiniQuery } from "../apollo/get-experiences-mini-query";
 import { GetExperienceConnectionMini_getExperiences } from "../graphql/apollo-types/GetExperienceConnectionMini";
+import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
+import { E2EWindowObject } from "../utils/types";
 
 jest.mock("../apollo/get-experiences-mini-query");
 const mockGetExperiencesMiniQuery = getExperiencesMiniQuery as jest.Mock;
@@ -25,22 +21,29 @@ const mockWriteQueryFn = jest.fn();
 
 const cache = {
   writeQuery: mockWriteQueryFn,
-};
-
-const lastArg = { cache } as any;
+} as any;
 
 let mockUuid = 0;
 jest.mock("uuid", () => ({
   v4: () => "" + mockUuid++,
 }));
 
+const globals = {
+  cache,
+} as E2EWindowObject;
+
+beforeAll(() => {
+  window.____ebnis = globals;
+});
+
+afterAll(() => {
+  delete window.____ebnis;
+});
+
 afterEach(() => {
   jest.resetAllMocks();
   mockUuid = 0;
 });
-
-const createOfflineExperienceResolver =
-  upsertExperienceResolvers.Mutation[MUTATION_NAME_createExperienceOffline];
 
 it("creates offline experience/success", () => {
   expect(
@@ -51,23 +54,19 @@ it("creates offline experience/success", () => {
 
   mockGetExperiencesMiniQuery.mockReturnValue(null);
 
-  const { experience } = createOfflineExperienceResolver(
-    null as any,
-    {
-      input: [
-        {
-          title: "aa",
-          dataDefinitions: [
-            {
-              name: "nn",
-              type: DataTypes.DATE,
-            },
-          ],
-        },
-      ],
-    } as CreateExperiencesVariables,
-    lastArg,
-  ) as CreateExperiences_createExperiences_ExperienceSuccess;
+  const experience = createOfflineExperience({
+    input: [
+      {
+        title: "aa",
+        dataDefinitions: [
+          {
+            name: "nn",
+            type: DataTypes.DATE,
+          },
+        ],
+      },
+    ],
+  }) as ExperienceFragment;
 
   const erfahrungId = experience.id;
 
@@ -97,23 +96,19 @@ it("creates offline experience fails weil es liegt Erfahrung Titel", () => {
     ],
   } as GetExperienceConnectionMini_getExperiences);
 
-  const { errors } = createOfflineExperienceResolver(
-    null as any,
-    {
-      input: [
-        {
-          title: "aa",
-          dataDefinitions: [
-            {
-              name: "nn",
-              type: DataTypes.DATE,
-            },
-          ],
-        },
-      ],
-    } as CreateExperiencesVariables,
-    lastArg,
-  ) as CreateExperiences_createExperiences_CreateExperienceErrors;
+  const errors = createOfflineExperience({
+    input: [
+      {
+        title: "aa",
+        dataDefinitions: [
+          {
+            name: "nn",
+            type: DataTypes.DATE,
+          },
+        ],
+      },
+    ],
+  }) as string;
 
-  expect(typeof errors.title).toBe("string");
+  expect(typeof errors).toBe("string");
 });

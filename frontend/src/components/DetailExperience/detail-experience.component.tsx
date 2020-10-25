@@ -532,9 +532,9 @@ function EntryComponent(props: {
                   });
                 }}
               >
-                Beheben{" "}
-              </button>{" "}
-            </div>{" "}
+                Fix error
+              </button>
+            </div>
           </div>
         )}
 

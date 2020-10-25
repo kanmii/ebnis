@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { MUTATION_NAME_createOfflineEntry } from "../apollo/resolvers";
 import {
-  newEntryResolvers,
   CreateOfflineEntryMutationVariables,
   CreateOfflineEntryMutationValid,
+  createOfflineEntryMutation,
 } from "../components/UpsertEntry/upsert-entry.resolvers";
 import { upsertNewEntry } from "../components/UpsertEntry/upsert-entry.injectables";
 import { isOfflineId, makeOfflineId } from "../utils/offlines";
@@ -27,19 +26,9 @@ jest.mock("../apollo/get-detailed-experience-query");
 const mockReadExperienceFragment = readExperienceFragment as jest.Mock;
 const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
 
-const createOfflineEntryMutationResolver =
-  newEntryResolvers.Mutation[MUTATION_NAME_createOfflineEntry];
-
-const mockCache = jest.fn();
-const context = {
-  cache: mockCache,
-} as any;
-
 afterEach(() => {
   jest.resetAllMocks();
 });
-
-const obj = null as any;
 
 it("online experience/creates entry", () => {
   mockGetUnsyncedExperience.mockReturnValue({});
@@ -62,11 +51,7 @@ it("online experience/creates entry", () => {
 
   const {
     entry: { id, dataObjects },
-  } = createOfflineEntryMutationResolver(
-    obj,
-    variables,
-    context,
-  ) as CreateOfflineEntryMutationValid;
+  } = createOfflineEntryMutation(variables) as CreateOfflineEntryMutationValid;
 
   expect(mockUpsertWithEntry).toHaveBeenCalled();
   expect(isOfflineId(id));
@@ -98,7 +83,7 @@ it("offline experience/creates entry", () => {
     dataObjects: [{}],
   } as CreateOfflineEntryMutationVariables;
 
-  createOfflineEntryMutationResolver(obj, variables, context);
+  createOfflineEntryMutation(variables);
 
   expect(mockWriteUnsyncedExperience).not.toHaveBeenCalled();
   expect(mockUpsertWithEntry).toHaveBeenCalled();
@@ -110,6 +95,6 @@ it("experience not found", () => {
     dataObjects: [{}],
   } as CreateOfflineEntryMutationVariables;
 
-  const result = createOfflineEntryMutationResolver(obj, variables, context);
+  const result = createOfflineEntryMutation(variables);
   expect(result).toBeNull();
 });
