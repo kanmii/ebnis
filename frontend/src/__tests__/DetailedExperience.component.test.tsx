@@ -16,6 +16,7 @@ import {
   EntriesDataSuccessSate,
   EntriesDataFailureState,
   ExperienceSyncError,
+  StateMachine,
 } from "../components/DetailExperience/detailed-experience-utils";
 import {
   EntryConnectionFragment,
@@ -68,13 +69,18 @@ import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
 import {
   getCachedExperience,
-  getEntriesQuerySuccess,
+  getEntriesQuery,
 } from "../apollo/get-detailed-experience-query";
 import { activeClassName, nonsenseId } from "../utils/utils.dom";
 import { useWithSubscriptionContext } from "../apollo/injectables";
 import { GenericHasEffect } from "../utils/effects";
 import { scrollIntoView } from "../utils/scroll-into-view";
-import { getSyncError } from "../apollo/sync-to-server-cache";
+import {
+  getSyncError,
+  getAndRemoveOfflineExperienceIdFromSyncFlag,
+  putOfflineExperienceIdInSyncFlag,
+  putOrRemoveSyncError,
+} from "../apollo/sync-to-server-cache";
 import { Props as NewEntryProps } from "../components/UpsertEntry/upsert-entry.utils";
 import {
   OfflineIdToCreateEntrySyncErrorMap,
@@ -90,6 +96,11 @@ import {
   cleanUpOfflineExperiences,
   cleanUpSyncedOfflineEntries,
 } from "../components/WithSubscriptions/with-subscriptions.utils";
+import { GetEntriesUnionFragment_GetEntriesSuccess } from "../graphql/apollo-types/GetEntriesUnionFragment";
+import { windowChangeUrl, ChangeUrlType } from "../utils/global-window";
+
+jest.mock("../utils/global-window");
+const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
 
 jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
 const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
@@ -97,6 +108,8 @@ const mockCleanUpSyncedOfflineEntries = cleanUpSyncedOfflineEntries as jest.Mock
 
 jest.mock("../apollo/sync-to-server-cache");
 const mockGetSyncError = getSyncError as jest.Mock;
+const mockgetAndRemoveOfflineExperienceIdFromSyncFlag = getAndRemoveOfflineExperienceIdFromSyncFlag as jest.Mock;
+const mockPutOrRemoveSyncError = putOrRemoveSyncError as jest.Mock;
 
 jest.mock("../utils/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
@@ -107,7 +120,7 @@ const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
 jest.mock("../apollo/get-detailed-experience-query");
 const mockGetCachedExperience = getCachedExperience as jest.Mock;
 
-const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
+const mockGetEntriesQuery = getEntriesQuery as jest.Mock;
 
 jest.mock("../components/Header/header.component", () => () => null);
 
@@ -273,7 +286,7 @@ const onlineEntrySuccess = {
       },
     ],
     pageInfo: {},
-  },
+  } as EntryConnectionFragment,
 };
 
 const offlineEntryId = makeOfflineId("b");
@@ -587,7 +600,7 @@ describe("components", () => {
     expect(getFetchNextEntriesEl()).toBeNull();
   });
 
-  it("entry sync errors", async () => {
+  it("displays create entries errors", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
     mockGetSyncError.mockReturnValue({
@@ -637,6 +650,478 @@ describe("components", () => {
   });
 });
 
+
+describe("first fetch of experience: display sync errors", () => {
+  it("displays sync errors for definitions update", () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    // Given an experience has definition sync errors
+    mockGetSyncError.mockReturnValue({
+      definitions: {
+        [onlineDefinitionId]: {
+          id: onlineDefinitionId,
+          type: "a",
+          error: null,
+        } as DefinitionErrorFragment,
+      },
+    } as ExperienceSyncError);
+
+    mockGetCachedExperience.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...onlineExperience,
+        },
+        getEntries: onlineEntrySuccess,
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    // Then error notification should be visible
+    expect(getSyncErrorsNotificationEl()).not.toBeNull();
+
+    const upsertEntryUiTrigger = getUpsertEntryTriggerEl();
+
+    // When user clicks on 'upsert entry' button
+    act(() => {
+      upsertEntryUiTrigger.click();
+    });
+
+    // Then user gets message to first fix the errors
+    const closeSyncErrorsCloseEl = getSyncErrorsMessageClose();
+
+    // UpsertEntry UI should not visible
+    expect(getCloseUpsertExperienceUI()).toBeNull();
+
+    // When user closes message to fix sync errors
+    act(() => {
+      closeSyncErrorsCloseEl.click();
+    });
+
+    // Then message should no longer be visible
+    expect(getSyncErrorsMessageClose()).toBeNull();
+
+    // When user clicks on 'upsert entry' button again
+    act(() => {
+      upsertEntryUiTrigger.click();
+    });
+
+    // Then user gets message to first fix the errors
+    const fixSyncErrorsEl = getSyncErrorsMessageFix();
+
+    // UI to update experience should not be visible
+    expect(getCloseUpsertExperienceUI()).toBeNull();
+
+    // Experience sync errors specific message should be visible
+    expect(getSyncExperienceErrors()).not.toBeNull();
+
+    // Entries errors specific message should not be visible
+    expect(getSyncEntriesErrors()).toBeNull();
+
+    // When user clicks on button to fix sync errors
+    act(() => {
+      fixSyncErrorsEl.click();
+    });
+
+    // UI to update experience should be visible
+    const closeUpsertExpEl = getCloseUpsertExperienceUI();
+
+    // Sync errors message should not be visible
+    expect(getSyncErrorsMessageClose()).toBeNull();
+
+    // When user closes update experience UI
+    act(() => {
+      closeUpsertExpEl.click();
+    });
+
+    // UI to update experience should not be visible
+    expect(getCloseUpsertExperienceUI()).toBeNull();
+  });
+
+  it("displays sync errors for create entries errors", () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    // Given an experience has definition sync errors
+    mockGetSyncError.mockReturnValue({
+      createEntries: {
+        [offlineEntryId]: {
+          __typename: "CreateEntryError",
+          meta: {
+            index: 0,
+          },
+          error: "a",
+          clientId: null,
+          dataObjects: [
+            {
+              meta: {
+                index: 0,
+              },
+              data: "b",
+              definition: null,
+            },
+          ],
+        } as CreateEntryErrorFragment,
+      },
+    } as ExperienceSyncError);
+
+    mockGetCachedExperience.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...onlineExperience,
+        },
+        getEntries: offlineEntrySuccess,
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    // Then error notification should be visible
+    expect(getSyncErrorsNotificationEl()).not.toBeNull();
+
+    // When user clicks on 'upsert entry' button
+
+    const upsertEntryUiTrigger = getUpsertEntryTriggerEl();
+
+    act(() => {
+      upsertEntryUiTrigger.click();
+    });
+
+    // Then user gets message that there are errors
+    let closeSyncErrorsCloseEl = getCloseSyncErrorsMsgBtn();
+    expect(getUpdateEntryLaunchEl()).not.toBeNull();
+
+    // There is button user can click to edit entry
+    const triggerUpdateEntryEl = getUpdateEntryLaunchEl();
+
+    // UpsertEntry UI should be visible
+    expect(getUpsertEntrySuccess()).toBeNull();
+
+    // When user closes sync errors message
+    act(() => {
+      closeSyncErrorsCloseEl.click();
+    });
+
+    // Then message should no longer be visible
+    expect(getSyncErrorsMessageClose()).toBeNull();
+
+    // When user clicks on 'upsert entry' button again
+    act(() => {
+      upsertEntryUiTrigger.click();
+    });
+
+    // Fix sync error button should not be visible
+    expect(getSyncErrorsMessageFix()).toBeNull();
+
+    // Experience sync errors specific message should not be visible
+    expect(getSyncExperienceErrors()).toBeNull();
+
+    // Entries errors specific message should be visible
+    expect(getSyncEntriesErrors()).not.toBeNull();
+
+    // When user closes sync errors message
+
+    closeSyncErrorsCloseEl = getCloseSyncErrorsMsgBtn();
+
+    act(() => {
+      closeSyncErrorsCloseEl.click();
+    });
+
+    // Then message should no longer be visible
+    expect(getSyncErrorsMessageClose()).toBeNull();
+
+    // When user clicks on button to update entry
+    act(() => {
+      triggerUpdateEntryEl.click();
+    });
+
+    // Update entry Ui should be visible
+    const updateEntrySuccessEl = getUpsertEntrySuccess();
+
+    // When update entry Ui is closed
+
+    act(() => {
+      updateEntrySuccessEl.click();
+    });
+
+    // update entry UI should not be visible
+    expect(getDismissUpsertEntryUi()).toBeNull();
+
+    // Error notification should not be visible
+    expect(getSyncErrorsNotificationEl()).toBeNull();
+    expect(getUpdateEntryLaunchEl()).toBeNull();
+  });
+
+  it("displays sync errors for update entries", () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    // Given an experience has update entries sync errors
+    mockGetSyncError.mockReturnValue({
+      updateEntries: {
+        [onlineEntryId]: "a" as UpdateEntrySyncErrors,
+        [offlineEntryId]: {
+          a: {
+            meta: {
+              index: 1,
+            },
+            data: "a",
+            error: "",
+          } as DataObjectErrorFragment,
+        } as UpdateEntrySyncErrors,
+      },
+    } as ExperienceSyncError);
+
+    mockGetCachedExperience.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...onlineExperience,
+        },
+        getEntries: onlineOfflineEntriesSuccess,
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    // Then error notification should be visible
+    expect(getSyncErrorsNotificationEl()).not.toBeNull();
+
+    // When user clicks on 'upsert entry' button
+
+    const upsertEntryUiTrigger = getUpsertEntryTriggerEl();
+
+    act(() => {
+      upsertEntryUiTrigger.click();
+    });
+
+    // Then user gets message that there are errors
+    expect(getCloseSyncErrorsMsgBtn).not.toBeNull();
+
+    // When user clicks on button to update entry
+    const triggerUpdateEntryEl = getUpdateEntryLaunchEl();
+    act(() => {
+      triggerUpdateEntryEl.click();
+    });
+
+    // Update entry Ui should be visible
+    const closeUpdateEntryEl = getDismissUpsertEntryUi();
+
+    // When update entry Ui is closed
+
+    act(() => {
+      closeUpdateEntryEl.click();
+    });
+
+    // update entry UI should not be visible
+    expect(getUpsertEntrySuccess()).toBeNull();
+  });
+
+  it("displays sync errors for own fields update", () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    // Given an experience has definition sync errors
+    mockGetSyncError.mockReturnValue({
+      ownFields: {
+        __typename: "UpdateExperienceOwnFieldsError",
+        title: "a",
+        a: "",
+      },
+    } as ExperienceSyncError);
+
+    mockGetCachedExperience.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...onlineExperience,
+        },
+        getEntries: onlineEntrySuccess,
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    // Then error notification should be visible
+    expect(getSyncErrorsNotificationEl()).not.toBeNull();
+
+    const upsertEntryUiTrigger = getUpsertEntryTriggerEl();
+
+    // When user clicks on 'upsert entry' button
+    act(() => {
+      upsertEntryUiTrigger.click();
+    });
+
+    // UpsertEntry UI should not visible
+    expect(getCloseUpsertExperienceUI()).toBeNull();
+
+    // Then user gets message to first fix the errors
+    const fixSyncErrorsEl = getSyncErrorsMessageFix();
+
+    // UI to update experience should not be visible
+    expect(getCloseUpsertExperienceUI()).toBeNull();
+
+    // Experience sync errors specific message should be visible
+    expect(getSyncExperienceErrors()).not.toBeNull();
+
+    // Entries errors specific message should not be visible
+    expect(getSyncEntriesErrors()).toBeNull();
+
+    // When user clicks on button to fix sync errors
+    act(() => {
+      fixSyncErrorsEl.click();
+    });
+
+    // UI to update experience should be visible
+    const closeUpsertExpEl = getCloseUpsertExperienceUI();
+
+    // Sync errors message should not be visible
+    expect(getSyncErrorsMessageClose()).toBeNull();
+
+    // When user closes update experience UI
+    act(() => {
+      closeUpsertExpEl.click();
+    });
+
+    // UI to update experience should not be visible
+    expect(getCloseUpsertExperienceUI()).toBeNull();
+  });
+});
+
+describe("update experience", () => {
+  it("shows experience menu when entries can not be fetched", () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetCachedExperience.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...onlineExperience,
+        },
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    const { debug } = render(ui);
+
+    // experience menu should be visible
+
+    expect(getUpdateExperienceEl()).not.toBeNull();
+  });
+
+  it("shows experience menu when entries list is empty", () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetCachedExperience.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...onlineExperience,
+        },
+        getEntries: emptyEntriesSuccessList,
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    const { debug } = render(ui);
+
+    // experience menu should be visible
+
+    expect(getUpdateExperienceEl()).not.toBeNull();
+  });
+
+  it("updates experience successfully", async () => {
+    mockUpdatedExperience = onlineExperience;
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetCachedExperience.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...onlineExperience,
+        },
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    const { debug } = render(ui);
+
+    // When show update experience UI button is clicked
+    act(() => {
+      getUpdateExperienceEl().click();
+    });
+
+    // Experience updated success notification should not be visible
+    expect(getUpdateExperienceSuccessNotification()).toBeNull();
+
+    // When experience updated successfully
+    act(() => {
+      getMockUpsertExperienceSuccess().click();
+    });
+
+    // Experience updated success notification should be visible
+    const updateSuccessUi = await waitForElement(
+      getUpdateExperienceSuccessNotification,
+    );
+
+    expect(updateSuccessUi).not.toBeNull();
+
+    // After a little while
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    // Experience updated success notification should not be visible
+    expect(getUpdateExperienceSuccessNotification()).toBeNull();
+  });
+});
+
+describe("sync", () => {
+  it("syncs part online experience success, but with update errors", async () => {
+    const onlineExperienceIdToOfflineEntriesMap = {
+      [onlineId]: {
+        [offlineEntryId]: offlineEntry,
+      },
+    };
+
+    mockUseWithSubscriptionContext.mockReturnValue({
+      onSyncData: {
+        onlineExperienceIdToOfflineEntriesMap,
+        offlineIdToOnlineExperienceMap: {},
+        syncErrors: {
+          [onlineId]: {
+            updateEntries: {
+              [offlineEntryId]: "a",
+            },
+          },
+        },
+        onlineExperienceUpdatedMap: {
+          [onlineId]: true,
+        },
+      } as OnSyncedData,
+    } as WithSubscriptionContextProps);
+
+    mockGetCachedExperience.mockReturnValueOnce({
+      data: {
+        getExperience: {
+          ...onlineExperience,
+        },
+        getEntries: offlineEntrySuccess,
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    // Then error notification should be visible
+    expect(getSyncErrorsNotificationEl()).not.toBeNull();
+
+    // Offline entries should be removed from cache
+    expect(mockCleanUpSyncedOfflineEntries).toHaveBeenCalledWith(
+      onlineExperienceIdToOfflineEntriesMap,
+    );
+
+    // No experience should be removed from cache
+    expect(mockCleanUpOfflineExperiences).not.toHaveBeenCalled();
+  });
+});
+
 describe("reducers", () => {
   const mockHistoryPushFn = jest.fn();
   const props = {
@@ -667,6 +1152,22 @@ describe("reducers", () => {
         },
         onlineStatus: StateValue.online,
       },
+      syncErrors: {
+        entriesErrors: [
+          [
+            3,
+            {
+              others: [["a", "b"]],
+            },
+          ],
+          [
+            1,
+            {
+              others: [["a", "b"]],
+            },
+          ],
+        ],
+      },
     });
 
     const fetchEntriesFailState = (state.states as DataState).data.states
@@ -677,7 +1178,7 @@ describe("reducers", () => {
     state = reducer(state, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       newData: {
-        entry: mockNewlyCreatedEntry,
+        entry: offlineEntry,
         onlineStatus: StateValue.online,
       },
     });
@@ -693,8 +1194,12 @@ describe("reducers", () => {
 
     state = reducer(state, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
+      oldData: {
+        entry: offlineEntry,
+        index: 0,
+      },
       newData: {
-        entry: mockNewlyCreatedEntry,
+        entry: onlineEntry,
         onlineStatus: StateValue.online,
       },
     });
@@ -702,9 +1207,35 @@ describe("reducers", () => {
     const stateAfterEntryCreated1 = (state.states as DataState).data.states
       .entries as FetchEntriesErrorState;
 
-    expect(
-      stateAfterEntryCreated1.fetchEntriesError.context.entries.length,
-    ).toBe(2);
+    const entries = stateAfterEntryCreated1.fetchEntriesError.context.entries;
+
+    expect(entries.length).toBe(1);
+    const entry = entries[0];
+
+    expect(entry.entryData).toEqual(onlineEntry);
+
+    const [effect] = (state.effects.general as GenericHasEffect<
+      EffectType
+    >).hasEffects.context.effects.filter(
+      (e) => e.key === "deleteCreateEntrySyncErrorEffect",
+    );
+
+    const deleteCreateEntrySyncErrorEffect = effectFunctions[effect.key];
+
+    mockGetSyncError.mockReturnValueOnce({
+      a: 1,
+    });
+
+    deleteCreateEntrySyncErrorEffect(effect.ownArgs as any, props, effectArgs);
+
+    expect(mockPersistFunc).toHaveBeenCalled();
+
+    expect(mockPutOrRemoveSyncError.mock.calls[0]).toEqual([
+      onlineId,
+      {
+        a: 1,
+      },
+    ]);
   });
 
   it("request 'delete experience'", () => {
@@ -774,7 +1305,7 @@ describe("reducers", () => {
     state = reducer(state, {
       type: ActionType.ENTRIES_RECEIVED,
       key: StateValue.success,
-      seiteInfo: {} as any,
+      pageInfo: {} as any,
       entries: [
         {
           entryData: {} as any,
@@ -787,7 +1318,7 @@ describe("reducers", () => {
 
     expect(stateAfterFetchEntriesSuccess.value).toBe(StateValue.success);
     expect(stateAfterFetchEntriesSuccess.success.context).toEqual({
-      seiteInfo: {},
+      pageInfo: {},
       entries: [
         {
           entryData: {},
@@ -1036,23 +1567,25 @@ describe("reducers", () => {
       },
     } as GetEntriesQueryResult);
 
-    mockGetEntriesQuerySuccess.mockReturnValue({
-      edges: [
-        {
-          node: {
-            id: "t",
+    mockGetEntriesQuery.mockReturnValue({
+      entries: {
+        edges: [
+          {
+            node: {
+              id: "t",
+            },
           },
-        },
-      ],
-      pageInfo: {},
-    });
+        ],
+        pageInfo: {},
+      },
+    } as GetEntriesUnionFragment_GetEntriesSuccess);
 
     await fetchEntriesEffect(ownArgs, props, effectArgs);
     jest.runAllTimers();
     expect(mockScrollIntoView.mock.calls[2][0]).toBe("t");
   });
 
-  it("deletes 'createEntries' and 'updateErrors' keys from sync errors", async () => {
+  it("deletes 'createEntries' and 'updateErrors' keys from sync errors / cleans up offline entries", async () => {
     let state = initState();
 
     const [effect] = (state.effects.general as GenericHasEffect<
@@ -1061,6 +1594,7 @@ describe("reducers", () => {
 
     const fetchDetailedExperienceEffect = effectFunctions[effect.key];
 
+    mockgetAndRemoveOfflineExperienceIdFromSyncFlag.mockReturnValue("a");
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
         getExperience: {
@@ -1118,407 +1652,305 @@ describe("reducers", () => {
         ],
       ],
     });
+
+    expect(mockCleanUpOfflineExperiences).toHaveBeenCalledWith({
+      a: {},
+    });
   });
-});
 
-describe("upsert experience on cached sync errors", () => {
-  it("displays sync errors for definitions update", () => {
-    mockUseWithSubscriptionContext.mockReturnValue({});
+  it("syncs entries even when there are entries fetch errors", async () => {
+    let state = initState();
 
-    // Given an experience has definition sync errors
-    mockGetSyncError.mockReturnValue({
-      definitions: {
-        [onlineDefinitionId]: {
-          id: onlineDefinitionId,
-          type: "a",
-          error: null,
-        } as DefinitionErrorFragment,
-      },
-    } as ExperienceSyncError);
-
-    mockGetCachedExperience.mockReturnValueOnce({
-      data: {
-        getExperience: {
-          ...onlineExperience,
+    state = reducer(state, {
+      type: ActionType.ON_DATA_RECEIVED,
+      experienceData: {
+        key: StateValue.data,
+        experience: onlineExperience,
+        onlineStatus: StateValue.online,
+        entriesData: {
+          key: StateValue.fail,
+          error: "v",
         },
-        getEntries: onlineEntrySuccess,
       },
-    } as DetailedExperienceQueryResult);
-
-    const { ui } = makeComp();
-    render(ui);
-
-    // Then error notification should be visible
-    expect(getSyncErrorsNotificationEl()).not.toBeNull();
-
-    const upsertEntryUiTrigger = getUpsertEntryTriggerEl();
-
-    // When user clicks on 'upsert entry' button
-    act(() => {
-      upsertEntryUiTrigger.click();
     });
 
-    // Then user gets message to first fix the errors
-    const closeSyncErrorsCloseEl = getSyncErrorsMessageClose();
+    let dataState = state.states as DataState;
+    let entriesState = dataState.data.states.entries;
 
-    // UpsertEntry UI should not visible
-    expect(getCloseUpsertExperienceUI()).toBeNull();
+    expect(dataState.data.states.entries.value).toBe(StateValue.fail);
 
-    // When user closes message to fix sync errors
-    act(() => {
-      closeSyncErrorsCloseEl.click();
+    state = reducer(state, {
+      type: ActionType.ON_SYNC,
+      syncErrors: {
+        [onlineId]: {
+          createEntries: {
+            a: {} as any,
+          },
+        },
+      },
     });
 
-    // Then message should no longer be visible
-    expect(getSyncErrorsMessageClose()).toBeNull();
+    dataState = state.states as DataState;
+    entriesState = dataState.data.states.entries;
 
-    // When user clicks on 'upsert entry' button again
-    act(() => {
-      upsertEntryUiTrigger.click();
+    expect(dataState.data.states.entries.value).toBe(StateValue.fail);
+
+    state = reducer(state, {
+      type: ActionType.ON_SYNC,
+      onlineExperienceIdToOfflineEntriesMap: {
+        [onlineId]: {
+          [offlineEntryId]: offlineEntry,
+        },
+      },
     });
 
-    // Then user gets message to first fix the errors
-    const fixSyncErrorsEl = getSyncErrorsMessageFix();
+    dataState = state.states as DataState;
+    entriesState = dataState.data.states.entries;
+    const entriesErrorState = entriesState as EntriesDataFailureState;
+    const fetchEntriesErrorState = entriesState as FetchEntriesErrorState;
 
-    // UI to update experience should not be visible
-    expect(getCloseUpsertExperienceUI()).toBeNull();
-
-    // Experience sync errors specific message should be visible
-    expect(getSyncExperienceErrors()).not.toBeNull();
-
-    // Entries errors specific message should not be visible
-    expect(getSyncEntriesErrors()).toBeNull();
-
-    // When user clicks on button to fix sync errors
-    act(() => {
-      fixSyncErrorsEl.click();
+    expect(fetchEntriesErrorState.value).toBe(StateValue.fetchEntriesError);
+    expect(fetchEntriesErrorState.fetchEntriesError.context).toEqual({
+      entries: [
+        {
+          entryData: offlineEntry,
+        },
+      ],
+      fetchError: entriesErrorState.error,
     });
 
-    // UI to update experience should be visible
-    const closeUpsertExpEl = getCloseUpsertExperienceUI();
+    const [effect1] = (state.effects.general as GenericHasEffect<
+      EffectType
+    >).hasEffects.context.effects.filter((f) => f.key === "fetchEntriesEffect");
 
-    // Sync errors message should not be visible
-    expect(getSyncErrorsMessageClose()).toBeNull();
-
-    // When user closes update experience UI
-    act(() => {
-      closeUpsertExpEl.click();
-    });
-
-    // UI to update experience should not be visible
-    expect(getCloseUpsertExperienceUI()).toBeNull();
+    expect(effect1.key).toBe("fetchEntriesEffect");
   });
 
-  it("displays sync errors for create entries errors", () => {
-    mockUseWithSubscriptionContext.mockReturnValue({});
+  it("re-fetches entries on experience update success when entries already fetched successfully", async () => {
+    let state = initState();
 
-    // Given an experience has definition sync errors
-    mockGetSyncError.mockReturnValue({
-      createEntries: {
-        [offlineEntryId]: {
-          meta: {
-            index: 0,
-          },
-          error: "a",
-          clientId: null,
-          dataObjects: [
+    state = reducer(state, {
+      type: ActionType.ON_DATA_RECEIVED,
+      experienceData: {
+        key: StateValue.data,
+        experience: onlineExperience,
+        entriesData: {
+          key: StateValue.success,
+          entries: [
             {
-              meta: {
-                index: 0,
-              },
-              data: "b",
-              definition: null,
+              entryData: onlineEntry,
             },
           ],
-        } as CreateEntryErrorFragment,
-      },
-    } as ExperienceSyncError);
-
-    mockGetCachedExperience.mockReturnValueOnce({
-      data: {
-        getExperience: {
-          ...onlineExperience,
+          pageInfo: {} as any,
         },
-        getEntries: offlineEntrySuccess,
+        onlineStatus: StateValue.online,
       },
-    } as DetailedExperienceQueryResult);
-
-    const { ui } = makeComp();
-    render(ui);
-
-    // Then error notification should be visible
-    expect(getSyncErrorsNotificationEl()).not.toBeNull();
-
-    // When user clicks on 'upsert entry' button
-
-    const upsertEntryUiTrigger = getUpsertEntryTriggerEl();
-
-    act(() => {
-      upsertEntryUiTrigger.click();
     });
 
-    // Then user gets message that there are errors
-    let closeSyncErrorsCloseEl = getCloseSyncErrorsMsgBtn();
-    expect(getUpdateEntryLaunchEl()).not.toBeNull();
-
-    // There is button user can click to edit entry
-    const triggerUpdateEntryEl = getUpdateEntryLaunchEl();
-
-    // UpsertEntry UI should be visible
-    expect(getUpsertEntrySuccess()).toBeNull();
-
-    // When user closes sync errors message
-    act(() => {
-      closeSyncErrorsCloseEl.click();
+    state = reducer(state, {
+      type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI,
+      experience: onlineExperience,
     });
 
-    // Then message should no longer be visible
-    expect(getSyncErrorsMessageClose()).toBeNull();
+    const effects = (state.effects.general as GenericHasEffect<
+      EffectType
+    >).hasEffects.context.effects.filter((e) => e.key === "fetchEntriesEffect");
 
-    // When user clicks on 'upsert entry' button again
-    act(() => {
-      upsertEntryUiTrigger.click();
-    });
+    const effect = effects[0];
+    const fetchEntriesEffect = effectFunctions[effect.key];
 
-    // Fix sync error button should not be visible
-    expect(getSyncErrorsMessageFix()).toBeNull();
+    const clientId = new Date().toString();
 
-    // Experience sync errors specific message should not be visible
-    expect(getSyncExperienceErrors()).toBeNull();
-
-    // Entries errors specific message should be visible
-    expect(getSyncEntriesErrors()).not.toBeNull();
-
-    // When user closes sync errors message
-
-    closeSyncErrorsCloseEl = getCloseSyncErrorsMsgBtn();
-
-    act(() => {
-      closeSyncErrorsCloseEl.click();
-    });
-
-    // Then message should no longer be visible
-    expect(getSyncErrorsMessageClose()).toBeNull();
-
-    // When user clicks on button to update entry
-    act(() => {
-      triggerUpdateEntryEl.click();
-    });
-
-    // Update entry Ui should be visible
-    const updateEntrySuccessEl = getUpsertEntrySuccess();
-
-    // When update entry Ui is closed
-
-    act(() => {
-      updateEntrySuccessEl.click();
-    });
-
-    // update entry UI should not be visible
-    expect(getDismissUpsertEntryUi()).toBeNull();
-
-    // Error notification should not be visible
-    expect(getSyncErrorsNotificationEl()).toBeNull();
-    expect(getUpdateEntryLaunchEl()).toBeNull();
-  });
-
-  it("displays sync errors for update entries", () => {
-    mockUseWithSubscriptionContext.mockReturnValue({});
-
-    // Given an experience has update entries sync errors
-    mockGetSyncError.mockReturnValue({
-      updateEntries: {
-        [onlineEntryId]: "a" as UpdateEntrySyncErrors,
-        [offlineEntryId]: {
-          a: {
-            meta: {
-              index: 1,
-            },
-            data: "a",
-            error: "",
-          } as DataObjectErrorFragment,
-        } as UpdateEntrySyncErrors,
-      },
-    } as ExperienceSyncError);
-
-    mockGetCachedExperience.mockReturnValueOnce({
-      data: {
-        getExperience: {
-          ...onlineExperience,
-        },
-        getEntries: onlineOfflineEntriesSuccess,
-      },
-    } as DetailedExperienceQueryResult);
-
-    const { ui } = makeComp();
-    render(ui);
-
-    // Then error notification should be visible
-    expect(getSyncErrorsNotificationEl()).not.toBeNull();
-
-    // When user clicks on 'upsert entry' button
-
-    const upsertEntryUiTrigger = getUpsertEntryTriggerEl();
-
-    act(() => {
-      upsertEntryUiTrigger.click();
-    });
-
-    // Then user gets message that there are errors
-    expect(getCloseSyncErrorsMsgBtn).not.toBeNull();
-
-    // When user clicks on button to update entry
-    const triggerUpdateEntryEl = getUpdateEntryLaunchEl();
-    act(() => {
-      triggerUpdateEntryEl.click();
-    });
-
-    // Update entry Ui should be visible
-    const closeUpdateEntryEl = getDismissUpsertEntryUi();
-
-    // When update entry Ui is closed
-
-    act(() => {
-      closeUpdateEntryEl.click();
-    });
-
-    // update entry UI should not be visible
-    expect(getUpsertEntrySuccess()).toBeNull();
-  });
-});
-
-describe("update experience", () => {
-  it("shows experience menu when entries can not be fetched", () => {
-    mockUseWithSubscriptionContext.mockReturnValue({});
-
-    mockGetCachedExperience.mockReturnValueOnce({
-      data: {
-        getExperience: {
-          ...onlineExperience,
-        },
-      },
-    } as DetailedExperienceQueryResult);
-
-    const { ui } = makeComp();
-    const { debug } = render(ui);
-
-    // experience menu should be visible
-
-    expect(getUpdateExperienceEl()).not.toBeNull();
-  });
-
-  it("shows experience menu when entries list is empty", () => {
-    mockUseWithSubscriptionContext.mockReturnValue({});
-
-    mockGetCachedExperience.mockReturnValueOnce({
-      data: {
-        getExperience: {
-          ...onlineExperience,
-        },
-        getEntries: emptyEntriesSuccessList,
-      },
-    } as DetailedExperienceQueryResult);
-
-    const { ui } = makeComp();
-    const { debug } = render(ui);
-
-    // experience menu should be visible
-
-    expect(getUpdateExperienceEl()).not.toBeNull();
-  });
-
-  it("updates experience successfully", async () => {
-    mockUpdatedExperience = onlineExperience;
-    mockUseWithSubscriptionContext.mockReturnValue({});
-
-    mockGetCachedExperience.mockReturnValueOnce({
-      data: {
-        getExperience: {
-          ...onlineExperience,
-        },
-      },
-    } as DetailedExperienceQueryResult);
-
-    const { ui } = makeComp();
-    const { debug } = render(ui);
-
-    // When show update experience UI button is clicked
-    act(() => {
-      getUpdateExperienceEl().click();
-    });
-
-    // Experience updated success notification should not be visible
-    expect(getUpdateExperienceSuccessNotification()).toBeNull();
-
-    // When experience updated successfully
-    act(() => {
-      getMockUpsertExperienceSuccess().click();
-    });
-
-    // Experience updated success notification should be visible
-    const updateSuccessUi = await waitForElement(
-      getUpdateExperienceSuccessNotification,
-    );
-
-    expect(updateSuccessUi).not.toBeNull();
-
-    // After a little while
-    act(() => {
-      jest.runAllTimers();
-    });
-
-    // Experience updated success notification should not be visible
-    expect(getUpdateExperienceSuccessNotification()).toBeNull();
-  });
-});
-
-describe("sync", () => {
-  it("syncs part online experience success, but with update errors", async () => {
-    const onlineExperienceIdToOfflineEntriesMap = {
-      [onlineId]: {
-        [offlineEntryId]: offlineEntry,
-      },
+    const updatedEntry = {
+      ...onlineEntry,
+      clientId,
     };
 
-    mockUseWithSubscriptionContext.mockReturnValue({
-      onSyncData: {
-        onlineExperienceIdToOfflineEntriesMap,
-        offlineIdToOnlineExperienceMap: {},
-        syncErrors: {
-          [onlineId]: {
-            updateEntries: {
-              [offlineEntryId]: "a",
+    mockGetEntriesQuery.mockReturnValue({
+      entries: {
+        edges: [
+          {
+            node: updatedEntry,
+          },
+        ],
+      },
+    } as GetEntriesUnionFragment_GetEntriesSuccess);
+
+    mockDispatchFn.mockReset();
+
+    await fetchEntriesEffect(effect.ownArgs as any, props, effectArgs);
+    const dispatchOnFetchEntries = mockDispatchFn.mock.calls[0][0];
+
+    state = reducer(state, dispatchOnFetchEntries);
+
+    let dataState = state.states as DataState;
+    let entriesState = dataState.data.states.entries as EntriesDataSuccessSate;
+    expect(entriesState.success.context.entries[0].entryData.clientId).toBe(
+      clientId,
+    );
+  });
+
+  it("re-fetches entries on experience update success when entries fetch fails", () => {
+    let state = initState();
+
+    state = reducer(state, {
+      type: ActionType.ON_DATA_RECEIVED,
+      experienceData: {
+        key: StateValue.data,
+        experience: onlineExperience,
+        entriesData: {
+          key: StateValue.fail,
+          error: "a",
+        },
+        onlineStatus: StateValue.online,
+      },
+    });
+
+    let dataState = state.states as DataState;
+    let entriesState = dataState.data.states.entries;
+
+    expect(dataState.data.states.entries.value).toBe(StateValue.fail);
+
+    state = reducer(state, {
+      type: ActionType.ENTRIES_RECEIVED,
+      key: StateValue.reFetchOnly,
+      entries: {
+        edges: [
+          {
+            node: offlineEntry,
+          },
+        ],
+        pageInfo: {},
+      } as EntryConnectionFragment,
+    });
+
+    dataState = state.states as DataState;
+    entriesState = dataState.data.states.entries;
+    const fetchEntriesErrorState = entriesState as FetchEntriesErrorState;
+
+    expect(fetchEntriesErrorState.value).toBe(StateValue.fetchEntriesError);
+    expect(fetchEntriesErrorState.fetchEntriesError.context).toEqual({
+      entries: [
+        {
+          entryData: offlineEntry,
+        },
+      ],
+      fetchError: "a",
+    });
+  });
+
+  it("syncs offline experience but with update entries errors", async () => {
+    let state = initState();
+
+    const offlineExperienceId = makeOfflineId("tt");
+
+    const offlineExperience = {
+      ...onlineExperience,
+      id: offlineExperienceId,
+    };
+
+    state = reducer(state, {
+      type: ActionType.ON_DATA_RECEIVED,
+      experienceData: {
+        key: StateValue.data,
+        experience: offlineExperience,
+        entriesData: {
+          key: StateValue.success,
+          entries: [
+            {
+              entryData: onlineEntry,
             },
+          ],
+          pageInfo: {} as any,
+        },
+        onlineStatus: StateValue.online,
+      },
+    });
+
+    state = reducer(state, {
+      type: ActionType.ON_SYNC,
+      offlineIdToOnlineExperienceMap: {
+        [offlineExperienceId]: onlineExperience,
+        a: {} as any,
+      },
+      syncErrors: {
+        [offlineExperienceId]: {
+          updateEntries: {
+            [offlineEntryId]: "a",
           },
         },
-        onlineExperienceUpdatedMap: {
-          [onlineId]: true,
-        },
-      } as OnSyncedData,
-    } as WithSubscriptionContextProps);
-
-    mockGetCachedExperience.mockReturnValueOnce({
-      data: {
-        getExperience: {
-          ...onlineExperience,
-        },
-        getEntries: offlineEntrySuccess,
       },
-    } as DetailedExperienceQueryResult);
+    });
 
-    const { ui } = makeComp();
-    render(ui);
+    const [effect] = (state.effects.general as GenericHasEffect<
+      EffectType
+    >).hasEffects.context.effects;
 
-    // Then error notification should be visible
-    expect(getSyncErrorsNotificationEl()).not.toBeNull();
+    const postOfflineExperiencesSyncEffect = effectFunctions[effect.key];
 
-    // Offline entries should be removed from cache
-    expect(mockCleanUpSyncedOfflineEntries).toHaveBeenCalledWith(
-      onlineExperienceIdToOfflineEntriesMap,
+    await postOfflineExperiencesSyncEffect(
+      effect.ownArgs as any,
+      props,
+      effectArgs,
     );
 
-    // No experience should be removed from cache
-    expect(mockCleanUpOfflineExperiences).not.toHaveBeenCalled();
+    jest.runAllTimers();
+
+    const mockPutOfflineExperienceIdInSyncFlag = putOfflineExperienceIdInSyncFlag as jest.Mock;
+
+    expect(mockCleanUpOfflineExperiences).toBeCalledWith({
+      a: {},
+    });
+
+    expect(mockPutOfflineExperienceIdInSyncFlag).toBeCalledWith([
+      onlineId,
+      offlineExperienceId,
+    ]);
+
+    const [path, type] = mockWindowChangeUrl.mock.calls[0];
+    expect(path.includes(onlineId)).toBe(true);
+    expect(type).toEqual(ChangeUrlType.replace);
+  });
+
+  it("syncs but with create entries errors", async () => {
+    let state = initState();
+
+    state = reducer(state, {
+      type: ActionType.ON_DATA_RECEIVED,
+      experienceData: {
+        key: StateValue.data,
+        experience: onlineExperience,
+        entriesData: {
+          key: StateValue.success,
+          entries: [
+            {
+              entryData: onlineEntry,
+            },
+          ],
+          pageInfo: {} as any,
+        },
+        onlineStatus: StateValue.online,
+      },
+    });
+
+    let context = (state.states as DataState).data.context;
+    expect(context.syncErrors).toBeUndefined();
+
+    state = reducer(state, {
+      type: ActionType.ON_SYNC,
+      syncErrors: {
+        [onlineId]: {
+          createEntries: {
+            [onlineEntryId]: {
+              __typename: "CreateEntryError",
+            } as CreateEntryErrorFragment,
+          },
+        },
+      },
+    });
+
+    context = (state.states as DataState).data.context;
+    expect(context.syncErrors).toBeDefined();
   });
 });
 

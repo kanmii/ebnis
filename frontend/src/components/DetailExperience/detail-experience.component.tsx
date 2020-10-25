@@ -270,7 +270,6 @@ export default DetailExperience;
 function ExperienceComponent() {
   const {
     dispatch,
-    onCloseNewEntryCreatedNotification,
     refetchEntries,
     cancelEditExperienceUiRequestCb,
     onExperienceUpdatedSuccess,
@@ -420,7 +419,7 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
   const {
     context: {
       entries,
-      seiteInfo: { hasNextPage },
+      pageInfo: { hasNextPage },
       pagingError,
     },
   } = props.state;
@@ -565,11 +564,7 @@ function SyncErrorsNotificationComponent(props: {
 }) {
   const { state } = props;
 
-  const { entriesErrors, ownFields, definitionsErrors } = state;
-
-  if (!(entriesErrors || ownFields || definitionsErrors)) {
-    return null;
-  }
+  const { entriesErrors, definitionsErrors, ownFieldsErrors } = state;
 
   return (
     <div className="message is-danger" id={syncErrorsNotificationId}>
@@ -578,6 +573,16 @@ function SyncErrorsNotificationComponent(props: {
       </div>
 
       <div className="message-body">
+        {ownFieldsErrors &&
+          ownFieldsErrors.map(([k, v]) => {
+            return (
+              <div key={k}>
+                <span>{k}: </span>
+                <span>{v}</span>
+              </div>
+            );
+          })}
+
         {definitionsErrors &&
           definitionsErrors.map(([k, v]) => {
             return (
@@ -818,6 +823,7 @@ function SyncErrorsMessageNotificationComponent() {
   const {
     definitionsErrors,
     entriesErrors,
+    ownFieldsErrors,
   } = syncErrors as ExperienceSyncError;
 
   return (
@@ -838,7 +844,7 @@ function SyncErrorsMessageNotificationComponent() {
         </header>
 
         <section className="modal-card-body">
-          {definitionsErrors && (
+          {(definitionsErrors || ownFieldsErrors) && (
             <strong id={syncExperienceErrorsMsgId}>
               There are errors while syncing the experience. Click on 'Fix'
               button below
@@ -853,7 +859,7 @@ function SyncErrorsMessageNotificationComponent() {
         </section>
 
         <footer className="modal-card-foot">
-          {definitionsErrors && (
+          {(definitionsErrors || ownFieldsErrors) && (
             <button
               className="button is-success delete-experience__ok-button"
               id={fixSyncErrorsId}

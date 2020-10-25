@@ -54,11 +54,14 @@ import {
 import { getIsConnected } from "../../utils/connections";
 import {
   getCachedExperience,
-  getEntriesQuerySuccess,
+  getEntriesQuery,
   writeGetEntriesQuery,
 } from "../../apollo/get-detailed-experience-query";
 import { PageInfoFragment } from "../../graphql/apollo-types/PageInfoFragment";
-import { GetEntriesUnionFragment } from "../../graphql/apollo-types/GetEntriesUnionFragment";
+import {
+  GetEntriesUnionFragment,
+  GetEntriesUnionFragment_GetEntriesSuccess,
+} from "../../graphql/apollo-types/GetEntriesUnionFragment";
 import {
   EntryConnectionFragment_edges,
   EntryConnectionFragment,
@@ -474,7 +477,7 @@ function handleOnDataReceivedAction(
                   success: {
                     context: {
                       entries: entriesData.entries,
-                      seiteInfo: entriesData.seiteInfo,
+                      pageInfo: entriesData.pageInfo,
                     },
                   },
                 }
@@ -549,7 +552,7 @@ function handleFetchNextEntriesAction(proxy: DraftState) {
       const {
         hasNextPage,
         endCursor,
-      } = states.entries.success.context.seiteInfo;
+      } = states.entries.success.context.pageInfo;
 
       // istanbul ignore else
       if (hasNextPage) {
@@ -577,7 +580,13 @@ function handleEntriesReceivedAction(
 
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
-    const { states } = globalStates.data;
+    const {
+      states,
+      context: {
+        experience: { id: experienceId },
+      },
+    } = globalStates.data;
+
     const entriesState = states.entries;
 
     switch (entriesState.value) {
@@ -587,7 +596,7 @@ function handleEntriesReceivedAction(
 
           switch (payload.key) {
             case StateValue.success:
-              context.seiteInfo = payload.seiteInfo;
+              context.pageInfo = payload.pageInfo;
               context.entries = [...context.entries, ...payload.entries];
               break;
 
@@ -602,10 +611,9 @@ function handleEntriesReceivedAction(
                 {} as { [entryId: string]: EntryFragment },
               );
 
-              context.entries = context.entries.map((val) => {
+              context.entries.forEach((val) => {
                 const oldEntry = val.entryData;
                 val.entryData = idToEntryMap[oldEntry.id];
-                return val;
               });
 
               break;
@@ -618,19 +626,45 @@ function handleEntriesReceivedAction(
         break;
 
       case StateValue.fail:
-        // istanbul ignore else:
-        if (payload.key === StateValue.success) {
-          const entriesSuccessState = states.entries as Draft<
-            EntriesDataSuccessSate
-          >;
+        switch (payload.key) {
+          case StateValue.success:
+            const entriesSuccessState = states.entries as Draft<
+              EntriesDataSuccessSate
+            >;
 
-          entriesSuccessState.value = StateValue.success;
-          entriesSuccessState.success = {
-            context: {
-              entries: payload.entries,
-              seiteInfo: payload.seiteInfo,
-            },
-          };
+            entriesSuccessState.value = StateValue.success;
+            entriesSuccessState.success = {
+              context: {
+                entries: payload.entries,
+                pageInfo: payload.pageInfo,
+              },
+            };
+
+            break;
+
+          case StateValue.reFetchOnly:
+            const { entries } = payload;
+
+            const { data } = processEntriesQuery(
+              experienceId,
+              toGetEntriesSuccessQuery(entries),
+            );
+
+            const fetchEntriesErrorState = states.entries as Draft<
+              FetchEntriesErrorState
+            >;
+
+            fetchEntriesErrorState.value = StateValue.fetchEntriesError;
+
+            fetchEntriesErrorState.fetchEntriesError = {
+              context: {
+                entries: (data as ProcessedEntriesQuerySuccessReturnVal)
+                  .entries,
+                fetchError: (states.entries as EntriesDataFailureState).error,
+              },
+            };
+
+            break;
         }
         break;
 
@@ -645,7 +679,7 @@ function handleEntriesReceivedAction(
           entriesSuccessState.success = {
             context: {
               entries: payload.entries,
-              seiteInfo: payload.seiteInfo,
+              pageInfo: payload.pageInfo,
             },
           };
         } else {
@@ -783,8 +817,9 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
         onlineExperienceIdToOfflineEntriesMap[id];
 
       // we have offline entries from online experience now synced
+      // istanbul ignore else:
       if (offlineIdToOnlineEntryMap) {
-        updateEntriesFn(entriesState, offlineIdToOnlineEntryMap);
+        updateEntriesFn(proxy, entriesState, offlineIdToOnlineEntryMap);
       }
 
       effects.push({
@@ -802,9 +837,11 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
       let entriesErrors: undefined | IndexToEntryErrorsList = undefined;
 
       if (createEntries) {
-        entriesErrors = updateEntriesFn(entriesState, createEntries);
-      } else if (updateEntries) {
-        entriesErrors = updateEntriesFn(entriesState, updateEntries);
+        entriesErrors = updateEntriesFn(proxy, entriesState, createEntries);
+      }
+      // istanbul ignore else:
+      if (updateEntries) {
+        entriesErrors = updateEntriesFn(proxy, entriesState, updateEntries);
       }
 
       if (entriesErrors) {
@@ -889,6 +926,7 @@ function handleOnUpsertEntrySuccessAction(
         case StateValue.success:
         case StateValue.fetchEntriesError:
           const ob = (entriesState[StateValue.success] ||
+            // istanbul ignore next:
             entriesState[StateValue.fetchEntriesError]) as Draft<
             EntriesDataSuccessSate["success"]
           >;
@@ -927,6 +965,7 @@ function handleOnUpsertEntrySuccessAction(
       const { id } = entry;
       const { syncErrors } = context;
 
+      // istanbul ignore else:
       if (syncErrors && syncErrors.entriesErrors) {
         const index1 = index + 1;
 
@@ -938,10 +977,16 @@ function handleOnUpsertEntrySuccessAction(
           syncErrors.entriesErrors = entriesErrors;
         } else {
           delete syncErrors.entriesErrors;
+
+          // istanbul ignore else:
+          if (!Object.keys(syncErrors).length) {
+            context.syncErrors = undefined;
+          }
         }
       }
 
       updateEntriesFn(
+        proxy,
         entriesState,
         {
           [id]: newEntry,
@@ -954,6 +999,7 @@ function handleOnUpsertEntrySuccessAction(
       };
 
       // offline entry synced
+      // istanbul ignore else:
       if (id !== newEntry.id) {
         cleanUpData.createErrors = [entry];
       }
@@ -971,6 +1017,7 @@ function handleOnUpsertEntrySuccessAction(
 function handleCloseSyncErrorsMsgAction(proxy: DraftState) {
   const { states: globalStates } = proxy;
 
+  // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const { states } = globalStates.data;
     states.syncErrorsMsg.value = StateValue.inactive;
@@ -989,6 +1036,7 @@ function makeDataDefinitionIdToNameMap(definitions: DataDefinitionFragment[]) {
 }
 
 function updateEntriesFn(
+  proxy: DraftState,
   state: EntriesData,
   payload:
     | {
@@ -997,6 +1045,39 @@ function updateEntriesFn(
     | IdToUpdateEntrySyncErrorMap,
   update?: true,
 ) {
+  const fetchEntriesErrorState = state as Draft<FetchEntriesErrorState>;
+
+  if (state.value === StateValue.fail) {
+    const [entry] = Object.values(
+      payload as {
+        [entryId: string]: EntryFragment;
+      },
+    );
+
+    if (entry.__typename === "Entry") {
+      fetchEntriesErrorState.value = StateValue.fetchEntriesError;
+
+      fetchEntriesErrorState.fetchEntriesError = {
+        context: {
+          entries: [
+            {
+              entryData: entry,
+            },
+          ],
+          fetchError: state.error,
+        },
+      };
+
+      const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+      effects.push({
+        key: "fetchEntriesEffect",
+        ownArgs: {},
+      });
+    }
+
+    return;
+  }
+
   const ob = (state[StateValue.success] ||
     state[StateValue.fetchEntriesError]) as Draft<
     EntriesDataSuccessSate["success"]
@@ -1393,13 +1474,15 @@ const fetchEntriesEffect: DefFetchEntriesEffect["func"] = async (
     },
   };
 
-  const previousEntries = getEntriesQuerySuccess(experienceId);
+  const previousEntries = getEntriesQuery(
+    experienceId,
+  ) as GetEntriesUnionFragment_GetEntriesSuccess;
 
   if (reFetchFromCache && previousEntries) {
     dispatch({
       type: ActionType.ENTRIES_RECEIVED,
       key: StateValue.reFetchOnly,
-      entries: previousEntries,
+      entries: previousEntries.entries,
     });
 
     return;
@@ -1421,7 +1504,7 @@ const fetchEntriesEffect: DefFetchEntriesEffect["func"] = async (
         const blätternZuId = appendToPreviousEntries(
           experienceId,
           processedEntries,
-          previousEntries,
+          previousEntries as GetEntriesUnionFragment_GetEntriesSuccess,
         );
 
         setTimeout(() => {
@@ -1471,7 +1554,6 @@ const postOfflineExperiencesSyncEffect: DefPostOfflineExperiencesSyncEffect["fun
     const [onlineId] = onlineIdToOffline;
 
     putOfflineExperienceIdInSyncFlag(onlineIdToOffline);
-    await persistor.persist();
 
     setTimeout(() => {
       windowChangeUrl(
@@ -1510,6 +1592,7 @@ const deleteCreateEntrySyncErrorEffect: DefDeleteCreateEntrySyncErrorEffect["fun
 }) => {
   const errors = getSyncError(experienceId);
 
+  // istanbul ignore else:
   if (errors) {
     const fromImmer = immer(errors, (immerErrors) => {
       const { createEntries } = immerErrors;
@@ -1520,6 +1603,7 @@ const deleteCreateEntrySyncErrorEffect: DefDeleteCreateEntrySyncErrorEffect["fun
           purgeEntry(entry);
         });
 
+        // istanbul ignore else:
         if (!Object.keys(createEntries).length) {
           delete immerErrors.createEntries;
         }
@@ -1642,8 +1726,8 @@ function processEntriesQuery(
     const entries = (daten.edges as EntryConnectionFragment_edges[]).map(
       (edge, index) => {
         const entry = edge.node as EntryFragment;
-        const { id, clientId } = entry;
-        const errorId = id || (clientId as string);
+        const { id } = entry;
+        const errorId = id;
         const createError = createSyncErrors[errorId];
         const updateError = updateSyncErrors[id];
 
@@ -1666,7 +1750,7 @@ function processEntriesQuery(
     const data = {
       key: StateValue.success,
       entries,
-      seiteInfo: daten.pageInfo,
+      pageInfo: daten.pageInfo,
     };
 
     return {
@@ -1689,7 +1773,7 @@ function processEntriesQuery(
 function appendToPreviousEntries(
   experienceId: string,
   newEntriesData: ProcessedEntriesQueryReturnVal,
-  previousEntries?: GetEntries_getEntries_GetEntriesSuccess_entries,
+  previousEntries?: GetEntriesUnionFragment_GetEntriesSuccess,
 ) {
   let blätternZuId = nonsenseId;
 
@@ -1697,23 +1781,22 @@ function appendToPreviousEntries(
     return blätternZuId;
   }
 
-  const { entries, seiteInfo } = newEntriesData;
+  const { entries, pageInfo } = newEntriesData;
 
   const newEntryEdges = entries.map((e) => entryToEdge(e.entryData));
 
-  const previousEntryEdges = ((
-    previousEntries ||
-    // istanbul ignore next:
-    ({} as GetEntries_getEntries_GetEntriesSuccess_entries)
-  ).edges ||
-    // istanbul ignore next:
-    []) as EntryConnectionFragment_edges[];
+  let previousEntryEdges = [] as EntryConnectionFragment_edges[];
+
+  if (previousEntries) {
+    previousEntryEdges = previousEntries.entries
+      .edges as EntryConnectionFragment_edges[];
+  }
 
   const allEdges = [...previousEntryEdges, ...newEntryEdges];
 
   const y = toGetEntriesSuccessQuery({
     edges: allEdges,
-    pageInfo: seiteInfo,
+    pageInfo: pageInfo,
     __typename: "EntryConnection",
   });
 
@@ -1850,12 +1933,14 @@ type ProcessedEntriesQueryErrorReturnVal = {
   error: string | Error;
 };
 
+type ProcessedEntriesQuerySuccessReturnVal = {
+  key: SuccessVal;
+  entries: DataStateContextEntries;
+  pageInfo: PageInfoFragment;
+};
+
 type ProcessedEntriesQueryReturnVal =
-  | {
-      key: SuccessVal;
-      entries: DataStateContextEntries;
-      seiteInfo: PageInfoFragment;
-    }
+  | ProcessedEntriesQuerySuccessReturnVal
   | ProcessedEntriesQueryErrorReturnVal;
 
 export type EntriesDataSuccessSate = {
@@ -1863,7 +1948,7 @@ export type EntriesDataSuccessSate = {
   success: {
     context: Readonly<{
       entries: DataStateContextEntries;
-      seiteInfo: PageInfoFragment;
+      pageInfo: PageInfoFragment;
       pagingError?: string;
     }>;
   };
