@@ -47,7 +47,10 @@ import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { EntryConnectionFragment_edges } from "../../graphql/apollo-types/EntryConnectionFragment";
 import { UnsyncedModifiedExperience } from "../../utils/unsynced-ledger.types";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
-import { stringifyDataObjectData } from "../UpsertEntry/upsert-entry.utils";
+import {
+  stringifyDataObjectData,
+  parseDataObjectData,
+} from "../UpsertEntry/upsert-entry.utils";
 import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/apollo-types/GetEntries";
 
 ////////////////////////// CREATE ////////////////////////////
@@ -145,12 +148,13 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
 
   const experience = readExperienceFragment(experienceId);
 
+  // istanbul ignore next:
   if (!experience) {
     return;
   }
 
   const unsyncedExperience = (getUnsyncedExperience(experienceId) ||
-    // istanbul ignore else:
+    // istanbul ignore next:
     {}) as UnsyncedModifiedExperience;
 
   let entriesUpdated = false;
@@ -165,10 +169,25 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
   ] = immer<ImmerUpdate>(
     immerUpdate,
     ([proxy, immerUnsyncedExperience, immerEntries]) => {
-      const modifiedOwnFields = immerUnsyncedExperience.ownFields || {};
-      const modifiedDefinitions = immerUnsyncedExperience.definitions || {};
-      const modifiedEntries = immerUnsyncedExperience.modifiedEntries || {};
-      const deletedEntries = immerUnsyncedExperience.deletedEntries || [];
+      const modifiedOwnFields =
+        immerUnsyncedExperience.ownFields ||
+        // istanbul ignore next:
+        {};
+
+      const modifiedDefinitions =
+        immerUnsyncedExperience.definitions ||
+        // istanbul ignore next:
+        {};
+
+      const modifiedEntries =
+        immerUnsyncedExperience.modifiedEntries ||
+        // istanbul ignore next:
+        {};
+
+      const deletedEntries =
+        immerUnsyncedExperience.deletedEntries ||
+        // istanbul ignore next:
+        [];
 
       const { edges: entriesEdges } = immerEntries;
 
@@ -178,7 +197,11 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
         updatedEntry,
         deletedEntry,
       } = input;
-      const { title, description } = ownFields || {};
+
+      const { title, description } =
+        ownFields ||
+        // istanbul ignore next:
+        {};
 
       if (title) {
         proxy.title = title;
@@ -192,7 +215,7 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
         immerUnsyncedExperience.ownFields = modifiedOwnFields;
       }
 
-      let newEdges: EntryConnectionFragment_edges[] = [];
+      let newEntryEdges: EntryConnectionFragment_edges[] = [];
 
       // entry must be updated before definitions.type update
       if (updatedEntry || deletedEntry) {
@@ -223,25 +246,33 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
           }
 
           if (shouldAppend) {
-            newEdges.push(edge);
+            newEntryEdges.push(edge);
           }
         });
       }
 
       // If we did not update entries and hence edges, we revert to default
-      newEdges = newEdges.length
-        ? newEdges
+      newEntryEdges = newEntryEdges.length
+        ? newEntryEdges
         : (entriesEdges as EntryConnectionFragment_edges[]);
 
       if (updateDefinitions) {
         immerUnsyncedExperience.definitions = modifiedDefinitions;
 
-        const idToDefinitionUpdateMap = updateDefinitions.reduce((acc, d) => {
-          acc[d.id] = d;
-          return acc;
-        }, {} as { [key: string]: UpdateDefinitionInput });
+        const idToDefinitionUpdateMap = updateDefinitions.reduce(
+          (acc, d) => {
+            acc[d.id] = d;
+            return acc;
+          },
+          {} as {
+            [definitionId: string]: UpdateDefinitionInput;
+          },
+        );
 
-        const definitionIdToTypeMap: { [definitionId: string]: DataTypes } = {};
+        const definitionIdToTypeMap: {
+          [definitionId: string]: DataTypes;
+        } = {};
+
         let hasTypeUpdate = false;
 
         proxy.dataDefinitions = proxy.dataDefinitions.map((d) => {
@@ -273,8 +304,9 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
           return definition;
         });
 
+        // istanbul ignore else:
         if (hasTypeUpdate) {
-          newEdges.forEach((edge) => {
+          newEntryEdges.forEach((edge) => {
             const entry = edge.node as EntryFragment;
 
             entry.dataObjects.forEach((d) => {
@@ -292,7 +324,7 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
       }
 
       if (entriesUpdated) {
-        immerEntries.edges = newEdges;
+        immerEntries.edges = newEntryEdges;
       }
     },
   );
@@ -312,25 +344,6 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
   writeExperienceFragmentToCache(updatedExperience);
 
   return updatedExperience;
-}
-
-export function parseDataObjectData(datum: string) {
-  const toObject = JSON.parse(datum);
-  const [[k, value]] = Object.entries(toObject);
-  const key = k.toUpperCase();
-
-  switch (key) {
-    case DataTypes.DATE:
-    case DataTypes.DATETIME:
-      return new Date(value);
-
-    case DataTypes.DECIMAL:
-    case DataTypes.INTEGER:
-      return Number(value);
-
-    default:
-      return value;
-  }
 }
 
 export type UpdateExperienceOfflineInput = UpdateExperienceInput & {

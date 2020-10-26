@@ -362,6 +362,17 @@ export function initState(props: Props): StateMachine {
   return stateMachine;
 }
 
+export function parseDataObjectData(data: string) {
+  const json = JSON.parse(data);
+  const [type, stringData] = Object.entries(json)[0];
+  const typeUpper = type.toUpperCase();
+  const dataString = stringData as string;
+
+  return typeUpper === DataTypes.DATE || typeUpper === DataTypes.DATETIME
+    ? new Date(dataString)
+    : dataString;
+}
+
 function mapDefinitionIdToDataHelper(
   experience: ExperienceFragment,
   updatingEntry?: EntryFragment,
@@ -376,17 +387,7 @@ function mapDefinitionIdToDataHelper(
 
   updatingEntry.dataObjects.forEach((d) => {
     const { definitionId, data } = d as DataObjectFragment;
-    const json = JSON.parse(data);
-    const [type, stringData] = Object.entries(json)[0];
-    const typeUpper = type.toUpperCase();
-    const dataString = stringData as string;
-
-    const value =
-      typeUpper === DataTypes.DATE || typeUpper === DataTypes.DATETIME
-        ? new Date(dataString)
-        : dataString;
-
-    result[definitionId] = value;
+    result[definitionId] = parseDataObjectData(data);
   });
 
   return result;
