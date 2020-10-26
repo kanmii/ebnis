@@ -140,14 +140,14 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 ////////////////////////// EFFECTS SECTION ////////////////////////////
 
 const createEntryEffect: DefCreateEntryEffect["func"] = (
-  { input, erstelltenNeuEintragKlientId },
+  { input, createEntryClientId },
   props,
   effectArgs,
 ) => {
-  if (erstelltenNeuEintragKlientId) {
+  if (createEntryClientId) {
     input = {
       ...input,
-      clientId: erstelltenNeuEintragKlientId,
+      clientId: createEntryClientId,
     };
   }
 
@@ -278,7 +278,7 @@ async function createOfflineEntryEffect(
 
 interface CreateEntryEffectArgs {
   input: CreateEntryInput;
-  erstelltenNeuEintragKlientId?: string;
+  createEntryClientId?: string;
 }
 
 type DefCreateEntryEffect = EffectDefinition<
@@ -411,7 +411,7 @@ function handleSubmissionAction(proxy: DraftState) {
 
   const effects = getGeneralEffects(proxy);
 
-  let erstelltenNeuEintragKlientId = "";
+  let createEntryClientId = "";
 
   if (updatingEntry) {
     const { id, clientId } = updatingEntry.entry;
@@ -420,7 +420,7 @@ function handleSubmissionAction(proxy: DraftState) {
     // erstellten werden
     // istanbul ignore else:
     if (id === clientId) {
-      erstelltenNeuEintragKlientId = id;
+      createEntryClientId = id;
     }
   }
 
@@ -431,7 +431,7 @@ function handleSubmissionAction(proxy: DraftState) {
         experienceId,
         dataObjects,
       },
-      erstelltenNeuEintragKlientId,
+      createEntryClientId,
     },
   });
 }
