@@ -139,7 +139,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
 
-const createEntryEffect: DefCreateEntryEffect["func"] = (
+const upsertEntryEffect: DefUpsertEntryEffect["func"] = (
   { input, createEntryClientId },
   props,
   effectArgs,
@@ -156,13 +156,13 @@ const createEntryEffect: DefCreateEntryEffect["func"] = (
   const isOffline = isOfflineId(experienceId);
 
   if (getIsConnected()) {
-    createOnlineEntryEffect(input, props, effectArgs);
+    upsertOnlineEntryEffectHelper(input, props, effectArgs);
   } else {
-    createOfflineEntryEffect(input, props, effectArgs, isOffline);
+    upsertOfflineEntryEffectHelper(input, props, effectArgs, isOffline);
   }
 };
 
-async function createOnlineEntryEffect(
+async function upsertOnlineEntryEffectHelper(
   input: CreateEntryInput,
   props: Props,
   effectArgs: EffectArgs,
@@ -241,7 +241,7 @@ async function createOnlineEntryEffect(
   });
 }
 
-async function createOfflineEntryEffect(
+async function upsertOfflineEntryEffectHelper(
   input: CreateEntryInput,
   props: Props,
   effectArgs: EffectArgs,
@@ -281,8 +281,8 @@ interface CreateEntryEffectArgs {
   createEntryClientId?: string;
 }
 
-type DefCreateEntryEffect = EffectDefinition<
-  "createEntryEffect",
+type DefUpsertEntryEffect = EffectDefinition<
+  "upsertEntryEffect",
   CreateEntryEffectArgs
 >;
 
@@ -300,7 +300,7 @@ type DefScrollToViewEffect = EffectDefinition<
 >;
 
 export const effectFunctions = {
-  createEntryEffect,
+  upsertEntryEffect,
   scrollToViewEffect,
 };
 
@@ -425,7 +425,7 @@ function handleSubmissionAction(proxy: DraftState) {
   }
 
   effects.push({
-    key: "createEntryEffect",
+    key: "upsertEntryEffect",
     ownArgs: {
       input: {
         experienceId,
@@ -665,7 +665,7 @@ interface EffectContext {
   effectsArgsObj: Props;
 }
 
-type EffectType = DefScrollToViewEffect | DefCreateEntryEffect;
+type EffectType = DefScrollToViewEffect | DefUpsertEntryEffect;
 
 type EffectsList = EffectType[];
 
