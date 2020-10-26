@@ -31,7 +31,7 @@ import { scrollIntoView } from "../utils/scroll-into-view";
 import { createOfflineEntryMutation } from "../components/UpsertEntry/upsert-entry.resolvers";
 import { AppPersistor } from "../utils/app-context";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
-import { E2EWindowObject } from "../utils/types";
+import { E2EWindowObject, StateValue } from "../utils/types";
 import { makeOfflineId } from "../utils/offlines";
 import { windowChangeUrl } from "../utils/global-window";
 import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
@@ -39,6 +39,7 @@ import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { getEntriesQuerySuccess } from "../apollo/get-detailed-experience-query";
 import { emptyGetEntries } from "../graphql/utils.gql";
+import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
 
 jest.mock("../components/UpsertEntry/upsert-entry.resolvers");
 const mockCreateOfflineEntry = createOfflineEntryMutation as jest.Mock;
@@ -498,7 +499,7 @@ describe("component", () => {
 });
 
 describe("reducer", () => {
-  const experience = {
+  const onlineExperience = {
     ...defaultExperience,
     dataDefinitions: [
       {
@@ -509,13 +510,21 @@ describe("reducer", () => {
     ],
   };
 
+  const offlineId = makeOfflineId("t");
+
+  const offlineExperience = {
+    ...onlineExperience,
+    id: offlineId,
+    clientId: offlineId,
+  };
+
   const effectArgs = {
     dispatch: mockDispatch,
   };
 
   const props = ({
     updateExperiencesOnline: mockUpdateExperiencesOnline as any,
-    experience,
+    experience: onlineExperience,
     onSuccess: mockOnSuccess,
     onClose: mockOnClose,
   } as unknown) as Props;
@@ -614,6 +623,44 @@ describe("reducer", () => {
     expect(
       (state.states.submission as SubmissionErrors).errors.context.errors,
     ).toBe(GENERIC_SERVER_ERROR);
+  });
+
+  it("updates completely offline entry", async () => {
+    const thisProps = {
+      ...props,
+      experience: offlineExperience,
+      updatingEntry: {
+        entry: {
+          id: "a",
+          clientId: "a",
+          dataObjects: [
+            {
+              id: "a1",
+              data: `{"decimal":1}`,
+              definitionId: "1",
+            },
+          ],
+        } as EntryFragment,
+        errors: {} as CreateEntryErrorFragment,
+      },
+    };
+
+    let state = initState(thisProps);
+
+    state = reducer(state, {
+      type: ActionType.ON_SUBMIT,
+    });
+
+    const { key, ownArgs } = (state.effects
+      .general as GeneralEffect).hasEffects.context.effects[0];
+
+    mockCreateOfflineEntry.mockReturnValue({
+      entry: {},
+    });
+
+    await effectFunctions[key](ownArgs as any, thisProps, effectArgs);
+
+    expect(mockOnSuccess.mock.calls[0][1]).toBe(StateValue.offline);
   });
 });
 
