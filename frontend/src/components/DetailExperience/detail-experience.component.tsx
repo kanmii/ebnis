@@ -15,19 +15,16 @@ import {
   initState,
   reducer,
   ActionType,
-  formatDatetime,
   effectFunctions,
   DispatchType,
   DataState,
   EntriesDataSuccessSate,
-  DataStateContextEntry,
   ExperienceSyncError,
   OldEntryData,
 } from "./detailed-experience-utils";
 import { setUpRoutePage } from "../../utils/global-window";
 import { UpsertEntry } from "./detail-experience.lazy";
 import Loading from "../Loading/loading.component";
-import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
 import {
   StateValue,
   ReactMouseAnchorEvent,
@@ -51,13 +48,14 @@ import {
   syncEntriesErrorsMsgId,
   syncExperienceErrorsMsgId,
 } from "./detail-experience.dom";
-import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
 import { useDeleteExperiencesMutation } from "./detail-experience.injectables";
 import { activeClassName } from "../../utils/utils.dom";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { UpsertExperience } from "../My/my.lazy";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
+import { ActivateUpdateEntryCb } from "../Entry/entry.utils";
+import Entry from "../Entry/entry.component";
 
 type DispatchContextValue = Readonly<{
   onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
@@ -78,6 +76,7 @@ type DispatchContextValue = Readonly<{
   onUpdateExperienceError: (error: string) => void;
   closeSyncErrorsMsg: (e: ReactMouseAnchorEvent) => void;
   refetchExperience: (e: ReactMouseAnchorEvent) => void;
+  activateUpdateEntryCb: ActivateUpdateEntryCb;
 }>;
 const DispatchContext = createContext<DispatchContextValue>(
   {} as DispatchContextValue,
@@ -208,6 +207,12 @@ export function DetailExperience(props: Props) {
 
         dispatch({
           type: ActionType.RE_FETCH_EXPERIENCE,
+        });
+      },
+      activateUpdateEntryCb(data) {
+        dispatch({
+          type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE,
+          updatingEntry: data,
         });
       },
     };
@@ -414,7 +419,15 @@ function ExperienceComponent() {
 function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
   const { connected } = useWithSubscriptionContext();
 
-  const { onOpenNewEntry, fetchNextEntries } = useContext(DispatchContext);
+  const {
+    onOpenNewEntry,
+    fetchNextEntries,
+    activateUpdateEntryCb,
+  } = useContext(DispatchContext);
+
+  const {
+    context: { dataDefinitionIdToNameMap },
+  } = useContext(DataStateContextC);
 
   const {
     context: {
@@ -447,10 +460,12 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
           <div className="entries">
             {entries.map((daten, index) => {
               return (
-                <EntryComponent
+                <Entry
                   key={daten.entryData.id}
                   state={daten}
                   index={index}
+                  activateUpdateEntryCb={activateUpdateEntryCb}
+                  dataDefinitionIdToNameMap={dataDefinitionIdToNameMap}
                 />
               );
             })}
@@ -477,85 +492,6 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
         </>
       )}
     </>
-  );
-}
-
-function EntryComponent(props: {
-  state: DataStateContextEntry;
-  index: number;
-}) {
-  const { dispatch } = useContext(DispatchContext);
-
-  const {
-    context: { dataDefinitionIdToNameMap },
-  } = useContext(DataStateContextC);
-
-  const {
-    state: { entryData: eintragDaten, entrySyncError },
-    index,
-  } = props;
-
-  const { updatedAt, dataObjects: dObjects, id: entryId } = eintragDaten;
-  const dataObjects = dObjects as DataObjectFragment[];
-  const isOffline = isOfflineId(entryId);
-
-  return (
-    <div
-      id={entryId}
-      className={makeClassNames({
-        "box media entry": true,
-        "entry--is-danger": isOffline,
-      })}
-    >
-      <div className="media-content">
-        {entrySyncError && (
-          <div>
-            <div className="subtitle is-6 entry__unsynced-error">
-              <p>Entry has errors and can not be created/uploaded!</p>
-
-              <p style={{ marginTop: "10px" }}>Click 'edit button' to fix.</p>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <button
-                type="button"
-                className="button is-small
-                detailed-experience__entry-edit"
-                onClick={() => {
-                  dispatch({
-                    type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE,
-                    updatingEntry: {
-                      entry: eintragDaten,
-                      // TODO: remove any type
-                      errors: entrySyncError as any,
-                      index,
-                    },
-                  });
-                }}
-              >
-                Fix error
-              </button>
-            </div>
-          </div>
-        )}
-
-        {dataObjects.map((d) => {
-          const { id, definitionId, data } = d;
-
-          return (
-            <div key={id} className="media data-object">
-              <div className="media-content">
-                <div>{dataDefinitionIdToNameMap[definitionId]}</div>
-                <div>{data}</div>
-              </div>
-            </div>
-          );
-        })}
-
-        <div className="entry__updated-at">{formatDatetime(updatedAt)}</div>
-      </div>
-
-      <div className="media-right">x</div>
-    </div>
   );
 }
 

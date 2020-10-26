@@ -2166,7 +2166,7 @@ type WithMayBeExperiencePayload = {
   experience?: ExperienceFragment;
 };
 
-type UpsertEntryActivePayload = {
+export type UpsertEntryActivePayload = {
   updatingEntry?: UpdatingEntryPayload & {
     index: number;
   };
