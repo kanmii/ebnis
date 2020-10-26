@@ -54,10 +54,15 @@ import {
   getEntriesQuerySuccess,
 } from "../apollo/get-detailed-experience-query";
 import { act } from "react-dom/test-utils";
-import { createOfflineExperience } from "../components/UpsertExperience/upsert-experience.resolvers";
+import {
+  createOfflineExperience,
+  updateExperienceOfflineFn,
+} from "../components/UpsertExperience/upsert-experience.resolvers";
+import { makeOfflineId } from "../utils/offlines";
 
 jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
 const mockCreateOfflineExperience = createOfflineExperience as jest.Mock;
+const mockUpdateExperienceOfflineFn = updateExperienceOfflineFn as jest.Mock;
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockGetEntriesQuery = getExperienceQuery as jest.Mock;
@@ -112,12 +117,27 @@ const descriptionToggleClassName = "form__label-description-toggle";
 const descriptionHideClass = "form__label-description-hide";
 const descriptionShowClass = "form__label-description-show";
 
-const onlineId = "1";
+const onlineExperienceId = "1";
 const onlineTitle = "aa";
+const nameValue = "bb";
 const onlineExperience = {
-  id: onlineId,
+  id: onlineExperienceId,
   title: onlineTitle,
+  dataDefinitions: [
+    {
+      id: "1",
+      name: nameValue,
+      type: DataTypes.INTEGER,
+    },
+  ],
 } as ExperienceFragment;
+
+const offlineExperienceId = makeOfflineId(".");
+const offlineExperience = {
+  ...onlineExperience,
+  id: offlineExperienceId,
+  clientId: offlineExperienceId,
+};
 
 describe("components", () => {
   it("create experience/submit empty form/reset/form errors/success", async () => {
@@ -388,20 +408,10 @@ describe("components", () => {
 
   it("updates experience online, submit empty form, reset form, change integer to decimal", async () => {
     mockIsConnected.mockReturnValue(true);
-    const nameValue = "bb";
 
     mockManuallyFetchExperience.mockResolvedValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-          dataDefinitions: [
-            {
-              id: "1",
-              name: nameValue,
-              type: DataTypes.INTEGER,
-            },
-          ],
-        },
+        getExperience: onlineExperience,
       },
     } as GetExperienceQueryResult);
 
@@ -512,7 +522,7 @@ describe("components", () => {
       ],
     });
 
-    await onUpdateSuccess({ experience: { experienceId: onlineId } });
+    await onUpdateSuccess({ experience: { experienceId: onlineExperienceId } });
 
     expect(mockManuallyGetDataObjects.mock.calls[0][0].ids[0]).toBe("xx");
     expect(mockOnSuccess).toHaveBeenCalledWith(x, StateValue.online);
@@ -526,13 +536,14 @@ describe("components", () => {
 describe("reducer", () => {
   const props = {
     createExperiences: mockCreateExperiencesOnline as any,
+    onSuccess: mockOnSuccess as any,
   } as Props;
 
   const effectArgs = {
     dispatch: mockDispatch,
   } as EffectArgs;
 
-  it("submits offline: success", async () => {
+  it("creates offline experience successfully", async () => {
     mockIsConnected.mockReturnValue(false);
 
     let state = initState(props);
@@ -792,7 +803,7 @@ describe("reducer", () => {
   it("calls onError callback when fetch experience returns empty result or throws exception", async () => {
     const props = {
       experience: {
-        id: onlineId,
+        id: onlineExperienceId,
         title: onlineTitle,
       },
       onError: mockOnError as any,
@@ -811,6 +822,108 @@ describe("reducer", () => {
     mockManuallyFetchExperience.mockRejectedValue("");
     await effectFn(effect.ownArgs as any, props, effectArgs);
     expect(mockOnError.mock.calls).toHaveLength(2);
+  });
+
+  it("updates definition to single text for offline experience", async () => {
+    mockIsConnected.mockReturnValue(false);
+
+    const thisProps = {
+      ...props,
+      experience: offlineExperience,
+    };
+
+    let state = initState(thisProps);
+
+    state = reducer(state, {
+      type: ActionType.ON_EXPERIENCE_FETCHED_SUCCESS,
+      ...offlineExperience,
+    });
+
+    state = formChangedDefinition(state, 0, DataTypes.SINGLE_LINE_TEXT, "type");
+
+    state = reducer(state, {
+      type: ActionType.SUBMISSION,
+    });
+
+    let dataState = (state.states.form.fields.dataDefinitions[0].type
+      .states as ChangedState).changed.states;
+
+    expect(dataState.value).toEqual(StateValue.valid);
+
+    state = formChangedDefinition(state, 0, DataTypes.DATE, "type");
+
+    state = reducer(state, {
+      type: ActionType.SUBMISSION,
+    });
+
+    dataState = (state.states.form.fields.dataDefinitions[0].type
+      .states as ChangedState).changed.states;
+
+    expect(dataState.value).toEqual(StateValue.invalid);
+
+    state = formChangedDefinition(state, 0, DataTypes.SINGLE_LINE_TEXT, "type");
+
+    state = reducer(state, {
+      type: ActionType.SUBMISSION,
+    });
+
+    dataState = (state.states.form.fields.dataDefinitions[0].type
+      .states as ChangedState).changed.states;
+
+    expect(dataState.value).toEqual(StateValue.valid);
+
+    const effect = (state.effects.general as EffectState).hasEffects.context
+      .effects[0];
+
+    const updateExperienceEffect = effectFunctions[effect.key];
+    mockUpdateExperienceOfflineFn.mockReturnValue(offlineExperience);
+
+    await updateExperienceEffect(effect.ownArgs as any, thisProps, effectArgs);
+
+    expect(mockOnSuccess).toHaveBeenCalledWith(
+      offlineExperience,
+      StateValue.offline,
+    );
+  });
+
+  it("updates definition to multiline text for online experience", async () => {
+    mockIsConnected.mockReturnValue(false);
+
+    const thisProps = {
+      ...props,
+      experience: onlineExperience,
+    };
+
+    let state = initState(thisProps);
+
+    state = reducer(state, {
+      type: ActionType.ON_EXPERIENCE_FETCHED_SUCCESS,
+      ...offlineExperience,
+    });
+
+    state = formChangedDefinition(state, 0, DataTypes.MULTI_LINE_TEXT, "type");
+
+    state = reducer(state, {
+      type: ActionType.SUBMISSION,
+    });
+
+    let dataState = (state.states.form.fields.dataDefinitions[0].type
+      .states as ChangedState).changed.states;
+
+    expect(dataState.value).toEqual(StateValue.valid);
+
+    const effect = (state.effects.general as EffectState).hasEffects.context
+      .effects[0];
+
+    const updateExperienceEffect = effectFunctions[effect.key];
+    mockUpdateExperienceOfflineFn.mockReturnValue(onlineExperience);
+
+    await updateExperienceEffect(effect.ownArgs as any, thisProps, effectArgs);
+
+    expect(mockOnSuccess).toHaveBeenCalledWith(
+      onlineExperience,
+      StateValue.partOffline,
+    );
   });
 });
 

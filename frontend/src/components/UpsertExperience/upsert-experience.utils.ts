@@ -746,8 +746,9 @@ function validateForm(
                 updateInput.ownFields = ownFields;
               }
             }
-            // istanbul ignore else:
-            else if (value) {
+
+            // Istanbul does not like else if
+            if (!isUpdating && value) {
               formUpdated = true;
               insertInput.description = value;
               validityState.value = StateValue.valid;
