@@ -537,25 +537,6 @@ export function stringifyDataObjectData(type: DataTypes, parsedData: any) {
   return `{"${type.toLowerCase()}":"${formObjToString(type, parsedData)}"}`;
 }
 
-export function parseDataObjectData(datum: string) {
-  const toObject = JSON.parse(datum);
-  const [[k, value]] = Object.entries(toObject);
-  const key = k.toUpperCase();
-
-  switch (key) {
-    case DataTypes.DATE:
-    case DataTypes.DATETIME:
-      return new Date(value);
-
-    case DataTypes.DECIMAL:
-    case DataTypes.INTEGER:
-      return Number(value);
-
-    default:
-      return value;
-  }
-}
-
 ////////////////////////// END STATE UPDATE SECTION /////////////////////
 
 ////////////////////////// TYPES SECTION ////////////////////////////

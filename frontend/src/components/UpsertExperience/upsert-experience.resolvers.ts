@@ -47,10 +47,7 @@ import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { EntryConnectionFragment_edges } from "../../graphql/apollo-types/EntryConnectionFragment";
 import { UnsyncedModifiedExperience } from "../../utils/unsynced-ledger.types";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
-import {
-  parseDataObjectData,
-  stringifyDataObjectData,
-} from "../UpsertEntry/upsert-entry.utils";
+import { stringifyDataObjectData } from "../UpsertEntry/upsert-entry.utils";
 import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/apollo-types/GetEntries";
 
 ////////////////////////// CREATE ////////////////////////////
@@ -315,6 +312,25 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
   writeExperienceFragmentToCache(updatedExperience);
 
   return updatedExperience;
+}
+
+export function parseDataObjectData(datum: string) {
+  const toObject = JSON.parse(datum);
+  const [[k, value]] = Object.entries(toObject);
+  const key = k.toUpperCase();
+
+  switch (key) {
+    case DataTypes.DATE:
+    case DataTypes.DATETIME:
+      return new Date(value);
+
+    case DataTypes.DECIMAL:
+    case DataTypes.INTEGER:
+      return Number(value);
+
+    default:
+      return value;
+  }
 }
 
 export type UpdateExperienceOfflineInput = UpdateExperienceInput & {
