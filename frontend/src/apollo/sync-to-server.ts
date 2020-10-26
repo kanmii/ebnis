@@ -20,6 +20,8 @@ import {
   UpdateDefinitionInput,
   CreateEntryInput,
   UpdateEntryInput,
+  CreateDataObject,
+  CreateDataDefinition,
 } from "../graphql/apollo-types/globalTypes";
 import { isOfflineId } from "../utils/offlines";
 import {
@@ -27,12 +29,8 @@ import {
   getEntriesQuerySuccess,
 } from "./get-detailed-experience-query";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
-import {
-  experienceToCreateInput,
-  entryToCreateInput,
-} from "../components/UpsertEntry/upsert-entry.helpers";
 import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
-import { EntryConnectionFragment_edges } from "../graphql/apollo-types/EntryConnectionFragment";
+import { EntryConnectionFragment_edges, EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 import {
@@ -58,6 +56,7 @@ import { createExperiencesManualUpdate } from "./create-experiences-manual-updat
 import { updateExperiencesManualCacheUpdate } from "./update-experiences-manual-cache-update";
 import { broadcastMessage } from "../utils/observable-manager";
 import { BroadcastMessageType } from "../utils/types";
+
 
 const WAIT_INTERVAL = 1 * 1000 * 60; // 1 minute
 
@@ -358,6 +357,64 @@ export async function syncToServer() {
       },
     );
   }
+}
+
+function experienceToCreateInput(experience: ExperienceFragment) {
+  const { id: experienceId, description, title, dataDefinitions } = experience;
+
+  const createExperienceInput = {
+    clientId: experienceId,
+    description: description,
+    title: title,
+    insertedAt: experience.insertedAt,
+    updatedAt: experience.updatedAt,
+    dataDefinitions: (dataDefinitions as DataDefinitionFragment[]).map((d) => {
+      const input = {
+        clientId: d.id,
+        name: d.name,
+        type: d.type,
+      } as CreateDataDefinition;
+      return input;
+    }),
+  } as CreateExperienceInput;
+
+  const createEntriesInput = entriesConnectionToCreateInput(
+    getEntriesQuerySuccess(experienceId),
+  );
+
+  // istanbul ignore else:
+  if (createEntriesInput.length) {
+    createExperienceInput.entries = createEntriesInput;
+  }
+
+  return createExperienceInput;
+}
+
+function entryToCreateInput(entry: EntryFragment) {
+  return {
+    clientId: entry.id,
+    experienceId: entry.experienceId,
+    insertedAt: entry.insertedAt,
+    updatedAt: entry.updatedAt,
+    dataObjects: (entry.dataObjects as DataObjectFragment[]).map((d) => {
+      const input = {
+        clientId: d.id,
+        data: d.data,
+        definitionId: d.definitionId,
+        insertedAt: d.insertedAt,
+        updatedAt: d.updatedAt,
+      } as CreateDataObject;
+      return input;
+    }),
+  } as CreateEntryInput;
+}
+
+function entriesConnectionToCreateInput(entries: EntryConnectionFragment) {
+  return ((entries.edges ||
+    // istanbul ignore next:
+    []) as EntryConnectionFragment_edges[]).map((edge) => {
+    return entryToCreateInput(edge.node as EntryFragment);
+  });
 }
 
 type Variables = [UpdateExperienceInput[], CreateExperienceInput[]];
