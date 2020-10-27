@@ -15,7 +15,6 @@ import {
   ErrorsVal,
   LoadingVal,
   LoadingState,
-  FETCH_EXPERIENCES_TIMEOUTS,
   BroadcastMessageType,
   OnlineStatus,
 } from "../../utils/types";
@@ -66,6 +65,7 @@ import {
   getUnsyncedExperience,
   getOnlineStatus,
 } from "../../apollo/unsynced-ledger";
+import { FETCH_EXPERIENCES_TIMEOUTS } from "../../utils/timers";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",

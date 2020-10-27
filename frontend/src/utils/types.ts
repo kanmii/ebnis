@@ -9,8 +9,6 @@ import { ChangeEvent } from "react";
 import { BroadcastChannel } from "broadcast-channel";
 import { OnSyncedData } from "./sync-to-server.types";
 
-export const FETCH_EXPERIENCES_TIMEOUTS = [2000, 2000, 3000, 5000];
-
 export type ReactMouseAnchorEvent = React.MouseEvent<
   HTMLAnchorElement | HTMLButtonElement,
   MouseEvent
@@ -139,7 +137,7 @@ export type OnlineVal = "online";
 export type OfflineVal = "offline";
 export type PartOfflineVal = "part-offline";
 export type OnlineStatus = OnlineVal | OfflineVal | PartOfflineVal;
-export type DeleteSuccess = 'deleteSuccess'
+export type DeleteSuccess = "deleteSuccess";
 
 export const StateValue = {
   noEffect: "noEffect" as NoEffectVal,
@@ -171,7 +169,7 @@ export const StateValue = {
   online: "online" as OnlineVal,
   offline: "offline" as OfflineVal,
   partOffline: "part-offline" as PartOfflineVal,
-  deleteSuccess: 'deleteSuccess' as DeleteSuccess
+  deleteSuccess: "deleteSuccess" as DeleteSuccess,
 } as const;
 
 export type LoadingState = Readonly<{

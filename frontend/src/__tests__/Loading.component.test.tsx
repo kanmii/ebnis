@@ -5,6 +5,7 @@ import { Loading } from "../components/Loading/loading.component";
 import { defaultLoadingDomId } from "../components/Loading/loading-dom";
 import { act } from "react-dom/test-utils";
 import { onUnmount } from "../components/Loading/loading.injectables";
+import { MAX_TIMEOUT_MS } from "../utils/timers";
 
 jest.mock("../components/Loading/loading.injectables");
 const mockOnUnmount = onUnmount as jest.Mock;
@@ -27,7 +28,7 @@ it("renders loading UI", () => {
     // loading UI will be visible after timer completes
     expect(document.getElementById(defaultLoadingDomId)).toBeNull();
 
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     expect(document.getElementById(defaultLoadingDomId)).not.toBeNull();
 
@@ -51,7 +52,7 @@ it("does not render loading UI", () => {
     // loading UI will never be rendered
     expect(document.getElementById(defaultLoadingDomId)).toBeNull();
 
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     // loading UI will never be rendered
     expect(document.getElementById(defaultLoadingDomId)).toBeNull();

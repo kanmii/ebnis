@@ -52,12 +52,7 @@ import {
   upsertExperiencesInGetExperiencesMiniQuery,
   purgeExperience,
 } from "../apollo/update-get-experiences-mini-query";
-import {
-  E2EWindowObject,
-  StateValue,
-  FETCH_EXPERIENCES_TIMEOUTS,
-  OnlineStatus,
-} from "../utils/types";
+import { E2EWindowObject, StateValue, OnlineStatus } from "../utils/types";
 import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
 import {
   getDeleteExperienceLedger,
@@ -111,6 +106,7 @@ import {
   entryDeleteMenuItemSelector,
 } from "../components/Entry/entry.dom";
 import { updateExperienceOfflineFn } from "../components/UpsertExperience/upsert-experience.resolvers";
+import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
 
 jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
 const mockUpdateExperienceOfflineFn = updateExperienceOfflineFn as jest.Mock;
@@ -255,6 +251,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  jest.runTimersToTime(MAX_TIMEOUT_MS);
   jest.clearAllTimers();
   jest.resetAllMocks();
   mockUpdatedExperience = undefined;
@@ -375,7 +372,7 @@ describe("components", () => {
     expect(document.getElementById(mockLoadingId)).not.toBeNull();
     expect(document.getElementById(refetchExperienceId)).toBeNull();
 
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
     const refetchExperienceBtn = await waitForElement(() => {
       return document.getElementById(refetchExperienceId) as HTMLElement;
     });
@@ -383,7 +380,7 @@ describe("components", () => {
     mockManuallyFetchDetailedExperience.mockRejectedValueOnce(new Error("b"));
 
     refetchExperienceBtn.click();
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     await wait(() => true);
 
@@ -394,7 +391,7 @@ describe("components", () => {
     } as DetailedExperienceQueryResult);
 
     refetchExperienceBtn.click();
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     expect(getRefetchEntries()).toBeNull();
     const refetchEntriesEl = await waitForElement(getRefetchEntries);
@@ -416,7 +413,7 @@ describe("components", () => {
     });
 
     expect(getNoEntryEl()).toBeNull();
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
     const noEntryEl = await waitForElement(getNoEntryEl);
 
     expect(document.getElementById(mockDismissUpsertEntryUiId)).toBeNull();
@@ -655,7 +652,7 @@ describe("components", () => {
     });
 
     act(() => {
-      jest.runAllTimers();
+      jest.runTimersToTime(MAX_TIMEOUT_MS);
     });
   });
 });
@@ -1059,7 +1056,7 @@ describe("update experience", () => {
 
     // After a little while
     act(() => {
-      jest.runAllTimers();
+      jest.runTimersToTime(MAX_TIMEOUT_MS);
     });
 
     // Experience updated success notification should not be visible
@@ -1455,7 +1452,7 @@ describe("reducers", () => {
 
     const fetchDetailedExperienceEffect = effectFunctions[effect.key];
     fetchDetailedExperienceEffect(effect.ownArgs as any, props, effectArgs);
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     fetchDetailedExperienceEffect(effect.ownArgs as any, props, effectArgs);
     mockGetIsConnected.mockReturnValue(true);
@@ -1523,7 +1520,7 @@ describe("reducers", () => {
 
     await fetchEntriesEffect(ownArgs, props, effectArgs);
     expect(mockScrollIntoView).not.toHaveBeenCalled();
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
     expect(mockScrollIntoView.mock.calls[0][0]).toBe(nonsenseId);
 
     mockManuallyFetchEntries.mockResolvedValueOnce({
@@ -1545,7 +1542,7 @@ describe("reducers", () => {
     } as GetEntriesQueryResult);
 
     await fetchEntriesEffect(ownArgs, props, effectArgs);
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
     expect(mockScrollIntoView.mock.calls[1][0]).toBe("z");
 
     mockManuallyFetchEntries.mockResolvedValueOnce({
@@ -1574,7 +1571,7 @@ describe("reducers", () => {
     } as GetEntriesUnionFragment_GetEntriesSuccess);
 
     await fetchEntriesEffect(ownArgs, props, effectArgs);
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
     expect(mockScrollIntoView.mock.calls[2][0]).toBe("t");
   });
 
@@ -1887,7 +1884,7 @@ describe("reducers", () => {
       effectArgs,
     );
 
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     const mockPutOfflineExperienceIdInSyncFlag = putOfflineExperienceIdInSyncFlag as jest.Mock;
 
@@ -2058,6 +2055,8 @@ describe("Entry component", () => {
       getOkDeleteEntry().click();
     });
 
+    await wait(() => true);
+
     const errorFunc =
       mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0].onError;
 
@@ -2073,7 +2072,7 @@ describe("Entry component", () => {
     expect(document.getElementById(onlineEntry.id)).not.toBeNull();
 
     // document should be scrolled to show error notification
-    expect(mockScrollDocumentToTop).toHaveBeenCalled()
+    expect(mockScrollDocumentToTop).toHaveBeenCalled();
     mockScrollDocumentToTop.mockReset();
 
     // When error notification is closed
@@ -2141,7 +2140,7 @@ describe("Entry component", () => {
 
     // After a while
     act(() => {
-      jest.runAllTimers();
+      jest.runTimersToTime(MAX_TIMEOUT_MS);
     });
 
     // Notification that entry deleted should not be visible

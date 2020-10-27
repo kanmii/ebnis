@@ -31,11 +31,7 @@ import {
 } from "../components/My/my.dom";
 import { makeOfflineId } from "../utils/offlines";
 import { fillField } from "../tests.utils";
-import {
-  StateValue,
-  FETCH_EXPERIENCES_TIMEOUTS,
-  BroadcastMessageType,
-} from "../utils/types";
+import { StateValue, BroadcastMessageType } from "../utils/types";
 import { GenericHasEffect } from "../utils/effects";
 import {
   manuallyFetchExperienceConnectionMini,
@@ -62,6 +58,7 @@ import { getOnlineStatus } from "../apollo/unsynced-ledger";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { cleanUpOfflineExperiences } from "../components/WithSubscriptions/with-subscriptions.utils";
 import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
+import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
 
 jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
 const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
@@ -191,7 +188,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  jest.runTimersToTime(10000);
+  jest.runTimersToTime(MAX_TIMEOUT_MS);
   jest.clearAllTimers();
   jest.resetAllMocks();
 });
@@ -207,7 +204,7 @@ describe("component", () => {
 
     const { ui } = makeComp();
     render(ui);
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     expect(document.getElementById(mockLoadingId)).not.toBeNull();
     expect(getFetchErrorRetry()).toBeNull();
@@ -225,7 +222,7 @@ describe("component", () => {
     reFetchEl.click();
 
     expect(getNoExperiencesActivateNew()).toBeNull();
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     const activateInsertExperienceBtnEl = await waitForElement(
       getNoExperiencesActivateNew,
@@ -237,7 +234,7 @@ describe("component", () => {
 
     getMockCloseUpsertExperienceUi().click(); // exists
 
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     expect(getMockCloseUpsertExperienceUi()).toBeNull();
   });
@@ -252,7 +249,7 @@ describe("component", () => {
 
     const { ui } = makeComp();
     render(ui);
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     expect(document.getElementById(mockLoadingId)).not.toBeNull();
 
@@ -279,7 +276,7 @@ describe("component", () => {
     } as GetExperienceConnectionMiniQueryResult);
 
     reFetchEl.click();
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     expect(getNoExperiencesActivateNew()).toBeNull();
 
@@ -291,7 +288,7 @@ describe("component", () => {
 
     expect(getExperienceEl).not.toBeNull();
     expect(getExperienceEl("b")).toBeNull();
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
     expect(mockHandlePreFetchExperiences.mock.calls[0]).toEqual([
       [mockOnlineId],
       {
@@ -333,7 +330,7 @@ describe("component", () => {
     } as GetExperienceConnectionMiniQueryResult);
 
     fetchMoreExperiencesBtnEl.click();
-    jest.runAllTimers();
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     await waitForElement(() => {
       return getExperienceEl("b");
@@ -644,7 +641,7 @@ describe("component", () => {
     expect(getUpdateExperienceSuccessNotificationCloseEl()).not.toBeNull();
 
     act(() => {
-      jest.runAllTimers();
+      jest.runTimersToTime(MAX_TIMEOUT_MS);
     });
 
     expect(getUpdateExperienceSuccessNotificationCloseEl()).toBeNull();
@@ -734,14 +731,14 @@ describe("reducer", () => {
 
   const props = {} as any;
 
-  it("fetches experiences when no network", async () => {
+  fit("fetches experiences when no network", async () => {
     let state = initState();
 
     const effect = (state.effects.general as GenericHasEffect<EffectType>)
       .hasEffects.context.effects[0];
 
-    const fn = effectFunctions[effect.key];
-    await fn({} as any, props, effectArgs);
+    const fetchExperiencesEffect = effectFunctions[effect.key];
+    await fetchExperiencesEffect({} as any, props, effectArgs);
     expect(mockDispatch).not.toHaveBeenCalled();
 
     jest.runAllTimers();

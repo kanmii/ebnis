@@ -18,7 +18,6 @@ import {
   ErrorsVal,
   DataVal,
   LoadingState,
-  FETCH_EXPERIENCES_TIMEOUTS,
   SuccessVal,
   FailVal,
   FetchEntriesErrorVal,
@@ -108,6 +107,10 @@ import { purgeEntry } from "../../apollo/update-get-experiences-mini-query";
 import { DataObjectErrorFragment } from "../../graphql/apollo-types/DataObjectErrorFragment";
 import { isOfflineId } from "../../utils/offlines";
 import { updateExperienceOfflineFn } from "../UpsertExperience/upsert-experience.resolvers";
+import {
+  CLOSE_NOTIFICATION_TIMEOUT_MS,
+  FETCH_EXPERIENCES_TIMEOUTS,
+} from "../../utils/timers";
 
 export enum ActionType {
   TOGGLE_UPSERT_ENTRY_ACTIVE = "@detailed-experience/toggle-upsert-entry",
@@ -1342,8 +1345,6 @@ const scrollDocToTopEffect: DefScrollDocToTopEffect["func"] = () => {
 
 type DefScrollDocToTopEffect = EffectDefinition<"scrollDocToTopEffect">;
 
-const CLOSE_NOTIFICATION_TIMEOUT_MS = 10 * 1000;
-
 const timeoutsEffect: DefTimeoutsEffect["func"] = (
   { set, clear },
   __,
@@ -1846,43 +1847,6 @@ const deleteEntryEffect: DefDeleteEntryEffect["func"] = (
   }
 };
 
-function deleteEntrySuccessEffectHelper(id: string, dispatch: DispatchType) {
-  const timeoutId = setTimeout(() => {
-    dispatch({
-      type: ActionType.DELETE_ENTRY,
-      key: StateValue.cancelled,
-    });
-  }, CLOSE_NOTIFICATION_TIMEOUT_MS);
-
-  dispatch({
-    type: ActionType.DELETE_ENTRY,
-    key: StateValue.success,
-    id,
-    timeoutId,
-  });
-}
-
-function deleteEntryFailEffectHelper(
-  error: CommonError,
-  dispatch: DispatchType,
-) {
-  const timeoutId = setTimeout(() => {
-    dispatch({
-      type: ActionType.DELETE_ENTRY,
-      key: StateValue.cancelled,
-    });
-  }, CLOSE_NOTIFICATION_TIMEOUT_MS);
-
-  dispatch({
-    type: ActionType.DELETE_ENTRY,
-    key: StateValue.errors,
-    error,
-    timeoutId,
-  });
-
-  scrollDocumentToTop();
-}
-
 type DefDeleteEntryEffect = EffectDefinition<
   "deleteEntryEffect",
   {
@@ -2152,6 +2116,43 @@ function processDataObjectsErrors(dataObjects: DataObjectErrorFragment[]) {
   });
 
   return dataErrorList;
+}
+
+function deleteEntrySuccessEffectHelper(id: string, dispatch: DispatchType) {
+  const timeoutId = setTimeout(() => {
+    dispatch({
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.cancelled,
+    });
+  }, CLOSE_NOTIFICATION_TIMEOUT_MS);
+
+  dispatch({
+    type: ActionType.DELETE_ENTRY,
+    key: StateValue.success,
+    id,
+    timeoutId,
+  });
+}
+
+function deleteEntryFailEffectHelper(
+  error: CommonError,
+  dispatch: DispatchType,
+) {
+  const timeoutId = setTimeout(() => {
+    dispatch({
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.cancelled,
+    });
+  }, CLOSE_NOTIFICATION_TIMEOUT_MS);
+
+  dispatch({
+    type: ActionType.DELETE_ENTRY,
+    key: StateValue.errors,
+    error,
+    timeoutId,
+  });
+
+  scrollDocumentToTop();
 }
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
