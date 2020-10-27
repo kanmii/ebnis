@@ -371,9 +371,7 @@ describe("components", () => {
 
     mockManuallyFetchDetailedExperience.mockResolvedValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
       },
     } as DetailedExperienceQueryResult);
 
@@ -449,9 +447,7 @@ describe("components", () => {
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
         getEntries: onlineEntrySuccess,
       },
     } as DetailedExperienceQueryResult);
@@ -526,9 +522,7 @@ describe("components", () => {
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
         getEntries: {
           __typename: "GetEntriesSuccess",
           entries: {
@@ -613,9 +607,7 @@ describe("components", () => {
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
         getEntries: {
           __typename: "GetEntriesSuccess",
           entries: {
@@ -650,7 +642,6 @@ describe("components", () => {
   });
 });
 
-
 describe("first fetch of experience: display sync errors", () => {
   it("displays sync errors for definitions update", () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
@@ -668,9 +659,7 @@ describe("first fetch of experience: display sync errors", () => {
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
         getEntries: onlineEntrySuccess,
       },
     } as DetailedExperienceQueryResult);
@@ -767,9 +756,7 @@ describe("first fetch of experience: display sync errors", () => {
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
         getEntries: offlineEntrySuccess,
       },
     } as DetailedExperienceQueryResult);
@@ -874,9 +861,7 @@ describe("first fetch of experience: display sync errors", () => {
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
         getEntries: onlineOfflineEntriesSuccess,
       },
     } as DetailedExperienceQueryResult);
@@ -931,9 +916,7 @@ describe("first fetch of experience: display sync errors", () => {
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
         getEntries: onlineEntrySuccess,
       },
     } as DetailedExperienceQueryResult);
@@ -993,9 +976,7 @@ describe("update experience", () => {
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
       },
     } as DetailedExperienceQueryResult);
 
@@ -1012,9 +993,7 @@ describe("update experience", () => {
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
         getEntries: emptyEntriesSuccessList,
       },
     } as DetailedExperienceQueryResult);
@@ -1033,9 +1012,7 @@ describe("update experience", () => {
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
       },
     } as DetailedExperienceQueryResult);
 
@@ -1099,9 +1076,7 @@ describe("sync", () => {
 
     mockGetCachedExperience.mockReturnValueOnce({
       data: {
-        getExperience: {
-          ...onlineExperience,
-        },
+        getExperience: onlineExperience,
         getEntries: offlineEntrySuccess,
       },
     } as DetailedExperienceQueryResult);
