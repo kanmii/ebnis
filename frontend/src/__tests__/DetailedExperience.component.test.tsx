@@ -37,6 +37,13 @@ import {
   syncEntriesErrorsMsgId,
   syncExperienceErrorsMsgId,
   updateExperienceSuccessNotificationId,
+  entriesContainerId,
+  experienceMenuTriggerSelector,
+  experienceMenuSelector,
+  closeDeleteEntryConfirmationId,
+  okDeleteEntryId,
+  entryDeleteSuccessNotificationId,
+  entryDeleteFailNotificationId,
 } from "../components/DetailExperience/detail-experience.dom";
 import { act } from "react-dom/test-utils";
 import { makeOfflineId } from "../utils/offlines";
@@ -63,8 +70,8 @@ import {
   DeleteExperiencesMutationResult,
   manuallyFetchEntries,
   GetEntriesQueryResult,
+  updateExperiencesOnlineEffectHelperFunc,
 } from "../utils/experience.gql.types";
-import { useDeleteExperiencesMutation } from "../components/DetailExperience/detail-experience.injectables";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
 import {
@@ -98,6 +105,15 @@ import {
 } from "../components/WithSubscriptions/with-subscriptions.utils";
 import { GetEntriesUnionFragment_GetEntriesSuccess } from "../graphql/apollo-types/GetEntriesUnionFragment";
 import { windowChangeUrl, ChangeUrlType } from "../utils/global-window";
+import {
+  entryDropdownTriggerClassName,
+  entryDropdownIsActiveClassName,
+  entryDeleteMenuItemSelector,
+} from "../components/Entry/entry.dom";
+import { updateExperienceOfflineFn } from "../components/UpsertExperience/upsert-experience.resolvers";
+
+jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
+const mockUpdateExperienceOfflineFn = updateExperienceOfflineFn as jest.Mock;
 
 jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
@@ -126,7 +142,6 @@ jest.mock("../components/Header/header.component", () => () => null);
 
 jest.mock("../components/DetailExperience/detail-experience.injectables");
 const mockDeleteExperiences = jest.fn();
-const mockUseDeleteExperiencesMutation = useDeleteExperiencesMutation as jest.Mock;
 
 jest.mock("../apollo/delete-experience-cache");
 const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
@@ -135,6 +150,7 @@ const mockPutOrRemoveDeleteExperienceLedger = putOrRemoveDeleteExperienceLedger 
 jest.mock("../utils/experience.gql.types");
 const mockManuallyFetchDetailedExperience = manuallyFetchDetailedExperience as jest.Mock;
 const mockManuallyFetchEntries = manuallyFetchEntries as jest.Mock;
+const mockUpdateExperiencesOnlineEffectHelperFunc = updateExperiencesOnlineEffectHelperFunc as jest.Mock;
 
 const mockGetIsConnected = getIsConnected as jest.Mock;
 jest.mock("../utils/connections");
@@ -222,6 +238,8 @@ const ebnisObject = {
     persist: mockPersistFunc as any,
   },
 } as E2EWindowObject;
+
+const mockUpdateExperiencesOnline = jest.fn();
 
 beforeAll(() => {
   window.____ebnis = ebnisObject;
@@ -455,16 +473,16 @@ describe("components", () => {
     const { ui } = makeComp();
     render(ui);
 
-    const menuEl = getMenuEl();
-    const menuSiblingEl = menuEl.previousSibling as HTMLElement;
+    const menuTriggerEl = getExperienceMenuTrigger();
+    const menuEl = getExperienceMenu();
 
-    expect(menuSiblingEl.classList).not.toContain(activeClassName);
+    expect(menuEl.classList).not.toContain(activeClassName);
 
     act(() => {
-      menuEl.click();
+      menuTriggerEl.click();
     });
 
-    expect(menuSiblingEl.classList).toContain(activeClassName);
+    expect(menuEl.classList).toContain(activeClassName);
 
     const deleteExperienceEl = getDeleteExperienceEl();
     expect(getCancelDeleteExperienceEl()).toBeNull();
@@ -1929,6 +1947,208 @@ describe("reducers", () => {
   });
 });
 
+describe("Entry component", () => {
+  it("deletes online and offline entries", async () => {
+    mockGetIsConnected.mockReturnValue(true);
+    mockUseWithSubscriptionContext.mockReturnValue({});
+    mockUpdateExperienceOfflineFn.mockReturnValueOnce(onlineExperience);
+
+    mockGetCachedExperience.mockReturnValueOnce({
+      data: {
+        getExperience: onlineExperience,
+        getEntries: {
+          __typename: "GetEntriesSuccess",
+          entries: {
+            edges: [
+              {
+                node: onlineEntry,
+              },
+              {
+                node: offlineEntry,
+              },
+            ],
+            pageInfo: {},
+          } as EntryConnectionFragment,
+        },
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    const { debug } = render(ui);
+
+    // Online entry menu should not be active
+    const entryMenuOnline = await waitForElement(getEntryDropdown);
+    expect(entryMenuOnline.classList).not.toContain(activeClassName);
+
+    // online and offline entries should be visible
+    expect(document.getElementById(onlineEntry.id)).not.toBeNull();
+    expect(document.getElementById(offlineEntry.id)).not.toBeNull();
+
+    // When online entry menu trigger is clicked
+    const entryMenuTriggerOnline = getEntryDropdownTrigger();
+    act(() => {
+      entryMenuTriggerOnline.click();
+    });
+
+    // Online entry menu should be visible
+    expect(entryMenuOnline.classList).toContain(activeClassName);
+
+    // Offline entry menu should not be visible
+    const entryMenuOffline = getEntryDropdown(1);
+    expect(entryMenuOffline.classList).not.toContain(activeClassName);
+
+    // When offline entry menu is clicked
+    let entryMenuTriggerOffline = getEntryDropdownTrigger(1);
+    act(() => {
+      entryMenuTriggerOffline.click();
+    });
+
+    // Offline entry menu should be visible
+    expect(entryMenuOffline.classList).toContain(activeClassName);
+
+    // Online entry menu should not be visible
+    expect(entryMenuOnline.classList).not.toContain(activeClassName);
+
+    // When user clicks on experience menu
+
+    getExperienceMenuTrigger().click();
+
+    // Offline entry menu should not be visible
+    expect(entryMenuOffline.classList).not.toContain(activeClassName);
+
+    // When offline entry menu is clicked
+    entryMenuTriggerOffline = getEntryDropdownTrigger(1);
+    act(() => {
+      entryMenuTriggerOffline.click();
+    });
+
+    // Offline entry menu should be visible
+    expect(entryMenuOffline.classList).toContain(activeClassName);
+
+    // When user clicks else where in the document
+    act(() => {
+      (document.getElementById(entriesContainerId) as HTMLElement).click();
+    });
+
+    // Offline entry menu should not be visible
+    expect(entryMenuOffline.classList).not.toContain(activeClassName);
+
+    // When user clicks delete option of online entry menu
+    const deleteEntryOnline = getEntryDeleteMenuItem();
+
+    deleteEntryOnline.click();
+
+    // Delete entry confirmation dialog should be visible
+    // When user clicks 'cancel' on the dialog
+    act(() => {
+      getCloseDeleteEntryConfirmation().click();
+    });
+
+    // Delete entry confirmation dialog should not be visible
+    expect(getCloseDeleteEntryConfirmation()).toBeNull();
+
+    // When user clicks delete option menu of online entry
+    deleteEntryOnline.click();
+
+    // Error notification should not be visible
+    expect(getEntryDeleteFailNotification()).toBeNull();
+
+    // When user clicks on 'ok' button of delete entry confirmation dialog
+    act(() => {
+      getOkDeleteEntry().click();
+    });
+
+    const errorFunc =
+      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0].onError;
+
+    act(() => {
+      errorFunc(new Error("ttt"));
+    });
+
+    // Error notification should be visible
+
+    const errorNotification = getEntryDeleteFailNotification();
+
+    // Online entry should be in the document
+    expect(document.getElementById(onlineEntry.id)).not.toBeNull();
+
+    // document should be scrolled to show error notification
+    expect(mockScrollDocumentToTop).toHaveBeenCalled()
+    mockScrollDocumentToTop.mockReset();
+
+    // When error notification is closed
+    act(() => {
+      errorNotification.click();
+    });
+
+    // Error notification should not be visible
+    expect(getEntryDeleteFailNotification()).toBeNull();
+
+    // When user clicks delete option menu of online entry
+    deleteEntryOnline.click();
+
+    // Notification that entry deleted should not be visible
+    expect(getEntryDeletedNotification()).toBeNull();
+
+    // When user clicks on 'ok' button of delete entry confirmation dialog
+    act(() => {
+      getOkDeleteEntry().click();
+    });
+
+    const successFunc =
+      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[1][0]
+        .onUpdateSuccess;
+
+    act(() => {
+      successFunc({
+        entries: {
+          deletedEntries: [
+            {
+              __typename: "DeleteEntrySuccess",
+              entry: onlineEntry,
+            },
+          ],
+        },
+      });
+    });
+
+    // Online entry should not be in the document
+    expect(document.getElementById(onlineEntry.id)).toBeNull();
+
+    // Notification that entry deleted should be visible
+    // When entry deleted notification is closed
+    act(() => {
+      getEntryDeletedNotification().click();
+    });
+
+    // Deleted entry notification should not be visible
+    expect(getEntryDeletedNotification()).toBeNull();
+
+    // When user clicks delete option of online entry menu
+    const deleteEntryOffline = getEntryDeleteMenuItem();
+
+    deleteEntryOffline.click();
+
+    mockUpdateExperienceOfflineFn.mockReturnValueOnce(onlineExperience);
+
+    // When user clicks on 'ok' button of delete entry confirmation dialog
+    act(() => {
+      getOkDeleteEntry().click();
+    });
+
+    // Notification that entry deleted should be visible
+    expect(getEntryDeletedNotification()).not.toBeNull();
+
+    // After a while
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    // Notification that entry deleted should not be visible
+    expect(getEntryDeletedNotification()).toBeNull();
+  });
+});
+
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
 const DetailExperienceP = DetailExperience as ComponentType<Partial<Props>>;
@@ -1938,7 +2158,6 @@ function makeComp({
 }: {
   props?: Partial<Props>;
 } = {}) {
-  mockUseDeleteExperiencesMutation.mockReturnValue([mockDeleteExperiences]);
   const location = props.location || ({} as any);
   const history = {
     push: mockHistoryPushFn,
@@ -1951,7 +2170,15 @@ function makeComp({
   } as Match;
 
   return {
-    ui: <DetailExperienceP location={location} history={history} {...props} />,
+    ui: (
+      <DetailExperienceP
+        location={location}
+        history={history}
+        {...props}
+        deleteExperiences={mockDeleteExperiences}
+        updateExperiencesOnline={mockUpdateExperiencesOnline}
+      />
+    ),
   };
 }
 
@@ -1977,9 +2204,9 @@ function getSyncErrorsNotificationEl() {
   return document.getElementById(syncErrorsNotificationId) as HTMLElement;
 }
 
-function getMenuEl() {
+function getExperienceMenuTrigger() {
   return document
-    .getElementsByClassName("top-options-menu")
+    .getElementsByClassName(experienceMenuTriggerSelector)
     .item(0) as HTMLDivElement;
 }
 
@@ -2067,4 +2294,46 @@ function getDeleteExperienceEl() {
   return document
     .getElementsByClassName("delete-experience-link")
     .item(0) as HTMLElement;
+}
+
+function getEntryDropdownTrigger(index: number = 0) {
+  return document
+    .getElementsByClassName(entryDropdownTriggerClassName)
+    .item(index) as HTMLElement;
+}
+
+function getEntryDropdown(index: number = 0) {
+  return document
+    .getElementsByClassName(entryDropdownIsActiveClassName)
+    .item(index) as HTMLElement;
+}
+
+function getExperienceMenu() {
+  return document
+    .getElementsByClassName(experienceMenuSelector)
+    .item(0) as HTMLElement;
+}
+
+function getEntryDeleteMenuItem(index: number = 0) {
+  return document
+    .getElementsByClassName(entryDeleteMenuItemSelector)
+    .item(index) as HTMLElement;
+}
+
+function getCloseDeleteEntryConfirmation() {
+  return document.getElementById(closeDeleteEntryConfirmationId) as HTMLElement;
+}
+
+function getOkDeleteEntry() {
+  return document.getElementById(okDeleteEntryId) as HTMLElement;
+}
+
+function getEntryDeletedNotification() {
+  return document.getElementById(
+    entryDeleteSuccessNotificationId,
+  ) as HTMLElement;
+}
+
+function getEntryDeleteFailNotification() {
+  return document.getElementById(entryDeleteFailNotificationId) as HTMLElement;
 }

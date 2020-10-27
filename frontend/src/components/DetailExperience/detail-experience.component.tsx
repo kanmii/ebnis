@@ -21,6 +21,7 @@ import {
   EntriesDataSuccessSate,
   ExperienceSyncError,
   OldEntryData,
+  CallerProps,
 } from "./detailed-experience-utils";
 import { setUpRoutePage } from "../../utils/global-window";
 import { UpsertEntry } from "./detail-experience.lazy";
@@ -47,15 +48,26 @@ import {
   closeSyncErrorsMsgBtnId,
   syncEntriesErrorsMsgId,
   syncExperienceErrorsMsgId,
+  entriesContainerId,
+  experienceMenuTriggerSelector,
+  experienceMenuSelector,
+  okDeleteEntryId,
+  closeDeleteEntryConfirmationId,
+  entryDeleteSuccessNotificationId,
+  entryDeleteFailNotificationId,
 } from "./detail-experience.dom";
 import makeClassNames from "classnames";
-import { useDeleteExperiencesMutation } from "./detail-experience.injectables";
+import {
+  useDeleteExperiencesMutation,
+  useUpdateExperiencesOnlineMutation,
+} from "./detail-experience.injectables";
 import { activeClassName } from "../../utils/utils.dom";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { UpsertExperience } from "../My/my.lazy";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { ActivateUpdateEntryCb } from "../Entry/entry.utils";
 import Entry from "../Entry/entry.component";
+import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 
 type DispatchContextValue = Readonly<{
   onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
@@ -77,6 +89,10 @@ type DispatchContextValue = Readonly<{
   closeSyncErrorsMsg: (e: ReactMouseAnchorEvent) => void;
   refetchExperience: (e: ReactMouseAnchorEvent) => void;
   activateUpdateEntryCb: ActivateUpdateEntryCb;
+  entriesOptionsCb: (entry: EntryFragment) => void;
+  deleteEntryRequest: (entry: EntryFragment) => void;
+  deleteEntry: (e: ReactMouseAnchorEvent) => void;
+  cancelDeleteEntry: (e: ReactMouseAnchorEvent) => void;
 }>;
 const DispatchContext = createContext<DispatchContextValue>(
   {} as DispatchContextValue,
@@ -90,7 +106,6 @@ const DataStateProvider = DataStateContextC.Provider;
 
 export function DetailExperience(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
-  const [deleteExperiences] = useDeleteExperiencesMutation();
 
   const {
     states,
@@ -113,7 +128,6 @@ export function DetailExperience(props: Props) {
 
   useRunEffects(generalEffects, effectFunctions, props, {
     dispatch,
-    deleteExperiences,
   });
 
   useEffect(() => {
@@ -215,6 +229,33 @@ export function DetailExperience(props: Props) {
           updatingEntry: data,
         });
       },
+      entriesOptionsCb(entry) {
+        dispatch({
+          type: ActionType.ENTRIES_OPTIONS,
+          entry,
+        });
+      },
+      deleteEntryRequest(entry) {
+        dispatch({
+          type: ActionType.DELETE_ENTRY,
+          key: StateValue.requested,
+          entry,
+        });
+      },
+      deleteEntry(e) {
+        e.preventDefault();
+        dispatch({
+          type: ActionType.DELETE_ENTRY,
+          key: StateValue.deleted,
+        });
+      },
+      cancelDeleteEntry(e) {
+        e.preventDefault();
+        dispatch({
+          type: ActionType.DELETE_ENTRY,
+          key: StateValue.cancelled,
+        });
+      },
     };
   }, []);
 
@@ -270,7 +311,18 @@ export function DetailExperience(props: Props) {
 }
 
 // istanbul ignore next:
-export default DetailExperience;
+export default (props: CallerProps) => {
+  const [deleteExperiences] = useDeleteExperiencesMutation();
+  const [updateExperiencesOnline] = useUpdateExperiencesOnlineMutation();
+
+  return (
+    <DetailExperience
+      {...props}
+      deleteExperiences={deleteExperiences}
+      updateExperiencesOnline={updateExperiencesOnline}
+    />
+  );
+};
 
 function ExperienceComponent() {
   const {
@@ -279,6 +331,8 @@ function ExperienceComponent() {
     cancelEditExperienceUiRequestCb,
     onExperienceUpdatedSuccess,
     onUpdateExperienceError,
+    requestUpdateExperienceUi,
+    cancelDeleteEntry,
   } = useContext(DispatchContext);
 
   const {
@@ -290,6 +344,7 @@ function ExperienceComponent() {
       entries: entriesState,
       updateExperienceUiActive,
       syncErrorsMsg,
+      entriesOptions,
     },
   } = useContext(DataStateContextC);
 
@@ -303,7 +358,10 @@ function ExperienceComponent() {
     function onDocClicked(event: Event) {
       const target = event.target as HTMLElement;
 
-      if (target.classList.contains(noTriggerDocumentEventClassName)) {
+      if (
+        target.classList.contains(noTriggerDocumentEventClassName) ||
+        target.closest(`.${noTriggerDocumentEventClassName}`)
+      ) {
         return;
       }
 
@@ -345,6 +403,10 @@ function ExperienceComponent() {
 
       {syncErrorsMsg.value === StateValue.active && (
         <SyncErrorsMessageNotificationComponent />
+      )}
+
+      {entriesOptions.value === StateValue.deleted && (
+        <DeleteEntryConfirmationComponent />
       )}
 
       {(oldEditedEntryProps ||
@@ -389,7 +451,35 @@ function ExperienceComponent() {
         <UpsertEntryNotification state={newEntryCreated} />
 
         {updateExperienceUiActive.value === StateValue.success && (
-          <UpdateExperienceSuccessNotification />
+          <SuccessNotificationComponent
+            onClose={requestUpdateExperienceUi}
+            message="Update was successful"
+            domId={updateExperienceSuccessNotificationId}
+            type="success"
+          />
+        )}
+
+        {entriesOptions.value === StateValue.deleteSuccess && (
+          <SuccessNotificationComponent
+            domId={entryDeleteSuccessNotificationId}
+            message="Entry deleted successfully"
+            onClose={cancelDeleteEntry}
+            type="success"
+          />
+        )}
+
+        {entriesOptions.value === StateValue.errors && (
+          <SuccessNotificationComponent
+            domId={entryDeleteFailNotificationId}
+            message={
+              <div>
+                Entry delete failed with error:
+                <p>{entriesOptions.errors.error}</p>
+              </div>
+            }
+            onClose={cancelDeleteEntry}
+            type="error"
+          />
         )}
 
         {entriesState.value === StateValue.success && (
@@ -423,10 +513,13 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
     onOpenNewEntry,
     fetchNextEntries,
     activateUpdateEntryCb,
+    entriesOptionsCb,
+    deleteEntryRequest,
   } = useContext(DispatchContext);
 
   const {
     context: { dataDefinitionIdToNameMap },
+    states: { entriesOptions },
   } = useContext(DataStateContextC);
 
   const {
@@ -457,15 +550,25 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
         <>
           <ExperienceMenuComponent />
 
-          <div className="entries">
+          <div id={entriesContainerId}>
             {entries.map((daten, index) => {
+              const {
+                entryData: { id },
+              } = daten;
+
               return (
                 <Entry
-                  key={daten.entryData.id}
+                  key={id}
                   state={daten}
                   index={index}
                   activateUpdateEntryCb={activateUpdateEntryCb}
                   dataDefinitionIdToNameMap={dataDefinitionIdToNameMap}
+                  entriesOptionsCb={entriesOptionsCb}
+                  menuActive={
+                    entriesOptions.value === StateValue.active &&
+                    entriesOptions.active.id === id
+                  }
+                  deleteEntryRequest={deleteEntryRequest}
                 />
               );
             })}
@@ -674,6 +777,8 @@ function ExperienceMenuComponent(props: { className?: string }) {
         className={makeClassNames({
           "dropdown is-right": true,
           [activeClassName]: state.value === StateValue.active,
+          [noTriggerDocumentEventClassName]: true,
+          [experienceMenuSelector]: true,
         })}
       >
         <div
@@ -710,39 +815,36 @@ function ExperienceMenuComponent(props: { className?: string }) {
           [noTriggerDocumentEventClassName]: true,
           [isOfflineClassName]: onlineStatus === StateValue.offline,
           [isPartOfflineClassName]: onlineStatus === StateValue.partOffline,
+          [experienceMenuTriggerSelector]: true,
         })}
         onClick={toggleExperienceMenu}
       >
-        <span
-          className={makeClassNames({
-            "icon is-small": true,
-            [noTriggerDocumentEventClassName]: true,
-          })}
-        >
-          <i
-            className={makeClassNames({
-              "fas fa-ellipsis-h": true,
-              [noTriggerDocumentEventClassName]: true,
-            })}
-            aria-hidden="true"
-          />
+        <span className="icon is-small">
+          <i className="fas fa-ellipsis-h" aria-hidden="true" />
         </span>
       </button>
     </div>
   );
 }
 
-function UpdateExperienceSuccessNotification() {
-  const { requestUpdateExperienceUi } = useContext(DispatchContext);
+function SuccessNotificationComponent(props: {
+  onClose: (e: ReactMouseAnchorEvent) => void;
+  message: React.ReactNode;
+  domId: string;
+  type: "success" | "error";
+}) {
+  const { onClose, message, domId, type } = props;
 
   return (
-    <div className="notification is-success">
-      <button
-        id={updateExperienceSuccessNotificationId}
-        className="delete"
-        onClick={requestUpdateExperienceUi}
-      />
-      Update was successful
+    <div
+      className={makeClassNames({
+        notification: true,
+        "is-success": type === "success",
+        "is-danger": type === "error",
+      })}
+    >
+      <button id={domId} className="delete" onClick={onClose} />
+      {message}
     </div>
   );
 }
@@ -763,7 +865,7 @@ function SyncErrorsMessageNotificationComponent() {
   } = syncErrors as ExperienceSyncError;
 
   return (
-    <div className="modal is-active delete-experience-component">
+    <div className="modal is-active upsert-experience-notification-modal">
       <div className="modal-background"></div>
 
       <div className="modal-card">
@@ -797,7 +899,7 @@ function SyncErrorsMessageNotificationComponent() {
         <footer className="modal-card-foot">
           {(definitionsErrors || ownFieldsErrors) && (
             <button
-              className="button is-success delete-experience__ok-button"
+              className="button is-success"
               id={fixSyncErrorsId}
               type="button"
               onClick={requestUpdateExperienceUi}
@@ -807,10 +909,57 @@ function SyncErrorsMessageNotificationComponent() {
           )}
 
           <button
-            className="button is-warning delete-experience__cancel-button"
+            className="button is-warning"
             id={closeSyncErrorsMsgId}
             type="button"
             onClick={closeSyncErrorsMsg}
+          >
+            Cancel
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function DeleteEntryConfirmationComponent() {
+  const { cancelDeleteEntry, deleteEntry } = useContext(DispatchContext);
+
+  return (
+    <div
+      className={`modal is-active delete-entry-modal ${noTriggerDocumentEventClassName}`}
+    >
+      <div className="modal-background"></div>
+
+      <div className="modal-card">
+        <header className="modal-card-head">
+          <div className="modal-card-title">
+            <strong>Delete Entry</strong>
+          </div>
+
+          <button
+            className="delete upsert-entry__delete"
+            aria-label="close"
+            type="button"
+            onClick={cancelDeleteEntry}
+          ></button>
+        </header>
+
+        <footer className="modal-card-foot">
+          <button
+            className="button is-success"
+            id={okDeleteEntryId}
+            type="button"
+            onClick={deleteEntry}
+          >
+            Ok
+          </button>
+
+          <button
+            className="button is-danger delete-experience__cancel-button"
+            id={closeDeleteEntryConfirmationId}
+            type="button"
+            onClick={cancelDeleteEntry}
           >
             Cancel
           </button>

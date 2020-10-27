@@ -1,9 +1,11 @@
 import { HasEffectsVal, NoEffectVal, StateValue } from "./types";
 
-export function getGeneralEffects<EffectType, T extends GenericGeneralEffect<EffectType>>(
-  proxy: T,
-) {
-  const generalEffects = proxy.effects.general as GenericHasEffect<EffectType>;
+export function getGeneralEffects<
+  EffectType,
+  T extends GenericGeneralEffect<EffectType>
+>(writeableStateMachine: T) {
+  const generalEffects = writeableStateMachine.effects
+    .general as GenericHasEffect<EffectType>;
   generalEffects.value = StateValue.hasEffects;
   let effects: Array<EffectType> = [];
 

@@ -55,7 +55,9 @@
   z-index: 1;
 }
 
-.delete-experience-component {
+.delete-experience-component,
+.delete-entry-modal,
+.upsert-experience-notification-modal {
   .modal-card {
     max-width: 350px;
     width: 90%;

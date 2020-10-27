@@ -4,16 +4,27 @@ import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragmen
 import { isOfflineId } from "../../utils/offlines";
 import makeClassNames from "classnames";
 import { formatDatetime } from "../DetailExperience/detailed-experience-utils";
+import {
+  entryDropdownIsActiveClassName,
+  entryUpdateMenuItemClassName,
+  entryDropdownTriggerClassName,
+  entryDeleteMenuItemSelector,
+} from "./entry.dom";
+import { noTriggerDocumentEventClassName } from "../DetailExperience/detail-experience.dom";
+import { activeClassName } from "../../utils/utils.dom";
 
 export function Entry(props: Props) {
   const {
-    state: { entryData: eintragDaten, entrySyncError },
+    state: { entryData: entry, entrySyncError },
     index,
     dataDefinitionIdToNameMap,
     activateUpdateEntryCb,
+    entriesOptionsCb,
+    menuActive,
+    deleteEntryRequest,
   } = props;
 
-  const { updatedAt, dataObjects: dObjects, id: entryId } = eintragDaten;
+  const { updatedAt, dataObjects: dObjects, id: entryId } = entry;
   const dataObjects = dObjects as DataObjectFragment[];
   const isOffline = isOfflineId(entryId);
 
@@ -38,9 +49,11 @@ export function Entry(props: Props) {
                 type="button"
                 className="button is-small
                 detailed-experience__entry-edit"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+
                   activateUpdateEntryCb({
-                    entry: eintragDaten,
+                    entry,
                     // TODO: remove any type
                     errors: entrySyncError as any,
                     index,
@@ -69,9 +82,74 @@ export function Entry(props: Props) {
         <div className="entry__updated-at">{formatDatetime(updatedAt)}</div>
       </div>
 
-      <div className="media-right">x</div>
+      <div
+        className={makeClassNames({
+          "dropdown is-right": true,
+          [entryDropdownIsActiveClassName]: true,
+          [activeClassName]: menuActive,
+          [noTriggerDocumentEventClassName]: true,
+        })}
+      >
+        <div className="dropdown-menu" role="menu">
+          <div className="dropdown-content">
+            <a
+              className={`neutral-link detailed__edit-experience-link ${entryUpdateMenuItemClassName} ${noTriggerDocumentEventClassName}`}
+              style={{
+                cursor: "pointer",
+                display: "block",
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+
+                activateUpdateEntryCb({
+                  entry,
+                  // TODO: remove any type
+                  errors: entrySyncError as any,
+                  index,
+                });
+              }}
+              href="a"
+            >
+              <div className="detailed-experience-menu__content">Edit</div>
+            </a>
+          </div>
+
+          <div className="dropdown-content">
+            <a
+              className={makeClassNames({
+                "neutral-link delete-experience-menu-item": true,
+                [entryDeleteMenuItemSelector]: true,
+              })}
+              style={{
+                cursor: "pointer",
+                display: "block",
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                deleteEntryRequest(entry);
+              }}
+              href="b"
+            >
+              <div className="detailed-experience-menu__content">Delete</div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <a
+        className={`${entryDropdownTriggerClassName} ${noTriggerDocumentEventClassName}`}
+        onClick={(e) => {
+          e.preventDefault();
+          entriesOptionsCb(entry);
+        }}
+        href="a"
+      >
+        <span className="icon is-small">
+          <i className="fas fa-ellipsis-v" aria-hidden="true" />
+        </span>
+      </a>
     </div>
   );
 }
 
-export default Entry
+export default Entry;

@@ -297,7 +297,7 @@ const UPDATE_EXPERIENCE_SOME_SUCCESS_FRAGMENT = gql`
         __typename
         ... on DeleteEntrySuccess {
           entry {
-            ...EntryFragment
+            id
           }
         }
         ... on DeleteEntryErrors {

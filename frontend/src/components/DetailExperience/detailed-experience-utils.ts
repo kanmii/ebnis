@@ -24,6 +24,10 @@ import {
   FetchEntriesErrorVal,
   ReFetchOnly as ReFetchOnlyVal,
   OnlineStatus,
+  DeletedVal,
+  CancelledVal,
+  DeleteSuccess,
+  CommonError,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -43,6 +47,8 @@ import {
   DeleteExperiencesComponentProps,
   manuallyFetchEntries,
   GetEntriesQueryResult,
+  UpdateExperiencesOnlineComponentProps,
+  updateExperiencesOnlineEffectHelperFunc,
 } from "../../utils/experience.gql.types";
 import { manuallyFetchDetailedExperience } from "../../utils/experience.gql.types";
 import {
@@ -50,6 +56,7 @@ import {
   DATA_FETCHING_FAILED,
   FETCH_ENTRIES_FAIL_ERROR_MSG,
   FieldError,
+  GENERIC_SERVER_ERROR,
 } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";
 import {
@@ -99,6 +106,8 @@ import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { UpdatingEntryPayload } from "../UpsertEntry/upsert-entry.utils";
 import { purgeEntry } from "../../apollo/update-get-experiences-mini-query";
 import { DataObjectErrorFragment } from "../../graphql/apollo-types/DataObjectErrorFragment";
+import { isOfflineId } from "../../utils/offlines";
+import { updateExperienceOfflineFn } from "../UpsertExperience/upsert-experience.resolvers";
 
 export enum ActionType {
   TOGGLE_UPSERT_ENTRY_ACTIVE = "@detailed-experience/toggle-upsert-entry",
@@ -117,6 +126,8 @@ export enum ActionType {
   REQUEST_UPDATE_EXPERIENCE_UI = "@detailed-experience/request-update-experience-ui",
   ON_SYNC = "@detailed-experience/on-sync",
   CLOSE_SYNC_ERRORS_MSG = "@detailed-experience/close-sync-errors-message",
+  ENTRIES_OPTIONS = "@detailed-experience/entries-options",
+  DELETE_ENTRY = "@detailed-experience/delete-entry",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -209,6 +220,14 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
           case ActionType.CLOSE_SYNC_ERRORS_MSG:
             handleCloseSyncErrorsMsgAction(proxy);
+            break;
+
+          case ActionType.ENTRIES_OPTIONS:
+            handleEntriesOptionsAction(proxy, payload as EntriesOptionsPayload);
+            break;
+
+          case ActionType.DELETE_ENTRY:
+            handleDeleteEntryAction(proxy, payload as DeleteEntryPayload);
             break;
         }
       });
@@ -399,8 +418,10 @@ function handleToggleExperienceMenuAction(
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const {
-      states: { showingOptionsMenu },
+      states: { showingOptionsMenu, entriesOptions },
     } = globalStates.data;
+
+    entriesOptions.value = StateValue.inactive;
 
     if (payload.key) {
       // istanbul ignore else:
@@ -487,6 +508,9 @@ function handleOnDataReceivedAction(
                 },
 
           syncErrorsMsg: {
+            value: StateValue.inactive,
+          },
+          entriesOptions: {
             value: StateValue.inactive,
           },
         };
@@ -1024,6 +1048,147 @@ function handleCloseSyncErrorsMsgAction(proxy: DraftState) {
   }
 }
 
+function handleEntriesOptionsAction(
+  proxy: DraftState,
+  { entry }: EntriesOptionsPayload,
+) {
+  const { states: globalStates } = proxy;
+
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const {
+      states: { entriesOptions, showingOptionsMenu },
+    } = globalStates.data;
+
+    showingOptionsMenu.value = StateValue.inactive;
+
+    const activeState = entriesOptions as Draft<EntriesOptionActive>;
+    const inactiveState = entriesOptions as Draft<EntriesOptionInactive>;
+
+    // User clicked any where but menu, hide all menus
+    if (!entry) {
+      entriesOptions.value = StateValue.inactive;
+      return;
+    }
+
+    const { id } = entry;
+
+    // menus currently inactive, show menu
+    if (entriesOptions.value === StateValue.inactive) {
+      activeState.value = StateValue.active;
+      activeState.active = {
+        id,
+      };
+      return;
+    }
+
+    const { active } = activeState;
+
+    // currently active menu clicked, hide it
+    if (active.id === id) {
+      inactiveState.value = StateValue.inactive;
+    } else {
+      // an inactive menu clicked, show it
+      active.id = id;
+    }
+  }
+}
+
+function handleDeleteEntryAction(
+  proxy: DraftState,
+  payload: DeleteEntryPayload,
+) {
+  const { states: globalStates } = proxy;
+
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const {
+      states: { entriesOptions, entries },
+      context: { experience },
+    } = globalStates.data;
+
+    switch (payload.key) {
+      case StateValue.requested:
+        const { entry } = payload;
+        const state = entriesOptions as Draft<EntriesOptionIsDeleting>;
+        state.value = StateValue.deleted;
+        state.deleted = {
+          entry,
+        };
+
+        break;
+
+      case StateValue.cancelled:
+        {
+          entriesOptions.value = StateValue.inactive;
+
+          const { genericTimeout } = proxy.timeouts;
+
+          if (genericTimeout) {
+            const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+
+            effects.push({
+              key: "timeoutsEffect",
+              ownArgs: {
+                clear: genericTimeout,
+              },
+            });
+
+            delete proxy.timeouts.genericTimeout;
+          }
+        }
+        break;
+
+      case StateValue.deleted:
+        {
+          const deletingEntry = (entriesOptions as Draft<
+            EntriesOptionIsDeleting
+          >).deleted.entry;
+
+          const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+          effects.push({
+            key: "deleteEntryEffect",
+            ownArgs: {
+              entry: deletingEntry,
+              experienceId: experience.id,
+            },
+          });
+        }
+        break;
+
+      case StateValue.success:
+        {
+          entriesOptions.value = StateValue.deleteSuccess;
+          const { id, timeoutId } = payload;
+
+          proxy.timeouts.genericTimeout = timeoutId;
+
+          const entriesState = entries as Draft<EntriesDataSuccessSate>;
+          entriesState.success.context.entries = entriesState.success.context.entries.filter(
+            (e) => {
+              return id !== e.entryData.id;
+            },
+          );
+        }
+        break;
+
+      case StateValue.errors:
+        {
+          entriesOptions.value = StateValue.errors;
+          const { error, timeoutId } = payload;
+
+          proxy.timeouts.genericTimeout = timeoutId;
+
+          const state = entriesOptions as Draft<EntryDeleteFail>;
+          state.errors = {
+            error: parseStringError(error),
+          };
+        }
+        break;
+    }
+  }
+}
+
 function getExperienceId(props: Props) {
   return (props.match as Match).params.experienceId;
 }
@@ -1177,6 +1342,8 @@ const scrollDocToTopEffect: DefScrollDocToTopEffect["func"] = () => {
 
 type DefScrollDocToTopEffect = EffectDefinition<"scrollDocToTopEffect">;
 
+const CLOSE_NOTIFICATION_TIMEOUT_MS = 10 * 1000;
+
 const timeoutsEffect: DefTimeoutsEffect["func"] = (
   { set, clear },
   __,
@@ -1189,7 +1356,6 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
   }
 
   if (set) {
-    const timeout = 10 * 1000;
     let timeoutCb = (undefined as unknown) as () => void;
 
     switch (set) {
@@ -1212,7 +1378,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
         break;
     }
 
-    const timeoutId = setTimeout(timeoutCb, timeout);
+    const timeoutId = setTimeout(timeoutCb, CLOSE_NOTIFICATION_TIMEOUT_MS);
 
     dispatch({
       type: ActionType.SET_TIMEOUT,
@@ -1287,11 +1453,8 @@ type DefCancelDeleteExperienceEffect = EffectDefinition<
 const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
   { experienceId },
   props,
-  effectArgs,
 ) => {
-  const { history } = props;
-
-  const { deleteExperiences } = effectArgs;
+  const { history, deleteExperiences } = props;
 
   try {
     const response = await deleteExperiences({
@@ -1629,6 +1792,105 @@ type DefDeleteCreateEntrySyncErrorEffect = EffectDefinition<
   }
 >;
 
+const deleteEntryEffect: DefDeleteEntryEffect["func"] = (
+  { entry, experienceId },
+  props,
+  effectArgs,
+) => {
+  const { id } = entry;
+  const { updateExperiencesOnline } = props;
+  const { dispatch } = effectArgs;
+
+  const input = {
+    experienceId,
+    deleteEntries: [id],
+  };
+
+  if (!isOfflineId(id) && getIsConnected()) {
+    updateExperiencesOnlineEffectHelperFunc({
+      input: [input],
+      updateExperiencesOnline,
+      onUpdateSuccess(successArgs) {
+        const deletedEntries =
+          successArgs.entries && successArgs.entries.deletedEntries;
+
+        if (!deletedEntries) {
+          return;
+        }
+
+        const entryData = deletedEntries[0];
+
+        switch (entryData.__typename) {
+          case "DeleteEntrySuccess":
+            deleteEntrySuccessEffectHelper(entryData.entry.id, dispatch);
+            break;
+
+          case "DeleteEntryErrors":
+            deleteEntryFailEffectHelper(entryData.errors.error, dispatch);
+            break;
+        }
+      },
+      onError(error) {
+        deleteEntryFailEffectHelper(error || GENERIC_SERVER_ERROR, dispatch);
+      },
+    });
+  } else {
+    const updatedExperience = updateExperienceOfflineFn({
+      experienceId,
+      deletedEntry: entry,
+    });
+
+    if (updatedExperience) {
+      deleteEntrySuccessEffectHelper(id, dispatch);
+    }
+  }
+};
+
+function deleteEntrySuccessEffectHelper(id: string, dispatch: DispatchType) {
+  const timeoutId = setTimeout(() => {
+    dispatch({
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.cancelled,
+    });
+  }, CLOSE_NOTIFICATION_TIMEOUT_MS);
+
+  dispatch({
+    type: ActionType.DELETE_ENTRY,
+    key: StateValue.success,
+    id,
+    timeoutId,
+  });
+}
+
+function deleteEntryFailEffectHelper(
+  error: CommonError,
+  dispatch: DispatchType,
+) {
+  const timeoutId = setTimeout(() => {
+    dispatch({
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.cancelled,
+    });
+  }, CLOSE_NOTIFICATION_TIMEOUT_MS);
+
+  dispatch({
+    type: ActionType.DELETE_ENTRY,
+    key: StateValue.errors,
+    error,
+    timeoutId,
+  });
+
+  scrollDocumentToTop();
+}
+
+type DefDeleteEntryEffect = EffectDefinition<
+  "deleteEntryEffect",
+  {
+    entry: EntryFragment;
+    experienceId: string;
+  }
+>;
+
 export const effectFunctions = {
   scrollDocToTopEffect,
   timeoutsEffect,
@@ -1640,6 +1902,7 @@ export const effectFunctions = {
   postOfflineExperiencesSyncEffect,
   postOfflineEntriesSyncEffect,
   deleteCreateEntrySyncErrorEffect,
+  deleteEntryEffect,
 };
 
 function processGetExperienceQuery(
@@ -2040,8 +2303,47 @@ export type DataState = Readonly<{
             value: ActiveVal;
           }
       >;
+
+      entriesOptions:
+        | EntriesOptionInactive
+        | EntriesOptionActive
+        | EntriesOptionIsDeleting
+        | EntryDeletedSuccess
+        | EntryDeleteFail;
     }>;
   }>;
+}>;
+
+type EntryDeleteFail = Readonly<{
+  value: ErrorsVal;
+  errors: {
+    error: string;
+  };
+}>;
+
+type EntryDeletedSuccess = Readonly<{
+  value: DeleteSuccess;
+  deleteSuccess: {
+    entryId: string;
+  };
+}>;
+
+type EntriesOptionInactive = Readonly<{
+  value: InActiveVal;
+}>;
+
+type EntriesOptionActive = Readonly<{
+  value: ActiveVal;
+  active: {
+    id: string;
+  };
+}>;
+
+type EntriesOptionIsDeleting = Readonly<{
+  value: DeletedVal;
+  deleted: {
+    entry: EntryFragment;
+  };
 }>;
 
 export type ShowingOptionsMenuState = Readonly<
@@ -2094,12 +2396,16 @@ type NotificationActive = Readonly<{
   }>;
 }>;
 
-export type Props = RouteChildrenProps<
+export type CallerProps = RouteChildrenProps<
   DetailExperienceRouteMatch,
   {
     delete: boolean;
   }
 >;
+
+export type Props = DeleteExperiencesComponentProps &
+  CallerProps &
+  UpdateExperiencesOnlineComponentProps;
 
 export type Match = match<DetailExperienceRouteMatch>;
 
@@ -2151,7 +2457,39 @@ type Action =
     } & OnSyncedData)
   | {
       type: ActionType.CLOSE_SYNC_ERRORS_MSG;
+    }
+  | ({
+      type: ActionType.ENTRIES_OPTIONS;
+    } & EntriesOptionsPayload)
+  | ({
+      type: ActionType.DELETE_ENTRY;
+    } & DeleteEntryPayload);
+
+type DeleteEntryPayload =
+  | {
+      key: RequestedVal;
+      entry: EntryFragment;
+    }
+  | {
+      key: CancelledVal;
+    }
+  | {
+      key: DeletedVal;
+    }
+  | {
+      key: SuccessVal;
+      id: string;
+      timeoutId: NodeJS.Timeout;
+    }
+  | {
+      key: ErrorsVal;
+      error: CommonError;
+      timeoutId: NodeJS.Timeout;
     };
+
+type EntriesOptionsPayload = {
+  entry: EntryFragment;
+};
 
 type ReFetchOnlyPayload = {
   key: ReFetchOnlyVal;
@@ -2226,7 +2564,7 @@ type SetTimeoutPayload = {
 
 export type DispatchType = Dispatch<Action>;
 
-export type EffectArgs = DeleteExperiencesComponentProps & {
+export type EffectArgs = {
   dispatch: DispatchType;
 };
 
@@ -2245,7 +2583,8 @@ export type EffectType =
   | DefFetchEntriesEffect
   | DefPostOfflineExperiencesSyncEffect
   | DefPostOfflineEntriesSyncEffect
-  | DefDeleteCreateEntrySyncErrorEffect;
+  | DefDeleteCreateEntrySyncErrorEffect
+  | DefDeleteEntryEffect;
 
 type DataObjectErrorsList = [string | number, [string, string][]][];
 

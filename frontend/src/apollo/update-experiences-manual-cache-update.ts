@@ -130,6 +130,12 @@ export function updateExperiencesManualCacheUpdate(
               offlineIdToOnlineEntryMap,
             );
 
+            applyDeletedEntriesUpdateAndCleanUpUnsyncedData(
+              immerGetEntriesQuery,
+              immerUnsyncedLedger,
+              entriesResult,
+            );
+
             if (Object.keys(offlineIdToOnlineEntryMap).length) {
               onlineExperienceToOfflineEntriesMap[
                 experienceId
@@ -404,6 +410,57 @@ function applyNewEntriesUpdateAndCleanUpUnsyncedData(
   }
 
   return offlineIdToEntryMap;
+}
+
+function applyDeletedEntriesUpdateAndCleanUpUnsyncedData(
+  proxy: GetEntriesQueryDraft,
+  unsynced: DraftUnsyncedModifiedExperience,
+  result: UpdateExperienceSomeSuccessFragment_entries | null,
+) {
+  const deletedEntries = result && result.deletedEntries;
+
+  if (!deletedEntries) {
+    return;
+  }
+
+  const unsyncedDeletedEntries = (
+    unsynced.deletedEntries || ([] as string[])
+  ).reduce((acc, id) => {
+    acc[id] = true;
+    return acc;
+  }, {} as { [key: string]: true });
+
+  let hasDeletes = false;
+  const idToEntryDeleted = {} as {
+    [entryId: string]: true;
+  };
+
+  deletedEntries.forEach((update) => {
+    if (update.__typename === "DeleteEntrySuccess") {
+      const { entry } = update;
+      const { id } = entry;
+      hasDeletes = true;
+      idToEntryDeleted[id] = true;
+      delete unsyncedDeletedEntries[id];
+    } else {
+      // TODO: handle errors
+      // const {error, id} = update.errors
+    }
+  });
+
+  if (hasDeletes) {
+    proxy.edges = (proxy.edges as EntryConnectionFragment_edges[]).filter(
+      (edge) => {
+        return !idToEntryDeleted[(edge.node as EntryFragment).id];
+      },
+    );
+
+    if (Object.keys(unsyncedDeletedEntries)) {
+      unsynced.deletedEntries = Object.keys(unsyncedDeletedEntries);
+    } else {
+      delete unsynced.deletedEntries;
+    }
+  }
 }
 
 type ExperienceDraft = Draft<ExperienceFragment>;

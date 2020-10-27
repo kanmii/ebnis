@@ -227,9 +227,7 @@ defmodule EbnisData.Query.Experience do
 
                   deletedEntries {
                     ... on DeleteEntrySuccess {
-                      entry {
-                        id
-                      }
+                      entry #{@eintrag_scherbe}
                     }
 
                     ... on DeleteEntryErrors {

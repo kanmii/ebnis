@@ -3,6 +3,7 @@ import {
   DataDefinitionIdToNameMap,
 } from "../DetailExperience/detailed-experience-utils";
 import { UpdatingEntryPayload } from "../UpsertEntry/upsert-entry.utils";
+import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 
 type UpdateEntryPayload = UpdatingEntryPayload & {
   index: number;
@@ -15,6 +16,9 @@ export type CallerProps = {
   index: number;
   dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
   activateUpdateEntryCb: ActivateUpdateEntryCb;
+  entriesOptionsCb: (entry: EntryFragment) => void;
+  menuActive: boolean;
+  deleteEntryRequest: (entry: EntryFragment) => void;
 };
 
 export type Props = CallerProps;
