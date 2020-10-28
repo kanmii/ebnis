@@ -55,13 +55,14 @@ FROM debian:buster AS prod
 ARG DOCKER_HOST_USER_NAME
 
 # we install 'libtinfo5' because of `beam.smtp` error
-ENV APP_DEPS="openssl libtinfo5 libc6 curl" \
+ENV APP_DEPS="openssl libtinfo5 curl" \
   HOME_VAR=/home/ebnis \
   LANG=C.UTF-8 \
   HOST_APP_HOME="."
 
 RUN apt-get update \
   && apt-get install -y ${APP_DEPS} --no-install-recommends \
+  && apt-get install --reinstall libc6 \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /usr/share/doc && rm -rf /usr/share/man \
   && apt-get clean \
