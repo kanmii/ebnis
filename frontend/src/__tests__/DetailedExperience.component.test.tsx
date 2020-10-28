@@ -108,6 +108,7 @@ import {
 } from "../components/Entry/entry.dom";
 import { updateExperienceOfflineFn } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
+import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 
 jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
 const mockUpdateExperienceOfflineFn = updateExperienceOfflineFn as jest.Mock;
@@ -1453,7 +1454,7 @@ describe("reducers", () => {
 
     const fetchDetailedExperienceEffect = effectFunctions[effect.key];
     fetchDetailedExperienceEffect(effect.ownArgs as any, props, effectArgs);
-    jest.runTimersToTime(MAX_TIMEOUT_MS);
+    jest.runAllTimers();
 
     fetchDetailedExperienceEffect(effect.ownArgs as any, props, effectArgs);
     mockGetIsConnected.mockReturnValue(true);
@@ -1943,6 +1944,160 @@ describe("reducers", () => {
     context = (state.states as DataState).data.context;
     expect(context.syncErrors).toBeDefined();
   });
+
+  it("handles errors while deleting entry", () => {
+    let state = initState();
+
+    // When data is received
+    state = reducer(state, {
+      type: ActionType.ON_DATA_RECEIVED,
+      experienceData: {
+        key: StateValue.data,
+        experience: onlineExperience,
+        entriesData: {
+          key: StateValue.success,
+          entries: [
+            {
+              entryData: onlineEntry,
+            },
+          ],
+          pageInfo: {} as any,
+        },
+        onlineStatus: StateValue.online,
+      },
+    });
+
+    // Entry menu should not be active
+    let optionsState = (state.states as DataState).data.states.entriesOptions;
+    expect(optionsState.value).toBe(StateValue.inactive);
+
+    // When user confirms entry deletion (without first making request)
+    state = reducer(state, {
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.deleted,
+    });
+
+    // Entry menu should not be active
+    optionsState = (state.states as DataState).data.states.entriesOptions;
+    expect(optionsState.value).toBe(StateValue.inactive);
+
+    // When user makes request to delete entry
+    state = reducer(state, {
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.requested,
+      entry: onlineEntry,
+    });
+
+    // Entry menu should be in requested state
+    optionsState = (state.states as DataState).data.states.entriesOptions;
+    expect(optionsState.value).toBe(StateValue.requested);
+
+    // When user confirms entry deletion
+    state = reducer(state, {
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.deleted,
+    });
+
+    // Entry menu should not be active
+    optionsState = (state.states as DataState).data.states.entriesOptions;
+    expect(optionsState.value).toBe(StateValue.inactive);
+
+    const [effect] = (state.effects.general as GenericHasEffect<
+      EffectType
+    >).hasEffects.context.effects;
+
+    const deleteEntryEffect = effectFunctions[effect.key];
+
+    mockGetIsConnected.mockReturnValueOnce(true);
+
+    let ownArgs = effect.ownArgs as any;
+    deleteEntryEffect(ownArgs, props, effectArgs);
+
+    let successFunc =
+      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0]
+        .onUpdateSuccess;
+
+    successFunc();
+
+    let callArgs = mockDispatchFn.mock.calls[0][0];
+
+    expect(callArgs).toMatchObject({
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.errors,
+      error: GENERIC_SERVER_ERROR,
+    });
+    expect(typeof callArgs.timeoutId).toBe("number");
+    jest.runAllTimers();
+
+    expect(mockDispatchFn.mock.calls[1][0]).toEqual({
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.cancelled,
+    });
+
+    mockDispatchFn.mockReset();
+    mockUpdateExperiencesOnlineEffectHelperFunc.mockReset();
+    mockGetIsConnected.mockReturnValueOnce(true);
+    deleteEntryEffect(ownArgs, props, effectArgs);
+
+    successFunc =
+      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0]
+        .onUpdateSuccess;
+
+    successFunc({
+      entries: {
+        deletedEntries: [
+          {
+            __typename: "DeleteEntryErrors",
+            errors: {
+              error: "a",
+            },
+          },
+        ],
+      },
+    });
+
+    callArgs = mockDispatchFn.mock.calls[0][0];
+
+    expect(callArgs).toMatchObject({
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.errors,
+      error: "a",
+    });
+    expect(typeof callArgs.timeoutId).toBe("number");
+    jest.runAllTimers();
+
+    mockDispatchFn.mockReset();
+    mockUpdateExperiencesOnlineEffectHelperFunc.mockReset();
+    mockGetIsConnected.mockReturnValueOnce(true);
+    deleteEntryEffect(ownArgs, props, effectArgs);
+
+    let onErrorFunc =
+      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0].onError;
+
+    onErrorFunc();
+    callArgs = mockDispatchFn.mock.calls[0][0];
+
+    expect(callArgs).toMatchObject({
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.errors,
+      error: GENERIC_SERVER_ERROR,
+    });
+    expect(typeof callArgs.timeoutId).toBe("number");
+    jest.runAllTimers();
+
+    mockDispatchFn.mockReset();
+    mockGetIsConnected.mockReturnValueOnce(false);
+    mockUpdateExperienceOfflineFn.mockReturnValue(undefined);
+    deleteEntryEffect(ownArgs, props, effectArgs);
+
+    callArgs = mockDispatchFn.mock.calls[0][0];
+    expect(callArgs).toMatchObject({
+      type: ActionType.DELETE_ENTRY,
+      key: StateValue.errors,
+      error: GENERIC_SERVER_ERROR,
+    });
+    expect(typeof callArgs.timeoutId).toBe("number");
+  });
 });
 
 describe("Entry component", () => {
@@ -1988,7 +2143,23 @@ describe("Entry component", () => {
       entryMenuTriggerOnline.click();
     });
 
-    // Online entry menu should be visible
+    // Online entry menu should be active
+    expect(entryMenuOnline.classList).toContain(activeClassName);
+
+    // When online entry menu trigger is clicked (while menu is active)
+    act(() => {
+      entryMenuTriggerOnline.click();
+    });
+
+    // Online entry menu should not be active
+    expect(entryMenuOnline.classList).not.toContain(activeClassName);
+
+    // When online entry menu trigger is clicked (the menu is inactive)
+    act(() => {
+      entryMenuTriggerOnline.click();
+    });
+
+    // Online entry menu should be active
     expect(entryMenuOnline.classList).toContain(activeClassName);
 
     // Offline entry menu should not be visible
@@ -2172,13 +2343,13 @@ describe("Entry component", () => {
     const { debug } = render(ui);
 
     // Update entry trigger UI should be visible
-    const updateTriggerEl = await waitForElement(getEntryUpdateMenuItem)
+    const updateTriggerEl = await waitForElement(getEntryUpdateMenuItem);
 
     // Upsert entry UI should not be visible
     expect(getDismissUpsertEntryUi()).toBeNull();
 
     // When update trigger is clicked
-    updateTriggerEl.click()
+    updateTriggerEl.click();
 
     // Upsert entry UI should be visible
     expect(getDismissUpsertEntryUi()).not.toBeNull();
@@ -2377,5 +2548,5 @@ function getEntryDeleteFailNotification() {
 function getEntryUpdateMenuItem(index: number = 0) {
   return document
     .getElementsByClassName(entryUpdateMenuItemSelector)
-    .item(index) as HTMLElement
+    .item(index) as HTMLElement;
 }

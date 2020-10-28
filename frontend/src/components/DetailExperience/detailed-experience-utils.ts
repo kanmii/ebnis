@@ -1068,12 +1068,6 @@ function handleEntriesOptionsAction(
     const activeState = entriesOptions as Draft<EntriesOptionActive>;
     const inactiveState = entriesOptions as Draft<EntriesOptionInactive>;
 
-    // User clicked any where but menu, hide all menus
-    if (!entry) {
-      entriesOptions.value = StateValue.inactive;
-      return;
-    }
-
     const { id } = entry;
 
     // menus currently inactive, show menu
@@ -1113,9 +1107,9 @@ function handleDeleteEntryAction(
     switch (payload.key) {
       case StateValue.requested:
         const { entry } = payload;
-        const state = entriesOptions as Draft<EntriesOptionIsDeleting>;
-        state.value = StateValue.deleted;
-        state.deleted = {
+        const state = entriesOptions as Draft<EntriesOptionDeleteRequested>;
+        state.value = StateValue.requested;
+        state.requested = {
           entry,
         };
 
@@ -1144,18 +1138,21 @@ function handleDeleteEntryAction(
 
       case StateValue.deleted:
         {
-          const deletingEntry = (entriesOptions as Draft<
-            EntriesOptionIsDeleting
-          >).deleted.entry;
+          const neutralState = entriesOptions;
 
-          const effects = getGeneralEffects<EffectType, DraftState>(proxy);
-          effects.push({
-            key: "deleteEntryEffect",
-            ownArgs: {
-              entry: deletingEntry,
-              experienceId: experience.id,
-            },
-          });
+          if (entriesOptions.value === StateValue.requested) {
+            neutralState.value = StateValue.inactive;
+            const deletingEntry = entriesOptions.requested.entry;
+
+            const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+            effects.push({
+              key: "deleteEntryEffect",
+              ownArgs: {
+                entry: deletingEntry,
+                experienceId: experience.id,
+              },
+            });
+          }
         }
         break;
 
@@ -1813,22 +1810,21 @@ const deleteEntryEffect: DefDeleteEntryEffect["func"] = (
       updateExperiencesOnline,
       onUpdateSuccess(successArgs) {
         const deletedEntries =
-          successArgs.entries && successArgs.entries.deletedEntries;
+          successArgs &&
+          successArgs.entries &&
+          successArgs.entries.deletedEntries;
 
         if (!deletedEntries) {
+          deleteEntryFailEffectHelper(GENERIC_SERVER_ERROR, dispatch);
           return;
         }
 
         const entryData = deletedEntries[0];
 
-        switch (entryData.__typename) {
-          case "DeleteEntrySuccess":
-            deleteEntrySuccessEffectHelper(entryData.entry.id, dispatch);
-            break;
-
-          case "DeleteEntryErrors":
-            deleteEntryFailEffectHelper(entryData.errors.error, dispatch);
-            break;
+        if (entryData.__typename === "DeleteEntrySuccess") {
+          deleteEntrySuccessEffectHelper(entryData.entry.id, dispatch);
+        } else {
+          deleteEntryFailEffectHelper(entryData.errors.error, dispatch);
         }
       },
       onError(error) {
@@ -1843,6 +1839,8 @@ const deleteEntryEffect: DefDeleteEntryEffect["func"] = (
 
     if (updatedExperience) {
       deleteEntrySuccessEffectHelper(id, dispatch);
+    } else {
+      deleteEntryFailEffectHelper(GENERIC_SERVER_ERROR, dispatch);
     }
   }
 };
@@ -2308,7 +2306,7 @@ export type DataState = Readonly<{
       entriesOptions:
         | EntriesOptionInactive
         | EntriesOptionActive
-        | EntriesOptionIsDeleting
+        | EntriesOptionDeleteRequested
         | EntryDeletedSuccess
         | EntryDeleteFail;
     }>;
@@ -2340,9 +2338,9 @@ type EntriesOptionActive = Readonly<{
   };
 }>;
 
-type EntriesOptionIsDeleting = Readonly<{
-  value: DeletedVal;
-  deleted: {
+type EntriesOptionDeleteRequested = Readonly<{
+  value: RequestedVal;
+  requested: {
     entry: EntryFragment;
   };
 }>;

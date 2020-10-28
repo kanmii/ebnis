@@ -405,7 +405,7 @@ function ExperienceComponent() {
         <SyncErrorsMessageNotificationComponent />
       )}
 
-      {entriesOptions.value === StateValue.deleted && (
+      {entriesOptions.value === StateValue.requested && (
         <DeleteEntryConfirmationComponent />
       )}
 
