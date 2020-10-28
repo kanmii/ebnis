@@ -66,18 +66,22 @@ export enum BroadcastMessageType {
   syncDone = "@broadcast/sync-done",
 }
 
+export type BroadcastMessageExperienceDeleted = {
+  type: BroadcastMessageType.experienceDeleted;
+  payload: {
+    id: string;
+    title: string;
+  };
+};
+
+export type BroadcastMessageOnSyncData = {
+  type: BroadcastMessageType.syncDone;
+  payload: OnSyncedData;
+};
+
 export type BroadcastMessage =
-  | {
-      type: BroadcastMessageType.experienceDeleted;
-      payload: {
-        id: string;
-        title: string;
-      };
-    }
-  | {
-      type: BroadcastMessageType.syncDone;
-      payload: OnSyncedData;
-    };
+  | BroadcastMessageExperienceDeleted
+  | BroadcastMessageOnSyncData;
 
 export type BroadcastMessageSelf = {
   detail: BroadcastMessage;
@@ -166,6 +170,7 @@ export const StateValue = {
   insert: "insert" as InsertVal,
   reFetchOnly: "re-fecht-only" as ReFetchOnly,
   selfBcMessageKey: "self-bc-message" as any,
+  bcMessageKey: "message" as any,
   online: "online" as OnlineVal,
   offline: "offline" as OfflineVal,
   partOffline: "part-offline" as PartOfflineVal,

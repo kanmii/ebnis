@@ -27,6 +27,7 @@ export function makeObservable(globals: E2EWindowObject) {
       clearTimeout(timeoutId);
     }
 
+
     const { emitter } = globals;
 
     if (emitter) {

@@ -31,7 +31,7 @@ module.exports = {
       // "node --inspect node_modules/.bin/jest --runInBand"
       w: test,
       wc: `${test} --coverage`,
-      c: `rimraf coverage && CI=true ${test} --coverage`,
+      c: `rimraf coverage && CI=true ${test} --coverage --forceExit`,
     },
     serviceWorker: `node -e 'require("./package-scripts").serviceWorker()'`,
     netlify: `node -e 'require("./package-scripts").netlify()'`,

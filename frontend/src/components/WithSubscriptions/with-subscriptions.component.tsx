@@ -53,7 +53,7 @@ export function WithSubscriptions(props: Props) {
   }, [data]);
 
   useEffect(() => {
-    bc.addEventListener("message", onBcMessage);
+    bc.addEventListener(StateValue.bcMessageKey, onBcMessage);
     document.addEventListener(StateValue.selfBcMessageKey, onBcMessage);
 
     const subscription = observable.subscribe({
@@ -77,7 +77,7 @@ export function WithSubscriptions(props: Props) {
 
     return () => {
       cleanupWithSubscriptions(() => {
-        bc.removeEventListener("message", onBcMessage);
+        bc.removeEventListener(StateValue.bcMessageKey, onBcMessage);
         document.removeEventListener(StateValue.selfBcMessageKey, onBcMessage);
         subscription.unsubscribe();
       });
@@ -92,6 +92,7 @@ export function WithSubscriptions(props: Props) {
   function onBcMessage(message: BroadcastMessage | BroadcastMessageSelf) {
     const selfMessage = message as BroadcastMessageSelf;
 
+    // istanbul ignore else:
     if (selfMessage.detail) {
       message = selfMessage.detail;
     }
@@ -109,6 +110,7 @@ export function WithSubscriptions(props: Props) {
         const data = payload as OnSyncedData;
         const { pathname } = getLocation();
 
+        // istanbul ignore else:
         if (data.onlineExperienceIdToOfflineEntriesMap && pathname === MY_URL) {
           cleanUpSyncedOfflineEntries(
             data.onlineExperienceIdToOfflineEntriesMap,

@@ -49,6 +49,9 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
     action,
     (prevState, { type, ...payload }) => {
       return immer(prevState, (proxy) => {
+        proxy.effects.general.value = StateValue.noEffect;
+        delete proxy.effects.general[StateValue.hasEffects];
+
         switch (type) {
           case ActionType.CONNECTION_CHANGED:
             handleConnectionChangedAction(
@@ -94,6 +97,7 @@ function handleExperienceDeletedAction(
 ) {
   const { data } = payload;
 
+  // istanbul ignore else:
   if (data) {
     const effects = getGeneralEffects<EffectType, DraftState>(proxy);
     effects.push({
