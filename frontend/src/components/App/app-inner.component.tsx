@@ -24,7 +24,7 @@ const DetailExperience = lazy(() =>
 const SignUp = lazy(() => import("../SignUp/sign-up.component"));
 
 export function AppInner({ obj }: Props) {
-  const { client, cache, persistor, observable, bc } = obj;
+  const { client, cache, persistor, bc } = obj;
 
   return (
     <Router>
@@ -39,7 +39,7 @@ export function AppInner({ obj }: Props) {
           }}
         >
           <Suspense fallback={<Loading />}>
-            <WithSubscriptions observable={observable} bc={bc}>
+            <WithSubscriptions bc={bc}>
               <Switch>
                 <AuthenticationRequired
                   exact={true}

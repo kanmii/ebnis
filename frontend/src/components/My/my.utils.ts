@@ -58,7 +58,7 @@ import {
   OfflineIdToOnlineExperienceMap,
   OnSyncedData,
 } from "../../utils/sync-to-server.types";
-import { broadcastMessage } from "../../utils/observable-manager";
+import { broadcastMessage } from "../../utils/broadcast-channel-manager";
 import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
 import { getSyncErrors } from "../../apollo/sync-to-server-cache";
 import {

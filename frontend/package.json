@@ -29,8 +29,7 @@
     "react-router-dom": "^5.1.2",
     "react-scripts": "3.4.4",
     "typescript": "~3.7.2",
-    "uuid": "^8.3.0",
-    "zen-observable-ts": "^0.8.21"
+    "uuid": "^8.3.0"
   },
   "devDependencies": {
     "@testing-library/react": "^9.5.0",

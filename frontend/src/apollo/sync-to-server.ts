@@ -54,7 +54,7 @@ import {
 } from "../graphql/apollo-types/CreateExperiences";
 import { createExperiencesManualUpdate } from "./create-experiences-manual-update";
 import { updateExperiencesManualCacheUpdate } from "./update-experiences-manual-cache-update";
-import { broadcastMessage } from "../utils/observable-manager";
+import { broadcastMessage } from "../utils/broadcast-channel-manager";
 import { BroadcastMessageType } from "../utils/types";
 
 

@@ -1,5 +1,4 @@
 import React, { useEffect, useReducer } from "react";
-import { EmitActionType } from "../../utils/observable-manager";
 import {
   cleanupWithSubscriptions,
   WithSubscriptionProvider,
@@ -7,7 +6,7 @@ import {
   WithSubscriptionsDispatchProvider,
 } from "./with-subscriptions.injectables";
 import {
-  EmitActionConnectionChangedPayload,
+  BroadcastMessageConnectionChangedPayload,
   StateValue,
   BroadcastMessageType,
   BroadcastMessage,
@@ -33,7 +32,7 @@ import { MY_URL } from "../../utils/urls";
 import { OnSyncedData } from "../../utils/sync-to-server.types";
 
 export function WithSubscriptions(props: Props) {
-  const { observable, children, bc } = props;
+  const { children, bc } = props;
   const { data } = useOnExperiencesDeletedSubscription();
   const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
   const {
@@ -56,30 +55,10 @@ export function WithSubscriptions(props: Props) {
     bc.addEventListener(StateValue.bcMessageKey, onBcMessage);
     document.addEventListener(StateValue.selfBcMessageKey, onBcMessage);
 
-    const subscription = observable.subscribe({
-      next({ type, ...payload }) {
-        switch (type) {
-          case EmitActionType.connectionChanged:
-            {
-              const {
-                connected,
-              } = payload as EmitActionConnectionChangedPayload;
-
-              dispatch({
-                type: ActionType.CONNECTION_CHANGED,
-                connected,
-              });
-            }
-            break;
-        }
-      },
-    });
-
     return () => {
       cleanupWithSubscriptions(() => {
         bc.removeEventListener(StateValue.bcMessageKey, onBcMessage);
         document.removeEventListener(StateValue.selfBcMessageKey, onBcMessage);
-        subscription.unsubscribe();
       });
     };
     /* eslint-disable react-hooks/exhaustive-deps*/
@@ -103,6 +82,17 @@ export function WithSubscriptions(props: Props) {
         // istanbul ignore else:
         if (getLocation().pathname.includes(MY_URL)) {
           windowChangeUrl(MY_URL, ChangeUrlType.replace);
+        }
+        break;
+
+      case BroadcastMessageType.connectionChanged:
+        {
+          const { connected } = payload as BroadcastMessageConnectionChangedPayload;
+
+          dispatch({
+            type: ActionType.CONNECTION_CHANGED,
+            connected,
+          });
         }
         break;
 

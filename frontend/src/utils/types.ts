@@ -2,9 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any*/
 import { PropsWithChildren } from "react";
 import { InMemoryCache, ApolloClient } from "@apollo/client";
-import { Observable } from "zen-observable-ts";
 import { CachePersistor } from "apollo-cache-persist-dev";
-import { EmitActionType } from "./observable-manager";
 import { ChangeEvent } from "react";
 import { BroadcastChannel } from "broadcast-channel";
 import { OnSyncedData } from "./sync-to-server.types";
@@ -14,32 +12,11 @@ export type ReactMouseAnchorEvent = React.MouseEvent<
   MouseEvent
 >;
 
-export type EmitData = (params: EmitPayload) => void;
-
-export type EmitPayload =
-  | ({
-      type: EmitActionType.connectionChanged;
-    } & EmitActionConnectionChangedPayload)
-  | {
-      type: EmitActionType.random;
-    };
-
-export interface EmitActionConnectionChangedPayload {
-  connected: boolean;
-}
-
-export interface ObservableUtils {
-  emitData: EmitData;
-  observable: Observable<EmitPayload>;
-}
-
-export interface E2EWindowObject extends ObservableUtils {
+export interface E2EWindowObject {
   cache: InMemoryCache;
   client: ApolloClient<{}>;
   persistor: CachePersistor<{}>;
   connectionStatus: ConnectionStatus;
-  emitter: ZenObservable.SubscriptionObserver<EmitPayload>;
-  emitting: boolean;
   logApolloQueries?: boolean;
   bc: BChannel;
 }
@@ -64,6 +41,7 @@ declare global {
 export enum BroadcastMessageType {
   experienceDeleted = "@broadcast/experience-deleted",
   syncDone = "@broadcast/sync-done",
+  connectionChanged = "@broadcast/connection-changed",
 }
 
 export type BroadcastMessageExperienceDeleted = {
@@ -74,6 +52,15 @@ export type BroadcastMessageExperienceDeleted = {
   };
 };
 
+export interface BroadcastMessageConnectionChangedPayload {
+  connected: boolean;
+}
+
+export type BroadcastMessageConnectionChanged = {
+  type: BroadcastMessageType.connectionChanged;
+  payload: BroadcastMessageConnectionChangedPayload;
+};
+
 export type BroadcastMessageOnSyncData = {
   type: BroadcastMessageType.syncDone;
   payload: OnSyncedData;
@@ -81,7 +68,8 @@ export type BroadcastMessageOnSyncData = {
 
 export type BroadcastMessage =
   | BroadcastMessageExperienceDeleted
-  | BroadcastMessageOnSyncData;
+  | BroadcastMessageOnSyncData
+  | BroadcastMessageConnectionChanged;
 
 export type BroadcastMessageSelf = {
   detail: BroadcastMessage;

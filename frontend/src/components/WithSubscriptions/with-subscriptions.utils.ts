@@ -1,12 +1,10 @@
 import { Reducer, Dispatch, PropsWithChildren } from "react";
-import { Observable } from "zen-observable-ts";
 import { wrapReducer } from "../../logger";
 import immer, { Draft } from "immer";
 import { StateValue } from "../../utils/types";
 import {
-  EmitPayload,
   BChannel,
-  EmitActionConnectionChangedPayload,
+  BroadcastMessageConnectionChangedPayload,
 } from "../../utils/types";
 import { MY_URL } from "../../utils/urls";
 import {
@@ -56,7 +54,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           case ActionType.CONNECTION_CHANGED:
             handleConnectionChangedAction(
               proxy,
-              payload as EmitActionConnectionChangedPayload,
+              payload as BroadcastMessageConnectionChangedPayload,
             );
             break;
 
@@ -109,7 +107,7 @@ function handleExperienceDeletedAction(
 
 function handleConnectionChangedAction(
   proxy: DraftState,
-  payload: EmitActionConnectionChangedPayload,
+  payload: BroadcastMessageConnectionChangedPayload,
 ) {
   const { connected } = payload;
   proxy.context.connected = connected;
@@ -220,7 +218,7 @@ export type StateMachine = GenericGeneralEffect<EffectType> &
 type Action =
   | ({
       type: ActionType.CONNECTION_CHANGED;
-    } & EmitActionConnectionChangedPayload)
+    } & BroadcastMessageConnectionChangedPayload)
   | ({
       type: ActionType.EXPERIENCE_DELETED;
     } & ExperienceDeletedPayload)
@@ -237,7 +235,6 @@ interface ExperienceDeletedPayload {
 }
 
 export type CallerProps = PropsWithChildren<{
-  observable: Observable<EmitPayload>;
   bc: BChannel;
 }>;
 

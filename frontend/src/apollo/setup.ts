@@ -19,7 +19,7 @@ import {
   makeConnectionObject,
   resetConnectionObject,
 } from "../utils/connections";
-import { makeObservable, makeBChannel } from "../utils/observable-manager";
+import { makeBChannel } from "../utils/broadcast-channel-manager";
 import possibleTypes from "../graphql/apollo-types/fragment-types.json";
 import { E2EWindowObject } from "../utils/types";
 import { unsyncedLedgerPolicy } from "./unsynced-ledger";
@@ -107,9 +107,9 @@ export function buildClientCache(
     client.addResolvers(resolvers);
   }
 
-  const { observable } = addToGlobals({ client, cache, persistor });
+  const { bc } = addToGlobals({ client, cache, persistor });
 
-  return { client, cache, persistor, observable };
+  return { client, cache, persistor, bc };
 }
 
 function makePersistor(
@@ -180,8 +180,6 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
   }
 
   if (!window.Cypress) {
-    makeObservable(window.____ebnis);
-
     makeBChannel(window.____ebnis);
     makeConnectionObject();
     return window.____ebnis;
@@ -198,7 +196,6 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
 
     // reset globals
     cypressApollo = {} as E2EWindowObject;
-    makeObservable(cypressApollo);
     makeBChannel(cypressApollo);
 
     // reset connections

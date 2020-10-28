@@ -13,11 +13,9 @@ import {
 } from "../components/WithSubscriptions/with-subscriptions.injectables";
 import { WithSubscriptions } from "../components/WithSubscriptions/with-subscriptions.component";
 import {
-  makeObservable,
-  EmitActionType,
   makeBChannel,
   broadcastMessage,
-} from "../utils/observable-manager";
+} from "../utils/broadcast-channel-manager";
 import { act } from "react-dom/test-utils";
 import {
   windowChangeUrl,
@@ -81,7 +79,6 @@ const globals = {
 beforeAll(() => {
   clearNodeFolder();
   makeBChannel(globals);
-  makeObservable(globals);
   window.____ebnis = globals;
 });
 
@@ -90,13 +87,9 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  const { bc, emitter } = globals;
+  const { bc } = globals;
   bc.close();
-  emitter.complete();
   delete globals.bc;
-  delete globals.emitter;
-  delete globals.observable;
-
   delete window.____ebnis;
 });
 
@@ -136,10 +129,17 @@ it("renders", async (done) => {
 
   // When app is connected to network
   await act(async () => {
-    await globals.emitData({
-      type: EmitActionType.connectionChanged,
-      connected: true,
-    });
+    await broadcastMessage(
+      {
+        type: BroadcastMessageType.connectionChanged,
+        payload: {
+          connected: true,
+        },
+      },
+      {
+        selfOnly: true,
+      },
+    );
   });
 
   // App should indicate network connection
@@ -166,10 +166,17 @@ it("renders", async (done) => {
 
   // When connection is lost
   act(() => {
-    globals.emitData({
-      type: EmitActionType.connectionChanged,
-      connected: false,
-    });
+    broadcastMessage(
+      {
+        type: BroadcastMessageType.connectionChanged,
+        payload: {
+          connected: false,
+        },
+      },
+      {
+        selfOnly: true,
+      },
+    );
   });
 
   // App should indicate no network connection
