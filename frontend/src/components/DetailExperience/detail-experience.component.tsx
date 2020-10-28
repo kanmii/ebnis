@@ -495,9 +495,11 @@ function ExperienceComponent() {
 
               <button
                 id={refetchEntriesId}
-                className="button"
+                className="button is-link"
                 onClick={refetchEntries}
-              />
+              >
+                Retry
+              </button>
             </div>
           </>
         )}
