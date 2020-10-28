@@ -41,7 +41,7 @@ smtp_port =
   System.fetch_env!("SMTP_PORT")
   |> String.to_integer()
 
-###################### END ENVIRONMENT VARIABLES ###########################
+##################### END ENVIRONMENT VARIABLES ###########################
 
 config :ebnis_data, EbnisData.Repo,
   ssl: database_ssl,
