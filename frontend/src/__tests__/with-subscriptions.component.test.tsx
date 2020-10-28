@@ -20,9 +20,6 @@ import {
 } from "../utils/global-window";
 import { MY_URL } from "../utils/urls";
 
-// jest.mock("../utils/observable-manager");
-// const { makeObservable } = jest.requireActual("../utils/observable-manager");
-
 jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
 const mockGetLocation = getLocation as jest.Mock;
@@ -67,7 +64,7 @@ afterAll(() => {
   emitter.complete();
   delete globals.bc;
   delete globals.emitter;
-  delete globals.observable
+  delete globals.observable;
 
   delete window.____ebnis;
 });
