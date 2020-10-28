@@ -23,6 +23,7 @@ import {
   writeExperienceFragmentToCache,
 } from "../apollo/get-detailed-experience-query";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
+import {AppPersistor} from "../utils/app-context";
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockReadExperienceFragment = readExperienceFragment as jest.Mock;
@@ -52,8 +53,15 @@ jest.mock("uuid", () => ({
   v4: () => "" + mockUuid++,
 }));
 
+const mockPersistFn = jest.fn();
+
+const persistor = {
+  persist: mockPersistFn as any,
+} as AppPersistor
+
 const globals = {
   cache,
+  persistor,
 } as E2EWindowObject;
 
 beforeAll(() => {

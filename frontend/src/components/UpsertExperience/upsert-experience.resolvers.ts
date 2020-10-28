@@ -114,7 +114,7 @@ export function createOfflineExperience(
     dataDefinitions,
   };
 
-  const { cache } = window.____ebnis;
+  const { cache, persistor } = window.____ebnis;
 
   cache.writeQuery<GetDetailExperience, GetDetailExperienceVariables>({
     query: GET_COMPLETE_EXPERIENCE_QUERY,
@@ -135,6 +135,8 @@ export function createOfflineExperience(
   writeUnsyncedExperience(experienceId, {
     isOffline: true,
   });
+
+  persistor.persist();
 
   return experience;
 }
@@ -342,6 +344,8 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
 
   floatExperienceToTheTopInGetExperiencesMiniQuery(updatedExperience);
   writeExperienceFragmentToCache(updatedExperience);
+  const { persistor } = window.____ebnis;
+  persistor.persist();
 
   return updatedExperience;
 }
