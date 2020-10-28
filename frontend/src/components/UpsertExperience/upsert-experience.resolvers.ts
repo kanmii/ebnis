@@ -245,6 +245,7 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
             immerUnsyncedExperience.deletedEntries = deletedEntries;
             purgeEntry(entry);
             shouldAppend = false;
+            entriesUpdated = true;
           }
 
           if (shouldAppend) {

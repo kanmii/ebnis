@@ -23,7 +23,7 @@ import {
   writeExperienceFragmentToCache,
 } from "../apollo/get-detailed-experience-query";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
-import {AppPersistor} from "../utils/app-context";
+import { AppPersistor } from "../utils/app-context";
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockReadExperienceFragment = readExperienceFragment as jest.Mock;
@@ -57,7 +57,7 @@ const mockPersistFn = jest.fn();
 
 const persistor = {
   persist: mockPersistFn as any,
-} as AppPersistor
+} as AppPersistor;
 
 const globals = {
   cache,
@@ -368,4 +368,49 @@ it("updates offline experience: entry updated / deleted / definition updated", (
   );
 
   expect(mockWriteUnsyncedExperience).not.toBeCalledWith();
+});
+
+it("deletes entry from cache when entry deleted, but no updates for entries and/or data definitions", () => {
+  const entry = {
+    id: "ent1",
+  } as EntryFragment;
+
+  mockReadExperienceFragment.mockReturnValue(onlineExperience);
+
+  mockGetEntriesQuerySuccess.mockReturnValue({
+    edges: [
+      {
+        node: entry,
+      },
+      {
+        node: {
+          id: "ent2", // will be deleted
+        },
+      },
+    ],
+  });
+
+  const input = {
+    experienceId: onlineExperience.id,
+    deletedEntry: {
+      id: "ent2",
+    } as EntryFragment,
+  };
+
+  updateExperienceOfflineFn(input);
+
+  expect(mockWriteGetEntriesQuery).toBeCalledWith(
+    onlineExperience.id,
+
+    {
+      __typename: "GetEntriesSuccess",
+      entries: {
+        edges: [
+          {
+            node: entry,
+          },
+        ],
+      },
+    },
+  );
 });
