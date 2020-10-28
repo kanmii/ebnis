@@ -731,7 +731,7 @@ describe("reducer", () => {
 
   const props = {} as any;
 
-  fit("fetches experiences when no network", async () => {
+  it("fetches experiences when no network", async () => {
     let state = initState();
 
     const effect = (state.effects.general as GenericHasEffect<EffectType>)
