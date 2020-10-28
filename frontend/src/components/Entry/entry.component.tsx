@@ -6,7 +6,7 @@ import makeClassNames from "classnames";
 import { formatDatetime } from "../DetailExperience/detailed-experience-utils";
 import {
   entryDropdownIsActiveClassName,
-  entryUpdateMenuItemClassName,
+  entryUpdateMenuItemSelector,
   entryDropdownTriggerClassName,
   entryDeleteMenuItemSelector,
 } from "./entry.dom";
@@ -93,7 +93,7 @@ export function Entry(props: Props) {
         <div className="dropdown-menu" role="menu">
           <div className="dropdown-content">
             <a
-              className={`neutral-link detailed__edit-experience-link ${entryUpdateMenuItemClassName} ${noTriggerDocumentEventClassName}`}
+              className={`neutral-link detailed__edit-experience-link ${entryUpdateMenuItemSelector}`}
               style={{
                 cursor: "pointer",
                 display: "block",

@@ -104,6 +104,7 @@ import {
   entryDropdownTriggerClassName,
   entryDropdownIsActiveClassName,
   entryDeleteMenuItemSelector,
+  entryUpdateMenuItemSelector,
 } from "../components/Entry/entry.dom";
 import { updateExperienceOfflineFn } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
@@ -2146,6 +2147,42 @@ describe("Entry component", () => {
     // Notification that entry deleted should not be visible
     expect(getEntryDeletedNotification()).toBeNull();
   });
+
+  it("updates entry", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetCachedExperience.mockReturnValueOnce({
+      data: {
+        getExperience: onlineExperience,
+        getEntries: {
+          __typename: "GetEntriesSuccess",
+          entries: {
+            edges: [
+              {
+                node: onlineEntry,
+              },
+            ],
+            pageInfo: {},
+          } as EntryConnectionFragment,
+        },
+      },
+    } as DetailedExperienceQueryResult);
+
+    const { ui } = makeComp();
+    const { debug } = render(ui);
+
+    // Update entry trigger UI should be visible
+    const updateTriggerEl = await waitForElement(getEntryUpdateMenuItem)
+
+    // Upsert entry UI should not be visible
+    expect(getDismissUpsertEntryUi()).toBeNull();
+
+    // When update trigger is clicked
+    updateTriggerEl.click()
+
+    // Upsert entry UI should be visible
+    expect(getDismissUpsertEntryUi()).not.toBeNull();
+  });
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
@@ -2335,4 +2372,10 @@ function getEntryDeletedNotification() {
 
 function getEntryDeleteFailNotification() {
   return document.getElementById(entryDeleteFailNotificationId) as HTMLElement;
+}
+
+function getEntryUpdateMenuItem(index: number = 0) {
+  return document
+    .getElementsByClassName(entryUpdateMenuItemSelector)
+    .item(index) as HTMLElement
 }
