@@ -18,11 +18,29 @@ const startServer = `yarn ${reactScript} start`;
 const test_envs =
   "API_URL=http://localhost:4022 IS_UNIT_TEST=true NODE_ENV=test";
 
-const test = `${test_envs} yarn react-scripts test --runInBand`;
+const test = `${test_envs} react-scripts test --runInBand`;
 
 module.exports = {
   scripts: {
     dev: `${dev_envs} ${startServer}`,
+    build: {
+      default: {
+        script: `rimraf build && env-cmd -e prod react-scripts build`,
+        description: "Build the app for production",
+      },
+    },
+    deploy: {
+      n: {
+        script: `yarn start build && yarn start netlify`,
+        description: "deploy to netlify",
+      },
+      l: {
+        script: `yarn start build && yarn start serve`,
+        description:
+          "Test production build locally, serving using 'yarn serve'",
+      },
+    },
+    serve: `env-cmd -e prod yarn serve --single ${distFolderName}`,
     e2eDev: `REACT_APP_API_URL=${apiUrl} env-cmd -e e2eDev ${startServer}`,
     test: {
       default: `CI=true ${test}`,
@@ -34,7 +52,8 @@ module.exports = {
       c: `rimraf coverage && CI=true ${test} --coverage --forceExit`,
     },
     serviceWorker: `node -e 'require("./package-scripts").serviceWorker()'`,
-    netlify: `node -e 'require("./package-scripts").netlify()'`,
+    netlify: `./node_modules/.bin/env-cmd -e prod \
+        node -e 'require("./package-scripts").netlify()'`,
     cy: {
       open: "env-cmd -e e2eDev cypress open",
       run: "server-test ",
@@ -102,7 +121,12 @@ module.exports = {
   },
   netlify() {
     const NetlifyApi = require("netlify");
-    const { siteId, token } = require("./.netlify/state.json");
+    const { siteId } = require("./.netlify/state.json");
+    const token = process.env.NETLIFY_TOKEN;
+
+    if (!token) {
+      throw new Error('\n"NETLIFY_TOKEN" environment variable required!\n');
+    }
 
     const netlifyClient = new NetlifyApi(token);
 
