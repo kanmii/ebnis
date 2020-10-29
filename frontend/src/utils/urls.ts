@@ -3,7 +3,7 @@ const EXPERIENCE_DETAIL_URL_MATCH = ":experienceId";
 export const ROOT_URL = "/";
 export const LOGIN_URL = "/login";
 export const SIGN_UP_URL = "/sign-up";
-export const MY_URL = "/my";
+export const MY_URL = "/fuP6ihF9";
 
 export const EXPERIENCE_DETAIL_URL_PREFIX =
   "/ksPEBixot3LklfZw89CAofihUqxT2jObKt1RV";
