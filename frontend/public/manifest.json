@@ -1,6 +1,7 @@
 {
-  "name": "Ebnis",
-  "short_name": "Ebnis",
+  "version": "0.1",
+  "name": "Gelin",
+  "short_name": "Gelin",
   "start_url": "/",
   "background_color": "#ffffff",
   "theme_color": "#5faac7",
