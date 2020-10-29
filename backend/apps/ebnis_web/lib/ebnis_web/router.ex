@@ -1,7 +1,7 @@
 defmodule EbnisWeb.Router do
   use EbnisWeb, :router
 
-  @is_e2e Application.get_env(:ebnis, :is_e2e)
+  @is_e2e Application.compile_env(:ebnis, :is_e2e)
 
   @enable_graphql_plug Application.get_env(
                          :ebnis_web,
@@ -49,7 +49,7 @@ defmodule EbnisWeb.Router do
   end
 end
 
-if Application.get_env(:ebnis, :is_e2e) do
+if Application.compile_env(:ebnis, :is_e2e) do
   defmodule EbnisWeb.E2eController do
     use EbnisWeb, :controller
 

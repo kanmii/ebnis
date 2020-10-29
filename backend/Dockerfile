@@ -42,7 +42,10 @@ CMD ["/bin/bash"]
 
 FROM dev AS build
 
-ENV MIX_ENV=prod
+ARG IS_E2E
+
+ENV MIX_ENV=prod \
+  IS_E2E=${IS_E2E}
 
 RUN mix do deps.get --only prod, compile \
   && mix release \

@@ -10,22 +10,26 @@ const reactScript = "react-app-rewired"; // provides HMR
 // const reactScript = "react-scripts";
 
 const apiUrl = process.env.API_URL;
+const webHost = process.env.WEB_PORT;
 
 const dev_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REACT_APP_API_URL=${apiUrl} `;
 
 const startServer = `yarn ${reactScript} start`;
 
-const test_envs =
-  "API_URL=http://localhost:4022 IS_UNIT_TEST=true NODE_ENV=test";
+const test_envs = `REACT_APP_API_URL=http://localhost:${apiUrl} IS_UNIT_TEST=true NODE_ENV=test`;
 
 const test = `${test_envs} react-scripts test --runInBand`;
+
+const cypressPreEnv = `CYPRESS_BASE_URL=http://localhost:${webHost}`;
+const cypressPostEnv = `--env API_URL=${apiUrl}`;
+const cypressPreEnvP = `CYPRESS_BASE_URL=http://localhost:${4022}`;
 
 module.exports = {
   scripts: {
     dev: `${dev_envs} ${startServer}`,
     build: {
       default: {
-        script: `rimraf build && env-cmd -e prod react-scripts build`,
+        script: `rimraf ${distFolderName} && env-cmd -e prod react-scripts build`,
         description: "Build the app for production",
       },
     },
@@ -41,7 +45,38 @@ module.exports = {
       },
     },
     serve: `env-cmd -e prod yarn serve --single ${distFolderName}`,
-    e2eDev: `REACT_APP_API_URL=${apiUrl} env-cmd -e e2eDev ${startServer}`,
+    cy: {
+      default: {
+        script: `${cypressPreEnv} cypress open --browser chrome ${cypressPostEnv}`,
+        description: "e2e test with frontend in dev mode/chrome",
+      },
+      h: {
+        script: `${cypressPreEnv} cypress run ${cypressPostEnv}`,
+        description: "e2e test with frontend in dev mode/electron/headless",
+      },
+      hp: {
+        script: `NODE_ENV=production ${cypressPreEnvP} \
+          cypress run ${cypressPostEnv}`,
+        description: "e2e: with frontend in production",
+      },
+      st: {
+        script: ` start-server-and-test \
+          'yarn start cy.s' 4022 \
+          'yarn start cy.hp'`,
+        description:
+          "e2e: start server and test: frontend=production backend=dev",
+      },
+      s: {
+        script: `yarn serve --single ${distFolderName} --listen=4022`,
+      },
+      b: {
+        script: `rimraf ${distFolderName} && \
+          REACT_APP_REGISTER_SERVICE_WORKER= REACT_APP_API_URL=${apiUrl} \
+          NODE_ENV=production \
+            react-scripts build`,
+        description: "build for end to end test",
+      },
+    },
     test: {
       default: `CI=true ${test}`,
       d: `CI=true env-cmd ${test_envs} react-scripts --inspect-brk test --runInBand --no-cache  `, // debug
@@ -54,13 +89,12 @@ module.exports = {
     serviceWorker: `node -e 'require("./package-scripts").serviceWorker()'`,
     netlify: `./node_modules/.bin/env-cmd -e prod \
         node -e 'require("./package-scripts").netlify()'`,
-    cy: {
-      open: "env-cmd -e e2eDev cypress open",
-      run: "server-test ",
-    },
     tc: {
       default: "tsc --project .",
-      cypress: "tsc --project ./cypress",
+      c: {
+        script: "tsc --project ./cypress",
+        description: "Type check the cypress project",
+      },
     },
     lint: "eslint . --ext .js,.jsx,.ts,.tsx",
     fgql: `node -e 'require("./package-scripts").fetchGqlTypes()'`,

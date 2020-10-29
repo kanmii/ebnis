@@ -77,7 +77,7 @@ afterEach(() => {
   mockUuid = 0;
 });
 
-it("creates offline experience/success", () => {
+it("creates offline experience/success", async () => {
   expect(
     mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery,
   ).not.toHaveBeenCalled();
@@ -86,7 +86,7 @@ it("creates offline experience/success", () => {
 
   mockGetExperiencesMiniQuery.mockReturnValue(null);
 
-  const experience = createOfflineExperience({
+  const experience = (await createOfflineExperience({
     input: [
       {
         title: "aa",
@@ -98,7 +98,7 @@ it("creates offline experience/success", () => {
         ],
       },
     ],
-  }) as ExperienceFragment;
+  })) as ExperienceFragment;
 
   const erfahrungId = experience.id;
 
@@ -117,7 +117,7 @@ it("creates offline experience/success", () => {
   expect(isOfflineId(erfahrungId)).toBe(true);
 });
 
-it("creates offline experience fails weil es liegt Erfahrung Titel", () => {
+it("creates offline experience fails weil es liegt Erfahrung Titel", async () => {
   mockGetExperiencesMiniQuery.mockReturnValue({
     edges: [
       {
@@ -128,7 +128,7 @@ it("creates offline experience fails weil es liegt Erfahrung Titel", () => {
     ],
   } as GetExperienceConnectionMini_getExperiences);
 
-  const errors = createOfflineExperience({
+  const errors = (await createOfflineExperience({
     input: [
       {
         title: "aa",
@@ -140,7 +140,7 @@ it("creates offline experience fails weil es liegt Erfahrung Titel", () => {
         ],
       },
     ],
-  }) as string;
+  })) as string;
 
   expect(typeof errors).toBe("string");
 });

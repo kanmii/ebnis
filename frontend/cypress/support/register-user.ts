@@ -1,4 +1,3 @@
-import { CYPRESS_APOLLO_KEY } from "../../src/apollo/setup";
 import { REGISTER_USER_MUTATION } from "../../src/graphql/user.gql";
 import { RegisterUserInput } from "../../src/graphql/apollo-types/globalTypes";
 import { manageUserAuthentication } from "../../src/utils/manage-user-auth";

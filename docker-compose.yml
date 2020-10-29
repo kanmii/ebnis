@@ -15,7 +15,7 @@ services:
       retries: 5
       start_period: 10s
     volumes:
-      - "./docker/data/postgres-bla-${MIX_ENV}:/var/lib/postgresql/data"
+      - "./docker/data/postgres-bla-${COMPOSE_PROJECT_NAME}:/var/lib/postgresql/data"
 
   api:
     build:
@@ -23,6 +23,7 @@ services:
       target: "${MIX_ENV}"
       args:
         DOCKER_HOST_USER_NAME: "${DOCKER_HOST_USER_NAME}"
+        IS_E2E: "${IS_E2E:-false}"
     image: "ebnis-be-${MIX_ENV}"
     depends_on:
       - "db"
@@ -34,10 +35,9 @@ services:
       start_period: 10s
     entrypoint: ["/usr/local/bin/entrypoint.sh"]
     user: "${DOCKER_HOST_USER_NAME}"
-    env_file: ".env-${MIX_ENV}"
+    env_file: "${DOCKER_ENV_FILE}"
     ports:
       - "${DOCKER_HOST_API_PORT}:${PORT}"
-    user: "${DOCKER_HOST_USER_NAME}"
     volumes:
       - "./backend:/home/${DOCKER_HOST_USER_NAME}/src"
       - "not_used_build:/home/${DOCKER_HOST_USER_NAME}/src/_build"
@@ -55,9 +55,9 @@ services:
     entrypoint: ["/usr/local/bin/entrypoint.sh"]
     # depends_on:
     #   - "api"
-    env_file: ".env-${MIX_ENV}"
+    env_file: "${DOCKER_ENV_FILE}"
     ports:
-      - "${DOCKER_HOST_WEB_PORT}:${PORT}"
+      - "${WEB_PORT}:${PORT}"
     volumes:
       - "./frontend:/home/node/ebnis-web"
       - "not_used_node_modules:/home/node/ebnis-web/node_modules"

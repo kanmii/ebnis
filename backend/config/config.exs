@@ -35,6 +35,8 @@ smtp_port =
   |> Kernel.||("0")
   |> String.to_integer()
 
+is_e2e = System.get_env("IS_E2E") == "true"
+
 ###################### END ENVIRONMENT VARIABLES ###########################
 
 config :ebnis,
@@ -97,10 +99,9 @@ config :phoenix, :json_library, Jason
 
 config :pbkdf2_elixir, :rounds, 1
 
-if Mix.env() == :dev do
-  config :mix_test_watch,
-    clear: true
-end
+# used to indicate end to end test
+config :ebnis,
+  is_e2e: is_e2e
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

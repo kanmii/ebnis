@@ -15,6 +15,7 @@
     "broadcast-channel": "^3.1.0",
     "bulma": "^0.8.2",
     "classnames": "^2.2.6",
+    "cypress": "^5.5.0",
     "date-fns": "^2.12.0",
     "fuzzysort": "^1.1.4",
     "graphql": "^15.3.0",
@@ -33,6 +34,7 @@
     "uuid": "^8.3.0"
   },
   "devDependencies": {
+    "@cypress/webpack-preprocessor": "^5.4.10",
     "@testing-library/react": "^9.5.0",
     "@types/classnames": "^2.2.10",
     "@types/jest": "^24.0.0",
@@ -45,7 +47,6 @@
     "@types/testing-library__dom": "7.0.2",
     "@types/uuid": "^8.3.0",
     "apollo": "^2.30.2",
-    "cypress": "^4.4.1",
     "env-cmd": "^10.1.0",
     "netlify": "^4.0.5",
     "netlify-cli": "^2.67.0",
@@ -55,7 +56,8 @@
     "prettier": "^2.0.5",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.3",
-    "start-server-and-test": "^1.11.0",
+    "start-server-and-test": "^1.11.5",
+    "ts-loader": "^8.0.7",
     "workbox-build": "^5.1.2",
     "workbox-window": "^5.1.2"
   },

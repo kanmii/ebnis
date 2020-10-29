@@ -1,8 +1,6 @@
-/// <reference types="cypress" />
-import { MY_URL } from "../../src/utils/urls";
 import {
   MY_TITLE,
-  activateNewDomId,
+  activateInsertExperienceDomId,
 } from "../../src/components/My/my.dom";
 import {
   domPrefix as newExperienceDomId,
@@ -13,12 +11,12 @@ import {
   definitionTypeFormControlSelector,
   notificationCloseId,
   addDefinitionSelector,
-} from "../../src/components/NewExperience/new-experience.dom";
+} from "../../src/components/UpsertExperience/upsert-experience.dom";
 import { DataTypes } from "../../src/graphql/apollo-types/globalTypes";
-import {
-  createOnlineExperience,
-  createOfflineExperience,
-} from "../support/create-experiences";
+import { createOnlineExperience } from "../support/create-experiences";
+import { createOfflineExperience } from "../../src/components/UpsertExperience/upsert-experience.resolvers";
+import { CYPRESS_APOLLO_KEY } from "../../src/apollo/setup";
+import { MY_URL } from "../../src/utils/urls";
 
 context("My page", () => {
   beforeEach(() => {
@@ -46,7 +44,7 @@ context("My page", () => {
       cy.wrap(p).then(() => {
         cy.visit(MY_URL);
         cy.title().should("contain", MY_TITLE);
-        cy.get("#" + activateNewDomId).click();
+        cy.get("#" + activateInsertExperienceDomId).click();
         cy.get("#" + newExperienceDomId).then(() => {
           cy.get("#" + titleInputDomId).type(existingExperienceTitle);
           cy.get("#" + descriptionInputDomId).type("dd"); // existing title
@@ -89,21 +87,28 @@ context("My page", () => {
 
   describe("offline experience", () => {
     it("create fails/succeeds", () => {
-      const p = createOfflineExperience({
-        title: existingExperienceTitle,
-        description: "dd",
-        dataDefinitions: [
-          {
-            name: "nn",
-            type: DataTypes.INTEGER,
-          },
-        ],
-      });
+      const p = createOfflineExperience(
+        {
+          input: [
+            {
+              title: existingExperienceTitle,
+              description: "dd",
+              dataDefinitions: [
+                {
+                  name: "nn",
+                  type: DataTypes.INTEGER,
+                },
+              ],
+            },
+          ],
+        },
+        Cypress.env(CYPRESS_APOLLO_KEY),
+      );
 
       cy.wrap(p).then(() => {
         cy.visit(MY_URL);
         cy.title().should("contain", MY_TITLE);
-        cy.get("#" + activateNewDomId).click();
+        cy.get("#" + activateInsertExperienceDomId).click();
         cy.setConnectionStatus(false);
 
         cy.get("#" + newExperienceDomId).then(() => {
@@ -125,7 +130,6 @@ context("My page", () => {
           cy.get("#" + titleInputDomId).type(newExperienceTitleAppend);
           cy.get("#" + submitDomId).click();
         });
-
         // cy.title().should("contain", newExperienceTitle);
       });
     });

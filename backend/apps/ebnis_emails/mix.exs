@@ -27,9 +27,8 @@ defmodule EbnisEmails.MixProject do
   defp deps do
     [
       {:gen_smtp, "~> 1.0", override: true},
-      {:swoosh, "~> 1.0.8"},
-      {:mox, "~> 1.0", only: :test},
-      {:cortex, "~> 0.6.0", only: [:dev, :test]}
+      {:swoosh, "~> 1.0"},
+      {:mox, "~> 1.0", only: :test}
     ]
   end
 end

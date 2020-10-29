@@ -39,8 +39,10 @@ defmodule Ebnis.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:ecto_sql, "~> 3.5"},
       {:phoenix_pubsub, "~> 2.0"},
-      {:cortex, "~> 0.6.0", only: [:dev, :test]}
+      {:mix_test_watch, "~> 1.0.2", only: :dev, runtime: false},
+      {:excoveralls, "~> 0.12", only: :test}
     ]
   end
 end

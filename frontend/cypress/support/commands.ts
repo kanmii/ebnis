@@ -8,7 +8,6 @@ import { storeConnectionStatus } from "../../src/utils/connections";
 /* eslint-disable-next-line @typescript-eslint/no-unused-vars*/
 import { RegisterUserInput } from "../../src/graphql/apollo-types/globalTypes";
 import { registerUser } from "./register-user";
-import { experienceDefinitionResolvers } from "../../src/components/NewExperience/new-experience.resolvers";
 
 const serverUrl = Cypress.env("API_URL") as string;
 
@@ -18,7 +17,6 @@ function checkoutSession() {
   buildClientCache({
     uri: serverUrl,
     newE2eTest: true,
-    resolvers: [experienceDefinitionResolvers],
   });
 
   cy.request("GET", serverUrl + "/reset_db").then((response) => {

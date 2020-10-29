@@ -41,6 +41,8 @@ smtp_port =
   System.fetch_env!("SMTP_PORT")
   |> String.to_integer()
 
+is_e2e = System.get_env("IS_E2E") == "true"
+
 ###################### END ENVIRONMENT VARIABLES ###########################
 
 config :ebnis_data, EbnisData.Repo,
@@ -74,3 +76,7 @@ config :ebnis_emails,
        tls: :always,
        auth: :always,
        port: smtp_port
+
+# used to indicate end to end test
+config :ebnis,
+  is_e2e: is_e2e

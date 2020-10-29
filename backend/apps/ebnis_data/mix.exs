@@ -35,7 +35,6 @@ defmodule EbnisData.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ecto_sql, "~> 3.4"},
       {:postgrex, ">= 0.0.0"},
       {:jason, "~> 1.0"},
       {:pbkdf2_elixir, "~> 1.0"},
@@ -49,8 +48,7 @@ defmodule EbnisData.MixProject do
       {:timex, "~> 3.6"},
       {:sequence, github: "kanmii/sequence", only: [:dev, :test]},
       {:ecto_ulid, git: "https://github.com/kanmii/ecto-ulid.git", branch: "equal2"},
-      {:mox, "~> 1.0", only: :test},
-      {:cortex, "~> 0.6.0", only: [:dev, :test]}
+      {:mox, "~> 1.0", only: :test}
     ]
   end
 

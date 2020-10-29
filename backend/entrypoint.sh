@@ -3,8 +3,9 @@
 set -e
 
 if [ "$MIX_ENV" == "prod" ]; then
-  if [ -n "$CREATE_DATABASE" ]; then
-    /usr/local/bin/wait-until "bin/ebnis eval "Ebnis.Release.create""
+  if [ "$CREATE_DATABASE" == "true" ]; then
+    bin/ebnis eval "Ebnis.Release.create"
+    wait-until "bin/ebnis eval "Ebnis.Release.migrate""
   else
     wait-until "bin/ebnis eval "Ebnis.Release.migrate""
   fi
@@ -20,12 +21,12 @@ else
     /usr/local/bin/wait-until "mix ecto.create"
   fi
 
-  mix ecto.migrate
+  /usr/local/bin/wait-until "mix ecto.migrate"
 
-  # we need the node name so we can attach ao remote iex console thus:
+  # we need the node name so we can attach a remote iex console thus:
   # iex --sname pick_a_name \
   #   --cookie ebnis-cookie \
-  #   --remsh $node_name@containerId
+  #   --remsh $node_name@container_id
 
   echo -e "\n-----------------NODE NAME/cookie----------------"
   echo -e "Node name:\t\t$node_name"

@@ -241,7 +241,7 @@ async function createExperienceOfflineEffect(
   const { dispatch } = effectArgs;
   const variables = ceateExperienceInputMutationFunctionVariable(input);
 
-  const result = createOfflineExperience(variables);
+  const result = await createOfflineExperience(variables);
 
   if (!result) {
     dispatch({

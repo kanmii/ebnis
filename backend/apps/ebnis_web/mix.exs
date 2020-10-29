@@ -49,8 +49,7 @@ defmodule EbnisWeb.MixProject do
       {:absinthe_phoenix, "~> 2.0"},
       {:corsica, "~> 1.1"},
       {:telemetry_metrics, "~> 0.4"},
-      {:telemetry_poller, "~> 0.4"},
-      {:cortex, "~> 0.6.0", only: [:dev, :test]}
+      {:telemetry_poller, "~> 0.4"}
     ]
   end
 

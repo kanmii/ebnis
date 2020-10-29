@@ -146,44 +146,49 @@ export function upsertExperiencesInGetExperiencesMiniQuery(
   const experiencesMini =
     getExperiencesMiniQuery() || makeDefaultExperienceMiniConnection();
 
-  const updatedExperienceConnection = immer(experiencesMini, (proxy) => {
-    const previousEdges = (proxy.edges ||
-      []) as ExperienceConnectionFragment_edges[];
+  const updatedExperienceConnection = immer(
+    {
+      ...experiencesMini,
+    },
+    (proxy) => {
+      const previousEdges = (proxy.edges ||
+        []) as ExperienceConnectionFragment_edges[];
 
-    const idToPreviousEdgesMap = previousEdges.reduce(
-      (previousEdgesAcc, previousEdge) => {
-        const experience = previousEdge.node as ExperienceMiniFragment;
-        previousEdgesAcc[experience.id] = previousEdge;
+      const idToPreviousEdgesMap = previousEdges.reduce(
+        (previousEdgesAcc, previousEdge) => {
+          const experience = previousEdge.node as ExperienceMiniFragment;
+          previousEdgesAcc[experience.id] = previousEdge;
 
-        return previousEdgesAcc;
-      },
-      {} as { [experienceId: string]: ExperienceConnectionFragment_edges },
-    );
+          return previousEdgesAcc;
+        },
+        {} as { [experienceId: string]: ExperienceConnectionFragment_edges },
+      );
 
-    const newEdges: ExperienceConnectionFragment_edges[] = [];
+      const newEdges: ExperienceConnectionFragment_edges[] = [];
 
-    experiencesList.forEach(([experienceId, experience]) => {
-      const previousEdge = idToPreviousEdgesMap[experienceId];
+      experiencesList.forEach(([experienceId, experience]) => {
+        const previousEdge = idToPreviousEdgesMap[experienceId];
 
-      if (previousEdge) {
-        previousEdge.node = experience;
-        newEdges.push(previousEdge);
+        if (previousEdge) {
+          previousEdge.node = experience;
+          newEdges.push(previousEdge);
+          delete idToPreviousEdgesMap[experienceId];
+        } else {
+          const newEdge = {
+            node: experience,
+            cursor: "",
+            __typename: "ExperienceEdge" as "ExperienceEdge",
+          } as ExperienceConnectionFragment_edges;
+
+          newEdges.push(newEdge);
+        }
+
         delete idToPreviousEdgesMap[experienceId];
-      } else {
-        const newEdge = {
-          node: experience,
-          cursor: "",
-          __typename: "ExperienceEdge" as "ExperienceEdge",
-        } as ExperienceConnectionFragment_edges;
+      });
 
-        newEdges.push(newEdge);
-      }
-
-      delete idToPreviousEdgesMap[experienceId];
-    });
-
-    proxy.edges = newEdges.concat(Object.values(idToPreviousEdgesMap));
-  });
+      proxy.edges = newEdges.concat(Object.values(idToPreviousEdgesMap));
+    },
+  );
 
   cache.writeQuery<
     GetExperienceConnectionMini,

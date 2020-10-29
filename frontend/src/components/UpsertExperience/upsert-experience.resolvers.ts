@@ -52,12 +52,14 @@ import {
   parseDataObjectData,
 } from "../UpsertEntry/upsert-entry.utils";
 import { GetEntries_getEntries_GetEntriesSuccess_entries } from "../../graphql/apollo-types/GetEntries";
+import { E2EWindowObject } from "../../utils/types";
 
 ////////////////////////// CREATE ////////////////////////////
 
-export function createOfflineExperience(
+export async function createOfflineExperience(
   variables: CreateExperiencesVariables,
-): string | ExperienceFragment {
+  globals?: E2EWindowObject,
+): Promise<string | ExperienceFragment> {
   const { input: inputs } = variables;
   const input = inputs[0];
 
@@ -114,7 +116,7 @@ export function createOfflineExperience(
     dataDefinitions,
   };
 
-  const { cache, persistor } = window.____ebnis;
+  const { cache, persistor } = globals || window.____ebnis;
 
   cache.writeQuery<GetDetailExperience, GetDetailExperienceVariables>({
     query: GET_COMPLETE_EXPERIENCE_QUERY,
@@ -136,7 +138,7 @@ export function createOfflineExperience(
     isOffline: true,
   });
 
-  persistor.persist();
+  await persistor.persist();
 
   return experience;
 }

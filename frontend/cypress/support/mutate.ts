@@ -1,6 +1,5 @@
 /// <reference types="cypress" />
-import { ApolloClient } from "apollo-client";
-import { MutationOptions } from "apollo-client/core/watchQueryOptions";
+import { ApolloClient, MutationOptions } from "@apollo/client";
 import { CYPRESS_APOLLO_KEY } from "../../src/apollo/setup";
 
 export function mutate<TData, TVariables>(
@@ -11,4 +10,3 @@ export function mutate<TData, TVariables>(
     TVariables
   >(options);
 }
-
