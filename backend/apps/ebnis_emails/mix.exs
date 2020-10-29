@@ -26,9 +26,9 @@ defmodule EbnisEmails.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:gen_smtp, "~> 0.14.0", override: true},
-      {:swoosh, "~> 0.23.3"},
-      {:mox, "~> 0.5.1", only: :test},
+      {:gen_smtp, "~> 1.0", override: true},
+      {:swoosh, "~> 1.0.8"},
+      {:mox, "~> 1.0", only: :test},
       {:cortex, "~> 0.6.0", only: [:dev, :test]}
     ]
   end

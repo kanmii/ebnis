@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.11.1-erlang-23.1.1-ubuntu-focal-20200703 AS dev
+FROM hexpm/elixir:1.11.1-erlang-23.1-ubuntu-bionic-20200630 AS dev
 
 ARG DOCKER_HOST_USER_NAME
 
@@ -55,14 +55,13 @@ FROM debian:buster AS prod
 ARG DOCKER_HOST_USER_NAME
 
 # we install 'libtinfo5' because of `beam.smtp` error
-ENV APP_DEPS="openssl curl" \
+ENV APP_DEPS="openssl libtinfo5 curl" \
   HOME_VAR=/home/ebnis \
   LANG=C.UTF-8 \
   HOST_APP_HOME="."
 
 RUN apt-get update \
   && apt-get install -y ${APP_DEPS} --no-install-recommends \
-  && apt-get install --reinstall libc6 \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /usr/share/doc && rm -rf /usr/share/man \
   && apt-get clean \

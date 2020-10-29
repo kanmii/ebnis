@@ -1,5 +1,5 @@
 defmodule EbnisData.DataType do
-  @behaviour Ecto.Type
+  use Ecto.Type
 
   @all_types [
     "single_line_text",

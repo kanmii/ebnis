@@ -39,9 +39,7 @@ defmodule EbnisData.MixProject do
       {:postgrex, ">= 0.0.0"},
       {:jason, "~> 1.0"},
       {:pbkdf2_elixir, "~> 1.0"},
-      {:mox, "~> 0.5.1", only: :test},
       {:faker, "~> 0.12.0", only: [:dev, :test]},
-      {:sequence, github: "samba6/sequence", only: [:dev, :test]},
       {:absinthe, "~> 1.5.3"},
       {:absinthe_relay, "~> 1.5"},
       {:dataloader, "~> 1.0.7"},
@@ -49,7 +47,9 @@ defmodule EbnisData.MixProject do
       {:ebnis_emails, in_umbrella: true},
       {:ebnis, in_umbrella: true},
       {:timex, "~> 3.6"},
-      {:ecto_ulid, "~> 0.2.0"},
+      {:sequence, github: "kanmii/sequence", only: [:dev, :test]},
+      {:ecto_ulid, git: "https://github.com/kanmii/ecto-ulid.git", branch: "equal2"},
+      {:mox, "~> 1.0", only: :test},
       {:cortex, "~> 0.6.0", only: [:dev, :test]}
     ]
   end

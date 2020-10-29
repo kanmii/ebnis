@@ -44,7 +44,7 @@ defmodule EbnisWeb.MixProject do
       {:gettext, "~> 0.11"},
       {:ebnis_data, in_umbrella: true},
       {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"},
+      {:plug_cowboy, "~> 2.0", override: true},
       {:absinthe_plug, "~> 1.5"},
       {:absinthe_phoenix, "~> 2.0"},
       {:corsica, "~> 1.1"},
