@@ -1,12 +1,10 @@
 const EXPERIENCE_DETAIL_URL_MATCH = ":experienceId";
 
 export const ROOT_URL = "/";
-export const LOGIN_URL = "/login";
-export const SIGN_UP_URL = "/sign-up";
+export const LOGIN_URL = "/fK1keJ4U";
+export const SIGN_UP_URL = "/tIk3KAcE";
 export const MY_URL = "/fuP6ihF9";
-
-export const EXPERIENCE_DETAIL_URL_PREFIX =
-  "/ksPEBixot3LklfZw89CAofihUqxT2jObKt1RV";
+export const EXPERIENCE_DETAIL_URL_PREFIX = "/ksPEBot3";
 
 export const EXPERIENCE_DETAIL_URL = `${EXPERIENCE_DETAIL_URL_PREFIX}/${EXPERIENCE_DETAIL_URL_MATCH}`;
 
