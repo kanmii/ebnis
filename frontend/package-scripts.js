@@ -47,8 +47,9 @@ module.exports = {
     serve: `env-cmd -e prod yarn serve --single ${distFolderName}`,
     cy: {
       default: {
-        script: `${cypressPreEnv} cypress open --browser chrome ${cypressPostEnv}`,
-        description: "e2e test with frontend in dev mode/chrome",
+        script: `${cypressPreEnv} cypress open \
+           ${cypressPostEnv}`,
+        description: "e2e test with frontend in dev mode/electron",
       },
       h: {
         script: `${cypressPreEnv} cypress run ${cypressPostEnv}`,
