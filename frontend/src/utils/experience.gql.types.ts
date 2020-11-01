@@ -19,7 +19,8 @@ import {
 } from "../graphql/experience.gql";
 import { UpdateExperienceInput } from "../graphql/apollo-types/globalTypes";
 import {
-  CommonError, OnlineStatus, //
+  CommonError,
+  OnlineStatus, //
 } from "../utils/types";
 import {
   updateExperiencesManualCacheUpdate, //
@@ -90,7 +91,6 @@ export async function updateExperiencesOnlineEffectHelperFunc({
   updateExperiencesOnline,
   onUpdateSuccess,
   onError,
-  onDone,
 }: UpdateExperiencesOnlineEffectHelperFunc) {
   try {
     const response = await updateExperiencesOnline({
@@ -300,13 +300,13 @@ export const EXPERIENCES_MINI_FETCH_COUNT = 10;
 export type ExperienceData = {
   experience: ExperienceMiniFragment;
   syncError?: SyncError;
-  onlineStatus: OnlineStatus
+  onlineStatus: OnlineStatus;
 };
 
-export type ExperiencesData = Readonly<{
+export type ExperiencesData = {
   experiences: ExperienceData[];
   pageInfo: PageInfoFragment;
-}>;
+};
 
 export function preFetchExperiences(variables: PreFetchExperiencesVariables) {
   const { client } = window.____ebnis;

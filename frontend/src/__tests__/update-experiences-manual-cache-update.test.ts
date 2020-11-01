@@ -436,7 +436,7 @@ function call({ experience, entries }: UpdateExperienceSomeSuccessFragment) {
             __typename: "UpdateExperienceSomeSuccess",
             experience: {
               experienceId: "1",
-              ...experience,
+              ...(experience as any),
             },
             entries,
           },

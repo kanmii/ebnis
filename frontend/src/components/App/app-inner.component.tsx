@@ -18,23 +18,20 @@ import AuthenticationRequired from "../AuthenticationRequired/authentication-req
 
 const Login = lazy(() => import("../Login/login.component"));
 const My = lazy(() => import("../My/my.component"));
-const DetailExperience = lazy(() =>
-  import("../DetailExperience/detail-experience.component"),
+const DetailExperience = lazy(
+  () => import("../DetailExperience/detail-experience.component"),
 );
 const SignUp = lazy(() => import("../SignUp/sign-up.component"));
 
 export function AppInner({ obj }: Props) {
-  const { client, cache, persistor, bc } = obj;
+  const { client, bc } = obj;
 
   return (
     <Router>
       <ApolloProvider client={client}>
         <EbnisAppProvider
           value={{
-            client,
-            cache,
             restoreCacheOrPurgeStorage,
-            persistor,
             ...window.____ebnis,
           }}
         >

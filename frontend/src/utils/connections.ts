@@ -6,6 +6,7 @@ import {
   BroadcastMessageConnectionChanged,
 } from "./types";
 import { setTimeout } from "timers";
+import { deleteObjectKey } from ".";
 
 export function makeConnectionObject() {
   let connectionStatus = window.____ebnis.connectionStatus;
@@ -22,7 +23,7 @@ export function makeConnectionObject() {
 }
 
 export function resetConnectionObject() {
-  delete window.____ebnis.connectionStatus;
+  deleteObjectKey(window.____ebnis, "connectionStatus");
   return makeConnectionObject();
 }
 

@@ -2,7 +2,7 @@
 import React, { ComponentType } from "react";
 import { render, cleanup } from "@testing-library/react";
 import {
-  AuthenticationRequired, //
+  AuthenticationRequired,
   Props,
 } from "../components/AuthenticationRequired/authentication-required.component";
 import { getUser } from "../utils/manage-user-auth";

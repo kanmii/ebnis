@@ -24,5 +24,3 @@ export function makeDefinitionTypeOptionDomId(type: DataTypes) {
 }
 
 export const definitionContainerDomSelector = `js-${domPrefix}-definition-container`;
-
-type Id = string | number;

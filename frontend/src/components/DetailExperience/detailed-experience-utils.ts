@@ -8,7 +8,7 @@ import {
   removeUnsyncedExperiences,
   getOnlineStatus,
 } from "../../apollo/unsynced-ledger";
-import immer, { Draft } from "immer";
+import immer from "immer";
 import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
 import {
@@ -27,6 +27,7 @@ import {
   CancelledVal,
   DeleteSuccess,
   CommonError,
+  KeyOfTimeouts,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -111,6 +112,7 @@ import {
   CLOSE_NOTIFICATION_TIMEOUT_MS,
   FETCH_EXPERIENCES_TIMEOUTS,
 } from "../../utils/timers";
+import { deleteObjectKey } from "../../utils";
 
 export enum ActionType {
   TOGGLE_UPSERT_ENTRY_ACTIVE = "@detailed-experience/toggle-upsert-entry",
@@ -138,9 +140,10 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
     state,
     action,
     (prevState, { type, ...payload }) => {
-      return immer(prevState, (proxy) => {
+      return immer(prevState, (states) => {
+        const proxy = states as StateMachine;
         proxy.effects.general.value = StateValue.noEffect;
-        delete proxy.effects.general[StateValue.hasEffects];
+        deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
 
         switch (type) {
           case ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE:
@@ -268,7 +271,7 @@ export function initState(): StateMachine {
 }
 
 function handleToggleUpsertEntryActiveAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: UpsertEntryActivePayload,
 ) {
   const { states: globalStates } = proxy;
@@ -286,7 +289,7 @@ function handleToggleUpsertEntryActiveAction(
     } = states;
 
     if (updatingEntry) {
-      const state = states.upsertEntryActive as Draft<UpsertEntryActive>;
+      const state = states.upsertEntryActive as UpsertEntryActive;
       state.value = StateValue.active;
       state.active = {
         context: {
@@ -307,7 +310,7 @@ function handleToggleUpsertEntryActiveAction(
       return;
     }
 
-    const state = states.upsertEntryActive as Draft<UpsertEntryActive>;
+    const state = states.upsertEntryActive as UpsertEntryActive;
     state.value = StateValue.active;
     state.active = {
       context: {},
@@ -315,7 +318,7 @@ function handleToggleUpsertEntryActiveAction(
   }
 }
 
-function handleOnCloseNewEntryCreatedNotification(proxy: DraftState) {
+function handleOnCloseNewEntryCreatedNotification(proxy: StateMachine) {
   const { states: globalStates, timeouts } = proxy;
 
   // istanbul ignore else:
@@ -323,7 +326,7 @@ function handleOnCloseNewEntryCreatedNotification(proxy: DraftState) {
     const { states } = globalStates.data;
     states.newEntryCreated.value = StateValue.inactive;
 
-    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+    const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
 
     effects.push({
       key: "timeoutsEffect",
@@ -336,16 +339,19 @@ function handleOnCloseNewEntryCreatedNotification(proxy: DraftState) {
   }
 }
 
-function handleSetTimeoutAction(proxy: DraftState, payload: SetTimeoutPayload) {
+function handleSetTimeoutAction(
+  proxy: StateMachine,
+  payload: SetTimeoutPayload,
+) {
   const { timeouts } = proxy;
 
   Object.entries(payload).forEach(([key, val]) => {
-    timeouts[key] = val;
+    timeouts[key as KeyOfTimeouts] = val;
   });
 }
 
 function handleDeleteExperienceRequestAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: DeleteExperienceRequestPayload,
 ) {
   const { states: globalStates } = proxy;
@@ -357,9 +363,7 @@ function handleDeleteExperienceRequestAction(
     } = globalStates.data;
 
     deleteExperience.value = StateValue.active;
-    const deleteExperienceActive = deleteExperience as Draft<
-      DeleteExperienceActiveState
-    >;
+    const deleteExperienceActive = deleteExperience as DeleteExperienceActiveState;
 
     deleteExperienceActive.active = {
       context: {
@@ -369,7 +373,7 @@ function handleDeleteExperienceRequestAction(
   }
 }
 
-function handleDeleteExperienceCancelledAction(proxy: DraftState) {
+function handleDeleteExperienceCancelledAction(proxy: StateMachine) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else:
@@ -397,7 +401,7 @@ function handleDeleteExperienceCancelledAction(proxy: DraftState) {
   }
 }
 
-function handleDeleteExperienceConfirmedAction(proxy: DraftState) {
+function handleDeleteExperienceConfirmedAction(proxy: StateMachine) {
   const { states } = proxy;
 
   // istanbul ignore else
@@ -413,7 +417,7 @@ function handleDeleteExperienceConfirmedAction(proxy: DraftState) {
 }
 
 function handleToggleExperienceMenuAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: ToggleMenuPayload,
 ) {
   const { states: globalStates } = proxy;
@@ -443,7 +447,7 @@ function handleToggleExperienceMenuAction(
 }
 
 function handleOnDataReceivedAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: OnDataReceivedPayload,
 ) {
   const { states } = proxy;
@@ -455,16 +459,14 @@ function handleOnDataReceivedAction(
       {
         const { experience, entriesData, onlineStatus } = experienceData;
 
-        const dataState = states as Draft<DataState>;
+        const dataState = states as DataState;
         dataState.value = StateValue.data;
 
-        const dataStateData =
-          dataState.data || ({} as Draft<DataState["data"]>);
+        const dataStateData = dataState.data || ({} as DataState["data"]);
 
         dataState.data = dataStateData;
 
-        const context =
-          dataStateData.context || ({} as Draft<DataStateContext>);
+        const context = dataStateData.context || ({} as DataStateContext);
 
         dataStateData.context = context;
         context.experience = experience;
@@ -529,7 +531,7 @@ function handleOnDataReceivedAction(
 
     case StateValue.errors:
       states.value = StateValue.errors;
-      const errorsState = states as Draft<ErrorState>;
+      const errorsState = states as ErrorState;
       errorsState.errors = {
         context: {
           error: parseStringError(experienceData.error),
@@ -539,7 +541,7 @@ function handleOnDataReceivedAction(
   }
 }
 
-function handleRefetchExperienceAction(proxy: DraftState) {
+function handleRefetchExperienceAction(proxy: StateMachine) {
   const effects = getGeneralEffects(proxy);
 
   effects.push({
@@ -548,7 +550,7 @@ function handleRefetchExperienceAction(proxy: DraftState) {
   });
 }
 
-function handleRefetchEntriesAction(proxy: DraftState) {
+function handleRefetchEntriesAction(proxy: StateMachine) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else
@@ -567,7 +569,7 @@ function handleRefetchEntriesAction(proxy: DraftState) {
   }
 }
 
-function handleFetchNextEntriesAction(proxy: DraftState) {
+function handleFetchNextEntriesAction(proxy: StateMachine) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else
@@ -600,19 +602,14 @@ function handleFetchNextEntriesAction(proxy: DraftState) {
 }
 
 function handleEntriesReceivedAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: ProcessedEntriesQueryReturnVal | ReFetchOnlyPayload,
 ) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
-    const {
-      states,
-      context: {
-        experience: { id: experienceId },
-      },
-    } = globalStates.data;
+    const { states } = globalStates.data;
 
     const entriesState = states.entries;
 
@@ -655,9 +652,7 @@ function handleEntriesReceivedAction(
       case StateValue.fail:
         switch (payload.key) {
           case StateValue.success:
-            const entriesSuccessState = states.entries as Draft<
-              EntriesDataSuccessSate
-            >;
+            const entriesSuccessState = states.entries as EntriesDataSuccessSate;
 
             entriesSuccessState.value = StateValue.success;
             entriesSuccessState.success = {
@@ -673,13 +668,10 @@ function handleEntriesReceivedAction(
             const { entries } = payload;
 
             const { data } = processEntriesQuery(
-              experienceId,
               toGetEntriesSuccessQuery(entries),
             );
 
-            const fetchEntriesErrorState = states.entries as Draft<
-              FetchEntriesErrorState
-            >;
+            const fetchEntriesErrorState = states.entries as FetchEntriesErrorState;
 
             fetchEntriesErrorState.value = StateValue.fetchEntriesError;
 
@@ -697,9 +689,7 @@ function handleEntriesReceivedAction(
 
       case StateValue.fetchEntriesError:
         if (payload.key === StateValue.success) {
-          const entriesSuccessState = states.entries as Draft<
-            EntriesDataSuccessSate
-          >;
+          const entriesSuccessState = states.entries as EntriesDataSuccessSate;
 
           entriesSuccessState.value = StateValue.success;
 
@@ -720,7 +710,7 @@ function handleEntriesReceivedAction(
 }
 
 function handleUpdateExperienceUiRequestAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   { experience, onlineStatus }: UpdateExperiencePayload,
 ) {
   const { states: globalStates, timeouts } = proxy;
@@ -733,7 +723,7 @@ function handleUpdateExperienceUiRequestAction(
     } = globalStates.data;
 
     const modifiedState = state;
-    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+    const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
 
     if (state.value === StateValue.success) {
       modifiedState.value = StateValue.inactive;
@@ -788,12 +778,12 @@ function handleUpdateExperienceUiRequestAction(
   }
 }
 
-function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
+function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
-    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+    const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
 
     const {
       context,
@@ -889,7 +879,7 @@ function handleOnSyncAction(proxy: DraftState, payload: OnSyncedData) {
 }
 
 function handleOnUpsertEntrySuccessAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: OnEntryCreatedPayload,
 ) {
   const { states: globalStates } = proxy;
@@ -919,7 +909,7 @@ function handleOnUpsertEntrySuccessAction(
 
     context.onlineStatus = newOnlineStatus;
 
-    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+    const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
 
     effects.push({
       key: "timeoutsEffect",
@@ -930,9 +920,7 @@ function handleOnUpsertEntrySuccessAction(
 
     // completely new entry created online
     if (!oldData) {
-      const newEntryState = newEntryCreated as Draft<
-        NewEntryCreatedNotification
-      >;
+      const newEntryState = newEntryCreated as NewEntryCreatedNotification;
 
       newEntryState.value = StateValue.active;
 
@@ -952,13 +940,7 @@ function handleOnUpsertEntrySuccessAction(
       switch (entriesState.value) {
         case StateValue.success:
         case StateValue.fetchEntriesError:
-          const ob = (entriesState[StateValue.success] ||
-            // istanbul ignore next:
-            entriesState[StateValue.fetchEntriesError]) as Draft<
-            EntriesDataSuccessSate["success"]
-          >;
-
-          const { context } = ob;
+          const { context } = getEntriesState(entriesState);
 
           context.entries.unshift({
             entryData: newEntry,
@@ -968,9 +950,7 @@ function handleOnUpsertEntrySuccessAction(
 
         case StateValue.fail:
           {
-            const fetchEntriesError = states.entries as Draft<
-              FetchEntriesErrorState
-            >;
+            const fetchEntriesError = states.entries as FetchEntriesErrorState;
 
             fetchEntriesError.value = StateValue.fetchEntriesError;
             fetchEntriesError.fetchEntriesError = {
@@ -1041,7 +1021,7 @@ function handleOnUpsertEntrySuccessAction(
   }
 }
 
-function handleCloseSyncErrorsMsgAction(proxy: DraftState) {
+function handleCloseSyncErrorsMsgAction(proxy: StateMachine) {
   const { states: globalStates } = proxy;
 
   // istanbul ignore else:
@@ -1052,7 +1032,7 @@ function handleCloseSyncErrorsMsgAction(proxy: DraftState) {
 }
 
 function handleEntriesOptionsAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   { entry }: EntriesOptionsPayload,
 ) {
   const { states: globalStates } = proxy;
@@ -1065,8 +1045,8 @@ function handleEntriesOptionsAction(
 
     showingOptionsMenu.value = StateValue.inactive;
 
-    const activeState = entriesOptions as Draft<EntriesOptionActive>;
-    const inactiveState = entriesOptions as Draft<EntriesOptionInactive>;
+    const activeState = entriesOptions as EntriesOptionActive;
+    const inactiveState = entriesOptions as EntriesOptionInactive;
 
     const { id } = entry;
 
@@ -1092,7 +1072,7 @@ function handleEntriesOptionsAction(
 }
 
 function handleDeleteEntryAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: DeleteEntryPayload,
 ) {
   const { states: globalStates } = proxy;
@@ -1107,7 +1087,7 @@ function handleDeleteEntryAction(
     switch (payload.key) {
       case StateValue.requested:
         const { entry } = payload;
-        const state = entriesOptions as Draft<EntriesOptionDeleteRequested>;
+        const state = entriesOptions as EntriesOptionDeleteRequested;
         state.value = StateValue.requested;
         state.requested = {
           entry,
@@ -1122,7 +1102,7 @@ function handleDeleteEntryAction(
           const { genericTimeout } = proxy.timeouts;
 
           if (genericTimeout) {
-            const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+            const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
 
             effects.push({
               key: "timeoutsEffect",
@@ -1144,7 +1124,7 @@ function handleDeleteEntryAction(
             neutralState.value = StateValue.inactive;
             const deletingEntry = entriesOptions.requested.entry;
 
-            const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+            const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
             effects.push({
               key: "deleteEntryEffect",
               ownArgs: {
@@ -1163,7 +1143,7 @@ function handleDeleteEntryAction(
 
           proxy.timeouts.genericTimeout = timeoutId;
 
-          const entriesState = entries as Draft<EntriesDataSuccessSate>;
+          const entriesState = entries as EntriesDataSuccessSate;
           entriesState.success.context.entries = entriesState.success.context.entries.filter(
             (e) => {
               return id !== e.entryData.id;
@@ -1179,7 +1159,7 @@ function handleDeleteEntryAction(
 
           proxy.timeouts.genericTimeout = timeoutId;
 
-          const state = entriesOptions as Draft<EntryDeleteFail>;
+          const state = entriesOptions as EntryDeleteFail;
           state.errors = {
             error: parseStringError(error),
           };
@@ -1201,7 +1181,7 @@ function makeDataDefinitionIdToNameMap(definitions: DataDefinitionFragment[]) {
 }
 
 function updateEntriesFn(
-  proxy: DraftState,
+  proxy: StateMachine,
   state: EntriesData,
   payload:
     | {
@@ -1210,7 +1190,7 @@ function updateEntriesFn(
     | IdToUpdateEntrySyncErrorMap,
   update?: true,
 ) {
-  const fetchEntriesErrorState = state as Draft<FetchEntriesErrorState>;
+  const fetchEntriesErrorState = state as FetchEntriesErrorState;
 
   if (state.value === StateValue.fail) {
     const [entry] = Object.values(
@@ -1233,7 +1213,7 @@ function updateEntriesFn(
         },
       };
 
-      const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+      const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
       effects.push({
         key: "fetchEntriesEffect",
         ownArgs: {},
@@ -1243,14 +1223,9 @@ function updateEntriesFn(
     return;
   }
 
-  const ob = (state[StateValue.success] ||
-    state[StateValue.fetchEntriesError]) as Draft<
-    EntriesDataSuccessSate["success"]
-  >;
-
   const {
     context: { entries },
-  } = ob;
+  } = getEntriesState(state);
 
   const entryErrors: IndexToEntryErrorsList = [];
   const len = entries.length;
@@ -1289,7 +1264,7 @@ function updateEntriesFn(
 }
 
 function processSyncErrors(
-  context: Draft<DataStateContext>,
+  context: DataStateContext,
   syncErrors?: ExperienceSyncError,
 ) {
   if (!syncErrors) {
@@ -1330,6 +1305,21 @@ function processSyncErrors(
   }
 
   context.syncErrors = syncErrors;
+}
+
+function getEntriesState(
+  state: EntriesDataSuccessSate | FetchEntriesErrorState,
+) {
+  let ob = (undefined as unknown) as
+    | EntriesDataSuccessSate["success"]
+    | FetchEntriesErrorState["fetchEntriesError"];
+
+  if (state.value === StateValue.success) {
+    ob = state.success;
+  } else if (state.value === StateValue.fetchEntriesError) {
+    ob = state.fetchEntriesError;
+  }
+  return ob;
 }
 
 ////////////////////////// END STATE UPDATE ////////////////////////////
@@ -1397,7 +1387,7 @@ type DefTimeoutsEffect = EffectDefinition<
 
 const deleteExperienceRequestedEffect: DefDeleteExperienceRequestedEffect["func"] = (
   { experienceId },
-  props,
+  _,
   effectArgs,
 ) => {
   const { dispatch } = effectArgs;
@@ -1656,10 +1646,7 @@ const fetchEntriesEffect: DefFetchEntriesEffect["func"] = async (
       ({} as GetEntriesQueryResult);
 
     if (data) {
-      let { data: processedEntries } = processEntriesQuery(
-        experienceId,
-        data.getEntries,
-      );
+      let { data: processedEntries } = processEntriesQuery(data.getEntries);
 
       if (pagination) {
         const blätternZuId = appendToPreviousEntries(
@@ -1881,7 +1868,7 @@ function processGetExperienceQuery(
       data: entriesData,
       entriesErrors,
       processedSyncErrors,
-    } = processEntriesQuery(id, entriesQueryResult, syncErrors);
+    } = processEntriesQuery(entriesQueryResult, syncErrors);
 
     let errors = syncErrors as ExperienceSyncError;
 
@@ -1911,7 +1898,6 @@ function processGetExperienceQuery(
 }
 
 function processEntriesQuery(
-  experienceId: string,
   entriesQueryResult?: GetEntriesUnionFragment | null,
   syncErrors?: SyncError,
 ): {
@@ -2173,22 +2159,19 @@ export function formatDatetime(date: Date | string) {
 
 ////////////////////////// END HELPER FUNCTIONS ////////////////////////////
 
-type DraftState = Draft<StateMachine>;
+export type StateMachine = GenericGeneralEffect<EffectType> & {
+  states: LoadingState | ErrorState | DataState;
+  timeouts: Timeouts;
+};
 
-export type StateMachine = GenericGeneralEffect<EffectType> &
-  Readonly<{
-    states: LoadingState | ErrorState | DataState;
-    timeouts: Readonly<Timeouts>;
-  }>;
-
-type ErrorState = Readonly<{
+type ErrorState = {
   value: ErrorsVal;
-  errors: Readonly<{
-    context: Readonly<{
+  errors: {
+    context: {
       error: string;
-    }>;
-  }>;
-}>;
+    };
+  };
+};
 
 type ProcessedEntriesQueryErrorReturnVal = {
   key: FailVal;
@@ -2208,73 +2191,70 @@ type ProcessedEntriesQueryReturnVal =
 export type EntriesDataSuccessSate = {
   value: SuccessVal;
   success: {
-    context: Readonly<{
+    context: {
       entries: DataStateContextEntries;
       pageInfo: PageInfoFragment;
       pagingError?: string;
-    }>;
+    };
   };
 };
 
-export type EntriesDataFailureState = Readonly<{
+export type EntriesDataFailureState = {
   value: FailVal;
   error: string;
-}>;
+};
 
-export type FetchEntriesErrorState = Readonly<{
+export type FetchEntriesErrorState = {
   value: FetchEntriesErrorVal;
   fetchEntriesError: {
-    context: Readonly<{
+    context: {
       entries: DataStateContextEntries;
       fetchError?: string;
-    }>;
+    };
   };
-}>;
+};
 
 type EntriesData =
   | EntriesDataSuccessSate
   | FetchEntriesErrorState
   | EntriesDataFailureState;
 
-export type DataStateContext = Readonly<{
+export type DataStateContext = {
   experience: ExperienceFragment;
   dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
   syncErrors?: ExperienceSyncError;
   onlineStatus: OnlineStatus;
-}>;
+};
 
-export type DataStateContextEntry = Readonly<{
+export type DataStateContextEntry = {
   entryData: EntryFragment;
   entrySyncError?: CreateEntryErrorFragment | UpdateEntrySyncErrors;
-}>;
+};
 
 export type DataStateContextEntries = DataStateContextEntry[];
 
-export type DataState = Readonly<{
+export type DataState = {
   value: DataVal;
-  data: Readonly<{
+  data: {
     context: DataStateContext;
-    states: Readonly<{
-      upsertEntryActive: Readonly<
+    states: {
+      upsertEntryActive:
         | {
             value: InActiveVal;
           }
-        | UpsertEntryActive
-      >;
+        | UpsertEntryActive;
 
-      newEntryCreated: Readonly<
+      newEntryCreated:
         | {
             value: InActiveVal;
           }
-        | NewEntryCreatedNotification
-      >;
+        | NewEntryCreatedNotification;
 
-      notification: Readonly<
+      notification:
         | {
             value: InActiveVal;
           }
-        | NotificationActive
-      >;
+        | NotificationActive;
 
       deleteExperience: DeleteExperienceState;
 
@@ -2282,7 +2262,7 @@ export type DataState = Readonly<{
 
       entries: EntriesData;
 
-      updateExperienceUiActive: Readonly<
+      updateExperienceUiActive:
         | {
             value: InActiveVal;
           }
@@ -2291,17 +2271,15 @@ export type DataState = Readonly<{
           }
         | {
             value: SuccessVal;
-          }
-      >;
+          };
 
-      syncErrorsMsg: Readonly<
+      syncErrorsMsg:
         | {
             value: InActiveVal;
           }
         | {
             value: ActiveVal;
-          }
-      >;
+          };
 
       entriesOptions:
         | EntriesOptionInactive
@@ -2309,91 +2287,89 @@ export type DataState = Readonly<{
         | EntriesOptionDeleteRequested
         | EntryDeletedSuccess
         | EntryDeleteFail;
-    }>;
-  }>;
-}>;
+    };
+  };
+};
 
-type EntryDeleteFail = Readonly<{
+type EntryDeleteFail = {
   value: ErrorsVal;
   errors: {
     error: string;
   };
-}>;
+};
 
-type EntryDeletedSuccess = Readonly<{
+type EntryDeletedSuccess = {
   value: DeleteSuccess;
   deleteSuccess: {
     entryId: string;
   };
-}>;
+};
 
-type EntriesOptionInactive = Readonly<{
+type EntriesOptionInactive = {
   value: InActiveVal;
-}>;
+};
 
-type EntriesOptionActive = Readonly<{
+type EntriesOptionActive = {
   value: ActiveVal;
   active: {
     id: string;
   };
-}>;
+};
 
-type EntriesOptionDeleteRequested = Readonly<{
+type EntriesOptionDeleteRequested = {
   value: RequestedVal;
   requested: {
     entry: EntryFragment;
   };
-}>;
+};
 
-export type ShowingOptionsMenuState = Readonly<
+export type ShowingOptionsMenuState =
   | {
       value: InActiveVal;
     }
   | {
       value: ActiveVal;
-    }
->;
+    };
 
-type DeleteExperienceState = Readonly<
+type DeleteExperienceState =
   | {
       value: InActiveVal;
     }
-  | DeleteExperienceActiveState
->;
+  | DeleteExperienceActiveState;
 
-type DeleteExperienceActiveState = Readonly<{
+type DeleteExperienceActiveState = {
   value: ActiveVal;
   active: {
     context: {
       key?: RequestedVal; // with key, we know request came from 'my' component
     };
   };
-}>;
+};
 
-type UpsertEntryActive = Readonly<{
+type UpsertEntryActive = {
   value: ActiveVal;
-  active: Readonly<{
-    context: Readonly<UpsertEntryActivePayload>;
-  }>;
-}>;
+  active: {
+    context: UpsertEntryActivePayload;
+  };
+};
 
-type NewEntryCreatedNotification = Readonly<{
+type NewEntryCreatedNotification = {
   value: ActiveVal;
-  active: Readonly<{
-    context: Readonly<{
+  active: {
+    context: {
       message: string;
-    }>;
-  }>;
-}>;
+    };
+  };
+};
 
-type NotificationActive = Readonly<{
+type NotificationActive = {
   value: ActiveVal;
-  active: Readonly<{
-    context: Readonly<{
+  active: {
+    context: {
       message: string;
-    }>;
-  }>;
-}>;
+    };
+  };
+};
 
 export type CallerProps = RouteChildrenProps<
   DetailExperienceRouteMatch,

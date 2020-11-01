@@ -1,9 +1,12 @@
 import {
   MY_TITLE,
   activateInsertExperienceDomId,
+  dropdownTriggerClassName,
+  experienceContainerSelector,
+  updateExperienceMenuItemSelector,
 } from "../../src/components/My/my.dom";
 import {
-  domPrefix as newExperienceDomId,
+  domPrefix as upsertExperienceDomId,
   submitDomId,
   titleInputDomId,
   descriptionInputDomId,
@@ -11,6 +14,7 @@ import {
   definitionTypeFormControlSelector,
   notificationCloseId,
   addDefinitionSelector,
+  definitionContainerDomSelector,
 } from "../../src/components/UpsertExperience/upsert-experience.dom";
 import { DataTypes } from "../../src/graphql/apollo-types/globalTypes";
 import { createOnlineExperience } from "../support/create-experiences";
@@ -24,15 +28,15 @@ context("My page", () => {
     cy.registerUser();
   });
 
-  const existingExperienceTitle = "tt";
-  const newExperienceTitleAppend = "1";
-  const newExperienceTitle = existingExperienceTitle + newExperienceTitleAppend;
+  describe("create experience", () => {
+    const title1 = "tt";
+    const titleAppend = "1";
+    const title2 = title1 + titleAppend;
 
-  describe("online experience", () => {
-    it("create fails/succeeds/update", () => {
+    it("online fails/succeeds", () => {
       // Given an online experience exists in the system
       const p = createOnlineExperience({
-        title: existingExperienceTitle,
+        title: title1,
         description: "dd",
         dataDefinitions: [
           {
@@ -53,9 +57,9 @@ context("My page", () => {
         cy.get("#" + activateInsertExperienceDomId).click();
 
         // We should see UI to create new experience
-        cy.get("#" + newExperienceDomId).then(() => {
+        cy.get("#" + upsertExperienceDomId).within(() => {
           // When we fill title field with existing experience title
-          cy.get("#" + titleInputDomId).type(existingExperienceTitle);
+          cy.get("#" + titleInputDomId).type(title1);
 
           // And we fill description field
           cy.get("#" + descriptionInputDomId).type("dd");
@@ -67,9 +71,6 @@ context("My page", () => {
           cy.get("." + definitionTypeFormControlSelector).select(
             DataTypes.SINGLE_LINE_TEXT,
           );
-
-          // Notification that experience created successfully/failed should not be visible
-          cy.get("#" + notificationCloseId).should("not.exist");
 
           // When form is submitted
           cy.get("#" + submitDomId).click();
@@ -86,7 +87,7 @@ context("My page", () => {
           ////////////////////////// new experience ///////////////////////
 
           // When form is filled with a title that did not exist in the system
-          cy.get("#" + titleInputDomId).type(newExperienceTitleAppend);
+          cy.get("#" + titleInputDomId).type(titleAppend);
 
           // And additional data definition field is added
           cy.get("." + addDefinitionSelector).click();
@@ -106,19 +107,17 @@ context("My page", () => {
         });
 
         // then we should be redirected to newly created experience page
-        cy.title().should("contain", newExperienceTitle);
+        cy.title().should("contain", title2);
       });
     });
-  });
 
-  describe("offline experience", () => {
-    it("create fails/succeeds", () => {
+    it("offline fails/succeeds", () => {
       // Given there is an offline experience in the system
       const p = createOfflineExperience(
         {
           input: [
             {
-              title: existingExperienceTitle,
+              title: title1,
               description: "dd",
               dataDefinitions: [
                 {
@@ -146,9 +145,9 @@ context("My page", () => {
         cy.setConnectionStatus(false);
 
         // We should see UI to create new experience
-        cy.get("#" + newExperienceDomId).then(() => {
+        cy.get("#" + upsertExperienceDomId).then(() => {
           // When we fill title field with existing experience title
-          cy.get("#" + titleInputDomId).type(existingExperienceTitle);
+          cy.get("#" + titleInputDomId).type(title1);
 
           // And we fill description field
           cy.get("#" + descriptionInputDomId).type("dd");
@@ -173,14 +172,122 @@ context("My page", () => {
           ////////////////////////// new experience ///////////////////////
 
           // When form is filled with a title that did not exist in the system
-          cy.get("#" + titleInputDomId).type(newExperienceTitleAppend);
+          cy.get("#" + titleInputDomId).type(titleAppend);
 
           // And form is submitted
           cy.get("#" + submitDomId).click();
         });
 
         // then we should be redirected to newly created experience page
-        cy.title().should("contain", newExperienceTitle);
+        cy.title().should("contain", title2);
+      });
+    });
+  });
+
+  describe("update experience", () => {
+    it("updates", () => {
+      const dataDefinitions = [
+        {
+          name: "date",
+          type: DataTypes.DATE,
+        },
+        {
+          name: "time",
+          type: DataTypes.DATETIME,
+        },
+        {
+          name: "dec",
+          type: DataTypes.DECIMAL,
+        },
+        {
+          name: "int",
+          type: DataTypes.INTEGER,
+        },
+
+        {
+          name: "single",
+          type: DataTypes.SINGLE_LINE_TEXT,
+        },
+        {
+          name: "multi",
+          type: DataTypes.MULTI_LINE_TEXT,
+        },
+      ];
+
+      // Given there are two online experiences in the system
+      const experiencePromise1 = createOnlineExperience({
+        title: "t1",
+        dataDefinitions,
+      });
+
+      const experiencePromise2 = createOnlineExperience({
+        title: "t2",
+        description: "d2",
+        dataDefinitions,
+      });
+
+      cy.wrap([experiencePromise1, experiencePromise2]).then(() => {
+        // When we visit experiences list page
+        cy.visit(MY_URL);
+
+        cy.get("." + experienceContainerSelector)
+          .eq(1)
+          .within(() => {
+            // And we click on menu button of second experience (title1)
+            cy.get("." + dropdownTriggerClassName).click();
+
+            // And we click on edit button of experience
+            cy.get("." + updateExperienceMenuItemSelector).click();
+          });
+
+        // Then we should see UI to Update experience
+        cy.get("#" + upsertExperienceDomId).within(() => {
+          cy.get("#" + titleInputDomId)
+            // And title field should contain current title
+            .should("have.value", "t1")
+            // We update title field
+            .type(".");
+
+          cy.get("#" + descriptionInputDomId)
+            // Description field should be empty
+            .should("have.value", "")
+            // We update the description field
+            .type("d1");
+
+          cy.get("." + definitionContainerDomSelector)
+            .as("definitionEls")
+            .within(() => {
+              cy.get("." + definitionTypeFormControlSelector)
+                .as("typeEls")
+                .first()
+                .as("dateEl")
+                .select(DataTypes.INTEGER);
+            });
+
+          // When form is submitted
+          cy.get("#" + submitDomId).click();
+
+          // Notification that experience creation failed should be visible
+          cy.get("#" + notificationCloseId)
+            .should("exist")
+            .click();
+
+          // Form is filled correctly
+          cy.get("@dateEl").select(DataTypes.DATETIME);
+          cy.get("@typeEls").eq(1).select(DataTypes.DATE);
+          cy.get("@typeEls").eq(2).select(DataTypes.INTEGER);
+          cy.get("@typeEls").eq(3).select(DataTypes.DECIMAL);
+          cy.get("@typeEls").eq(4).select(DataTypes.MULTI_LINE_TEXT);
+          cy.get("@typeEls").eq(5).select(DataTypes.SINGLE_LINE_TEXT);
+
+          // When form is submitted
+          cy.get("#" + submitDomId).click();
+
+          // Notification that experience creation failed should be visible
+          // cy.get("#" + notificationCloseId)
+          //   .should("exist")
+          //   .click();
+        });
       });
     });
   });

@@ -35,7 +35,8 @@ import { manageUserAuthentication } from "../../utils/manage-user-auth";
 import { EbnisContextProps } from "../../utils/app-context";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { MY_URL } from "../../utils/urls";
-import {scrollIntoViewDomId} from './sign-up.dom'
+import { scrollIntoViewDomId } from "./sign-up.dom";
+import { deleteObjectKey } from "../../utils";
 
 export enum ActionType {
   SUBMISSION = "@sign-up/submission",
@@ -53,7 +54,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
     (prevState, { type, ...payload }) => {
       return immer(prevState, (proxy) => {
         proxy.effects.general.value = StateValue.noEffect;
-        delete proxy.effects.general[StateValue.hasEffects];
+        deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
 
         switch (type) {
           case ActionType.FORM_CHANGED:
@@ -383,7 +384,7 @@ function handleResetFormFieldsAction(proxy: DraftState) {
   Object.entries(fields).forEach(([field, { states }]) => {
     if (field !== "source") {
       states.value = StateValue.unchanged;
-      delete states[StateValue.changed];
+      deleteObjectKey(states, StateValue.changed);
     }
   });
 }
@@ -671,4 +672,3 @@ type EffectDefinition<
 
 type EffectType = DefRegisterUserEffect | DefScrollToTopEffect;
 export type EffectState = GenericHasEffect<EffectType>;
-type EffectList = EffectType[];

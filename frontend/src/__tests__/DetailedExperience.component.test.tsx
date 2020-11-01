@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars*/
 import React, { ComponentType } from "react";
-import { render, cleanup, waitForElement, wait } from "@testing-library/react";
+import { render, cleanup, waitFor } from "@testing-library/react";
 import { DetailExperience } from "../components/DetailExperience/detail-experience.component";
 import {
   Props,
@@ -16,12 +16,8 @@ import {
   EntriesDataSuccessSate,
   EntriesDataFailureState,
   ExperienceSyncError,
-  StateMachine,
 } from "../components/DetailExperience/detailed-experience-utils";
-import {
-  EntryConnectionFragment,
-  EntryConnectionFragment_edges,
-} from "../graphql/apollo-types/EntryConnectionFragment";
+import { EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
 import { scrollDocumentToTop } from "../components/DetailExperience/detail-experience.injectables";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import {
@@ -44,14 +40,12 @@ import {
   okDeleteEntryId,
   entryDeleteSuccessNotificationId,
   entryDeleteFailNotificationId,
+  noTriggerDocumentEventClassName,
+  deleteExperienceOkSelector,
 } from "../components/DetailExperience/detail-experience.dom";
 import { act } from "react-dom/test-utils";
 import { makeOfflineId } from "../utils/offlines";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
-import {
-  upsertExperiencesInGetExperiencesMiniQuery,
-  purgeExperience,
-} from "../apollo/update-get-experiences-mini-query";
 import { E2EWindowObject, StateValue, OnlineStatus } from "../utils/types";
 import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
 import {
@@ -86,7 +80,6 @@ import {
 import { Props as NewEntryProps } from "../components/UpsertEntry/upsert-entry.utils";
 import {
   OfflineIdToCreateEntrySyncErrorMap,
-  SyncError,
   UpdateEntrySyncErrors,
   OnSyncedData,
 } from "../utils/sync-to-server.types";
@@ -109,6 +102,7 @@ import {
 import { updateExperienceOfflineFn } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
+import { deleteObjectKey } from "../utils";
 
 jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
 const mockUpdateExperienceOfflineFn = updateExperienceOfflineFn as jest.Mock;
@@ -158,13 +152,8 @@ jest.mock("../apollo/delete-experience-cache");
 jest.mock("../components/DetailExperience/detail-experience.injectables");
 const mockScrollDocumentToTop = scrollDocumentToTop as jest.Mock;
 
-jest.mock("../apollo/update-get-experiences-mini-query");
-const mockReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = upsertExperiencesInGetExperiencesMiniQuery as jest.Mock;
-const mockPurgeExperience = purgeExperience as jest.Mock;
-
 const mockUpsertEntrySuccessId = "?a?";
 const mockDismissUpsertEntryUiId = "?b?";
-const mockActionType = ActionType;
 const mockNewlyCreatedEntry = {
   __typename: "Entry",
   updatedAt: "2020-05-08T06:49:19Z",
@@ -208,10 +197,11 @@ const mockCloseUpsertExperienceId = "?c?";
 const mockUpsertExperienceSuccessId = "?d?";
 let mockUpdatedExperience: undefined | ExperienceFragment = undefined;
 let mockUpdatedExperienceOnlineStatus: undefined | OnlineStatus = undefined;
+const mockNoTriggerDocumentEventClassName = noTriggerDocumentEventClassName;
 jest.mock("../components/My/my.lazy", () => ({
   UpsertExperience: ({ onClose, onSuccess }: UpsertExperienceProps) => {
     return (
-      <div>
+      <div className={mockNoTriggerDocumentEventClassName}>
         <button id={mockCloseUpsertExperienceId} onClick={onClose} />
         <button
           id={mockUpsertExperienceSuccessId}
@@ -244,7 +234,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  delete window.____ebnis;
+  deleteObjectKey(window, "____ebnis");
 });
 
 beforeEach(() => {
@@ -273,8 +263,6 @@ const onlineExperience = {
     },
   ],
 } as ExperienceFragment;
-
-const entryOfflineClassName = "entry--is-danger";
 
 const onlineEntryClientId = "aa";
 const onlineEntryId = "a";
@@ -375,16 +363,18 @@ describe("components", () => {
     expect(document.getElementById(refetchExperienceId)).toBeNull();
 
     jest.runTimersToTime(MAX_TIMEOUT_MS);
-    const refetchExperienceBtn = await waitForElement(() => {
-      return document.getElementById(refetchExperienceId) as HTMLElement;
-    });
+    await waitFor(() => true);
+
+    const refetchExperienceBtn = document.getElementById(
+      refetchExperienceId,
+    ) as HTMLElement;
 
     mockManuallyFetchDetailedExperience.mockRejectedValueOnce(new Error("b"));
 
     refetchExperienceBtn.click();
     jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-    await wait(() => true);
+    await waitFor(() => true);
 
     mockManuallyFetchDetailedExperience.mockResolvedValueOnce({
       data: {
@@ -396,7 +386,8 @@ describe("components", () => {
     jest.runTimersToTime(MAX_TIMEOUT_MS);
 
     expect(getRefetchEntries()).toBeNull();
-    const refetchEntriesEl = await waitForElement(getRefetchEntries);
+    await waitFor(() => true);
+    const refetchEntriesEl = getRefetchEntries();
 
     mockManuallyFetchEntries.mockResolvedValueOnce({
       data: {
@@ -416,7 +407,8 @@ describe("components", () => {
 
     expect(getNoEntryEl()).toBeNull();
     jest.runTimersToTime(MAX_TIMEOUT_MS);
-    const noEntryEl = await waitForElement(getNoEntryEl);
+    await waitFor(() => true);
+    const noEntryEl = getNoEntryEl();
 
     expect(document.getElementById(mockDismissUpsertEntryUiId)).toBeNull();
 
@@ -424,7 +416,7 @@ describe("components", () => {
       noEntryEl.click();
     });
 
-    const entlassenNeuEintragUiEl = await waitForElement(() => {
+    const entlassenNeuEintragUiEl = await waitFor(() => {
       return document.getElementById(mockDismissUpsertEntryUiId) as HTMLElement;
     });
 
@@ -450,7 +442,6 @@ describe("components", () => {
     });
 
     const schließNeuEintragEl = getCloseUpsertEntryNotificationEl();
-    const entryErrorMsgEl = getSyncErrorsNotificationEl();
 
     act(() => {
       schließNeuEintragEl.click();
@@ -521,7 +512,7 @@ describe("components", () => {
       getOkDeleteExperienceEl().click();
     });
 
-    await wait(() => true);
+    await waitFor(() => true);
 
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0].key).toBe(
       StateValue.deleted,
@@ -571,7 +562,7 @@ describe("components", () => {
 
     expect(getExperiencePaginationErrorEl()).toBeNull();
 
-    await waitForElement(getExperiencePaginationErrorEl);
+    await waitFor(getExperiencePaginationErrorEl);
 
     mockUseWithSubscriptionContext.mockReturnValue({});
 
@@ -602,7 +593,7 @@ describe("components", () => {
 
     expect(document.getElementById("b")).toBeNull();
 
-    await waitForElement(() => {
+    await waitFor(() => {
       return document.getElementById("b");
     });
 
@@ -998,7 +989,7 @@ describe("update experience", () => {
     } as DetailedExperienceQueryResult);
 
     const { ui } = makeComp();
-    const { debug } = render(ui);
+    render(ui);
 
     // experience menu should be visible
 
@@ -1016,7 +1007,7 @@ describe("update experience", () => {
     } as DetailedExperienceQueryResult);
 
     const { ui } = makeComp();
-    const { debug } = render(ui);
+    render(ui);
 
     // experience menu should be visible
 
@@ -1034,7 +1025,7 @@ describe("update experience", () => {
     } as DetailedExperienceQueryResult);
 
     const { ui } = makeComp();
-    const { debug } = render(ui);
+    render(ui);
 
     // When show update experience UI button is clicked
     act(() => {
@@ -1050,11 +1041,7 @@ describe("update experience", () => {
     });
 
     // Experience updated success notification should be visible
-    const updateSuccessUi = await waitForElement(
-      getUpdateExperienceSuccessNotification,
-    );
-
-    expect(updateSuccessUi).not.toBeNull();
+    await waitFor(getUpdateExperienceSuccessNotification);
 
     // After a little while
     act(() => {
@@ -2127,10 +2114,10 @@ describe("Entry component", () => {
     } as DetailedExperienceQueryResult);
 
     const { ui } = makeComp();
-    const { debug } = render(ui);
+    render(ui);
 
     // Online entry menu should not be active
-    const entryMenuOnline = await waitForElement(getEntryDropdown);
+    const entryMenuOnline = await waitFor(getEntryDropdown);
     expect(entryMenuOnline.classList).not.toContain(activeClassName);
 
     // online and offline entries should be visible
@@ -2227,7 +2214,7 @@ describe("Entry component", () => {
       getOkDeleteEntry().click();
     });
 
-    await wait(() => true);
+    await waitFor(() => true);
 
     const errorFunc =
       mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0].onError;
@@ -2340,10 +2327,10 @@ describe("Entry component", () => {
     } as DetailedExperienceQueryResult);
 
     const { ui } = makeComp();
-    const { debug } = render(ui);
+    render(ui);
 
     // Update entry trigger UI should be visible
-    const updateTriggerEl = await waitForElement(getEntryUpdateMenuItem);
+    const updateTriggerEl = await waitFor(getEntryUpdateMenuItem);
 
     // Upsert entry UI should not be visible
     expect(getDismissUpsertEntryUi()).toBeNull();
@@ -2393,10 +2380,6 @@ function getNoEntryEl() {
   return document.getElementById(noEntryTriggerId) as HTMLElement;
 }
 
-function getEntriesEl() {
-  return document.getElementsByClassName("entries").item(0) as HTMLElement;
-}
-
 function getUpsertEntryTriggerEl() {
   return document
     .getElementsByClassName("upsert-entry-trigger")
@@ -2423,10 +2406,10 @@ function getCancelDeleteExperienceEl() {
     .item(0) as HTMLElement;
 }
 
-function getOkDeleteExperienceEl() {
+function getOkDeleteExperienceEl(index: number = 0) {
   return document
-    .getElementsByClassName("delete-experience__ok-button")
-    .item(0) as HTMLElement;
+    .getElementsByClassName(deleteExperienceOkSelector)
+    .item(index) as HTMLElement;
 }
 
 function getRefetchEntries() {

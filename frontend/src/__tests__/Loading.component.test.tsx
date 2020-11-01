@@ -22,22 +22,16 @@ afterEach(() => {
 
 it("renders loading UI", () => {
   const { ui } = makeComp();
+  render(ui);
+
+  // loading UI will be visible after timer completes
+  expect(document.getElementById(defaultLoadingDomId)).toBeNull();
+
   act(() => {
-    const { unmount } = render(ui);
-
-    // loading UI will be visible after timer completes
-    expect(document.getElementById(defaultLoadingDomId)).toBeNull();
-
     jest.runTimersToTime(MAX_TIMEOUT_MS);
-
-    expect(document.getElementById(defaultLoadingDomId)).not.toBeNull();
-
-    // cleanup code
-    expect(mockOnUnmount).not.toHaveBeenCalled();
-
-    unmount();
-    expect(mockOnUnmount).toHaveBeenCalled();
   });
+
+  expect(document.getElementById(defaultLoadingDomId)).not.toBeNull();
 });
 
 it("does not render loading UI", () => {
@@ -46,22 +40,31 @@ it("does not render loading UI", () => {
       loading: false,
     },
   });
+  render(ui);
+
+  // loading UI will never be rendered
+  expect(document.getElementById(defaultLoadingDomId)).toBeNull();
+
   act(() => {
-    const { unmount } = render(ui);
-
-    // loading UI will never be rendered
-    expect(document.getElementById(defaultLoadingDomId)).toBeNull();
-
     jest.runTimersToTime(MAX_TIMEOUT_MS);
-
-    // loading UI will never be rendered
-    expect(document.getElementById(defaultLoadingDomId)).toBeNull();
-
-    expect(mockOnUnmount).not.toHaveBeenCalled();
-
-    unmount();
-    expect(mockOnUnmount).not.toHaveBeenCalled();
   });
+
+  // loading UI will never be rendered
+  expect(document.getElementById(defaultLoadingDomId)).toBeNull();
+});
+
+it("executes clean up code", () => {
+  const { ui } = makeComp({
+    props: {
+      loading: false,
+    },
+  });
+  const { unmount } = render(ui);
+
+  expect(mockOnUnmount).not.toHaveBeenCalled();
+
+  unmount();
+  expect(mockOnUnmount).not.toHaveBeenCalled();
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////

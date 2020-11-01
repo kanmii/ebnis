@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars*/
 import React, { ComponentType } from "react";
-import { render, cleanup, waitForElement, wait } from "@testing-library/react";
+import { render, cleanup, waitFor } from "@testing-library/react";
 import { SignUp } from "../components/SignUp/sign-up.component";
 import { Props } from "../components/SignUp/sign-up.utils";
 import {
@@ -75,7 +75,7 @@ it("reset/form errors", async () => {
   const submitEl = getSubmitEl();
   submitEl.click();
 
-  let notificationEl = await waitForElement(getNotificationEl);
+  let notificationEl = await waitFor(getNotificationEl);
   expect(notificationEl.classList).toContain(warningClassName);
   expect(mockScrollIntoView).toHaveBeenCalled();
   mockScrollIntoView.mockReset();
@@ -114,7 +114,7 @@ it("reset/form errors", async () => {
   expect(mockScrollIntoView).not.toBeCalled();
 
   submitEl.click();
-  notificationEl = await waitForElement(getNotificationEl);
+  notificationEl = await waitFor(getNotificationEl);
   expect(notificationEl.classList).toContain(errorClassName);
   expect(mockScrollIntoView).toBeCalled();
 
@@ -152,7 +152,8 @@ it("reset/form errors", async () => {
   mockRegisterUser.mockResolvedValue(mockRegisterUser1);
 
   submitEl.click();
-  notificationEl = await waitForElement(getNotificationEl);
+  await waitFor(() => true);
+  notificationEl = getNotificationEl();
   closeNotification(notificationEl);
   expect(getNotificationEl()).toBeNull();
 
@@ -160,7 +161,8 @@ it("reset/form errors", async () => {
   mockRegisterUser.mockRejectedValue(mockRegisterUser2);
 
   submitEl.click();
-  notificationEl = await waitForElement(getNotificationEl);
+  await waitFor(() => true);
+  notificationEl = getNotificationEl();
   closeNotification(notificationEl);
   expect(getNotificationEl()).toBeNull();
 
@@ -190,7 +192,8 @@ it("reset/form errors", async () => {
   mockRegisterUser.mockResolvedValue(mockRegisterUser3);
 
   submitEl.click();
-  notificationEl = await waitForElement(getNotificationEl);
+  await waitFor(() => true);
+  notificationEl = getNotificationEl();
 
   expect(nameFieldEl.classList).not.toContain(formFieldErrorClass);
   expect(getErrorEl(nameFieldEl)).toBeNull();
@@ -220,7 +223,7 @@ it("reset/form errors", async () => {
   expect(mockWindowChangeUrl).not.toHaveBeenCalled();
 
   submitEl.click();
-  await wait(() => true);
+  await waitFor(() => true);
 
   expect(mockManageUserAuthentication).toHaveBeenCalledWith(user);
   expect(mockPersistFn).toHaveBeenCalled();

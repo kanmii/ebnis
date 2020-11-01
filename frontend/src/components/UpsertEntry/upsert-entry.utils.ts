@@ -46,6 +46,7 @@ import {
 import { isOfflineId } from "../../utils/offlines";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
+import { deleteObjectKey } from "../../utils";
 
 const NEW_LINE_REGEX = /\n/g;
 export const ISO_DATE_FORMAT = "yyyy-MM-dd";
@@ -105,7 +106,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
     (prevState, { type, ...payload }) => {
       return immer(prevState, (proxy) => {
         proxy.effects.general.value = StateValue.noEffect;
-        delete proxy.effects.general[StateValue.hasEffects];
+        deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
 
         switch (type) {
           case ActionType.ON_FORM_FIELD_CHANGED:
@@ -312,7 +313,7 @@ export function initState(props: Props): StateMachine {
   const { experience, updatingEntry } = props;
   const { entry, errors } = updatingEntry || ({} as UpdatingEntryPayload);
 
-  const definitionIdToDataMap = mapDefinitionIdToDataHelper(experience, entry);
+  const definitionIdToDataMap = mapDefinitionIdToDataHelper(entry);
 
   const formFields = (experience.dataDefinitions as ExperienceFragment_dataDefinitions[]).reduce(
     (acc, definition, index) => {
@@ -373,10 +374,7 @@ export function parseDataObjectData(data: string) {
     : dataString;
 }
 
-function mapDefinitionIdToDataHelper(
-  experience: ExperienceFragment,
-  updatingEntry?: EntryFragment,
-) {
+function mapDefinitionIdToDataHelper(updatingEntry?: EntryFragment) {
   const result = {} as {
     [dataDefinitionId: string]: FormObjVal;
   };
@@ -586,10 +584,6 @@ interface FieldChangedPayload {
   value: FormObjVal;
 }
 
-interface FieldErrors {
-  [k: string]: string;
-}
-
 type DraftState = Draft<StateMachine>;
 
 type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
@@ -642,10 +636,6 @@ type Action =
     } & StringyErrorPayload);
 
 export type DispatchType = Dispatch<Action>;
-
-interface EffectContext {
-  effectsArgsObj: Props;
-}
 
 type EffectType = DefScrollToViewEffect | DefUpsertEntryEffect;
 

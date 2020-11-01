@@ -1,8 +1,11 @@
+import { Draft } from "immer";
 import { HasEffectsVal, NoEffectVal, StateValue } from "./types";
 
 export function getGeneralEffects<
   EffectType,
-  T extends GenericGeneralEffect<EffectType>
+  T extends
+    | GenericGeneralEffect<EffectType>
+    | Draft<GenericGeneralEffect<EffectType>>
 >(writeableStateMachine: T) {
   const generalEffects = writeableStateMachine.effects
     .general as GenericHasEffect<EffectType>;

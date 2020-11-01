@@ -22,6 +22,7 @@ import {
   UpdateEntryInput,
   CreateDataObject,
   CreateDataDefinition,
+  UpdateExperienceOwnFieldsInput,
 } from "../graphql/apollo-types/globalTypes";
 import { isOfflineId } from "../utils/offlines";
 import {
@@ -30,7 +31,10 @@ import {
 } from "./get-detailed-experience-query";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
-import { EntryConnectionFragment_edges, EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
+import {
+  EntryConnectionFragment_edges,
+  EntryConnectionFragment,
+} from "../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 import {
@@ -56,7 +60,6 @@ import { createExperiencesManualUpdate } from "./create-experiences-manual-updat
 import { updateExperiencesManualCacheUpdate } from "./update-experiences-manual-cache-update";
 import { broadcastMessage } from "../utils/broadcast-channel-manager";
 import { BroadcastMessageType } from "../utils/types";
-
 
 const WAIT_INTERVAL = 1 * 1000 * 60; // 1 minute
 
@@ -117,10 +120,11 @@ export async function syncToServer() {
         } = ledger;
 
         if (ownFields) {
-          const ownFieldsInput = {};
+          const ownFieldsInput = {} as UpdateExperienceOwnFieldsInput;
           input.ownFields = ownFieldsInput;
 
-          Object.keys(ownFields).forEach((key) => {
+          Object.keys(ownFields).forEach((k) => {
+            const key = k as "description" | "title";
             ownFieldsInput[key] = experience[key];
           });
         }
@@ -191,7 +195,6 @@ export async function syncToServer() {
             }
           }
 
-          acc[entry.id] = entry;
           return acc;
         });
 

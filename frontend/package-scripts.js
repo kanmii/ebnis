@@ -6,8 +6,8 @@ const pkg = require("./package.json");
 
 const distFolderName = "build";
 const distAbsPath = path.resolve(__dirname, `./${distFolderName}`);
-const reactScript = "react-app-rewired"; // provides HMR
-// const reactScript = "react-scripts";
+// const reactScript = "react-app-rewired"; // provides HMR
+const reactScript = "react-scripts";
 
 const apiUrl = process.env.API_URL;
 const webHost = process.env.WEB_PORT;
@@ -16,7 +16,7 @@ const dev_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REAC
 
 const startServer = `yarn ${reactScript} start`;
 
-const test_envs = `REACT_APP_API_URL=http://localhost:${apiUrl} IS_UNIT_TEST=true NODE_ENV=test`;
+const test_envs = `REACT_APP_API_URL=http://localhost:2222 IS_UNIT_TEST=true NODE_ENV=test`;
 
 const test = `${test_envs} react-scripts test --runInBand`;
 
@@ -139,7 +139,7 @@ module.exports = {
         "**/*.{js,css,png,svg,jpg,jpeg,ico,html,json}", //
       ],
       globIgnores: ["workbox-v*", "*.map", "precache-manifest.*"],
-      // dontCacheBustURLsMatching: /(\.js$|\.css$|favicon.+ico$|icon-\d+.+png$)/,
+      // donnCacheBustURLsMatching: /(\.js$|\.css$|favicon.+ico$|icon-\d+.+png$)/,
     }).then(({ count, filePaths, size, warnings }) => {
       console.log(
         `\n*** ${count} files were preCached:\n\t${filePaths.join(

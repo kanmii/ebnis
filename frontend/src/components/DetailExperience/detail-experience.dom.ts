@@ -21,3 +21,4 @@ export const closeDeleteEntryConfirmationId = `${domPrefix}-close-delete-entry-c
 export const okDeleteEntryId = `${domPrefix}-ok-delete-entry`;
 export const entryDeleteSuccessNotificationId = `${domPrefix}-entry-delete-success-notification`;
 export const entryDeleteFailNotificationId = `${domPrefix}-entry-delete-fail-notification`;
+export const deleteExperienceOkSelector = `js-${domPrefix}-delete-experience-ok`;

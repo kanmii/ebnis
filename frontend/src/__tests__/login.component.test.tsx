@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ComponentType } from "react";
-import { render, cleanup, waitForElement, wait } from "@testing-library/react";
+import { render, cleanup, waitFor } from "@testing-library/react";
 import { Login } from "../components/Login/login.component";
 import {
   emailInputId,
@@ -78,7 +78,7 @@ describe("components", () => {
     expect(mockScrollIntoView).not.toHaveBeenCalled();
     submitEl.click();
 
-    let notificationEl = await waitForElement(getNotification);
+    let notificationEl = await waitFor(getNotification);
     // we get warning
     expect(notificationEl.classList).toContain(warningClassName);
     expect(mockScrollIntoView).toHaveBeenCalled();
@@ -99,7 +99,7 @@ describe("components", () => {
 
     submitEl.click();
 
-    notificationEl = await waitForElement(getNotification);
+    notificationEl = await waitFor(getNotification);
     // we get error
     expect(notificationEl.classList).toContain(errorClassName);
     expect(getEmailErrorEl()).not.toBeNull();
@@ -129,7 +129,7 @@ describe("components", () => {
 
     submitEl.click();
 
-    await wait(() => true);
+    await waitFor(() => true);
 
     const calls = mockLoginFn.mock.calls[0][0]
       .variables as LoginMutationVariables;

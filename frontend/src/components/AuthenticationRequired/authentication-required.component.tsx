@@ -1,9 +1,7 @@
 import React, { PropsWithChildren } from "react";
 import { Route, Redirect, RouteProps } from "react-router-dom";
 import { getUser } from "../../utils/manage-user-auth";
-import {
-  LOGIN_URL, //
-} from "../../utils/urls";
+import { LOGIN_URL } from "../../utils/urls";
 
 export function AuthenticationRequired(props: Props) {
   const {
@@ -17,9 +15,7 @@ export function AuthenticationRequired(props: Props) {
     return <Route {...props} />;
   }
 
-  const {
-    location, //
-  } = rest;
+  const { location } = rest;
 
   return (
     <Route {...rest}>

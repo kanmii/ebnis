@@ -74,7 +74,7 @@ export function DateTimeField(props: Props) {
   const fieldNames = useMemo(function getFieldNames() {
     return ["date", "hr", "min"].reduce(
       function reduceLabels(acc, l) {
-        acc[l] = getFieldName(compName, l);
+        acc[l as "date"] = getFieldName(compName, l);
         return acc;
       },
       {} as {

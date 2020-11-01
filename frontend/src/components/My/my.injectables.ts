@@ -5,13 +5,13 @@ import {
 } from "../../apollo/get-detailed-experience-query";
 import { toGetEntriesSuccessQuery } from "../../graphql/utils.gql";
 import { EntryConnectionFragment } from "../../graphql/apollo-types/EntryConnectionFragment";
-import {ExperienceMiniFragment} from "../../graphql/apollo-types/ExperienceMiniFragment";
+import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMiniFragment";
 
 // istanbul ignore next:
 export function handlePreFetchExperiences(
   erfahrungenIds: string[],
   idToExperienceMap: {
-    [experienceId: string]: ExperienceMiniFragment
+    [experienceId: string]: ExperienceMiniFragment;
   },
 ) {
   preFetchExperiences({
@@ -26,7 +26,7 @@ export function handlePreFetchExperiences(
       return;
     }
 
-    experiences.forEach((experience, index) => {
+    experiences.forEach((experience) => {
       if (!experience) {
         return;
       }

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ComponentType } from "react";
-import { render, cleanup, waitForElement, wait } from "@testing-library/react";
+import { render, cleanup, waitFor } from "@testing-library/react";
 import { My } from "../components/My/my.component";
 import {
   Props,
@@ -25,7 +25,7 @@ import {
   fetchErrorRetryDomId,
   onDeleteExperienceSuccessNotificationId,
   onDeleteExperienceCancelledNotificationId,
-  updateExperienceMenuItemId,
+  updateExperienceMenuItemSelector,
   updateExperienceSuccessNotificationCloseClassName,
   activateInsertExperienceDomId,
 } from "../components/My/my.dom";
@@ -59,6 +59,7 @@ import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { cleanUpOfflineExperiences } from "../components/WithSubscriptions/with-subscriptions.utils";
 import { ExperienceMiniFragment } from "../graphql/apollo-types/ExperienceMiniFragment";
 import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
+import { deleteObjectKey } from "../utils";
 
 jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
 const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
@@ -179,7 +180,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  delete window.____ebnis;
+  deleteObjectKey(window, "____ebnis");
 });
 
 beforeEach(() => {
@@ -209,7 +210,8 @@ describe("component", () => {
     expect(document.getElementById(mockLoadingId)).not.toBeNull();
     expect(getFetchErrorRetry()).toBeNull();
 
-    let reFetchEl = await waitForElement(getFetchErrorRetry);
+    await waitFor(() => true);
+    let reFetchEl = getFetchErrorRetry();
 
     mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
       data: {
@@ -224,9 +226,8 @@ describe("component", () => {
     expect(getNoExperiencesActivateNew()).toBeNull();
     jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-    const activateInsertExperienceBtnEl = await waitForElement(
-      getNoExperiencesActivateNew,
-    );
+    await waitFor(() => true);
+    const activateInsertExperienceBtnEl = getNoExperiencesActivateNew();
 
     expect(getMockCloseUpsertExperienceUi()).toBeNull();
 
@@ -255,7 +256,8 @@ describe("component", () => {
 
     expect(getFetchErrorRetry()).toBeNull();
 
-    let reFetchEl = await waitForElement(getFetchErrorRetry);
+    await waitFor(() => true);
+    let reFetchEl = getFetchErrorRetry();
 
     mockManuallyFetchExperienceConnectionMini.mockResolvedValueOnce({
       data: {
@@ -282,9 +284,8 @@ describe("component", () => {
 
     expect(getFetchNextExperience()).toBeNull();
 
-    const fetchMoreExperiencesBtnEl = await waitForElement(
-      getFetchNextExperience,
-    );
+    await waitFor(() => true);
+    const fetchMoreExperiencesBtnEl = (getFetchNextExperience)()
 
     expect(getExperienceEl).not.toBeNull();
     expect(getExperienceEl("b")).toBeNull();
@@ -332,7 +333,7 @@ describe("component", () => {
     fetchMoreExperiencesBtnEl.click();
     jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-    await waitForElement(() => {
+    await waitFor(() => {
       return getExperienceEl("b");
     });
 
@@ -370,9 +371,10 @@ describe("component", () => {
     const { ui } = makeComp();
     render(ui);
 
-    const partOfflineExperienceEl = await waitForElement(() => {
-      return getExperienceEl(mockPartOfflineId);
-    });
+    await waitFor(() => true);
+
+    const partOfflineExperienceEl = getExperienceEl(mockPartOfflineId);
+
     expect(partOfflineExperienceEl.className).toContain(isPartOfflineClassName);
     expect(partOfflineExperienceEl.className).not.toContain(isOfflineClassName);
 
@@ -427,9 +429,9 @@ describe("component", () => {
     const { ui } = makeComp();
     render(ui);
 
-    const experiencesEls0 = await waitForElement(() => {
-      return getExperienceEl(mockPartOfflineId);
-    });
+    await waitFor(() => true);
+
+    const experiencesEls0 = getExperienceEl(mockPartOfflineId);
 
     const dropdownMenuEl0 = getDropdownMenu(experiencesEls0);
 
@@ -451,7 +453,7 @@ describe("component", () => {
 
     getDeleteExperienceMenu().click();
 
-    await wait(() => true);
+    await waitFor(() => true);
 
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0].id).toBe(
       mockPartOfflineId,
@@ -477,7 +479,7 @@ describe("component", () => {
     const { ui } = makeComp();
     render(ui);
 
-    await waitForElement(() => {
+    await waitFor(() => {
       return document.getElementById(mockOnlineId) as HTMLElement;
     });
 
@@ -536,9 +538,8 @@ describe("component", () => {
 
     expect(getExperienceEl()).toBeNull();
 
-    const deleteSuccessEl = await waitForElement(
-      getDeleteExperienceSuccessNotification,
-    );
+    await waitFor(() => true);
+    const deleteSuccessEl = getDeleteExperienceSuccessNotification();
 
     expect(getExperienceEl("bb")).not.toBeNull();
 
@@ -584,9 +585,9 @@ describe("component", () => {
     const { ui } = makeComp();
     render(ui);
 
-    const deleteExperienceCancelledEl = await waitForElement(
-      getDeleteExperienceCancelledNotification,
-    );
+    await waitFor(() => true);
+
+    const deleteExperienceCancelledEl = getDeleteExperienceCancelledNotification();
 
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
 
@@ -618,7 +619,8 @@ describe("component", () => {
     const { ui } = makeComp();
     render(ui);
 
-    const updateEl = await waitForElement(getUpdateExperienceMenuItem);
+    await waitFor(() => true);
+    const updateEl = getUpdateExperienceMenuItem();
 
     updateEl.click();
 
@@ -691,7 +693,7 @@ describe("component", () => {
     render(ui);
 
     // Then offline experience should be visible
-    await waitForElement(() => {
+    await waitFor(() => {
       return getExperienceEl(offlineId);
     });
 
@@ -760,7 +762,7 @@ describe("reducer", () => {
 
     jest.runTimersToTime(FETCH_EXPERIENCES_TIMEOUTS[0]);
 
-    await wait(() => true);
+    await waitFor(() => true);
     expect(mockDispatch.mock.calls[0][0].key).toEqual(StateValue.errors);
 
     mockGetIsConnected.mockReturnValue(true);
@@ -854,7 +856,7 @@ function getExperienceEl(id: string = mockOnlineId) {
 }
 
 function getDropdownMenu(parentEl: HTMLElement, index: number = 0) {
-  return parentEl.getElementsByClassName("dropdown").item(0) as HTMLElement;
+  return parentEl.getElementsByClassName("dropdown").item(index) as HTMLElement;
 }
 
 function getDeleteExperienceMenu(index: number = 0) {
@@ -892,7 +894,7 @@ function getDeleteExperienceCancelledNotification() {
 
 function getUpdateExperienceMenuItem(index: number = 0) {
   return document
-    .getElementsByClassName(updateExperienceMenuItemId)
+    .getElementsByClassName(updateExperienceMenuItemSelector)
     .item(index) as HTMLElement;
 }
 

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ComponentType } from "react";
-import { render, cleanup, waitForElement } from "@testing-library/react";
+import { render, cleanup, waitFor } from "@testing-library/react";
 import { App } from "../components/App/app.component";
 import { buildClientCache, restoreCacheOrPurgeStorage } from "../apollo/setup";
 
@@ -31,12 +31,9 @@ it("restores cache and renders main app", async () => {
   expect(document.getElementById(mockLoadingId)).not.toBeNull();
 
   expect(document.getElementById(mockChildId)).toBeNull();
+  await waitFor(() => true);
 
-  const mainUi = await waitForElement(() => {
-    return document.getElementById(mockChildId);
-  });
-
-  expect(mainUi).not.toBeNull();
+  expect(document.getElementById(mockChildId)).not.toBeNull();
 
   /**
    * And cache should be restored
@@ -67,11 +64,8 @@ it("did not restore cache and renders main app", async () => {
   /**
    * After a while, app main UI should be visible
    */
-  const mainUi = await waitForElement(() => {
-    return document.getElementById(mockChildId);
-  });
-
-  expect(mainUi).not.toBeNull();
+  await waitFor(() => true);
+  expect(document.getElementById(mockChildId)).not.toBeNull();
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////

@@ -39,10 +39,6 @@ export const deleteExperienceVar = makeVar<null | DeletedExperienceLedger>(
   null,
 );
 
-interface DeleteExperienceQueryResult {
-  deleteExperience: DeletedExperienceLedger;
-}
-
 type DeletedExperienceLedgerRequired = {
   id: string;
   howLongAgo: number;

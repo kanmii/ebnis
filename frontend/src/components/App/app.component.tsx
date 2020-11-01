@@ -6,7 +6,6 @@ import {
 import { E2EWindowObject } from "../../utils/types";
 import AppInner from "./app-inner.component";
 import Loading from "../Loading/loading.component";
-import { hot } from "react-hot-loader/root";
 
 export function App() {
   const obj = buildClientCache({
@@ -44,7 +43,7 @@ export function App() {
 }
 
 // istanbul ignore next:
-export default process.env.NODE_ENV !== "production" ? hot(App) : App;
+export default App;
 
 interface State {
   readonly renderChildren: boolean;
