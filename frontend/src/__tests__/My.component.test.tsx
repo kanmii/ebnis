@@ -25,7 +25,7 @@ import {
   fetchErrorRetryDomId,
   onDeleteExperienceSuccessNotificationId,
   onDeleteExperienceCancelledNotificationId,
-  updateExperienceMenuItemId,
+  updateExperienceMenuItemSelector,
   updateExperienceSuccessNotificationCloseClassName,
   activateInsertExperienceDomId,
 } from "../components/My/my.dom";
@@ -892,7 +892,7 @@ function getDeleteExperienceCancelledNotification() {
 
 function getUpdateExperienceMenuItem(index: number = 0) {
   return document
-    .getElementsByClassName(updateExperienceMenuItemId)
+    .getElementsByClassName(updateExperienceMenuItemSelector)
     .item(index) as HTMLElement;
 }
 

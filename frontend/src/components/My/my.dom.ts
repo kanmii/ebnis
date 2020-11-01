@@ -15,12 +15,13 @@ export const descriptionSummaryClassName = "description__text--summary";
 export const descriptionFullClassName = "description__text--full";
 export const descriptionLessClassName = "description__control--less";
 export const descriptionControlClassName = "description__control";
-export const dropdownTriggerClassName = "dropdown-trigger media-right";
+export const dropdownTriggerClassName = `js-${domPrefix}-experience-menu-trigger`;
 export const dropdownIsActiveClassName = "is-active";
 export const onDeleteExperienceSuccessNotificationId = `${domPrefix}-on-delete-experience-success-notification`;
 export const onDeleteExperienceCancelledNotificationId = `${domPrefix}-on-delete-experience-cancelled-notification`;
-export const updateExperienceMenuItemId = `js-${domPrefix}-update-experience-menu-item`;
+export const updateExperienceMenuItemSelector = `js-${domPrefix}-update-experience-menu-item`;
 export const updateExperienceSuccessNotificationCloseClassName = `js-${domPrefix}-update-experience-success-notification-delete`;
+export const experienceContainerSelector = `js-${domPrefix}-experience`;
 
 export function makeScrollToDomId(id: string) {
   return `${id}-${domPrefix}-scroll-to`;

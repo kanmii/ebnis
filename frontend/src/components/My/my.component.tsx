@@ -29,8 +29,9 @@ import {
   onDeleteExperienceSuccessNotificationId,
   onDeleteExperienceCancelledNotificationId,
   makeScrollToDomId,
-  updateExperienceMenuItemId,
+  updateExperienceMenuItemSelector,
   updateExperienceSuccessNotificationCloseClassName,
+  experienceContainerSelector,
 } from "./my.dom";
 import { setUpRoutePage } from "../../utils/global-window";
 import "./my.styles.scss";
@@ -330,6 +331,7 @@ function ExperienceComponent(props: ExperienceProps) {
         "experience box media": true,
         [isOfflineClassName]: onlineStatus === StateValue.offline,
         [isPartOfflineClassName]: onlineStatus === StateValue.partOffline,
+        [experienceContainerSelector]: true,
       })}
     >
       <div className="media-content">
@@ -419,7 +421,10 @@ function ExperienceComponent(props: ExperienceProps) {
         <div className="dropdown-menu" role="menu">
           <div className="dropdown-content">
             <a
-              className={`neutral-link edit-experience-menu-item ${updateExperienceMenuItemId}`}
+              className={makeClassNames({
+                "neutral-link edit-experience-menu-item": true,
+                [updateExperienceMenuItemSelector]: true,
+              })}
               style={{
                 cursor: "pointer",
                 display: "block",
@@ -464,7 +469,10 @@ function ExperienceComponent(props: ExperienceProps) {
       </div>
 
       <a
-        className={dropdownTriggerClassName}
+        className={makeClassNames({
+          [dropdownTriggerClassName]: true,
+          "media-right dropdown-trigger": true,
+        })}
         onClick={(e) => {
           e.preventDefault();
 
@@ -472,7 +480,6 @@ function ExperienceComponent(props: ExperienceProps) {
             type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
             id,
           });
-          /* eslint-disable-next-line react-hooks/exhaustive-deps*/
         }}
         href="a"
       >
