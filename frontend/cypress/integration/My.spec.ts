@@ -14,12 +14,13 @@ import {
   definitionTypeFormControlSelector,
   notificationCloseId,
   addDefinitionSelector,
+  definitionContainerDomSelector
 } from "../../src/components/UpsertExperience/upsert-experience.dom";
-import { DataTypes } from "../../src/graphql/apollo-types/globalTypes";
-import { createOnlineExperience } from "../support/create-experiences";
-import { createOfflineExperience } from "../../src/components/UpsertExperience/upsert-experience.resolvers";
-import { CYPRESS_APOLLO_KEY } from "../../src/apollo/setup";
-import { MY_URL } from "../../src/utils/urls";
+import {DataTypes} from "../../src/graphql/apollo-types/globalTypes";
+import {createOnlineExperience} from "../support/create-experiences";
+import {createOfflineExperience} from "../../src/components/UpsertExperience/upsert-experience.resolvers";
+import {CYPRESS_APOLLO_KEY} from "../../src/apollo/setup";
+import {MY_URL} from "../../src/utils/urls";
 
 context("My page", () => {
   beforeEach(() => {
@@ -244,12 +245,36 @@ context("My page", () => {
           cy.get("#" + titleInputDomId)
             // And title field should contain current title
             .should("have.value", "t1")
-            // When we update title
+            // We update title field
             .type(".");
 
           cy.get("#" + descriptionInputDomId)
+            // Description field should be empty
             .should("have.value", "")
+            // We update the description field
             .type("d1");
+
+          cy.get('.' + definitionContainerDomSelector).within(() => {
+
+
+            cy.get("." + definitionTypeFormControlSelector)
+              .first()
+              .as('dateEl')
+              .select(
+                DataTypes.INTEGER
+              );
+          })
+
+          // When form is submitted
+          cy.get("#" + submitDomId).click();
+
+          // Notification that experience creation failed should be visible
+          cy.get("#" + notificationCloseId)
+            .should("exist")
+            .click();
+
+          cy.get('@dateEl').select(DataTypes.DATETIME)
+
 
           // When we update experience title
         });
