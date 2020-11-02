@@ -14,13 +14,13 @@ import {
   definitionTypeFormControlSelector,
   notificationCloseId,
   addDefinitionSelector,
-  definitionContainerDomSelector
+  definitionContainerDomSelector,
 } from "../../src/components/UpsertExperience/upsert-experience.dom";
-import {DataTypes} from "../../src/graphql/apollo-types/globalTypes";
-import {createOnlineExperience} from "../support/create-experiences";
-import {createOfflineExperience} from "../../src/components/UpsertExperience/upsert-experience.resolvers";
-import {CYPRESS_APOLLO_KEY} from "../../src/apollo/setup";
-import {MY_URL} from "../../src/utils/urls";
+import { DataTypes } from "../../src/graphql/apollo-types/globalTypes";
+import { createOnlineExperience } from "../support/create-experiences";
+import { createOfflineExperience } from "../../src/components/UpsertExperience/upsert-experience.resolvers";
+import { CYPRESS_APOLLO_KEY } from "../../src/apollo/setup";
+import { MY_URL } from "../../src/utils/urls";
 
 context("My page", () => {
   beforeEach(() => {
@@ -254,16 +254,15 @@ context("My page", () => {
             // We update the description field
             .type("d1");
 
-          cy.get('.' + definitionContainerDomSelector).within(() => {
-
-
-            cy.get("." + definitionTypeFormControlSelector)
-              .first()
-              .as('dateEl')
-              .select(
-                DataTypes.INTEGER
-              );
-          })
+          cy.get("." + definitionContainerDomSelector)
+            .as("definitionEls")
+            .within(() => {
+              cy.get("." + definitionTypeFormControlSelector)
+                .as("typeEls")
+                .first()
+                .as("dateEl")
+                .select(DataTypes.INTEGER);
+            });
 
           // When form is submitted
           cy.get("#" + submitDomId).click();
@@ -273,10 +272,21 @@ context("My page", () => {
             .should("exist")
             .click();
 
-          cy.get('@dateEl').select(DataTypes.DATETIME)
+          // Form is filled correctly
+          cy.get("@dateEl").select(DataTypes.DATETIME);
+          cy.get("@typeEls").eq(1).select(DataTypes.DATE);
+          cy.get("@typeEls").eq(2).select(DataTypes.INTEGER);
+          cy.get("@typeEls").eq(3).select(DataTypes.DECIMAL);
+          cy.get("@typeEls").eq(4).select(DataTypes.MULTI_LINE_TEXT);
+          cy.get("@typeEls").eq(5).select(DataTypes.SINGLE_LINE_TEXT);
 
+          // When form is submitted
+          cy.get("#" + submitDomId).click();
 
-          // When we update experience title
+          // Notification that experience creation failed should be visible
+          // cy.get("#" + notificationCloseId)
+          //   .should("exist")
+          //   .click();
         });
       });
     });
