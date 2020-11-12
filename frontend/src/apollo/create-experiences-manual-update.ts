@@ -25,7 +25,7 @@ import {
 } from "../utils/sync-to-server.types";
 
 export function createExperiencesManualUpdate(
-  dataProxy: DataProxy,
+  _dataProxy: DataProxy,
   result: CreateExperiencesMutationResult,
   maybeSyncErrors?: SyncErrors,
 ) {
@@ -58,17 +58,14 @@ export function createExperiencesManualUpdate(
         const offlineExperience = readExperienceFragment(offlineErfahrungId);
         const onlineExperienceId = newlyCreatedExperience.id;
 
-        toBeInsertedAcc.push([
-          onlineExperienceId,
-          newlyCreatedExperience,
-        ]);
+        toBeInsertedAcc.push([onlineExperienceId, newlyCreatedExperience]);
 
         // fresh experience created directly online
         if (!offlineExperience) {
           return toBeInsertedAcc;
         }
 
-        // following exist bcos of experience created offline now synced
+        // following exist because of experience created offline now synced
 
         offlineIdToOnlineExperienceMap[
           offlineErfahrungId
@@ -129,7 +126,7 @@ export function createExperiencesManualUpdate(
 
           if (clientIdToEntryErrorsMap[beforeSyncEntryNode.id]) {
             const dataObjects = (beforeSyncEntryNode.dataObjects as DataObjectFragment[]).map(
-              (dataObject, dataObjectIndex) => {
+              (dataObject, _dataObjectIndex) => {
                 return {
                   ...dataObject,
                   definitionId:

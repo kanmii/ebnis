@@ -539,19 +539,27 @@ function handleOnUpdateExperienceSuccessAction(
         },
       });
 
-      for (let index = 0; index < experiences.length; index++) {
+      const len = experiences.length;
+      let updatedExperienceData = (undefined as unknown) as ExperienceData;
+      const newExperiences: ExperienceData[] = [updatedExperienceData];
+      context.experiences = newExperiences;
+
+      for (let index = 0; index < len; index++) {
         const iter = experiences[index];
         const prevExperience = iter.experience;
 
         // istanbul ignore else:
-        if (prevExperience.id === id) {
-          experiences[index] = {
+        if (!updatedExperienceData && prevExperience.id === id) {
+          updatedExperienceData = {
             ...iter,
             experience: updatedExperience,
             // TODO: Should we not compute new syncError
             syncError: undefined,
             onlineStatus: onlineStatus || iter.onlineStatus,
           };
+
+          newExperiences[0] = updatedExperienceData;
+
           const prepared = experiencesPrepared[index];
           prepared.title = title;
           prepared.target = fuzzysort.prepare(title) as Fuzzysort.Prepared;
@@ -562,8 +570,8 @@ function handleOnUpdateExperienceSuccessAction(
               id: makeScrollToDomId(id),
             },
           });
-
-          break;
+        } else {
+          newExperiences.push(iter);
         }
       }
     }

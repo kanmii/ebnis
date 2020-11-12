@@ -83,8 +83,12 @@ export function updateExperiencesManualCacheUpdate(
           experienceId,
         );
 
-        const unsynced = (getUnsyncedExperience(experienceId) ||
+        let unsynced = (getUnsyncedExperience(experienceId) ||
           {}) as UnsyncedModifiedExperience;
+
+        unsynced = {
+          ...unsynced,
+        };
 
         const syncError = {} as SyncError;
 

@@ -71,6 +71,9 @@ import {
   GetDataObjects,
 } from "../graphql/apollo-types/GetDataObjects";
 import { SyncError } from "./sync-to-server.types";
+import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
+import { getExperienceQuery } from "../apollo/get-detailed-experience-query";
+import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 
@@ -81,7 +84,10 @@ export function useUpdateExperiencesOnlineMutation(): UseUpdateExperiencesOnline
 interface UpdateExperiencesOnlineEffectHelperFunc {
   input: UpdateExperienceInput[];
   updateExperiencesOnline: UpdateExperiencesOnlineMutationFn;
-  onUpdateSuccess: (arg: UpdateExperienceSomeSuccessFragment) => void;
+  onUpdateSuccess: (
+    updateResult: UpdateExperienceSomeSuccessFragment,
+    experience: ExperienceFragment,
+  ) => void;
   onError: (error?: CommonError) => void;
   onDone?: () => void;
 }
@@ -117,7 +123,15 @@ export async function updateExperiencesOnlineEffectHelperFunc({
       if (updateResult.__typename === "UpdateExperienceErrors") {
         onError(updateResult.errors.error);
       } else {
-        onUpdateSuccess(updateResult);
+        const { experienceId } = updateResult.experience;
+
+        const updatedExperience = getExperienceQuery(
+          experienceId,
+        ) as ExperienceFragment;
+
+        floatExperienceToTheTopInGetExperiencesMiniQuery(updatedExperience);
+
+        onUpdateSuccess(updateResult, updatedExperience);
       }
     }
   } catch (errors) {

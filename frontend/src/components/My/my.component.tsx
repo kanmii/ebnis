@@ -361,7 +361,6 @@ function ExperienceComponent(props: ExperienceProps) {
                     type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
                     experience,
                   });
-                  /* eslint-disable-next-line react-hooks/exhaustive-deps*/
                 }}
                 className={`${updateExperienceSuccessNotificationCloseClassName} delete`}
               />

@@ -34,6 +34,13 @@ import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
 import { deleteObjectKey } from "../utils";
+// import { getExperienceQuery } from "../apollo/get-detailed-experience-query";
+import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-mini-query";
+
+jest.mock("../apollo/get-detailed-experience-query");
+
+jest.mock("../apollo/update-get-experiences-mini-query");
+const mockFloatExperienceToTheTopInGetExperiencesMiniQuery = floatExperienceToTheTopInGetExperiencesMiniQuery as jest.Mock;
 
 jest.mock("../components/UpsertEntry/upsert-entry.resolvers");
 const mockCreateOfflineEntry = createOfflineEntryMutation as jest.Mock;
@@ -557,6 +564,9 @@ describe("reducer", () => {
 
     effectFunctions[key](ownArgs as any, props, effectArgs);
     await waitFor(() => true);
+    expect(
+      mockFloatExperienceToTheTopInGetExperiencesMiniQuery,
+    ).toHaveBeenCalled();
     expect(mockUpdateExperiencesOnline).toHaveBeenCalled();
     expect(mockPersistFn).toHaveBeenCalled();
   });

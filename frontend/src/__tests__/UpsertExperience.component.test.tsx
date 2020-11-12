@@ -511,8 +511,8 @@ describe("components", () => {
       onError,
     } = mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0];
 
-    const x = { id: "a" };
-    mockGetEntriesQuery.mockReturnValue(x);
+    const updatedExperience = { id: "a" };
+    mockGetEntriesQuery.mockReturnValue(updatedExperience);
     mockGetEntriesQuerySuccess.mockReturnValue({
       edges: [
         {
@@ -527,10 +527,20 @@ describe("components", () => {
       ],
     });
 
-    await onUpdateSuccess({ experience: { experienceId: onlineExperienceId } });
+    await onUpdateSuccess(
+      {
+        experience: {
+          experienceId: onlineExperienceId,
+        },
+      },
+      updatedExperience,
+    );
 
     expect(mockManuallyGetDataObjects.mock.calls[0][0].ids[0]).toBe("xx");
-    expect(mockOnSuccess).toHaveBeenCalledWith(x, StateValue.online);
+    expect(mockOnSuccess).toHaveBeenCalledWith(
+      updatedExperience,
+      StateValue.online,
+    );
 
     act(() => {
       onError("a");

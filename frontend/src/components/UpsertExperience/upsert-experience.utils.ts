@@ -69,10 +69,7 @@ import {
 import { CreateExperienceSuccessFragment } from "../../graphql/apollo-types/CreateExperienceSuccessFragment";
 import { ExperienceFragment } from "../../graphql/apollo-types/ExperienceFragment";
 import { DataDefinitionFragment } from "../../graphql/apollo-types/DataDefinitionFragment";
-import {
-  getExperienceQuery,
-  getEntriesQuerySuccess,
-} from "../../apollo/get-detailed-experience-query";
+import { getEntriesQuerySuccess } from "../../apollo/get-detailed-experience-query";
 import { EntryConnectionFragment_edges } from "../../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
@@ -399,12 +396,8 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
     updateExperiencesOnlineEffectHelperFunc({
       input: [input],
       updateExperiencesOnline,
-      onUpdateSuccess: async (successArgs) => {
+      onUpdateSuccess: async (successArgs, updatedExperience) => {
         const { experienceId } = successArgs.experience;
-
-        const updatedExperience = getExperienceQuery(
-          experienceId,
-        ) as ExperienceFragment;
 
         const inputChanged =
           input.updateDefinitions &&

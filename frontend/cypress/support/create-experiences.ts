@@ -7,8 +7,11 @@ import {
   CreateExperiences_createExperiences_ExperienceSuccess,
 } from "../../src/graphql/apollo-types/CreateExperiences";
 import { CYPRESS_APOLLO_KEY } from "../../src/apollo/setup";
+import { ExperienceFragment } from "../../src/graphql/apollo-types/ExperienceFragment";
 
-export function createOnlineExperience(input: CreateExperienceInput) {
+export function createOnlineExperience(
+  input: CreateExperienceInput,
+): Promise<ExperienceFragment> {
   return mutate<CreateExperiences, CreateExperiencesVariables>({
     mutation: CREATE_EXPERIENCES_MUTATION,
     variables: {
@@ -17,7 +20,8 @@ export function createOnlineExperience(input: CreateExperienceInput) {
   }).then((result) => {
     const validResponses = (result &&
       result.data &&
-      result.data.createExperiences) as {};
+      result.data
+        .createExperiences) as CreateExperiences_createExperiences_ExperienceSuccess[];
 
     const experience = (validResponses[0] as CreateExperiences_createExperiences_ExperienceSuccess)
       .experience;
