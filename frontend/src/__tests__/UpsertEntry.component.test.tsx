@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars*/
 import React, { ComponentType } from "react";
-import { render, cleanup, waitForElement, wait } from "@testing-library/react";
+import { render, cleanup, waitFor } from "@testing-library/react";
 import { UpsertEntry } from "../components/UpsertEntry/upsert-entry.component";
 import {
   Props,
@@ -23,29 +23,20 @@ import {
   fieldErrorSelector,
 } from "../components/UpsertEntry/upsert-entry.dom";
 import { getIsConnected } from "../utils/connections";
-import {
-  UpdateExperiencesOnlineMutationResult,
-  CreateExperiencesMutationResult,
-} from "../utils/experience.gql.types";
+import { UpdateExperiencesOnlineMutationResult } from "../utils/experience.gql.types";
 import { scrollIntoView } from "../utils/scroll-into-view";
 import { createOfflineEntryMutation } from "../components/UpsertEntry/upsert-entry.resolvers";
 import { AppPersistor } from "../utils/app-context";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { E2EWindowObject, StateValue } from "../utils/types";
 import { makeOfflineId } from "../utils/offlines";
-import { windowChangeUrl } from "../utils/global-window";
-import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
 import { ExperienceFragment } from "../graphql/apollo-types/ExperienceFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
-import { getEntriesQuerySuccess } from "../apollo/get-detailed-experience-query";
-import { emptyGetEntries } from "../graphql/utils.gql";
 import { CreateEntryErrorFragment } from "../graphql/apollo-types/CreateEntryErrorFragment";
+import { deleteObjectKey } from "../utils";
 
 jest.mock("../components/UpsertEntry/upsert-entry.resolvers");
 const mockCreateOfflineEntry = createOfflineEntryMutation as jest.Mock;
-
-jest.mock("../apollo/get-detailed-experience-query");
-const mockGetEntriesQuerySuccess = getEntriesQuerySuccess as jest.Mock;
 
 jest.mock("../utils/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
@@ -90,12 +81,6 @@ jest.mock("../components/DateTimeField/date-time-field.component", () => {
   };
 });
 
-jest.mock("../utils/global-window");
-const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
-
-jest.mock("../apollo/unsynced-ledger");
-const mockRemoveUnsyncedExperience = removeUnsyncedExperiences as jest.Mock;
-
 const mockDispatch = jest.fn();
 const mockUpdateExperiencesOnline = jest.fn();
 const mockPersistFn = jest.fn();
@@ -116,15 +101,13 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  delete window.____ebnis;
+  deleteObjectKey(window, "____ebnis");
 });
 
 afterEach(() => {
   cleanup();
   jest.resetAllMocks();
 });
-
-const entriesSuccess = emptyGetEntries.entries;
 
 describe("component", () => {
   it("connected/renders date field/invalid server response", async () => {
@@ -155,7 +138,8 @@ describe("component", () => {
 
     submitEl.click();
 
-    const notificationEl = await waitForElement(getNotificationEl);
+    await waitFor(() => true);
+    const notificationEl = getNotificationEl();
     expect(mockScrollIntoView).toHaveBeenCalled();
     notificationEl.click();
     expect(getNotificationEl()).toBeNull();
@@ -200,7 +184,7 @@ describe("component", () => {
     expect(getNotificationEl()).toBeNull();
 
     submitEl.click();
-    await waitForElement(getNotificationEl);
+    await waitFor(getNotificationEl);
     expect(
       mockUpdateExperiencesOnline.mock.calls[0][0].variables.input[0]
         .addEntries[0],
@@ -271,7 +255,7 @@ describe("component", () => {
     expect(getFieldError()).toBeNull();
 
     submitEl.click();
-    await waitForElement(getNotificationEl);
+    await waitFor(getNotificationEl);
     expect(getFieldError()).not.toBeNull();
 
     getCloseComponentEl().click();
@@ -314,7 +298,7 @@ describe("component", () => {
     expect(getNotificationEl()).toBeNull();
 
     submitEl.click();
-    await waitForElement(getNotificationEl);
+    await waitFor(getNotificationEl);
     expect(mockCreateOfflineEntry.mock.calls[0][0].dataObjects[0].data).toEqual(
       `{"single_line_text":"b"}`,
     );
@@ -344,7 +328,7 @@ describe("component", () => {
     expect(getNotificationEl()).toBeNull();
 
     submitEl.click();
-    await waitForElement(getNotificationEl);
+    await waitFor(getNotificationEl);
     expect(mockCreateOfflineEntry.mock.calls[0][0].dataObjects[0].data).toEqual(
       `{"multi_line_text":"a"}`,
     );
@@ -377,7 +361,7 @@ describe("component", () => {
     expect(mockPersistFn).not.toHaveBeenCalled();
 
     submitEl.click();
-    await wait(() => true);
+    await waitFor(() => true);
     expect(mockPersistFn).toHaveBeenCalled();
 
     expect(mockCreateOfflineEntry.mock.calls[0][0].dataObjects[0]).toEqual({
@@ -464,7 +448,7 @@ describe("component", () => {
       },
     });
 
-    const { debug } = render(ui);
+    render(ui);
 
     const inputEl = document.getElementById("1") as HTMLInputElement;
     expect(inputEl.value).toBe("1");
@@ -474,7 +458,7 @@ describe("component", () => {
     expect(getFieldError()).toBeNull();
 
     submitEl.click();
-    await waitForElement(getNotificationEl);
+    await waitFor(getNotificationEl);
     expect(getFieldError()).not.toBeNull();
 
     getCloseComponentEl().click();
@@ -572,7 +556,7 @@ describe("reducer", () => {
     expect(mockPersistFn).not.toHaveBeenCalled();
 
     effectFunctions[key](ownArgs as any, props, effectArgs);
-    await wait(() => true);
+    await waitFor(() => true);
     expect(mockUpdateExperiencesOnline).toHaveBeenCalled();
     expect(mockPersistFn).toHaveBeenCalled();
   });
@@ -608,7 +592,7 @@ describe("reducer", () => {
     expect(mockDispatch).not.toHaveBeenCalled();
 
     effectFunctions[key](ownArgs as any, props, effectArgs);
-    await wait(() => true);
+    await waitFor(() => true);
     expect(mockPersistFn).not.toHaveBeenCalled();
     expect(mockDispatch.mock.calls[0][0].type).toBe(ActionType.ON_COMMON_ERROR);
   });

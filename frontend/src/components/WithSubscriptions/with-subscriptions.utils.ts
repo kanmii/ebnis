@@ -34,6 +34,7 @@ import {
 import { WithSubscriptionContextProps } from "../../utils/app-context";
 import { readEntryFragment } from "../../apollo/get-detailed-experience-query";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
+import { deleteObjectKey } from "../../utils";
 
 export enum ActionType {
   CONNECTION_CHANGED = "@with-subscription/connection-changed",
@@ -48,7 +49,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
     (prevState, { type, ...payload }) => {
       return immer(prevState, (proxy) => {
         proxy.effects.general.value = StateValue.noEffect;
-        delete proxy.effects.general[StateValue.hasEffects];
+        deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
 
         switch (type) {
           case ActionType.CONNECTION_CHANGED:

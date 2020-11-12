@@ -1,6 +1,6 @@
 import { Reducer, Dispatch } from "react";
 import { wrapReducer } from "../../logger";
-import immer, { Draft } from "immer";
+import immer from "immer";
 import { ExperienceMiniFragment } from "../../graphql/apollo-types/ExperienceMiniFragment";
 import fuzzysort from "fuzzysort";
 import { RouteChildrenProps } from "react-router-dom";
@@ -17,6 +17,7 @@ import {
   LoadingState,
   BroadcastMessageType,
   OnlineStatus,
+  KeyOfTimeouts,
 } from "../../utils/types";
 import {
   GenericGeneralEffect,
@@ -66,6 +67,7 @@ import {
   getOnlineStatus,
 } from "../../apollo/unsynced-ledger";
 import { FETCH_EXPERIENCES_TIMEOUTS } from "../../utils/timers";
+import { deleteObjectKey } from "../../utils";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
@@ -92,82 +94,83 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
     (prevState, { type, ...payload }) => {
       return immer(prevState, (proxy) => {
         proxy.effects.general.value = StateValue.noEffect;
-        delete proxy.effects.general[StateValue.hasEffects];
+        deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
+        const state = proxy as StateMachine;
 
         switch (type) {
           case ActionType.ACTIVATE_UPSERT_EXPERIENCE:
             handleActivateUpsertExperienceAction(
-              proxy,
+              state,
               payload as UpsertExperiencePayload,
             );
             break;
 
           case ActionType.CANCEL_UPSERT_EXPERIENCE:
-            handleDeactivateNewExperienceAction(proxy);
+            handleDeactivateNewExperienceAction(state);
             break;
 
           case ActionType.TOGGLE_SHOW_DESCRIPTION:
             handleToggleShowDescriptionAction(
-              proxy,
+              state,
               payload as WithExperienceIdPayload,
             );
             break;
 
           case ActionType.TOGGLE_SHOW_OPTIONS_MENU:
             handleToggleShowOptionsMenuAction(
-              proxy,
+              state,
               payload as WithExperienceIdPayload,
             );
             break;
 
           case ActionType.CLOSE_ALL_OPTIONS_MENU:
-            handleCloseAllOptionsMenuAction(proxy);
+            handleCloseAllOptionsMenuAction(state);
             break;
 
           case ActionType.SEARCH:
-            handleSearchAction(proxy, payload as SetSearchTextPayload);
+            handleSearchAction(state, payload as SetSearchTextPayload);
             break;
 
           case ActionType.CLEAR_SEARCH:
-            handleClearSearchAction(proxy);
+            handleClearSearchAction(state);
             break;
 
           case ActionType.CLOSE_DELETE_EXPERIENCE_NOTIFICATION:
-            handleDeleteExperienceNotificationAction(proxy);
+            handleDeleteExperienceNotificationAction(state);
             break;
 
           case ActionType.DELETE_EXPERIENCE_REQUEST:
             handleDeleteExperienceRequestAction(
-              proxy,
+              state,
               payload as WithExperienceIdPayload,
             );
             break;
 
           case ActionType.ON_DATA_RECEIVED:
-            handleOnDataReceivedAction(proxy, payload as OnDataReceivedPayload);
+            handleOnDataReceivedAction(state, payload as OnDataReceivedPayload);
             break;
 
           case ActionType.DATA_RE_FETCH_REQUEST:
-            handleDataReFetchRequestAction(proxy);
+            handleDataReFetchRequestAction(state);
             break;
 
           case ActionType.FETCH_NEXT_EXPERIENCES_PAGE:
-            handleFetchPrevNextExperiencesPageAction(proxy);
+            handleFetchPrevNextExperiencesPageAction(state);
             break;
 
           case ActionType.ON_UPDATE_EXPERIENCE_SUCCESS:
             handleOnUpdateExperienceSuccessAction(
-              proxy,
+              state,
               payload as WithExperiencePayload,
             );
             break;
 
           case ActionType.SET_TIMEOUT:
-            handleSetTimeoutAction(proxy, payload as SetTimeoutPayload);
+            handleSetTimeoutAction(state, payload as SetTimeoutPayload);
             break;
 
           case ActionType.ON_SYNC:
-            handleOnSyncAction(proxy, payload as OnSycPayload);
+            handleOnSyncAction(state, payload as OnSycPayload);
             break;
         }
       });
@@ -203,7 +206,7 @@ export function initState(): StateMachine {
 }
 
 function handleActivateUpsertExperienceAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: UpsertExperiencePayload,
 ) {
   const { states } = proxy;
@@ -212,7 +215,7 @@ function handleActivateUpsertExperienceAction(
   // istanbul ignore else
   if (states.value === StateValue.data) {
     const upsertExperienceActivated = states.data.states
-      .upsertExperienceActivated as Draft<UpsertExperienceActiveState>;
+      .upsertExperienceActivated as UpsertExperienceActiveState;
 
     upsertExperienceActivated.value = StateValue.active;
 
@@ -230,9 +233,7 @@ function handleDeactivateNewExperienceAction(proxy: StateMachine) {
   // istanbul ignore else
   if (states.value === StateValue.data) {
     const upsertExperienceActivated = states.data.states
-      .upsertExperienceActivated as Draft<
-      DataState["data"]["states"]["upsertExperienceActivated"]
-    >;
+      .upsertExperienceActivated as DataState["data"]["states"]["upsertExperienceActivated"];
 
     upsertExperienceActivated.value = StateValue.inactive;
   }
@@ -269,6 +270,10 @@ function handleToggleShowOptionsMenuAction(
       states: { experiences: experiencesState },
     } = states.data;
 
+    Object.values(experiencesState).forEach((state) => {
+      state.showingOptionsMenu = false;
+    });
+
     const state = experiencesState[id] || ({} as ExperienceState);
     state.showingOptionsMenu = !state.showingOptionsMenu;
     experiencesState[id] = state;
@@ -290,7 +295,10 @@ function handleCloseAllOptionsMenuAction(proxy: StateMachine) {
   }
 }
 
-function handleSearchAction(proxy: DraftState, payload: SetSearchTextPayload) {
+function handleSearchAction(
+  proxy: StateMachine,
+  payload: SetSearchTextPayload,
+) {
   const { states } = proxy;
   const { text } = payload;
 
@@ -301,7 +309,7 @@ function handleSearchAction(proxy: DraftState, payload: SetSearchTextPayload) {
       context: { experiencesPrepared },
     } = states.data;
 
-    const activeSearch = search as Draft<SearchActive>;
+    const activeSearch = search as SearchActive;
     activeSearch.value = StateValue.active;
     const active = activeSearch.active || makeDefaultSearchActive();
 
@@ -333,7 +341,7 @@ export function makeDefaultSearchActive() {
   };
 }
 
-function handleClearSearchAction(proxy: DraftState) {
+function handleClearSearchAction(proxy: StateMachine) {
   const { states } = proxy;
 
   // istanbul ignore else
@@ -350,7 +358,7 @@ function handleClearSearchAction(proxy: DraftState) {
   }
 }
 
-function handleDeleteExperienceNotificationAction(proxy: DraftState) {
+function handleDeleteExperienceNotificationAction(proxy: StateMachine) {
   const { states } = proxy;
 
   // istanbul ignore else
@@ -360,7 +368,7 @@ function handleDeleteExperienceNotificationAction(proxy: DraftState) {
 }
 
 function handleDeleteExperienceRequestAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: WithExperienceIdPayload,
 ) {
   const effects = getGeneralEffects(proxy);
@@ -374,7 +382,7 @@ function handleDeleteExperienceRequestAction(
 }
 
 function handleOnDataReceivedAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: OnDataReceivedPayload,
 ) {
   switch (payload.key) {
@@ -389,10 +397,10 @@ function handleOnDataReceivedAction(
 
       const state = {
         value: StateValue.data,
-      } as Draft<DataState>;
+      } as DataState;
 
       if (paginating) {
-        const { context } = (proxy.states as Draft<DataState>).data;
+        const { context } = (proxy.states as DataState).data;
         context.experiences = [...context.experiences, ...experiences];
         context.pageInfo = pageInfo;
         context.experiencesPrepared = [
@@ -437,7 +445,7 @@ function handleOnDataReceivedAction(
   }
 }
 
-async function handleDataReFetchRequestAction(proxy: DraftState) {
+async function handleDataReFetchRequestAction(proxy: StateMachine) {
   const effects = getGeneralEffects(proxy);
 
   effects.push({
@@ -446,7 +454,7 @@ async function handleDataReFetchRequestAction(proxy: DraftState) {
   });
 }
 
-function handleFetchPrevNextExperiencesPageAction(proxy: DraftState) {
+function handleFetchPrevNextExperiencesPageAction(proxy: StateMachine) {
   const { states } = proxy;
 
   // istanbul ignore else
@@ -482,7 +490,7 @@ function handleFetchPrevNextExperiencesPageAction(proxy: DraftState) {
 }
 
 function handleOnUpdateExperienceSuccessAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   { experience: updatedExperience, onlineStatus }: WithExperiencePayload,
 ) {
   const { states, timeouts } = proxy;
@@ -506,7 +514,7 @@ function handleOnUpdateExperienceSuccessAction(
     state.showingUpdateSuccess = !showingUpdateSuccess;
     experiencesState[id] = state;
 
-    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+    const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
 
     if (showingUpdateSuccess) {
       effects.push({
@@ -562,11 +570,14 @@ function handleOnUpdateExperienceSuccessAction(
   }
 }
 
-function handleSetTimeoutAction(proxy: DraftState, payload: SetTimeoutPayload) {
+function handleSetTimeoutAction(
+  proxy: StateMachine,
+  payload: SetTimeoutPayload,
+) {
   const { timeouts } = proxy;
 
   Object.entries(payload).forEach(([key, val]) => {
-    timeouts[key] = val;
+    timeouts[key as KeyOfTimeouts] = val;
   });
 }
 
@@ -583,9 +594,7 @@ function handleOnDeleteExperienceProcessedHelper(
   switch (deletedExperience.key) {
     case StateValue.cancelled:
       {
-        const state = deletedExperienceState as Draft<
-          DeletedExperienceCancelledState
-        >;
+        const state = deletedExperienceState as DeletedExperienceCancelledState;
 
         state.value = StateValue.cancelled;
         state.cancelled = {
@@ -598,9 +607,7 @@ function handleOnDeleteExperienceProcessedHelper(
 
     case StateValue.deleted:
       {
-        const state = deletedExperienceState as Draft<
-          DeletedExperienceSuccessState
-        >;
+        const state = deletedExperienceState as DeletedExperienceSuccessState;
 
         state.value = StateValue.deleted;
         state.deleted = {
@@ -613,7 +620,7 @@ function handleOnDeleteExperienceProcessedHelper(
   }
 }
 
-function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
+function handleOnSyncAction(proxy: StateMachine, { data }: OnSycPayload) {
   const { states } = proxy;
 
   // istanbul ignore else
@@ -667,7 +674,7 @@ function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
       data.offlineIdToOnlineExperienceMap &&
       Object.keys(offlineIdToOnlineExperienceMap).length
     ) {
-      const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+      const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
 
       effects.push({
         key: "postSyncEffect",
@@ -714,7 +721,7 @@ type DefDeleteExperienceRequestEffect = EffectDefinition<
 
 const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
   { paginationInput, previousLastId },
-  props,
+  _,
   effectArgs,
 ) => {
   const { dispatch } = effectArgs;
@@ -726,9 +733,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
   // gebraucht
   const cachedExperiencesResult = getExperiencesMiniQuery();
 
-  const deletedExperience = await deleteExperienceProcessedEffectHelper(
-    effectArgs,
-  );
+  const deletedExperience = await deleteExperienceProcessedEffectHelper();
 
   if (paginationInput) {
     fetchExperiences();
@@ -921,7 +926,7 @@ export const effectFunctions = {
   postSyncEffect,
 };
 
-async function deleteExperienceProcessedEffectHelper({ dispatch }: EffectArgs) {
+async function deleteExperienceProcessedEffectHelper() {
   const deletedExperience = getDeleteExperienceLedger();
 
   if (!deletedExperience) {
@@ -1030,73 +1035,68 @@ function processGetExperiencesQuery(
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////
 
-type DraftState = Draft<StateMachine>;
+export type StateMachine = GenericGeneralEffect<EffectType> & {
+  states: LoadingState | ErrorState | DataState;
+  timeouts: Timeouts;
+};
 
-export type StateMachine = GenericGeneralEffect<EffectType> &
-  Readonly<{
-    states: LoadingState | ErrorState | DataState;
-    timeouts: Readonly<Timeouts>;
-  }>;
-
-type ErrorState = Readonly<{
+type ErrorState = {
   value: ErrorsVal;
   error: string;
-}>;
+};
 
-export type DataState = Readonly<{
+export type DataState = {
   value: DataVal;
   data: {
     context: DataStateContext;
-    states: Readonly<{
+    states: {
       upsertExperienceActivated:
-        | Readonly<{
+        | {
             value: InActiveVal;
-          }>
+          }
         | UpsertExperienceActiveState;
       experiences: ExperiencesMap;
       search: SearchState;
       deletedExperience: DeletedExperienceState;
-    }>;
+    };
   };
-}>;
+};
 
-type UpsertExperienceActiveState = Readonly<{
+type UpsertExperienceActiveState = {
   value: ActiveVal;
-  active: Readonly<{
-    context: Readonly<UpsertExperiencePayload>;
-  }>;
-}>;
+  active: {
+    context: UpsertExperiencePayload;
+  };
+};
 
-type DataStateContext = ExperiencesData &
-  Readonly<{
-    experiencesPrepared: ExperiencesSearchPrepared;
-  }>;
+type DataStateContext = ExperiencesData & {
+  experiencesPrepared: ExperiencesSearchPrepared;
+};
 
-export type DeletedExperienceState = Readonly<
+export type DeletedExperienceState =
   | {
       value: InActiveVal;
     }
   | DeletedExperienceCancelledState
-  | DeletedExperienceSuccessState
->;
+  | DeletedExperienceSuccessState;
 
-type DeletedExperienceSuccessState = Readonly<{
+type DeletedExperienceSuccessState = {
   value: DeletedVal;
-  deleted: Readonly<{
-    context: Readonly<{
+  deleted: {
+    context: {
       title: string;
-    }>;
-  }>;
-}>;
+    };
+  };
+};
 
-type DeletedExperienceCancelledState = Readonly<{
+type DeletedExperienceCancelledState = {
   value: CancelledVal;
-  cancelled: Readonly<{
-    context: Readonly<{
+  cancelled: {
+    context: {
       title: string;
-    }>;
-  }>;
-}>;
+    };
+  };
+};
 
 export type SearchState =
   | {
@@ -1105,11 +1105,11 @@ export type SearchState =
   | SearchActive;
 
 export interface SearchActive {
-  readonly value: ActiveVal;
-  readonly active: {
-    readonly context: {
-      readonly value: string;
-      readonly results: MySearchResult[];
+  value: ActiveVal;
+  active: {
+    context: {
+      value: string;
+      results: MySearchResult[];
     };
   };
 }

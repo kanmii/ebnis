@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ComponentType } from "react";
-import { render, cleanup, waitForElement, wait } from "@testing-library/react";
+import { render, cleanup, waitFor } from "@testing-library/react";
 import { UpsertExperience } from "../components/UpsertExperience/upsert-experience.component";
 import {
   Props,
@@ -59,6 +59,7 @@ import {
   updateExperienceOfflineFn,
 } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { makeOfflineId } from "../utils/offlines";
+import { deleteObjectKey } from "../utils";
 
 jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
 const mockCreateOfflineExperience = createOfflineExperience as jest.Mock;
@@ -103,7 +104,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  delete window.____ebnis;
+  deleteObjectKey(window, "____ebnis");
 });
 
 afterEach(() => {
@@ -296,7 +297,10 @@ describe("components", () => {
 
     submitEl.click();
 
-    notificationCloseEl = await waitForElement(getNotificationCloseEl);
+    await waitFor(() => true);
+
+    notificationCloseEl = getNotificationCloseEl();
+
     notificationEl = getNotificationEl(notificationCloseEl);
     expect(notificationEl.classList).toContain(errorClassName);
     notificationCloseEl.click();
@@ -313,7 +317,8 @@ describe("components", () => {
     //  javascript exceptions during submission
     mockCreateExperiencesOnline.mockRejectedValue(new Error("a"));
     submitEl.click();
-    notificationCloseEl = await waitForElement(getNotificationCloseEl);
+    await waitFor(() => true);
+    notificationCloseEl = getNotificationCloseEl();
     notificationEl = getNotificationEl(notificationCloseEl);
     expect(notificationEl.classList).toContain(errorClassName);
 
@@ -336,7 +341,7 @@ describe("components", () => {
     expect(mockPersistFn).not.toHaveBeenCalled();
 
     submitEl.click();
-    await wait(() => true);
+    await waitFor(() => true);
     expect(mockWindowChangeUrl).toHaveBeenCalled();
     expect(mockPersistFn).toHaveBeenCalled();
     expect(
@@ -360,7 +365,7 @@ describe("components", () => {
       .getElementsByClassName(addDefinitionSelector)
       .item(0) as HTMLElement).click();
 
-    await wait(() => true);
+    await waitFor(() => true);
 
     definitionsEls = getDefinitionContainerEls();
     const definition1El = definitionsEls.item(1) as HTMLElement;
@@ -372,7 +377,7 @@ describe("components", () => {
       .getElementsByClassName(moveUpDefinitionSelector)
       .item(0) as HTMLElement).click();
 
-    await wait(() => true);
+    await waitFor(() => true);
     definitionsEls = getDefinitionContainerEls();
     expect(mockScrollIntoView.mock.calls[0][0]).toEqual(definition1El.id);
     expect(definitionsEls.item(0)).toBe(definition1El);
@@ -384,7 +389,7 @@ describe("components", () => {
       .getElementsByClassName(moveDownDefinitionSelector)
       .item(0) as HTMLElement).click();
 
-    await wait(() => true);
+    await waitFor(() => true);
     definitionsEls = getDefinitionContainerEls();
     expect(mockScrollIntoView.mock.calls[0][0]).toEqual(definition1El.id);
     expect(definitionsEls.item(0)).toBe(definition0El);
@@ -396,7 +401,7 @@ describe("components", () => {
       .getElementsByClassName(removeDefinitionSelector)
       .item(0) as HTMLElement).click();
 
-    await wait(() => true);
+    await waitFor(() => true);
     expect(mockScrollIntoView.mock.calls[0][0]).toEqual(definition0El.id);
     definitionsEls = getDefinitionContainerEls();
     expect(definitionsEls.length).toBe(1);
@@ -436,7 +441,7 @@ describe("components", () => {
     expect(definition0NameEl.value).toBe("");
     expect(definition0TypeEl.value).toBe("");
 
-    await wait(() => true);
+    await waitFor(() => true);
 
     // form is now pre filled with values from experience we wish to update
     expect(titleInputEl.value).toBe(onlineTitle);
@@ -491,7 +496,7 @@ describe("components", () => {
     expect(getFieldErrorEl(definition0TypeFieldEl)).toBeNull();
     submitEl.click();
 
-    notificationCloseEl = await waitForElement(getNotificationCloseEl);
+    notificationCloseEl = await waitFor(getNotificationCloseEl);
     expect(getFieldErrorEl(definition0TypeFieldEl)).not.toBeNull();
     notificationCloseEl.click();
     expect(getNotificationCloseEl()).toBeNull();
@@ -499,7 +504,7 @@ describe("components", () => {
     // update form correctly and submit
     fillField(definition0TypeEl, DataTypes.DECIMAL);
     submitEl.click();
-    await wait(() => true);
+    await waitFor(() => true);
 
     const {
       onUpdateSuccess,
@@ -567,7 +572,7 @@ describe("reducer", () => {
     expect(mockWindowChangeUrl).not.toHaveBeenCalled();
     expect(mockPersistFn).not.toHaveBeenCalled();
     effectFn(effect.ownArgs as any, props, effectArgs);
-    await wait(() => true);
+    await waitFor(() => true);
 
     expect(mockWindowChangeUrl).toHaveBeenCalled();
     expect(mockPersistFn).toHaveBeenCalled();
@@ -609,7 +614,7 @@ describe("reducer", () => {
 
     expect(mockDispatch).not.toHaveBeenCalled();
     effectFn(effect.ownArgs as any, props, effectArgs);
-    await wait(() => true);
+    await waitFor(() => true);
 
     expect(mockWindowChangeUrl).not.toHaveBeenCalled();
     expect(mockPersistFn).not.toHaveBeenCalled();
@@ -643,7 +648,7 @@ describe("reducer", () => {
 
     expect(mockDispatch).not.toHaveBeenCalled();
     effectFn(effect.ownArgs as any, props, effectArgs);
-    await wait(() => true);
+    await waitFor(() => true);
 
     expect(mockWindowChangeUrl).not.toHaveBeenCalled();
     expect(mockPersistFn).not.toHaveBeenCalled();
@@ -682,7 +687,7 @@ describe("reducer", () => {
 
     expect(mockDispatch).not.toHaveBeenCalled();
     effectFn(effect.ownArgs as any, props, effectArgs);
-    await wait(() => true);
+    await waitFor(() => true);
 
     expect(mockDispatch.mock.calls[0][0].type).toEqual(
       ActionType.ON_COMMON_ERROR,

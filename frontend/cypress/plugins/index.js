@@ -17,7 +17,7 @@ const webpackPreprocessor = require("@cypress/webpack-preprocessor");
 /**
  * @type {Cypress.PluginConfig}
  */
-module.exports = (on, config) => {
+module.exports = (on) => {
   // `on` is used to hook into various events Cypress emits
   // `config` is the resolved Cypress config
 
@@ -32,11 +32,9 @@ module.exports = (on, config) => {
           exclude: [/node_modules/],
           use: [
             {
-              loader: "./node_modules/react-scripts/node_modules/babel-loader",
+              loader: "babel-loader",
               options: {
-                presets: [
-                  "./node_modules/babel-preset-react-app/node_modules/@babel/preset-typescript",
-                ],
+                presets: ["@babel/preset-typescript"],
               },
             },
           ],

@@ -294,7 +294,7 @@ export function purgeExperience(experienceId: string, data?: any) {
       const entries = getEntriesQuerySuccess(experienceId);
 
       if (entries) {
-        purgeEntries(entries, data);
+        purgeEntries(entries);
         delete data.ROOT_QUERY[erzeugenSammelnEinträgenAbfrage(experienceId)];
       }
     }
@@ -304,14 +304,14 @@ export function purgeExperience(experienceId: string, data?: any) {
   delete data.ROOT_QUERY[makeGetExperienceApolloCacheKey(experienceId)];
 }
 
-function purgeEntries(entries: EntryConnectionFragment, data: any) {
+function purgeEntries(entries: EntryConnectionFragment) {
   const edges = entries.edges;
 
   if (!edges) {
     return;
   }
 
-  edges.forEach((edge, index) => {
+  edges.forEach((edge) => {
     const entry = (edge && edge.node) as EntryFragment;
     purgeEntry(entry);
   });

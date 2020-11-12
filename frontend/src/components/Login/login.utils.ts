@@ -17,6 +17,7 @@ import { EbnisContextProps } from "../../utils/app-context";
 import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
 import { MY_URL } from "../../utils/urls";
 import { manageUserAuthentication } from "../../utils/manage-user-auth";
+import { deleteObjectKey } from "../../utils";
 
 export enum ActionType {
   SUBMISSION = "@login/submission",
@@ -50,7 +51,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
     (prevState, { type, ...payload }) => {
       return immer(prevState, (proxy) => {
         proxy.effects.general.value = StateValue.noEffect;
-        delete proxy.effects.general[StateValue.hasEffects];
+        deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
 
         switch (type) {
           case ActionType.FORM_CHANGED:
@@ -408,7 +409,7 @@ function handleResetFormFieldsAction(proxy: DraftState) {
 
   Object.values(fields).forEach(({ states }) => {
     states.value = StateValue.unchanged;
-    delete states[StateValue.changed];
+    deleteObjectKey(states, StateValue.changed);
   });
 }
 
@@ -545,10 +546,6 @@ export type Action =
 interface FormChangedPayload {
   value: string;
   fieldName: keyof StateMachine["states"]["form"]["fields"];
-}
-
-interface OtherErrorsPayload {
-  errors: string;
 }
 
 export interface CallerProps {

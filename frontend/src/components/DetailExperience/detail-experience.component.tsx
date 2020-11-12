@@ -55,6 +55,7 @@ import {
   closeDeleteEntryConfirmationId,
   entryDeleteSuccessNotificationId,
   entryDeleteFailNotificationId,
+  deleteExperienceOkSelector,
 } from "./detail-experience.dom";
 import makeClassNames from "classnames";
 import {
@@ -180,7 +181,7 @@ export function DetailExperience(props: Props) {
           type: ActionType.RE_FETCH_ENTRIES,
         });
       },
-      fetchNextEntries(e) {
+      fetchNextEntries() {
         dispatch({
           type: ActionType.FETCH_NEXT_ENTRIES,
         });
@@ -490,7 +491,7 @@ function ExperienceComponent() {
           <>
             <ExperienceMenuComponent className="no-entry-menu" />
 
-            <div>
+            <div className={noTriggerDocumentEventClassName}>
               {entriesState.error}
 
               <button
@@ -535,7 +536,12 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
   return (
     <>
       {entries.length === 0 && (
-        <div className="no-entry-alert">
+        <div
+          className={makeClassNames({
+            "no-entry-alert": true,
+            [noTriggerDocumentEventClassName]: true,
+          })}
+        >
           <button
             id={noEntryTriggerId}
             className="button"
@@ -713,7 +719,12 @@ function DeleteExperienceModal() {
   } = useContext(DataStateContextC);
 
   return (
-    <div className="modal is-active delete-experience-component">
+    <div
+      className={makeClassNames({
+        "modal is-active delete-experience-component": true,
+        [noTriggerDocumentEventClassName]: true,
+      })}
+    >
       <div className="modal-background"></div>
 
       <div className="modal-card">
@@ -733,7 +744,10 @@ function DeleteExperienceModal() {
 
         <footer className="modal-card-foot">
           <button
-            className="button is-success delete-experience__ok-button"
+            className={makeClassNames({
+              "button is-success": true,
+              [deleteExperienceOkSelector]: true,
+            })}
             id={""}
             type="button"
             onClick={onConfirmDeleteExperience}

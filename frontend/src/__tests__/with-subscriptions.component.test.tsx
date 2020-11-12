@@ -32,6 +32,7 @@ import {
 import { clearNodeFolder } from "broadcast-channel";
 import { readEntryFragment } from "../apollo/get-detailed-experience-query";
 import { cleanUpOfflineExperiences } from "../components/WithSubscriptions/with-subscriptions.utils";
+import { deleteObjectKey } from "../utils";
 
 jest.mock("../apollo/update-get-experiences-mini-query");
 const mockPurgeExperiencesFromCache1 = purgeExperiencesFromCache1 as jest.Mock;
@@ -89,8 +90,8 @@ beforeEach(() => {
 afterAll(() => {
   const { bc } = globals;
   bc.close();
-  delete globals.bc;
-  delete window.____ebnis;
+  deleteObjectKey(globals, "bc");
+  deleteObjectKey(window, "____ebnis");
 });
 
 afterEach(() => {
@@ -99,7 +100,7 @@ afterEach(() => {
   jest.resetAllMocks();
 });
 
-it("renders", async (done) => {
+it("renders", async () => {
   mockUseOnExperiencesDeletedSubscription.mockReturnValue({
     data: {
       onExperiencesDeleted: {
@@ -129,7 +130,7 @@ it("renders", async (done) => {
 
   // When app is connected to network
   await act(async () => {
-    await broadcastMessage(
+    broadcastMessage(
       {
         type: BroadcastMessageType.connectionChanged,
         payload: {
@@ -165,7 +166,7 @@ it("renders", async (done) => {
   ]);
 
   // When connection is lost
-  act(() => {
+  await act(async () => {
     broadcastMessage(
       {
         type: BroadcastMessageType.connectionChanged,
@@ -193,7 +194,10 @@ it("renders", async (done) => {
       title: "c",
     },
   } as BroadcastMessageExperienceDeleted;
-  await broadcastMessage(messageExperienceDeleted, { plusSelf: true });
+
+  await act(async () => {
+    broadcastMessage(messageExperienceDeleted, { plusSelf: true });
+  });
 
   // App should change URL in response to delete experience message
   expect(mockWindowChangeUrl.mock.calls[1]).toEqual([
@@ -224,7 +228,7 @@ it("renders", async (done) => {
   } as BroadcastMessageOnSyncData;
 
   await act(async () => {
-    await broadcastMessage(messageSyncData, {
+    broadcastMessage(messageSyncData, {
       selfOnly: true,
     });
   });
@@ -241,8 +245,6 @@ it("renders", async (done) => {
 
   //cleanup
   mockCleanupWithSubscription.mock.calls[0][0]();
-
-  done();
 });
 
 it("cleans up offline experiences", async () => {

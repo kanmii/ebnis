@@ -24,6 +24,7 @@ import {
 } from "../apollo/get-detailed-experience-query";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { AppPersistor } from "../utils/app-context";
+import { deleteObjectKey } from "../utils";
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockReadExperienceFragment = readExperienceFragment as jest.Mock;
@@ -69,7 +70,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  delete window.____ebnis;
+  deleteObjectKey(window, "____ebnis");
 });
 
 afterEach(() => {

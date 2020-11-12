@@ -238,7 +238,7 @@ function NotificationComponent({
 }
 
 function makeDateChangedFn(dispatch: DispatchType, index: number) {
-  return function makeDateChangedFnInner(fieldName: string, value: FormObjVal) {
+  return function makeDateChangedFnInner(_fieldName: string, value: FormObjVal) {
     dispatch({
       type: ActionType.ON_FORM_FIELD_CHANGED,
       fieldIndex: index,
@@ -262,5 +262,3 @@ interface DataComponentProps {
   fieldState: FieldState;
   dispatch: DispatchType;
 }
-
-type E = React.ChangeEvent<HTMLInputElement>;

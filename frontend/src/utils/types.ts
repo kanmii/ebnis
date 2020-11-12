@@ -26,7 +26,7 @@ export interface ConnectionStatus {
   mode: "auto" | "manual";
 }
 
-type KeyOfE2EWindowObject = keyof E2EWindowObject;
+export type KeyOfE2EWindowObject = keyof E2EWindowObject;
 
 declare global {
   interface Window {
@@ -100,6 +100,8 @@ export type Timeouts = {
   genericTimeout?: NodeJS.Timeout;
 };
 
+export type KeyOfTimeouts = keyof Timeouts;
+
 export type NoEffectVal = "noEffect";
 export type HasEffectsVal = "hasEffects";
 export type ActiveVal = "active";
@@ -165,6 +167,6 @@ export const StateValue = {
   deleteSuccess: "deleteSuccess" as DeleteSuccess,
 } as const;
 
-export type LoadingState = Readonly<{
+export type LoadingState = {
   value: LoadingVal;
-}>;
+};

@@ -36,7 +36,7 @@ import {
 } from "../utils/sync-to-server.types";
 
 export function updateExperiencesManualCacheUpdate(
-  dataProxy: DataProxy,
+  _dataProxy: DataProxy,
   result: UpdateExperiencesOnlineMutationResult,
   maybeSyncErrors?: SyncErrors,
 ) {
@@ -65,13 +65,17 @@ export function updateExperiencesManualCacheUpdate(
           entries: entriesResult,
         } = updateResult;
         const { experienceId } = experienceResult;
-        const experience = readExperienceFragment(experienceId);
+        let experience = readExperienceFragment(experienceId);
 
         // TODO: what if experience missing from cache
         // istanbul ignore next
         if (!experience) {
           continue;
         }
+
+        experience = {
+          ...experience,
+        };
 
         onlineExperienceUpdatedMap[experienceId] = true;
 

@@ -17,7 +17,7 @@ export function useRunEffects<E, EffectFunctionType, Props, EffectArgs>(
     for (const member of generalEffects.hasEffects.context.effects) {
       const { key, ownArgs } = member as any;
 
-      effectFunctions[key](
+      (effectFunctions as any)[key](
         /* eslint-disable-next-line @typescript-eslint/no-explicit-any*/
         ownArgs as any,
         props,

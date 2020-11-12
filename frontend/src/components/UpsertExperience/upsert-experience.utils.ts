@@ -1,5 +1,5 @@
 import { Reducer, Dispatch } from "react";
-import immer, { Draft } from "immer";
+import immer from "immer";
 import {
   CreateExperienceInput,
   CreateDataDefinition,
@@ -77,6 +77,7 @@ import { EntryConnectionFragment_edges } from "../../graphql/apollo-types/EntryC
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { DataObjectFragment } from "../../graphql/apollo-types/DataObjectFragment";
 import { isOfflineId } from "../../utils/offlines";
+import { deleteObjectKey } from "../../utils";
 
 export const fieldTypeKeys = Object.values(DataTypes);
 
@@ -103,7 +104,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
     (prevState, { type, ...payload }) => {
       return immer(prevState, (proxy) => {
         proxy.effects.general.value = StateValue.noEffect;
-        delete proxy.effects.general[StateValue.hasEffects];
+        deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
 
         switch (type) {
           case ActionType.FORM_CHANGED:
@@ -235,7 +236,7 @@ function ceateExperienceInputMutationFunctionVariable(
 
 async function createExperienceOfflineEffect(
   input: CreateExperienceInput,
-  props: Props,
+  _: Props,
   effectArgs: EffectArgs,
 ) {
   const { dispatch } = effectArgs;
@@ -387,7 +388,7 @@ type DefFetchExperienceEffect = EffectDefinition<
 >;
 
 const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
-  { input, experience },
+  { input },
   props,
   effectArgs,
 ) => {
@@ -544,7 +545,7 @@ export function initState(props: Props): StateMachine {
 }
 
 function handleFormChangedAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: FormChangedPayload,
 ) {
   const {
@@ -554,10 +555,10 @@ function handleFormChangedAction(
   } = proxy;
 
   const { fieldName, value } = payload;
-  let state = {} as Draft<ChangedState>;
+  let state = {} as ChangedState;
 
   if (payload.key === "non-def") {
-    const field = fields[fieldName];
+    const field = fields[fieldName as KeyOfFormFields];
 
     if (fieldName === "title") {
       state = (field as FormField).states as ChangedState;
@@ -574,7 +575,7 @@ function handleFormChangedAction(
       },
     ) as DataDefinitionFormField;
 
-    const field = defAttrs[fieldName];
+    const field = defAttrs[fieldName as DataDefinitionFieldKey];
     state = (field as FormField).states as ChangedState;
   }
 
@@ -592,12 +593,12 @@ function handleFormChangedAction(
   state.changed.context.formValue = value;
 }
 
-function handleSubmissionAction(proxy: DraftState) {
+function handleSubmissionAction(proxy: StateMachine) {
   const {
     states: { submission, mode },
   } = proxy;
 
-  const effects = getGeneralEffects<EffectType, DraftState>(proxy);
+  const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
   submission.value = StateValue.inactive;
 
   const [insertInput, updateInput] = validateForm(proxy);
@@ -645,10 +646,12 @@ const definition_type_to_changes_map = {
   [DataTypes.DATETIME]: DataTypes.DATE,
   [DataTypes.DECIMAL]: DataTypes.INTEGER,
   [DataTypes.INTEGER]: DataTypes.DECIMAL,
+} as {
+  [key: string]: DataTypes;
 };
 
 function validateForm(
-  proxy: DraftState,
+  proxy: StateMachine,
 ): [CreateExperienceInput, UpdateExperienceInput] {
   const {
     states: {
@@ -658,7 +661,7 @@ function validateForm(
     },
   } = proxy;
 
-  const submissionWarningState = submission as Draft<SubmissionWarning>;
+  const submissionWarningState = submission as SubmissionWarning;
 
   const insertInput = {} as CreateExperienceInput;
   const isUpdating = mode.value === StateValue.update;
@@ -718,7 +721,7 @@ function validateForm(
           // user can edit and hide the description field especially if
           // text is quite long.
 
-          const state = (fieldState as Draft<DescriptionFormFieldActive>).active
+          const state = (fieldState as DescriptionFormFieldActive).active
             .states;
 
           if (state.value === StateValue.changed) {
@@ -901,7 +904,7 @@ function putFormFieldErrorHelper(
   fieldState: FormField["states"],
   errors: FieldError,
 ) {
-  const fieldStateChanged = fieldState as Draft<ChangedState>;
+  const fieldStateChanged = fieldState as ChangedState;
   fieldStateChanged.value = StateValue.changed;
 
   const changed =
@@ -909,11 +912,11 @@ function putFormFieldErrorHelper(
     ({
       states: {},
       context: { formValue: "" },
-    } as Draft<ChangedState["changed"]>);
+    } as ChangedState["changed"]);
 
   fieldStateChanged.changed = changed;
 
-  const invalidState = changed.states as Draft<FieldInValid>;
+  const invalidState = changed.states as FieldInValid;
   invalidState.value = StateValue.invalid;
   invalidState.invalid = {
     context: {
@@ -923,9 +926,9 @@ function putFormFieldErrorHelper(
 }
 
 function validateFormStringValuesHelper(
-  proxy: DraftState,
+  _: StateMachine,
   fieldName: string,
-  state: Draft<FormField["states"]>,
+  state: FormField["states"],
   emptyErrorText = EMPTY_ERROR_TEXT,
 ): [string, boolean] {
   let returnValue = "";
@@ -961,15 +964,14 @@ function validateFormStringValuesHelper(
 }
 
 function handleOnCommonErrorAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: StringyErrorPayload,
   scroll: "scroll" | "no-scroll" = "scroll",
 ) {
   const errors = parseStringError(payload.error);
 
-  const submissionErrorState = proxy.states.submission as Draft<
-    SubmissionCommonErrors
-  >;
+  const submissionErrorState = proxy.states
+    .submission as SubmissionCommonErrors;
 
   submissionErrorState.value = StateValue.commonErrors;
 
@@ -991,7 +993,7 @@ function handleOnCommonErrorAction(
   }
 }
 
-function handleResetFormFieldsAction(proxy: DraftState) {
+function handleResetFormFieldsAction(proxy: StateMachine) {
   const {
     states: {
       submission,
@@ -1027,10 +1029,10 @@ function handleResetFormFieldsAction(proxy: DraftState) {
 
       case "description":
         {
-          const inactiveState = fieldState as Draft<DescriptionFormField>;
+          const inactiveState = fieldState as DescriptionFormField;
           inactiveState.value = StateValue.active;
 
-          const state = (fieldState as Draft<DescriptionFormFieldActive>).active
+          const state = (fieldState as DescriptionFormFieldActive).active
             .states;
 
           state.value = StateValue.unchanged;
@@ -1053,13 +1055,13 @@ function handleResetFormFieldsAction(proxy: DraftState) {
   });
 }
 
-function clearFieldInvalidState(formField: Draft<FormField>) {
+function clearFieldInvalidState(formField: FormField) {
   const state = formField.states;
   state.value = StateValue.unchanged;
 
   /* istanbul ignore else*/
   if ((state as ChangedState).changed) {
-    (state as Draft<ChangedState>).changed.states.value = StateValue.initial;
+    (state as ChangedState).changed.states.value = StateValue.initial;
   }
 }
 
@@ -1068,7 +1070,7 @@ function definitionFieldsMapToList(defs: DataDefinitionFieldsMap) {
 }
 
 function definitionFieldsListToMap(
-  defs: Draft<DataDefinitionFormField[]>,
+  defs: DataDefinitionFormField[],
 ): DataDefinitionFieldsMap {
   return defs.reduce((acc, def, index) => {
     def.index = index;
@@ -1078,7 +1080,7 @@ function definitionFieldsListToMap(
 }
 
 function handleAddDefinitionAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: ChangeDefinitionFieldPayload,
 ) {
   const fields = proxy.states.form.fields;
@@ -1103,7 +1105,7 @@ function handleAddDefinitionAction(
 }
 
 function handleRemoveDefinitionAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: ChangeDefinitionFieldPayload,
 ) {
   const fields = proxy.states.form.fields;
@@ -1132,7 +1134,7 @@ function handleRemoveDefinitionAction(
 }
 
 function handleDownDefinitionAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: ChangeDefinitionFieldPayload,
 ) {
   const fields = proxy.states.form.fields;
@@ -1162,7 +1164,7 @@ function handleDownDefinitionAction(
 }
 
 function handleUpDefinitionAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: ChangeDefinitionFieldPayload,
 ) {
   const fields = proxy.states.form.fields;
@@ -1191,7 +1193,7 @@ function handleUpDefinitionAction(
   });
 }
 
-function handleToggleDescriptionAction(proxy: DraftState) {
+function handleToggleDescriptionAction(proxy: StateMachine) {
   const {
     states: {
       form: {
@@ -1207,7 +1209,7 @@ function handleToggleDescriptionAction(proxy: DraftState) {
 }
 
 function handleOnServerErrorsAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: ServerErrorsPayload,
 ) {
   proxy.states.submission.value = StateValue.inactive;
@@ -1239,13 +1241,11 @@ function handleOnServerErrorsAction(
 
   if (dataDefinitionsErrors) {
     dataDefinitionsErrors.forEach((d) => {
-      const {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        __typename,
-        index,
-        name: nameError,
-        type: typeError,
-      } = d as CreateExperiences_createExperiences_CreateExperienceErrors_errors_dataDefinitions;
+      const defErrors = d as CreateExperiences_createExperiences_CreateExperienceErrors_errors_dataDefinitions;
+
+      const index = defErrors.index;
+      const nameError = defErrors.name;
+      const typeError = defErrors.type;
 
       const state = definitionFieldsMapToList(fields.dataDefinitions).find(
         (def) => {
@@ -1273,7 +1273,7 @@ function handleOnServerErrorsAction(
       return acc;
     }, 0)
   ) {
-    const formInvalidState = validity as Draft<FormInValid>;
+    const formInvalidState = validity as FormInValid;
     formInvalidState.value = StateValue.invalid;
     const invalidErrors = [] as FieldError;
     formInvalidState.invalid = {
@@ -1307,7 +1307,7 @@ function handleOnServerErrorsAction(
   });
 }
 
-function handleCloseSubmitNotificationAction(proxy: DraftState) {
+function handleCloseSubmitNotificationAction(proxy: StateMachine) {
   const {
     states: {
       submission,
@@ -1319,7 +1319,7 @@ function handleCloseSubmitNotificationAction(proxy: DraftState) {
 }
 
 function handleOnExperienceFetchedSuccessAction(
-  proxy: DraftState,
+  proxy: StateMachine,
   payload: ExperienceFragment,
 ) {
   const {
@@ -1495,157 +1495,156 @@ type FormChangedPayload =
 interface NoneDefinitionChangedPayload {
   key: "non-def";
   value: string;
-  fieldName: keyof StateMachine["states"]["form"]["fields"];
+  fieldName: KeyOfFormFields;
 }
 
 interface DefinitionChangedPayload {
   key: "def";
   index: number;
   value: DataTypes | string;
-  fieldName: keyof DataDefinitionFieldsMap;
+  fieldName: DataDefinitionFieldKey;
 }
+
+type DataDefinitionFieldKey = "name" | "type";
 
 ////////////////////////// TYPES SECTION ////////////////////
 
-type DraftState = Draft<StateMachine>;
+export type StateMachine = GenericGeneralEffect<EffectType> & {
+  context: {
+    header: string;
+    title?: string;
+  };
+  states: {
+    submission: Submission;
+    form: FormFields;
+    mode:
+      | {
+          value: InsertVal;
+        }
+      | UpdateState;
+  };
+};
 
-export type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
-  Readonly<{
-    context: Readonly<{
-      header: string;
-      title?: string;
-    }>;
-    states: Readonly<{
-      submission: Submission;
-      form: Readonly<{
-        validity: FormValidity;
-        fields: Readonly<{
-          title: FormField;
-          description: DescriptionFormField;
-          dataDefinitions: DataDefinitionFieldsMap;
-        }>;
-      }>;
-      mode:
-        | Readonly<{
-            value: InsertVal;
-          }>
-        | UpdateState;
-    }>;
-  }>;
+type FormFields = {
+  validity: FormValidity;
+  fields: {
+    title: FormField;
+    description: DescriptionFormField;
+    dataDefinitions: DataDefinitionFieldsMap;
+  };
+};
 
-type UpdateState = Readonly<{
+type KeyOfFormFields = keyof FormFields["fields"];
+
+type UpdateState = {
   value: UpdateVal;
-  update: Readonly<{
+  update: {
     context: {
       experience: ExperienceFragment;
     };
-  }>;
-}>;
+  };
+};
 
-export type FormValidity = Readonly<
+export type FormValidity =
   | {
       value: InitialVal;
     }
-  | FormInValid
->;
+  | FormInValid;
 
-export type Submission = Readonly<
+export type Submission =
   | {
       value: InActiveVal;
     }
   | Submitting
   | SubmissionCommonErrors
-  | SubmissionWarning
->;
+  | SubmissionWarning;
 
-type Submitting = Readonly<{
+type Submitting = {
   value: SubmissionVal;
-}>;
+};
 
-export type SubmissionCommonErrors = Readonly<{
+export type SubmissionCommonErrors = {
   value: CommonErrorsVal;
-  commonErrors: Readonly<{
-    context: Readonly<{
+  commonErrors: {
+    context: {
       errors: string;
-    }>;
-  }>;
-}>;
+    };
+  };
+};
 
-type SubmissionWarning = Readonly<{
+type SubmissionWarning = {
   value: WarningVal;
-  warning: Readonly<{
-    context: Readonly<{
+  warning: {
+    context: {
       warning: string;
-    }>;
-  }>;
-}>;
+    };
+  };
+};
 
-export type DescriptionFormField = Readonly<
+export type DescriptionFormField =
   | {
       value: InActiveVal;
     }
-  | DescriptionFormFieldActive
->;
+  | DescriptionFormFieldActive;
 
-type DescriptionFormFieldActive = Readonly<{
+type DescriptionFormFieldActive = {
   value: ActiveVal;
   active: FormField;
-}>;
+};
 
 export interface DataDefinitionFieldsMap {
   [dataDefinitionDomId: string]: DataDefinitionFormField;
 }
 
-type DataDefinitionFormField = Readonly<{
+type DataDefinitionFormField = {
   index: number;
   id: string;
   name: FormField;
   type: FormField<DataTypes>;
-}>;
+};
 
-export type FormField<Value = string> = Readonly<{
+export type FormField<Value = string> = {
   states:
     | {
         value: UnChangedVal;
       }
     | ChangedState<Value>;
-}>;
+};
 
-export type ChangedState<Value = string> = Readonly<{
+export type ChangedState<Value = string> = {
   value: ChangedVal;
-  changed: Readonly<{
+  changed: {
     context: {
       formValue: Value;
     };
-    states: Readonly<
+    states:
       | {
           value: InitialVal;
         }
       | {
           value: ValidVal;
         }
-      | FieldInValid
-    >;
-  }>;
-}>;
+      | FieldInValid;
+  };
+};
 
-export type FieldInValid = Readonly<{
+export type FieldInValid = {
   value: InvalidVal;
-  invalid: Readonly<{
+  invalid: {
     context: {
       errors: FieldError;
     };
-  }>;
-}>;
+  };
+};
 
-export type FormInValid = Readonly<{
+export type FormInValid = {
   value: InvalidVal;
-  invalid: Readonly<{
-    context: Readonly<{
+  invalid: {
+    context: {
       errors: FieldError;
-    }>;
-  }>;
-}>;
+    };
+  };
+};
 
 export interface EffectArgs {
   dispatch: DispatchType;
@@ -1663,6 +1662,5 @@ type EffectType =
   | DefUpdateExperienceEffect;
 
 export type EffectState = GenericHasEffect<EffectType>;
-type EffectList = EffectType[];
 
 export type DispatchType = Dispatch<Action>;

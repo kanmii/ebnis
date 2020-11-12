@@ -185,7 +185,7 @@ context("My page", () => {
   });
 
   describe("update experience", () => {
-    it.only("updates", () => {
+    it("updates", () => {
       const dataDefinitions = [
         {
           name: "date",
