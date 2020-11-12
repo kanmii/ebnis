@@ -270,6 +270,10 @@ function handleToggleShowOptionsMenuAction(
       states: { experiences: experiencesState },
     } = states.data;
 
+    Object.values(experiencesState).forEach((state) => {
+      state.showingOptionsMenu = false;
+    });
+
     const state = experiencesState[id] || ({} as ExperienceState);
     state.showingOptionsMenu = !state.showingOptionsMenu;
     experiencesState[id] = state;

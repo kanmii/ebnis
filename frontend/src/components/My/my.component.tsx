@@ -32,6 +32,7 @@ import {
   updateExperienceMenuItemSelector,
   updateExperienceSuccessNotificationCloseClassName,
   experienceContainerSelector,
+  noTriggerDocumentEventClassName,
 } from "./my.dom";
 import { setUpRoutePage } from "../../utils/global-window";
 import "./my.styles.scss";
@@ -122,7 +123,16 @@ export function My(props: Props) {
       title: MY_TITLE,
     });
 
-    function onDocClicked() {
+    function onDocClicked(event: Event) {
+      const target = event.target as HTMLElement;
+
+      if (
+        target.classList.contains(noTriggerDocumentEventClassName) ||
+        target.closest(`.${noTriggerDocumentEventClassName}`)
+      ) {
+        return;
+      }
+
       unstable_batchedUpdates(() => {
         dispatch({
           type: ActionType.CLOSE_ALL_OPTIONS_MENU,
@@ -418,7 +428,12 @@ function ExperienceComponent(props: ExperienceProps) {
           [dropdownIsActiveClassName]: showingOptionsMenu,
         })}
       >
-        <div className="dropdown-menu" role="menu">
+        <div
+          className={makeClassNames({
+            "dropdown-menu": true,
+          })}
+          role="menu"
+        >
           <div className="dropdown-content">
             <a
               className={makeClassNames({
@@ -436,9 +451,8 @@ function ExperienceComponent(props: ExperienceProps) {
                   type: ActionType.ACTIVATE_UPSERT_EXPERIENCE,
                   experience,
                 });
-                /* eslint-disable-next-line react-hooks/exhaustive-deps*/
               }}
-              href="a"
+              href="*"
             >
               Edit
             </a>
@@ -458,9 +472,8 @@ function ExperienceComponent(props: ExperienceProps) {
                   type: ActionType.DELETE_EXPERIENCE_REQUEST,
                   id,
                 });
-                /* eslint-disable-next-line react-hooks/exhaustive-deps*/
               }}
-              href="b"
+              href="*"
             >
               Delete
             </a>
@@ -472,6 +485,7 @@ function ExperienceComponent(props: ExperienceProps) {
         className={makeClassNames({
           [dropdownTriggerClassName]: true,
           "media-right dropdown-trigger": true,
+          [noTriggerDocumentEventClassName]: true,
         })}
         onClick={(e) => {
           e.preventDefault();
@@ -481,7 +495,7 @@ function ExperienceComponent(props: ExperienceProps) {
             id,
           });
         }}
-        href="a"
+        href="*"
       >
         <span className="icon is-small">
           <i className="fas fa-ellipsis-v" aria-hidden="true" />

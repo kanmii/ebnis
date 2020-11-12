@@ -22,6 +22,7 @@ export const onDeleteExperienceCancelledNotificationId = `${domPrefix}-on-delete
 export const updateExperienceMenuItemSelector = `js-${domPrefix}-update-experience-menu-item`;
 export const updateExperienceSuccessNotificationCloseClassName = `js-${domPrefix}-update-experience-success-notification-delete`;
 export const experienceContainerSelector = `js-${domPrefix}-experience`;
+export const noTriggerDocumentEventClassName = `js-${domPrefix}-no-trigger-document`;
 
 export function makeScrollToDomId(id: string) {
   return `${id}-${domPrefix}-scroll-to`;
