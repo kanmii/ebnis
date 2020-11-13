@@ -27,7 +27,7 @@ export function broadcastMessage(
       detail: message,
     } as BroadcastMessageSelf);
     (ev as any).data = message;
-    document.dispatchEvent(ev);
+    window.dispatchEvent(ev);
   }
 
   if (!selfOnly) {

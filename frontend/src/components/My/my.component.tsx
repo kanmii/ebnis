@@ -247,6 +247,7 @@ function MyExperiences() {
               onClose={deactivateUpsertExperienceUiCb}
               onSuccess={onExperienceUpsertSuccess}
               onError={onUpdateExperienceError}
+              className={noTriggerDocumentEventClassName}
             />
           </Suspense>
         )}
@@ -352,7 +353,12 @@ function ExperienceComponent(props: ExperienceProps) {
           />
 
           {showingUpdateSuccess && (
-            <div className="notification is-success">
+            <div
+              className={makeClassNames({
+                "notification is-success": true,
+                [noTriggerDocumentEventClassName]: true,
+              })}
+            >
               <button
                 onClick={(e) => {
                   e.preventDefault();

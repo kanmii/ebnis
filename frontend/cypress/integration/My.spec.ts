@@ -187,34 +187,34 @@ context("My page", () => {
   });
 
   describe("update experience", () => {
-    it("updates online", () => {
-      const dataDefinitions = [
-        {
-          name: "date",
-          type: DataTypes.DATE,
-        },
-        {
-          name: "time",
-          type: DataTypes.DATETIME,
-        },
-        {
-          name: "dec",
-          type: DataTypes.DECIMAL,
-        },
-        {
-          name: "int",
-          type: DataTypes.INTEGER,
-        },
-        {
-          name: "single",
-          type: DataTypes.SINGLE_LINE_TEXT,
-        },
-        {
-          name: "multi",
-          type: DataTypes.MULTI_LINE_TEXT,
-        },
-      ];
+    const dataDefinitions = [
+      {
+        name: "date",
+        type: DataTypes.DATE,
+      },
+      {
+        name: "time",
+        type: DataTypes.DATETIME,
+      },
+      {
+        name: "dec",
+        type: DataTypes.DECIMAL,
+      },
+      {
+        name: "int",
+        type: DataTypes.INTEGER,
+      },
+      {
+        name: "single",
+        type: DataTypes.SINGLE_LINE_TEXT,
+      },
+      {
+        name: "multi",
+        type: DataTypes.MULTI_LINE_TEXT,
+      },
+    ];
 
+    it("updates online", () => {
       // Given there are two online experiences in the system
       const experiencePromise1 = createOnlineExperience({
         title: "t1",
@@ -279,7 +279,7 @@ context("My page", () => {
             // When form is submitted
             cy.get("#" + submitDomId).click();
 
-            // Notification that experience creation failed should be visible
+            // Notification that experience update failed should be visible
             cy.get("#" + notificationCloseId)
               .should("exist")
               .click();
@@ -310,6 +310,111 @@ context("My page", () => {
             .should("have.id", experience1Id);
 
           cy.get("@experiences").eq(1).should("have.id", experience2Id);
+        },
+      );
+    });
+
+    it("updates offline", () => {
+      // Given there are two online experiences in the system
+      const experiencePromise1 = createOnlineExperience({
+        title: "t1",
+        dataDefinitions,
+      });
+
+      const experiencePromise2 = createOnlineExperience({
+        title: "t2",
+        description: "d2",
+        dataDefinitions,
+      });
+
+      cy.wrap(Promise.all([experiencePromise1, experiencePromise2])).then(
+        (experiences) => {
+          const [experience1, experience2] = experiences as [
+            ExperienceFragment,
+            ExperienceFragment,
+          ];
+
+          const { id: experience1Id } = experience1;
+          const { id: experience2Id } = experience2;
+          // When we visit experiences list page
+          cy.visit(MY_URL);
+
+          cy.get("." + experienceContainerSelector)
+            .eq(1)
+            .as("experience1")
+            .should("have.id", experience1Id);
+
+          // And connection to our backend is severed
+          cy.setConnectionStatus(false);
+
+          cy.get("@experience1").within(() => {
+            // And we click on menu button of second experience (title1)
+            cy.get("." + dropdownTriggerClassName).click();
+
+            // And we click on edit button of experience
+            cy.get("." + updateExperienceMenuItemSelector).click();
+          });
+
+          // Then we should see UI to Update experience
+          cy.get("#" + upsertExperienceDomId).within(() => {
+            cy.get("#" + titleInputDomId)
+              // And title field should contain current title
+              .should("have.value", "t1")
+              // We update title field
+              .type(".");
+
+            cy.get("#" + descriptionInputDomId)
+              // Description field should be empty
+              .should("have.value", "")
+              // We update the description field
+              .type("d1");
+
+            cy.get("." + definitionContainerDomSelector)
+              .as("definitionEls")
+              .within(() => {
+                cy.get("." + definitionTypeFormControlSelector)
+                  .as("typeEls")
+                  .first()
+                  .as("dateEl")
+                  .select(DataTypes.INTEGER);
+              });
+
+            // When form is submitted
+            cy.get("#" + submitDomId).click();
+
+            // Notification that experience update failed should be visible
+            cy.get("#" + notificationCloseId)
+              .should("exist")
+              .click();
+
+            // Form is filled correctly
+            cy.get("@dateEl").select(DataTypes.DATETIME);
+            cy.get("@typeEls").eq(1).select(DataTypes.DATE);
+            cy.get("@typeEls").eq(2).select(DataTypes.INTEGER);
+            cy.get("@typeEls").eq(3).select(DataTypes.DECIMAL);
+            cy.get("@typeEls").eq(4).select(DataTypes.MULTI_LINE_TEXT);
+            cy.get("@typeEls").eq(5).select(DataTypes.SINGLE_LINE_TEXT);
+
+            // When form is submitted
+            cy.get("#" + submitDomId).click();
+          });
+
+          cy.get("@experience1").within(() => {
+            // Notification that experience update succeeded should be visible
+            cy.get("." + updateExperienceSuccessNotificationCloseClassName)
+              .should("exist")
+              .click();
+          });
+
+          // And updated experience should go to the top
+          cy.get("." + experienceContainerSelector)
+            .as("experiences")
+            .eq(0)
+            .should("have.id", experience1Id);
+
+          cy.get("@experiences").eq(1).should("have.id", experience2Id);
+
+          cy.setConnectionStatus(true);
         },
       );
     });

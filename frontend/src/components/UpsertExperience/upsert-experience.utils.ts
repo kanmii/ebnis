@@ -1426,6 +1426,7 @@ export type CallerProps = {
     title: string;
   };
   onError: (error: string) => void;
+  className?: string;
 };
 
 export type Props = CreateExperiencesOnlineComponentProps &

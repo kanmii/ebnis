@@ -83,7 +83,7 @@ export enum ActionType {
   ON_DATA_RECEIVED = "@my/on-data-received",
   DATA_RE_FETCH_REQUEST = "@my/data-re-fetch-request",
   FETCH_NEXT_EXPERIENCES_PAGE = "@my/fetch-next=experiences-page",
-  SET_TIMEOUT = "@my/set-timeout",
+  RECORD_TIMEOUT = "@my/record-timeout",
   ON_SYNC = "@my/on-sync",
 }
 
@@ -165,8 +165,8 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             );
             break;
 
-          case ActionType.SET_TIMEOUT:
-            handleSetTimeoutAction(state, payload as SetTimeoutPayload);
+          case ActionType.RECORD_TIMEOUT:
+            handleRecordTimeoutAction(state, payload as SetTimeoutPayload);
             break;
 
           case ActionType.ON_SYNC:
@@ -578,7 +578,7 @@ function handleOnUpdateExperienceSuccessAction(
   }
 }
 
-function handleSetTimeoutAction(
+function handleRecordTimeoutAction(
   proxy: StateMachine,
   payload: SetTimeoutPayload,
 ) {
@@ -899,7 +899,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
     const timeoutId = setTimeout(timeoutCb, timeout);
 
     dispatch({
-      type: ActionType.SET_TIMEOUT,
+      type: ActionType.RECORD_TIMEOUT,
       genericTimeout: timeoutId,
     });
   }
@@ -1168,7 +1168,7 @@ type Action =
       type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS;
     } & WithExperiencePayload)
   | ({
-      type: ActionType.SET_TIMEOUT;
+      type: ActionType.RECORD_TIMEOUT;
     } & SetTimeoutPayload)
   | ({
       type: ActionType.ON_SYNC;

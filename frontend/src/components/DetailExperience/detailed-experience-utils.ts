@@ -118,7 +118,7 @@ export enum ActionType {
   TOGGLE_UPSERT_ENTRY_ACTIVE = "@detailed-experience/toggle-upsert-entry",
   ON_UPSERT_ENTRY_SUCCESS = "@detailed-experience/on-upsert-entry-success",
   ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION = "@detailed-experience/on-close-upsert-entry-created-notification",
-  SET_TIMEOUT = "@detailed-experience/set-timeout",
+  RECORD_TIMEOUT = "@detailed-experience/record-timeout",
   DELETE_EXPERIENCE_REQUEST = "@detailed-experience/delete-experience-request",
   DELETE_EXPERIENCE_CANCELLED = "@detailed-experience/delete-experience-cancelled",
   DELETE_EXPERIENCE_CONFIRMED = "@detailed-experience/delete-experience-confirmed",
@@ -157,8 +157,8 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             handleOnCloseNewEntryCreatedNotification(proxy);
             break;
 
-          case ActionType.SET_TIMEOUT:
-            handleSetTimeoutAction(proxy, payload as SetTimeoutPayload);
+          case ActionType.RECORD_TIMEOUT:
+            handleRecordTimeoutAction(proxy, payload as SetTimeoutPayload);
             break;
 
           case ActionType.DELETE_EXPERIENCE_REQUEST:
@@ -339,7 +339,7 @@ function handleOnCloseNewEntryCreatedNotification(proxy: StateMachine) {
   }
 }
 
-function handleSetTimeoutAction(
+function handleRecordTimeoutAction(
   proxy: StateMachine,
   payload: SetTimeoutPayload,
 ) {
@@ -1369,7 +1369,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
     const timeoutId = setTimeout(timeoutCb, CLOSE_NOTIFICATION_TIMEOUT_MS);
 
     dispatch({
-      type: ActionType.SET_TIMEOUT,
+      type: ActionType.RECORD_TIMEOUT,
       genericTimeout: timeoutId,
     });
   }
@@ -2395,7 +2395,7 @@ type Action =
       type: ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION;
     }
   | ({
-      type: ActionType.SET_TIMEOUT;
+      type: ActionType.RECORD_TIMEOUT;
     } & SetTimeoutPayload)
   | ({
       type: ActionType.DELETE_EXPERIENCE_REQUEST;

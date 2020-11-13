@@ -54,7 +54,7 @@ import { StateValue } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 
 export function UpsertExperience(props: Props) {
-  const { onClose } = props;
+  const { onClose, className = "" } = props;
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
   const {
@@ -119,7 +119,10 @@ export function UpsertExperience(props: Props) {
 
   return (
     <form
-      className="form component-upsert-experience modal is-active"
+      className={makeClassNames({
+        "form component-upsert-experience modal is-active": true,
+        [className]: true,
+      })}
       onSubmit={onSubmit}
       id={domPrefix}
     >

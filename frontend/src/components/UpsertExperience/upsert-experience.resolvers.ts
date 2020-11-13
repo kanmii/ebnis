@@ -150,20 +150,31 @@ export async function createOfflineExperience(
 export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
   const { experienceId } = input;
 
-  const experience = readExperienceFragment(experienceId);
+  let experience = readExperienceFragment(experienceId);
 
   // istanbul ignore next:
   if (!experience) {
     return;
   }
 
-  const unsyncedExperience = (getUnsyncedExperience(experienceId) ||
+  experience = {
+    ...experience,
+  };
+
+  let unsyncedExperience = (getUnsyncedExperience(experienceId) ||
     // istanbul ignore next:
     {}) as UnsyncedModifiedExperience;
 
-  let entriesUpdated = false;
-  const entries = getEntriesQuerySuccess(experienceId);
+  unsyncedExperience = {
+    ...unsyncedExperience,
+  };
 
+  let entries = getEntriesQuerySuccess(experienceId);
+  entries = {
+    ...entries,
+  };
+
+  let entriesUpdated = false;
   const immerUpdate: ImmerUpdate = [experience, unsyncedExperience, entries];
 
   const [
@@ -281,7 +292,10 @@ export function updateExperienceOfflineFn(input: UpdateExperienceOfflineInput) {
         let hasTypeUpdate = false;
 
         proxy.dataDefinitions = proxy.dataDefinitions.map((d) => {
-          const definition = d as DataDefinitionFragment;
+          const definition = {
+            ...(d as DataDefinitionFragment),
+          };
+
           const { id } = definition;
           const updates = idToDefinitionUpdateMap[id];
 

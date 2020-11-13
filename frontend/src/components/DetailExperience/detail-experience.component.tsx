@@ -394,6 +394,7 @@ function ExperienceComponent() {
             onClose={cancelEditExperienceUiRequestCb}
             onSuccess={onExperienceUpdatedSuccess}
             onError={onUpdateExperienceError}
+            className={noTriggerDocumentEventClassName}
           />
         </Suspense>
       )}

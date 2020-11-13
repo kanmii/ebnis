@@ -53,12 +53,12 @@ export function WithSubscriptions(props: Props) {
 
   useEffect(() => {
     bc.addEventListener(StateValue.bcMessageKey, onBcMessage);
-    document.addEventListener(StateValue.selfBcMessageKey, onBcMessage);
+    window.addEventListener(StateValue.selfBcMessageKey, onBcMessage);
 
     return () => {
       cleanupWithSubscriptions(() => {
         bc.removeEventListener(StateValue.bcMessageKey, onBcMessage);
-        document.removeEventListener(StateValue.selfBcMessageKey, onBcMessage);
+        window.removeEventListener(StateValue.selfBcMessageKey, onBcMessage);
       });
     };
     /* eslint-disable react-hooks/exhaustive-deps*/
@@ -87,7 +87,9 @@ export function WithSubscriptions(props: Props) {
 
       case BroadcastMessageType.connectionChanged:
         {
-          const { connected } = payload as BroadcastMessageConnectionChangedPayload;
+          const {
+            connected,
+          } = payload as BroadcastMessageConnectionChangedPayload;
 
           dispatch({
             type: ActionType.CONNECTION_CHANGED,

@@ -5,7 +5,7 @@ import lodashIsEqual from "lodash/isEqual";
 import { noLogReactEnv } from "./utils/env-variables";
 
 const isDevEnv = process.env.NODE_ENV === "development";
-const isTestEnv = process.env.NODE_ENV === "test";
+// const isTestEnv = process.env.NODE_ENV === "test";
 
 export const logger = async (prefix: keyof Console, tag: any, ...data: any) => {
   if (isDevEnv) {
@@ -31,21 +31,23 @@ export function wrapReducer<State, Action>(
 
   if (shouldWrap === true || isDevEnv) {
     console.log(
-      "\nprevious state = \n\t",
+      "\n\n=====PREVIOUS STATE======= \n\n",
       objectForEnv(prevState),
 
-      "\n\n\nupdate with = \n\t",
+      "\n\n\n======UPDATE WITH======= \n\n",
       objectForEnv(action),
+      "\n\n",
     );
 
     const nextState = reducer(prevState, action);
 
     console.log(
-      "\nnext state = \n\t",
+      "\n\n=====NEXT STATE====== \n\n",
       objectForEnv(nextState),
 
-      "\n\n\nDifferences = \n\t",
+      "\n\n\n=====DIFFERENCES===== \n\n",
       objectForEnv(deepObjectDifference(nextState, prevState)),
+      "\n\n",
     );
 
     return nextState;
@@ -84,7 +86,7 @@ function isPlainObject(obj: object) {
 }
 
 function objectForEnv(obj: any) {
-  return isTestEnv ? JSON.stringify(obj, null, 2) : obj;
+  return JSON.stringify(obj, null, 2);
 }
 
 export function useLogger(data: any, tag = "") {

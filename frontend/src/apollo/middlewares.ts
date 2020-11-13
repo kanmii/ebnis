@@ -55,12 +55,12 @@ export function middlewareLoggerLink(link: ApolloLink) {
     console.log(
       "\n\n\n",
       getNow(),
-      `\n====${operationName}===\n\n`,
-      {
-        query: operation.query.loc ? operation.query.loc.source.body : "",
-        variables: operation.variables,
-      },
-      `\n\n===End ${operationName}====`,
+      `\n\n====${operationName}===\n\n`,
+      `======QUERY=====\n\n`,
+      operation.query.loc ? operation.query.loc.source.body : "",
+      `\n\n======VARIABLES======\n\n`,
+      JSON.stringify(operation.variables, null, 2),
+      `\n\n===End ${operationName}====\n\n`,
     );
 
     if (fop.map) {
@@ -69,9 +69,10 @@ export function middlewareLoggerLink(link: ApolloLink) {
           "\n\n\n",
           getNow(),
           `\n=Received response from ${operationName}=\n\n`,
-          response,
-          `\n\n=End Received response from ${operationName}=`,
+          JSON.stringify(response, null, 2),
+          `\n\n=End Received response from ${operationName}=\n\n`,
         );
+
         return response;
       });
     }
