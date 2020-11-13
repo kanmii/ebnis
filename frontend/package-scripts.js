@@ -20,8 +20,12 @@ const test_envs = `REACT_APP_API_URL=http://localhost:2222 IS_UNIT_TEST=true NOD
 
 const test = `${test_envs} react-scripts test --runInBand`;
 
+const cypressBrowser = process.env.CYPRESS_BROWSER
+  ? ` --browser ${process.env.CYPRESS_BROWSER}`
+  : "";
+
 const cypressPreEnv = `CYPRESS_BASE_URL=http://localhost:${webHost}`;
-const cypressPostEnv = `--env API_URL=${apiUrl}`;
+const cypressPostEnv = `--env API_URL=${apiUrl} ${cypressBrowser}`;
 const cypressPreEnvP = `CYPRESS_BASE_URL=http://localhost:${4022}`;
 
 module.exports = {
