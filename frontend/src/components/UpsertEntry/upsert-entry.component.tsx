@@ -29,7 +29,7 @@ import { errorClassName } from "../../utils/utils.dom";
 import { useRunEffects } from "../../utils/use-run-effects";
 
 export function UpsertEntry(props: Props) {
-  const { experience, onClose } = props;
+  const { experience, onClose, className = "" } = props;
 
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
@@ -61,6 +61,7 @@ export function UpsertEntry(props: Props) {
         className={makeClassNames({
           "modal is-active component-upsert-entry": true,
           submitting: submissionState.value === StateValue.active,
+          [className]: true,
         })}
         onSubmit={onSubmit}
       >
@@ -238,7 +239,10 @@ function NotificationComponent({
 }
 
 function makeDateChangedFn(dispatch: DispatchType, index: number) {
-  return function makeDateChangedFnInner(_fieldName: string, value: FormObjVal) {
+  return function makeDateChangedFnInner(
+    _fieldName: string,
+    value: FormObjVal,
+  ) {
     dispatch({
       type: ActionType.ON_FORM_FIELD_CHANGED,
       fieldIndex: index,

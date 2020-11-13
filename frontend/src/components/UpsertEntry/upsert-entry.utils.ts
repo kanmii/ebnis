@@ -545,6 +545,7 @@ export interface CallerProps {
   updatingEntry?: UpdatingEntryPayload;
   onSuccess: (entry: EntryFragment, onlineStatus: OnlineStatus) => void;
   onClose: () => void;
+  className?: string;
 }
 
 export type Props = CallerProps & UpdateExperiencesOnlineComponentProps;
