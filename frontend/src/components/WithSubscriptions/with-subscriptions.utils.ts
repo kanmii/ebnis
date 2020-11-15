@@ -115,7 +115,7 @@ function handleConnectionChangedAction(
 
   const effects = getGeneralEffects<EffectType, DraftState>(proxy);
   effects.push({
-    key: "syncToServerEffect",
+    key: "connectionChangedEffect",
     ownArgs: {
       connected,
     },
@@ -158,7 +158,7 @@ type DefOnExperiencesDeletedEffect = EffectDefinition<
   OnExperiencesDeletedSubscription
 >;
 
-const syncToServerEffect: DefSyncToServerEffect["func"] = (
+const connectionChangedEffect: DefConnectionChangedEffect["func"] = (
   { connected },
   _,
 ) => {
@@ -171,8 +171,8 @@ const syncToServerEffect: DefSyncToServerEffect["func"] = (
   }, 100);
 };
 
-type DefSyncToServerEffect = EffectDefinition<
-  "syncToServerEffect",
+type DefConnectionChangedEffect = EffectDefinition<
+  "connectionChangedEffect",
   {
     connected: boolean;
   }
@@ -180,7 +180,7 @@ type DefSyncToServerEffect = EffectDefinition<
 
 export const effectFunctions = {
   onExperiencesDeletedEffect,
-  syncToServerEffect,
+  connectionChangedEffect,
 };
 
 export async function cleanUpOfflineExperiences(
@@ -252,4 +252,4 @@ type EffectDefinition<
   OwnArgs = {}
 > = GenericEffectDefinition<EffectArgs, CallerProps, Key, OwnArgs>;
 
-type EffectType = DefOnExperiencesDeletedEffect | DefSyncToServerEffect;
+type EffectType = DefOnExperiencesDeletedEffect | DefConnectionChangedEffect;
