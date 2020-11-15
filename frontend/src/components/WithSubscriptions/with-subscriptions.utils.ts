@@ -12,10 +12,7 @@ import {
   windowChangeUrl,
   ChangeUrlType,
 } from "../../utils/global-window";
-import {
-  OnExperiencesDeletedSubscription,
-  OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences,
-} from "../../graphql/apollo-types/OnExperiencesDeletedSubscription";
+import { OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences } from "../../graphql/apollo-types/OnExperiencesDeletedSubscription";
 import {
   GenericGeneralEffect,
   getGeneralEffects,
@@ -35,10 +32,12 @@ import { WithSubscriptionContextProps } from "../../utils/app-context";
 import { readEntryFragment } from "../../apollo/get-detailed-experience-query";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { deleteObjectKey } from "../../utils";
+import { subscribeToGraphqlEvents } from "./with-subscriptions.injectables";
+import { getUser } from "../../utils/manage-user-auth";
 
 export enum ActionType {
   CONNECTION_CHANGED = "@with-subscription/connection-changed",
-  EXPERIENCE_DELETED = "@with-subscription/experience-deleted",
+  ON_SUBSCRIBED_TO_GRAPHQL_EVENTS = "@with-subscription/on-subscribed-to-graphql-events",
   ON_SYNC = "@with-subscription/on-sync",
 }
 
@@ -59,11 +58,8 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             );
             break;
 
-          case ActionType.EXPERIENCE_DELETED:
-            handleExperienceDeletedAction(
-              proxy,
-              payload as ExperienceDeletedPayload,
-            );
+          case ActionType.ON_SUBSCRIBED_TO_GRAPHQL_EVENTS:
+            handleOnSubscribeToGraphqlEvents(proxy);
             break;
 
           case ActionType.ON_SYNC:
@@ -90,20 +86,8 @@ export function initState(): StateMachine {
   };
 }
 
-function handleExperienceDeletedAction(
-  proxy: DraftState,
-  payload: ExperienceDeletedPayload,
-) {
-  const { data } = payload;
-
-  // istanbul ignore else:
-  if (data) {
-    const effects = getGeneralEffects<EffectType, DraftState>(proxy);
-    effects.push({
-      key: "onExperiencesDeletedEffect",
-      ownArgs: data,
-    });
-  }
+function handleOnSubscribeToGraphqlEvents(proxy: DraftState) {
+  proxy.context.subscribedToGraphqlEvents = true;
 }
 
 function handleConnectionChangedAction(
@@ -111,14 +95,13 @@ function handleConnectionChangedAction(
   payload: BroadcastMessageConnectionChangedPayload,
 ) {
   const { connected } = payload;
-  proxy.context.connected = connected;
+  const { context } = proxy;
+  context.connected = connected;
 
   const effects = getGeneralEffects<EffectType, DraftState>(proxy);
   effects.push({
     key: "connectionChangedEffect",
-    ownArgs: {
-      connected,
-    },
+    ownArgs: context,
   });
 }
 
@@ -130,37 +113,10 @@ function handleOnSyncAction(proxy: DraftState, { data }: OnSycPayload) {
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
 
-const onExperiencesDeletedEffect: DefOnExperiencesDeletedEffect["func"] = async (
-  ownArgs,
-) => {
-  const data = ownArgs.onExperiencesDeleted;
-
-  // istanbul ignore else:
-  if (data) {
-    const ids = data.experiences.map((experience) => {
-      return (experience as OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences)
-        .id;
-    });
-
-    purgeExperiencesFromCache1(ids);
-    const { persistor } = window.____ebnis;
-    await persistor.persist();
-
-    // istanbul ignore else:
-    if (getLocation().pathname.includes(MY_URL)) {
-      windowChangeUrl(MY_URL, ChangeUrlType.replace);
-    }
-  }
-};
-
-type DefOnExperiencesDeletedEffect = EffectDefinition<
-  "onExperiencesDeletedEffect",
-  OnExperiencesDeletedSubscription
->;
-
 const connectionChangedEffect: DefConnectionChangedEffect["func"] = (
-  { connected },
+  { connected, subscribedToGraphqlEvents },
   _,
+  effectArgs,
 ) => {
   if (!connected) {
     return;
@@ -169,17 +125,46 @@ const connectionChangedEffect: DefConnectionChangedEffect["func"] = (
   setTimeout(() => {
     syncToServer();
   }, 100);
+
+  const { dispatch } = effectArgs;
+
+  if (!subscribedToGraphqlEvents && getUser()) {
+    subscribeToGraphqlEvents().subscribe(
+      async function OnSuccess(result) {
+        const data = result && result.data && result.data.onExperiencesDeleted;
+
+        // istanbul ignore else:
+        if (data) {
+          const ids = data.experiences.map((experience) => {
+            return (experience as OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences)
+              .id;
+          });
+
+          purgeExperiencesFromCache1(ids);
+          const { persistor } = window.____ebnis;
+          await persistor.persist();
+
+          // istanbul ignore else:
+          if (getLocation().pathname.includes(MY_URL)) {
+            windowChangeUrl(MY_URL, ChangeUrlType.replace);
+          }
+        }
+      },
+      function onError() {},
+    );
+
+    dispatch({
+      type: ActionType.ON_SUBSCRIBED_TO_GRAPHQL_EVENTS,
+    });
+  }
 };
 
 type DefConnectionChangedEffect = EffectDefinition<
   "connectionChangedEffect",
-  {
-    connected: boolean;
-  }
+  Context
 >;
 
 export const effectFunctions = {
-  onExperiencesDeletedEffect,
   connectionChangedEffect,
 };
 
@@ -211,18 +196,21 @@ export async function cleanUpSyncedOfflineEntries(
 
 type DraftState = Draft<StateMachine>;
 
-export type StateMachine = GenericGeneralEffect<EffectType> &
-  Readonly<{
-    context: Readonly<WithSubscriptionContextProps>;
-  }>;
+type Context = WithSubscriptionContextProps & {
+  subscribedToGraphqlEvents?: true;
+};
+
+export type StateMachine = GenericGeneralEffect<EffectType> & {
+  context: Context;
+};
 
 type Action =
   | ({
       type: ActionType.CONNECTION_CHANGED;
     } & BroadcastMessageConnectionChangedPayload)
-  | ({
-      type: ActionType.EXPERIENCE_DELETED;
-    } & ExperienceDeletedPayload)
+  | {
+      type: ActionType.ON_SUBSCRIBED_TO_GRAPHQL_EVENTS;
+    }
   | ({
       type: ActionType.ON_SYNC;
     } & OnSycPayload);
@@ -230,10 +218,6 @@ type Action =
 export type OnSycPayload = {
   data?: OnSyncedData;
 };
-
-interface ExperienceDeletedPayload {
-  data?: OnExperiencesDeletedSubscription;
-}
 
 export type CallerProps = PropsWithChildren<{
   bc: BChannel;
@@ -252,4 +236,4 @@ type EffectDefinition<
   OwnArgs = {}
 > = GenericEffectDefinition<EffectArgs, CallerProps, Key, OwnArgs>;
 
-type EffectType = DefOnExperiencesDeletedEffect | DefConnectionChangedEffect;
+export type EffectType = DefConnectionChangedEffect;

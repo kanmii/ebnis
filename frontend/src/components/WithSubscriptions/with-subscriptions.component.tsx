@@ -2,7 +2,6 @@ import React, { useEffect, useReducer } from "react";
 import {
   cleanupWithSubscriptions,
   WithSubscriptionProvider,
-  useOnExperiencesDeletedSubscription,
   WithSubscriptionsDispatchProvider,
 } from "./with-subscriptions.injectables";
 import {
@@ -33,7 +32,6 @@ import { OnSyncedData } from "../../utils/sync-to-server.types";
 
 export function WithSubscriptions(props: Props) {
   const { children, bc } = props;
-  const { data } = useOnExperiencesDeletedSubscription();
   const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
   const {
     effects: { general: generalEffects },
@@ -43,13 +41,6 @@ export function WithSubscriptions(props: Props) {
   useRunEffects(generalEffects, effectFunctions, props, {
     dispatch,
   });
-
-  useEffect(() => {
-    dispatch({
-      type: ActionType.EXPERIENCE_DELETED,
-      data,
-    });
-  }, [data]);
 
   useEffect(() => {
     bc.addEventListener(StateValue.bcMessageKey, onBcMessage);

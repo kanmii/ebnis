@@ -1,4 +1,4 @@
-import { useMutation, useSubscription } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 import {
   MutationFunctionOptions,
   MutationResult,
@@ -232,15 +232,17 @@ export interface DeleteExperiencesComponentProps {
   deleteExperiences: DeleteExperiencesMutationFn;
 }
 
-export function useOnExperiencesDeletedSubscription() {
-  return useSubscription<OnExperiencesDeletedSubscription>(
-    ON_EXPERIENCES_DELETED_SUBSCRIPTION,
-    {
-      variables: {
-        clientSession: getSessionId(),
-      },
+export function subscribeToGraphqlEvents() {
+  const { client } = window.____ebnis;
+
+  const observer = client.subscribe<OnExperiencesDeletedSubscription>({
+    query: ON_EXPERIENCES_DELETED_SUBSCRIPTION,
+    variables: {
+      clientSession: getSessionId(),
     },
-  );
+  });
+
+  return observer;
 }
 
 ////////////////////////// END DELETE EXPERIENCES SECTION ////////////

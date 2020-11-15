@@ -9,7 +9,7 @@ import {
 } from "../utils/types";
 import {
   cleanupWithSubscriptions,
-  useOnExperiencesDeletedSubscription,
+  subscribeToGraphqlEvents,
 } from "../components/WithSubscriptions/with-subscriptions.injectables";
 import { WithSubscriptions } from "../components/WithSubscriptions/with-subscriptions.component";
 import {
@@ -33,6 +33,18 @@ import { clearNodeFolder } from "broadcast-channel";
 import { readEntryFragment } from "../apollo/get-detailed-experience-query";
 import { cleanUpOfflineExperiences } from "../components/WithSubscriptions/with-subscriptions.utils";
 import { deleteObjectKey } from "../utils";
+import { getUser } from "../utils/manage-user-auth";
+import {
+  initState,
+  reducer,
+  effectFunctions,
+  ActionType,
+  EffectType,
+} from "../components/WithSubscriptions/with-subscriptions.utils";
+import { GenericHasEffect } from "../utils/effects";
+
+jest.mock("../utils/manage-user-auth");
+const mockGetUser = getUser as jest.Mock;
 
 jest.mock("../apollo/update-get-experiences-mini-query");
 const mockPurgeExperiencesFromCache1 = purgeExperiencesFromCache1 as jest.Mock;
@@ -51,21 +63,24 @@ const mockGetLocation = getLocation as jest.Mock;
 let mockWithEmitterProviderValue = null as any;
 jest.mock(
   "../components/WithSubscriptions/with-subscriptions.injectables",
-  () => ({
-    WithSubscriptionProvider: ({ children, value }: any) => {
-      mockWithEmitterProviderValue = value;
+  () => {
+    return {
+      WithSubscriptionProvider: ({ children, value }: any) => {
+        mockWithEmitterProviderValue = value;
 
-      return children;
-    },
-    cleanupWithSubscriptions: jest.fn(),
-    useOnExperiencesDeletedSubscription: jest.fn(),
-    WithSubscriptionsDispatchProvider: ({ children }: any) => {
-      return children;
-    },
-  }),
+        return children;
+      },
+      cleanupWithSubscriptions: jest.fn(),
+      subscribeToGraphqlEvents: jest.fn(),
+      WithSubscriptionsDispatchProvider: ({ children }: any) => {
+        return children;
+      },
+    };
+  },
 );
 const mockCleanupWithSubscription = cleanupWithSubscriptions as jest.Mock;
-const mockUseOnExperiencesDeletedSubscription = useOnExperiencesDeletedSubscription as jest.Mock;
+const mockSubscribeToGraphqlEvents = subscribeToGraphqlEvents as jest.Mock;
+const mockSubscribeToGraphqlEventsSubscribe = jest.fn();
 
 const mockPersistFn = jest.fn();
 
@@ -77,6 +92,8 @@ const globals = {
   persistor,
 } as E2EWindowObject;
 
+const mockDispatch = jest.fn();
+
 beforeAll(() => {
   clearNodeFolder();
   makeBChannel(globals);
@@ -85,6 +102,10 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.useFakeTimers();
+
+  mockSubscribeToGraphqlEvents.mockReturnValue({
+    subscribe: mockSubscribeToGraphqlEventsSubscribe,
+  });
 });
 
 afterAll(() => {
@@ -100,18 +121,8 @@ afterEach(() => {
   jest.resetAllMocks();
 });
 
-it("renders", async () => {
-  mockUseOnExperiencesDeletedSubscription.mockReturnValue({
-    data: {
-      onExperiencesDeleted: {
-        experiences: [
-          {
-            id: "a",
-          },
-        ],
-      },
-    },
-  });
+it("renders/ does not subscribe when no network", async () => {
+  mockGetUser.mockReturnValue({});
 
   mockGetLocation.mockReturnValue({
     pathname: MY_URL,
@@ -127,6 +138,9 @@ it("renders", async () => {
 
   // And we should not be syncing data to backend (of course there is no network)
   expect(mockSyncToServer).not.toHaveBeenCalled();
+
+  // We should not be subscribed to graphql events
+  expect(mockSubscribeToGraphqlEventsSubscribe).not.toHaveBeenCalled();
 
   // When app is connected to network
   await act(async () => {
@@ -146,14 +160,24 @@ it("renders", async () => {
   // App should indicate network connection
   expect(mockWithEmitterProviderValue.connected).toBe(true);
 
-  // After a while that app is connected to network
-  jest.runTimersToTime(MAX_TIMEOUT_MS);
+  // We should be subscribed to graphql events
+  const subscribeToGraphqlEventsCb =
+    mockSubscribeToGraphqlEventsSubscribe.mock.calls[0][0];
 
-  // App should start syncing data to backend
-  expect(mockSyncToServer.mock.calls.length).toBe(1);
+  await subscribeToGraphqlEventsCb({
+    data: {
+      onExperiencesDeleted: {
+        experiences: [
+          {
+            id: "a",
+          },
+        ],
+      },
+    },
+  });
 
   // Deleted experiences should be purged from cache
-  // (from useOnExperiencesDeletedSubscription)
+  // (from mockSubscribeToGraphqlEventsSubscribe)
   expect(mockPurgeExperiencesFromCache1).toHaveBeenCalledWith(["a"]);
 
   // Cached data should be persisted
@@ -164,6 +188,12 @@ it("renders", async () => {
     MY_URL,
     ChangeUrlType.replace,
   ]);
+
+  // After a while that app is connected to network
+  jest.runTimersToTime(MAX_TIMEOUT_MS);
+
+  // App should start syncing data to backend
+  expect(mockSyncToServer.mock.calls.length).toBe(1);
 
   // When connection is lost
   await act(async () => {
@@ -185,6 +215,9 @@ it("renders", async () => {
 
   // App should not sync data
   expect(mockSyncToServer.mock.calls.length).toBe(1);
+
+  // App should not subscribe to graphql events again
+  expect(mockSubscribeToGraphqlEventsSubscribe.mock.calls.length).toBe(1);
 
   // When app receives external broadcastMessage that experience deleted
   const messageExperienceDeleted = {
@@ -255,6 +288,99 @@ it("cleans up offline experiences", async () => {
 
   expect(mockPurgeExperiencesFromCache1.mock.calls[0][0]).toEqual(["a"]);
   expect(mockPersistFn).toHaveBeenCalled();
+});
+
+describe("reducer", () => {
+  const effectArgs = {
+    dispatch: mockDispatch,
+  } as any;
+
+  const props = {} as any;
+
+  it("subscribes to graphql events only once", () => {
+    // Giver user is logged
+    mockGetUser.mockReturnValue({});
+
+    let state = initState();
+
+    // When there is connection
+    state = reducer(state, {
+      type: ActionType.CONNECTION_CHANGED,
+      connected: true,
+    });
+
+    // We should subscribe to graphql events
+    let effect = (state.effects.general as GenericHasEffect<EffectType>)
+      .hasEffects.context.effects[0];
+
+    let connectionChangedEffect = effectFunctions[effect.key];
+
+    connectionChangedEffect(effect.ownArgs, props, effectArgs);
+    expect(mockSubscribeToGraphqlEventsSubscribe.mock.calls.length).toBe(1);
+    const args = mockDispatch.mock.calls[0][0];
+    state = reducer(state, args);
+
+    // When there is connection again
+    state = reducer(state, {
+      type: ActionType.CONNECTION_CHANGED,
+      connected: true,
+    });
+
+    // And we attempt to subscribe again
+    effect = (state.effects.general as GenericHasEffect<EffectType>).hasEffects
+      .context.effects[0];
+
+    connectionChangedEffect = effectFunctions[effect.key];
+
+    connectionChangedEffect(effect.ownArgs, props, effectArgs);
+    // It should not be possible
+    expect(mockSubscribeToGraphqlEventsSubscribe.mock.calls.length).toBe(1);
+  });
+
+  it("does not subscribe when there is no user", () => {
+    // Giver user is logged
+    mockGetUser.mockReturnValue(undefined);
+
+    let state = initState();
+
+    // When there is connection
+    state = reducer(state, {
+      type: ActionType.CONNECTION_CHANGED,
+      connected: true,
+    });
+
+    // We should subscribe to graphql events
+    let effect = (state.effects.general as GenericHasEffect<EffectType>)
+      .hasEffects.context.effects[0];
+
+    let connectionChangedEffect = effectFunctions[effect.key];
+
+    connectionChangedEffect(effect.ownArgs, props, effectArgs);
+    expect(mockSubscribeToGraphqlEventsSubscribe).not.toHaveBeenCalled();
+  });
+
+  it("calls error function when graphql subscription errors", () => {
+    // Giver user is logged
+    mockGetUser.mockReturnValue({});
+
+    let state = initState();
+
+    // When there is connection
+    state = reducer(state, {
+      type: ActionType.CONNECTION_CHANGED,
+      connected: true,
+    });
+
+    // We should subscribe to graphql events
+    let effect = (state.effects.general as GenericHasEffect<EffectType>)
+      .hasEffects.context.effects[0];
+
+    let connectionChangedEffect = effectFunctions[effect.key];
+
+    connectionChangedEffect(effect.ownArgs, props, effectArgs);
+    const onError = mockSubscribeToGraphqlEventsSubscribe.mock.calls[0][1];
+    expect(onError()).toBeUndefined();
+  });
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
