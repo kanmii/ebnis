@@ -28,7 +28,11 @@ services:
     depends_on:
       - "db"
     healthcheck:
-      test: ["CMD-SHELL", "curl --silent --head --fail http://${BACKEND_SERVER_HOST}:${PORT}${BACKEND_HEALTH_CHECK_URL}"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl --silent --head --fail http://${BACKEND_SERVER_HOST}:${PORT}${BACKEND_HEALTH_CHECK_URL}",
+        ]
       interval: 600s
       timeout: 5s
       retries: 5
@@ -40,9 +44,9 @@ services:
       - "${DOCKER_HOST_API_PORT}:${PORT}"
     volumes:
       - "./backend:/home/${DOCKER_HOST_USER_NAME}/src"
-      - "not_used_build:/home/${DOCKER_HOST_USER_NAME}/src/_build"
-      - "not_used_elixir_ls:/home/${DOCKER_HOST_USER_NAME}/src/.elixir_ls"
-      - "not_used_deps:/home/${DOCKER_HOST_USER_NAME}/src/deps"
+      - "nu_build:/home/${DOCKER_HOST_USER_NAME}/src/_build"
+      - "nu_elixir_ls:/home/${DOCKER_HOST_USER_NAME}/src/.elixir_ls"
+      - "nu_deps:/home/${DOCKER_HOST_USER_NAME}/src/deps"
 
   cra:
     build:
@@ -57,13 +61,19 @@ services:
     #   - "api"
     env_file: "${DOCKER_ENV_FILE}"
     ports:
-      - "${WEB_PORT}:${PORT}"
+      - "${DOCKER_HOST_WEB_PORT}:${PORT}"
     volumes:
       - "./frontend:/home/node/ebnis-web"
-      - "not_used_node_modules:/home/node/ebnis-web/node_modules"
+      - "nu_nm:/home/node/ebnis-web/node_modules/"
+      - "nu_nm_cra:/home/node/ebnis-web/packages/cra/node_modules/"
+      - "nu_nm_cy:/home/node/ebnis-web/packages/cy/node_modules/"
+      - "nu_nm_commons:/home/node/ebnis-web/packages/commons/node_modules/"
 
 volumes:
-  not_used_build:
-  not_used_node_modules:
-  not_used_elixir_ls:
-  not_used_deps:
+  nu_build:
+  nu_elixir_ls:
+  nu_deps:
+  nu_nm:
+  nu_nm_cra:
+  nu_nm_cy:
+  nu_nm_commons:

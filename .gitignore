@@ -3,3 +3,6 @@ docker
 .env
 .env-*
 .tool-versions
+
+# Local Netlify folder
+.netlify

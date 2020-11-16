@@ -1,0 +1,155 @@
+@import "../../styles/variables";
+@import "../../styles/extensions";
+
+.my {
+  &__fetch {
+    &-errors {
+      max-width: 300px;
+      margin: 0 auto;
+      padding-top: 10px;
+      margin-top: 40px;
+
+      &-image {
+        margin: 0 auto;
+      }
+    }
+
+    &-errors-content {
+      border-radius: 0;
+      margin-top: 20px;
+      margin-top: 40px;
+    }
+  }
+
+  &-component {
+    padding-bottom: $floating-circular-bottom * 1.5;
+    padding-top: 60px;
+
+    .no-experiences {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 10px;
+
+      &__notification {
+        width: 90%;
+        max-width: 400px;
+      }
+
+      &__title {
+        font-weight: 500;
+        font-size: 1.3rem;
+        margin-bottom: 5px;
+      }
+    }
+
+    .media-content {
+      overflow-x: auto;
+    }
+
+    .experience {
+      &--is-danger {
+        box-shadow: $media-shadow-1 $danger, $media-shadow-2 $danger;
+      }
+
+      &--is-warning {
+        box-shadow: $media-shadow-1 $warning, $media-shadow-2 $warning;
+      }
+
+      &__title {
+        display: block;
+        padding: 0 0 25px 0;
+      }
+    }
+
+    .dropdown {
+      &-trigger {
+        cursor: pointer;
+      }
+
+      &-item {
+        cursor: pointer;
+      }
+
+      &-content {
+        padding-left: 1rem;
+      }
+    }
+
+    .description {
+      &__label {
+        margin-left: 10px;
+      }
+
+      &__text {
+        word-break: break-word;
+        padding: 15px 0 0 15px;
+        background: white;
+
+        &--summary {
+          height: 60px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-height: 60px;
+          white-space: nowrap;
+        }
+
+        &--full {
+          max-height: 200px;
+          background: #fdfdfd;
+        }
+      }
+
+      &__control {
+        margin-left: -5px;
+        cursor: pointer;
+      }
+    }
+
+    .search {
+      max-width: 400px;
+      width: 85%;
+      position: fixed;
+      top: var(--body-padding-top);
+
+      &__results {
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 10px;
+      }
+
+      &__link {
+        width: 100%;
+        display: block;
+        padding: 0.5em 0.75em;
+
+        &-container {
+          padding: 0;
+        }
+      }
+    }
+  }
+}
+
+.new-experience-trigger {
+  @extend %floating-circular;
+}
+
+.my-experiences {
+  &__prev-next {
+    text-align: center;
+  }
+
+  &__next,
+  &__prev {
+    font-weight: bolder;
+  }
+}
+
+.my-experience {
+  &__scroll-to {
+    @extend %visually-hidden;
+    position: relative;
+    top: -150px;
+  }
+}

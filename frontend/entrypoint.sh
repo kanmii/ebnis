@@ -8,4 +8,7 @@ if ping -q -c 1 -W 1 google.com >/dev/null; then
   yarn install
 fi
 
-yarn start dev
+# Create react app inotify issue
+echo fs.inotify.max_user_watches=524288 | tee -a /etc/sysctl.conf && sysctl -p
+
+yarn start cra

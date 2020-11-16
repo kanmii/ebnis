@@ -14,7 +14,7 @@ RUN apt-get update \
   && rm -rf /usr/share/doc && rm -rf /usr/share/man \
   && apt-get purge -y --auto-remove ${BUILD_DEPS} \
   && apt-get clean \
-  && mkdir /home/node/ebnis-web
+  && mkdir -p /home/node/ebnis-web/packages
 
 COPY ${HOST_APP_HOME}/entrypoint.sh /usr/local/bin
 
@@ -22,7 +22,7 @@ ADD https://raw.githubusercontent.com/humpangle/wait-until/v0.1.1/wait-until /us
 
 WORKDIR /home/node/ebnis-web
 
-COPY ${HOST_APP_HOME}/package.json ${HOST_APP_HOME}/yarn.lock ${HOST_APP_HOME}/package-scripts.js ./
+# COPY ${HOST_APP_HOME}/package.json ${HOST_APP_HOME}/yarn.lock ${HOST_APP_HOME}/package-scripts.js ./
 COPY ${HOST_APP_HOME} .
 
 RUN chown -R node:node /home/node \

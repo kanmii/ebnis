@@ -1,7 +1,11 @@
 .git
 *Dockerfile*
 *docker-compose*
-node_modules
+**/node_modules
+**/coverage
+**/build
+**/.vim
+**/.netlify
 .vscode/
 tags
 .vim
@@ -11,3 +15,4 @@ cypress
 .prettierrc.js
 README.md
 .dockerignore
+**/yarn-error.log
