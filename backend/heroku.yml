@@ -5,7 +5,6 @@ setup:
 build:
   config:
     DOCKER_HOST_USER_NAME: ebnis
-    IS_E2E: true
   docker:
     web:
       dockerfile: ./Dockerfile
