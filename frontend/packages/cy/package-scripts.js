@@ -6,13 +6,14 @@ const cypressBrowser = process.env.CYPRESS_BROWSER
   ? ` --browser ${process.env.CYPRESS_BROWSER}`
   : "";
 const cypressPreEnv = `CYPRESS_BASE_URL=${webUrl}`;
-const cypressPostEnv = `--env API_URL=${apiUrl} ${cypressBrowser}`;
+const cypressPostEnv = `--env API_URL=${apiUrl}`;
+const cypressPostEnvOpen = `${cypressPostEnv} ${cypressBrowser}`;
 
 module.exports = {
   scripts: {
     default: {
       script: `${cypressPreEnv} cypress open \
-           ${cypressPostEnv}`,
+           ${cypressPostEnvOpen}`,
       description: `e2e test with frontend in dev mode/electron unless
       browser specified`,
     },
@@ -22,8 +23,13 @@ module.exports = {
     },
     hp: {
       script: `NODE_ENV=production ${cypressPreEnv} \
-          cypress open ${cypressPostEnv}`,
-      description: "e2e: with frontend in production",
+          cypress run ${cypressPostEnv}`,
+      description: "e2e: cypress 'run' with frontend in production",
+    },
+    hpo: {
+      script: `NODE_ENV=production ${cypressPreEnv} \
+          cypress open ${cypressPostEnvOpen}`,
+      description: "e2e: cypress 'open' with frontend in production",
     },
     tc: {
       default: "tsc --project .",

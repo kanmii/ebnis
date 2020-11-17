@@ -10,7 +10,7 @@ const reactScript = "react-app-rewired";
 // const reactScript = "react-scripts";
 
 const apiUrl = process.env.API_URL;
-const webUrl = process.env.WEB_URL;
+const webUrl = process.env.WEB_URL || "";
 
 const dev_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REACT_APP_API_URL=${apiUrl} `;
 
