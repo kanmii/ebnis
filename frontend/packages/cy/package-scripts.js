@@ -17,19 +17,19 @@ module.exports = {
       description: `e2e test with frontend in dev mode/electron unless
       browser specified`,
     },
-    h: {
+    r: {
       script: `${cypressPreEnv} cypress run ${cypressPostEnv}`,
-      description: "e2e test with frontend in dev mode/electron/headless",
+      description: "e2e: cypress 'run' frontend in development",
     },
-    hp: {
+    pr: {
       script: `NODE_ENV=production ${cypressPreEnv} \
           cypress run ${cypressPostEnv}`,
-      description: "e2e: cypress 'run' with frontend in production",
+      description: "e2e: cypress 'run', frontend in production",
     },
-    hpo: {
+    po: {
       script: `NODE_ENV=production ${cypressPreEnv} \
           cypress open ${cypressPostEnvOpen}`,
-      description: "e2e: cypress 'open' with frontend in production",
+      description: "e2e: cypress 'open', frontend in production",
     },
     tc: {
       default: "tsc --project .",
