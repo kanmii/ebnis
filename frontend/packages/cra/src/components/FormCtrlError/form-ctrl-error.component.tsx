@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 import React, { PropsWithChildren } from "react";
 import makeClassName from "classnames";
-import { ComponentProps } from "../../utils/types";
+import { ComponentProps } from "@ebnis/commons/src/utils/types";
 import { formCtrlErrorClassName } from "../../utils/utils.dom";
 
 interface Props extends PropsWithChildren<{}>, ComponentProps {

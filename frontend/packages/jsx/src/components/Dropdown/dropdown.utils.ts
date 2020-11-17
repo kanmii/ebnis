@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { ComponentProps } from "../../utils/types";
+import { ComponentProps } from "@ebnis/commons/src//utils/types";
 
 export interface StateMachine<Value> {
   inputVal: string;

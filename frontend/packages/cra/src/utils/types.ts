@@ -1,6 +1,5 @@
 /* istanbul ignore file */
 /* eslint-disable @typescript-eslint/no-explicit-any*/
-import { PropsWithChildren } from "react";
 import { InMemoryCache, ApolloClient } from "@apollo/client";
 import { CachePersistor } from "apollo-cache-persist-dev";
 import { ChangeEvent } from "react";
@@ -82,15 +81,6 @@ export type CommonError = Error | string;
 export type RestoreCacheOrPurgeStorageFn = (
   persistor: CachePersistor<{}>,
 ) => Promise<CachePersistor<{}>>;
-
-export type ComponentProps = any &
-  PropsWithChildren<{}> & {
-    className?: string;
-    id?: string;
-    value?: any;
-    onChange?: any;
-    name?: string;
-  };
 
 export type IEnum<T extends object> = T[keyof T];
 

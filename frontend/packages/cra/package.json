@@ -65,6 +65,7 @@
   "dependencies": {
     "@apollo/client": "^3.2.5",
     "@ebnis/commons": "0.0.0",
+    "@ebnis/jsx": "0.0.0",
     "@fortawesome/fontawesome-free": "^5.15.1",
     "@kanmii/socket": "^0.2.2",
     "@kanmii/socket-apollo-link": "^0.2.3",

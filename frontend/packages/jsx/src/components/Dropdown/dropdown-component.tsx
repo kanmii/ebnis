@@ -221,6 +221,7 @@ export function Dropdown<Value = string | number>(props: Props<Value>) {
 }
 
 // istanbul ignore next:
+/* eslint-disable-next-line react/display-name*/
 export default function <V>(props: Props<V>) {
   return <Dropdown<V> {...props} />;
 }

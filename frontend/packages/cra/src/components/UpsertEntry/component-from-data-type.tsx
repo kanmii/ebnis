@@ -1,7 +1,7 @@
 import React from "react";
-import { ComponentProps } from "../../utils/types";
-import { DateField } from "../DateField/date-field.component";
-import { DateTimeField } from "../DateTimeField/date-time-field.component";
+import { ComponentProps } from "@ebnis/commons/src/utils/types";
+import { DateField } from "@ebnis/jsx/src/components/DateField/date-field.component";
+import { DateTimeField } from "@ebnis/jsx/src/components/DateTimeField/date-time-field.component";
 import { DataTypes } from "@ebnis/commons/src/graphql/apollo-types/globalTypes";
 import {
   integerInputDomSelector,

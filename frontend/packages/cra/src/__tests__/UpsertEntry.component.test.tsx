@@ -53,7 +53,7 @@ const mockIsConnected = getIsConnected as jest.Mock;
 
 jest.mock("../components/UpsertEntry/upsert-entry.injectables");
 
-jest.mock("../components/DateField/date-field.component", () => {
+jest.mock("@ebnis/jsx/src/components/DateField/date-field.component", () => {
   return {
     DateField: ({ onChange, value, ...props }: any) => {
       return (
@@ -70,23 +70,26 @@ jest.mock("../components/DateField/date-field.component", () => {
   };
 });
 
-jest.mock("../components/DateTimeField/date-time-field.component", () => {
-  return {
-    DateTimeField: ({ onChange, value, ...props }: any) => {
-      const text = value.toJSON();
-      return (
-        <input
-          type="text"
-          {...props}
-          value={text}
-          onChange={(el) => {
-            onChange(null, new Date(el.currentTarget.value));
-          }}
-        />
-      );
-    },
-  };
-});
+jest.mock(
+  "@ebnis/jsx/src/components/DateTimeField/date-time-field.component",
+  () => {
+    return {
+      DateTimeField: ({ onChange, value, ...props }: any) => {
+        const text = value.toJSON();
+        return (
+          <input
+            type="text"
+            {...props}
+            value={text}
+            onChange={(el) => {
+              onChange(null, new Date(el.currentTarget.value));
+            }}
+          />
+        );
+      },
+    };
+  },
+);
 
 const mockDispatch = jest.fn();
 const mockUpdateExperiencesOnline = jest.fn();

@@ -19,6 +19,7 @@ module.exports = {
     cra: includePackage({ path: makePackagePath("cra") }),
     cy: includePackage({ path: makePackagePath("cy") }),
     cm: includePackage({ path: makePackagePath("commons") }),
+    jsx: includePackage({ path: makePackagePath("jsx") }),
     deploy: {
       netlify: `node -e 'require("./package-scripts").netlify()'`,
       l: {
