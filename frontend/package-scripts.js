@@ -12,6 +12,7 @@ function makePackagePath(packageName) {
 }
 
 const webUrl = process.env.WEB_URL;
+const isE2E = process.env.IS_E2E === "true";
 
 module.exports = {
   scripts: {
@@ -40,7 +41,14 @@ module.exports = {
   },
   netlify() {
     const NetlifyApi = require("netlify");
-    const { siteId } = require("./.netlify/state.json");
+
+    const netlifyConfigFolder = isE2E
+      ? `./.netlify-staging`
+      : `./.netlify-production`;
+
+    console.log("\n\nNetlify config folder is: ", netlifyConfigFolder, "\n\n");
+
+    const { siteId } = require(`${netlifyConfigFolder}/state.json`);
     const token = process.env.NETLIFY_TOKEN;
 
     if (!token) {
@@ -49,7 +57,7 @@ module.exports = {
 
     const netlifyClient = new NetlifyApi(token);
 
-    console.log("\n***", "Deploying to netlify");
+    console.log("\n***", "Deploying to netlify\n");
 
     netlifyClient
       .deploy(siteId, distAbsPath, {
