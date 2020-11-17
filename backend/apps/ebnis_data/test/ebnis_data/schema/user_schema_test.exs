@@ -39,7 +39,7 @@ defmodule EbnisData.Schema.UserTest do
                 data: %{
                   "registerUser" => %{
                     "user" => %{
-                      "id" => _,
+                      "id" => user_id,
                       "name" => ^name,
                       "email" => ^email,
                       "jwt" => jwt,
@@ -57,6 +57,7 @@ defmodule EbnisData.Schema.UserTest do
                )
 
       assert is_binary(jwt)
+      EbnisData.get_user(user_id)
     end
 
     # @tag :skip

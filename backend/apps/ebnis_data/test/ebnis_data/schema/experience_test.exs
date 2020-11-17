@@ -2900,7 +2900,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
   end
 
-  describe "löschen erfahrungen" do
+  describe "delete experiences" do
     # @tag :skip
     test "unauthorized" do
       assert {
@@ -2925,7 +2925,7 @@ defmodule EbnisData.Schema.ExperienceTest do
     end
 
     # @tag :skip
-    test "erhebt Ausnahme" do
+    test "invalid ULID id" do
       raises_id = "1"
       user = RegFactory.insert()
 
@@ -2935,40 +2935,35 @@ defmodule EbnisData.Schema.ExperienceTest do
         ]
       }
 
-      log =
-        capture_log(fn ->
-          assert {
-                   :ok,
-                   %{
-                     data: %{
-                       "deleteExperiences" => %{
-                         "experiences" => [
-                           %{
-                             "errors" => %{
-                               "id" => ^raises_id,
-                               "error" => raises_error
-                             }
-                           }
-                         ]
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "deleteExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "errors" => %{
+                           "id" => ^raises_id,
+                           "error" => raises_error
+                         }
                        }
-                     }
+                     ]
                    }
-                 } =
-                   Absinthe.run(
-                     Query.delete_experiences(),
-                     Schema,
-                     variables: variables,
-                     context:
-                       user
-                       |> context()
-                       |> client_session_context()
-                       |> client_token_context()
-                   )
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.delete_experiences(),
+                 Schema,
+                 variables: variables,
+                 context:
+                   user
+                   |> context()
+                   |> client_session_context()
+                   |> client_token_context()
+               )
 
-          assert is_binary(raises_error)
-        end)
-
-      assert log =~ "STACK"
+      assert is_binary(raises_error)
     end
 
     test "erfahrung nitch gefunden" do

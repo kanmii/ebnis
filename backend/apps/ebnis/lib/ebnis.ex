@@ -10,4 +10,12 @@ defmodule Ebnis do
   def stacktrace_prefix do
     @stacktrace
   end
+
+  def make_cache_key(:user, user_id) do
+    "#{user_id}:user"
+  end
+
+  def make_cache_key(:experience, user_id, experience_id) do
+    "#{user_id}:#{experience_id}:experience"
+  end
 end

@@ -9,6 +9,8 @@ defmodule EbnisData.Repo do
           TRUNCATE users
           CASCADE;
         ))
+
+      Cachex.clear(:ebnis_cache)
     end
   end
 end

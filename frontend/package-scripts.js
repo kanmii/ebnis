@@ -27,12 +27,19 @@ module.exports = {
         description: `Test production build locally, manually,
           serving using 'yarn ${deployApp}.serve'`,
       },
-      le: {
+      ler: {
         script: `start-server-and-test \
           'yarn start ${deployApp}.serve' ${webUrl} \
-          'yarn start cy.hp'`,
-        description: `local e2e: start server and test on developer's machine:
-            frontend=production`,
+          'yarn start cy.pr'`,
+        description: `local e2e run: start server and test on developer's
+        machine: frontend=production`,
+      },
+      leo: {
+        script: `start-server-and-test \
+          'yarn start ${deployApp}.serve' ${webUrl} \
+          'yarn start cy.po'`,
+        description: `local e2e open: start server and test on developer's
+        machine: frontend=production`,
       },
     },
     pretty: {

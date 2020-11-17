@@ -18,18 +18,28 @@ defmodule EbnisData.ExperienceApi do
   @update_definitions_exception_header "\n\nException while updating definitions with:"
   @experience_can_not_be_created_exception_header "\n\nsomething is wrong - experience can not be created"
   @update_experience_exception_header "\n\nException while updating experience with:"
-  @delete_experience_exception_header "\n\nException while deleting experience with:"
 
   @empty_relay_connection EbnisData.get_empty_relay_connection()
 
   @spec get_experience(id :: integer() | binary(), user_id :: integer() | binary()) ::
           Experience.t() | nil
   def get_experience(id, user_id) do
-    %{id: id, user_id: user_id}
-    |> query_with_data_definitions()
-    |> Repo.all()
+    key = Ebnis.make_cache_key(:experience, user_id, id)
+
+    Cachex.fetch(:ebnis_cache, key, fn ->
+      %{id: id, user_id: user_id}
+      |> query_with_data_definitions()
+      |> Repo.all()
+      |> case do
+        [experience] ->
+          {:commit, experience}
+
+        _ ->
+          {:ignore, nil}
+      end
+    end)
     |> case do
-      [experience] ->
+      {_, %Experience{} = experience} ->
         experience
 
       _ ->
@@ -170,33 +180,18 @@ defmodule EbnisData.ExperienceApi do
   end
 
   def delete_experience(id, user_id) do
-    from(
-      e in Experience,
-      where: e.id == ^id and e.user_id == ^user_id
-    )
-    |> Repo.all()
-    |> case do
-      [experience] ->
-        Repo.delete(experience)
+    case get_experience(id, user_id) do
+      %{} = experience ->
+        result = Repo.delete(experience)
+
+        key = Ebnis.make_cache_key(:experience, user_id, id)
+        Cachex.del(:ebnis_cache, key)
+
+        result
 
       _ ->
         {:error, @bad_request}
     end
-  rescue
-    error ->
-      Logger.error(fn ->
-        [
-          @delete_experience_exception_header,
-          "\n\tid: #{id}",
-          "\n\tUser ID: #{user_id}",
-          stacktrace_prefix(),
-          :error
-          |> Exception.format(error, __STACKTRACE__)
-          |> prettify_with_new_line()
-        ]
-      end)
-
-      {:error, @bad_request}
   end
 
   defp get_definition(id) do
@@ -215,18 +210,15 @@ defmodule EbnisData.ExperienceApi do
   def update_experience(params, user_id) do
     {experience_id, update_params} = Map.pop(params, :experience_id)
 
-    %{id: experience_id, user_id: user_id}
-    |> query_with_data_definitions()
-    |> Repo.all()
-    |> case do
-      [experience] ->
+    case get_experience(experience_id, user_id) do
+      %{} = experience ->
         bearbeitet_erfahrung_komponenten = %{}
         einträge_komponenten = []
 
         {
           bearbeitet_erfahrung_komponenten_1,
           einträge_komponenten_1,
-          _updated_experience
+          updated_experience
         } =
           [
             :delete_entries,
@@ -243,6 +235,9 @@ defmodule EbnisData.ExperienceApi do
             },
             &update_experience_p(&2, &1, update_params[&1])
           )
+
+        key = Ebnis.make_cache_key(:experience, user_id, experience_id)
+        Cachex.put(:ebnis_cache, key, updated_experience)
 
         {:ok, bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
 
@@ -660,7 +655,16 @@ defmodule EbnisData.ExperienceApi do
     case %Experience{}
          |> Experience.changeset(attrs)
          |> Repo.insert() do
-      {:ok, %Experience{} = experience} ->
+      {
+        :ok,
+        %Experience{
+          id: id,
+          user_id: user_id
+        } = experience
+      } ->
+        key = Ebnis.make_cache_key(:experience, user_id, id)
+        Cachex.put(:ebnis_cache, key, experience)
+
         case attrs[:entries] do
           nil ->
             experience

@@ -8,9 +8,10 @@ defmodule Ebnis.Application do
   def start(_type, _args) do
     children = [
       # Start the PubSub system
-      {Phoenix.PubSub, name: Ebnis.PubSub}
+      {Phoenix.PubSub, name: Ebnis.PubSub},
       # Start a worker by calling: Ebnis.Worker.start_link(arg)
       # {Ebnis.Worker, arg}
+      {Cachex, name: :ebnis_cache}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Ebnis.Supervisor)

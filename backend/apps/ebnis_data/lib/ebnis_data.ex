@@ -35,6 +35,9 @@ defmodule EbnisData do
               password: nil
           })
 
+        key = Ebnis.make_cache_key(:user, user.id)
+        Cachex.put(:ebnis_cache, key, user)
+
         {:ok, user}
 
       {:error, failed_operations, changeset, _successes} ->
@@ -55,6 +58,10 @@ defmodule EbnisData do
       %Credential{} = cred ->
         try do
           if Pbkdf2.verify_pass(password, cred.token) do
+            user = cred.user
+            key = Ebnis.make_cache_key(:user, user.id)
+            Cachex.put(:ebnis_cache, key, user)
+
             {:ok, cred}
           else
             {:error, "Invalid email/password"}
@@ -93,7 +100,26 @@ defmodule EbnisData do
       ** nil
 
   """
-  def get_user(id), do: Repo.get(User, id)
+  def get_user(id) do
+    key = Ebnis.make_cache_key(:user, id)
+
+    Cachex.fetch(:ebnis_cache, key, fn ->
+      case Repo.get(User, id) do
+        nil ->
+          {:ignore, nil}
+
+        user ->
+          {:commit, user}
+      end
+    end)
+    |> case do
+      {_, %User{} = user} ->
+        user
+
+      _ ->
+        nil
+    end
+  end
 
   @doc """
   Updates a user.

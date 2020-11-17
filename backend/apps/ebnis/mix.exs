@@ -26,6 +26,9 @@ defmodule Ebnis.MixProject do
       extra_applications: [
         :logger,
         :runtime_tools
+      ],
+      applications: [
+        :cachex
       ]
     ]
   end
@@ -42,7 +45,8 @@ defmodule Ebnis.MixProject do
       {:ecto_sql, "~> 3.5"},
       {:phoenix_pubsub, "~> 2.0"},
       {:mix_test_watch, "~> 1.0.2", only: :dev, runtime: false},
-      {:excoveralls, "~> 0.12", only: :test}
+      {:excoveralls, "~> 0.12", only: :test},
+      {:cachex, "~> 3.3"}
     ]
   end
 end
