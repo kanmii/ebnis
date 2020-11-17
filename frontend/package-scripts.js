@@ -19,10 +19,7 @@ module.exports = {
     cy: includePackage({ path: makePackagePath("cy") }),
     cm: includePackage({ path: makePackagePath("commons") }),
     deploy: {
-      n: {
-        script: `yarn start ${deployApp}.build && yarn start netlify`,
-        description: "deploy to netlify",
-      },
+      netlify: `node -e 'require("./package-scripts").netlify()'`,
       l: {
         script: `yarn start ${deployApp}.build && yarn start ${deployApp}.serve`,
         description: `Test production build locally, manually,
@@ -35,15 +32,7 @@ module.exports = {
         description: `local e2e: start server and test on developer's machine:
             frontend=production`,
       },
-      re: {
-        script: `start-server-and-test \
-          'yarn start ${deployApp}.serve' ${webUrl} \
-          'yarn start cy.hp'`,
-        description: `remote e2e: start server and test on remotely deployed machine:
-            frontend=production backend=production`,
-      },
     },
-    netlify: `node -e 'require("./package-scripts").netlify()'`,
     pretty: {
       script: `prettier --write .`,
       description: "prettify",

@@ -22,7 +22,7 @@ module.exports = {
     },
     hp: {
       script: `NODE_ENV=production ${cypressPreEnv} \
-          cypress run ${cypressPostEnv}`,
+          cypress open ${cypressPostEnv}`,
       description: "e2e: with frontend in production",
     },
     tc: {

@@ -1,0 +1,18 @@
+setup:
+  addons:
+    - plan: heroku-postgresql:hobby-dev
+      as: db
+build:
+  config:
+    DOCKER_HOST_USER_NAME: ebnis
+    IS_E2E: true
+  docker:
+    web:
+      dockerfile: ./Dockerfile
+      target: prod
+release:
+  image: web
+  command:
+    - "bin/ebnis eval Ebnis.Release.migrate"
+run:
+  web: "bin/ebnis start"
