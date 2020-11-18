@@ -66,8 +66,11 @@ services:
       - "./frontend:/home/node/ebnis-web"
       - "nu_nm:/home/node/ebnis-web/node_modules/"
       - "nu_nm_cra:/home/node/ebnis-web/packages/cra/node_modules/"
+      - "nu_co_cra:/home/node/ebnis-web/packages/cra/coverage/"
+      - "nu_build_cra:/home/node/ebnis-web/packages/cra/build/"
       - "nu_nm_cy:/home/node/ebnis-web/packages/cy/node_modules/"
       - "nu_nm_commons:/home/node/ebnis-web/packages/commons/node_modules/"
+      - "nu_nm_jsx:/home/node/ebnis-web/packages/jsx/node_modules/"
 
 volumes:
   nu_build:
@@ -77,3 +80,6 @@ volumes:
   nu_nm_cra:
   nu_nm_cy:
   nu_nm_commons:
+  nu_nm_jsx:
+  nu_co_cra:
+  nu_build_cra:
