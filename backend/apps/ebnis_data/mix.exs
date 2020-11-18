@@ -35,6 +35,7 @@ defmodule EbnisData.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:ecto_sql, "~> 3.5"},
       {:postgrex, ">= 0.0.0"},
       {:jason, "~> 1.0"},
       {:pbkdf2_elixir, "~> 1.0"},
