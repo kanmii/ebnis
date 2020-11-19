@@ -79,6 +79,10 @@ config :ebnis_web, EbnisWeb.Plug.Pipeline,
   module: EbnisData.Guardian,
   error_handler: EbnisWeb.Plug.Pipeline
 
+config :ebnis_data, :pow,
+  user: EbnisData.Users.Auth,
+  repo: EbnisData.Repo
+
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

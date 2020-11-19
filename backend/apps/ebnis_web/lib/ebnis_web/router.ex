@@ -12,8 +12,28 @@ defmodule EbnisWeb.Router do
 
   pipeline :api do
     plug(:accepts, ["json"])
+
+    # TODO: delete this and associated module
+    # Guardian app will check auth header and load resource_from_token
+    # but will not error if resource not found
     plug(EbnisWeb.Plug.Pipeline)
+
+    # TODO: delete this and associated module
+    # A plug to put loaded resource into absinthe context
     plug(EbnisWeb.Plug.AuthContext)
+
+    # Combines the above two plugs
+    plug(
+      EbnisWeb.Plug.ApiAuth,
+      otp_app: :ebnis_data
+    )
+
+    # TODO: delete this and associated module
+    # is this plug required? ApiAuth should be enough
+    # plug(
+    #   EbnisWeb.Plug.RequireAuthenticated,
+    #   error_handler: EbnisWeb.Plug.ApiAuthErrorHandler
+    # )
   end
 
   get("/health", EbnisWeb.HealthController, :health)
