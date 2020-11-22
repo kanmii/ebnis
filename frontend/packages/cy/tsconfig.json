@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.json",
-  "baseUrl": ".",
-  "isolatedModules": false,
+  "compilerOptions": {
+    "baseUrl": ".",
+    "isolatedModules": false
+  },
   "include": [
     "node_modules/cypress",
     "./cypress/**/*.ts",
