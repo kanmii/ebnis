@@ -4,7 +4,7 @@ services:
     image: postgres:12.2
     ports:
       - "${DOCKER_HOST_DATABASE_PORT}:5432"
-    restart: always
+    # restart: always
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: "${DATABASE_NAME}"
