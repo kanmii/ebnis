@@ -508,19 +508,17 @@ defmodule EbnisData.EntryApi do
     data =
       from(ent in Entry,
         as: :ents,
-        join: ex in assoc(ent, :experience),
-        as: :exs,
-        where: ex.id in ^experience_ids,
         inner_lateral_join:
           paginated_entries in subquery(
             from(ent1 in Entry,
-              where: [experience_id: parent_as(:exs).id],
+              where: [experience_id: parent_as(:ents).experience_id],
               order_by: [desc: ent1.inserted_at, desc: ent1.id],
               limit: ^(limit + 1),
               offset: ^offset
             )
           ),
         on: paginated_entries.id == ent.id,
+        where: ent.experience_id in ^experience_ids,
         order_by: [desc: ent.inserted_at, desc: ent.id],
         preload: [
           data_objects:
