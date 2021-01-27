@@ -22,7 +22,6 @@ services:
       context: ./backend
       target: "${MIX_ENV}"
       args:
-        DOCKER_HOST_USER_NAME: "${DOCKER_HOST_USER_NAME}"
         IS_E2E: "${IS_E2E:-false}"
     image: "ebnis-be-${MIX_ENV}"
     depends_on:
@@ -38,15 +37,15 @@ services:
       retries: 5
       start_period: 10s
     entrypoint: ["/usr/local/bin/entrypoint.sh"]
-    user: "${DOCKER_HOST_USER_NAME}"
+    user: "ebnis"
     env_file: "${DOCKER_ENV_FILE}"
     ports:
       - "${DOCKER_HOST_API_PORT}:${PORT}"
     volumes:
-      - "./backend:/home/${DOCKER_HOST_USER_NAME}/src"
-      - "nu_build:/home/${DOCKER_HOST_USER_NAME}/src/_build"
-      - "nu_elixir_ls:/home/${DOCKER_HOST_USER_NAME}/src/.elixir_ls"
-      - "nu_deps:/home/${DOCKER_HOST_USER_NAME}/src/deps"
+      - "./backend:/home/ebnis/src"
+      - "nu_build:/home/ebnis/src/_build"
+      - "nu_elixir_ls:/home/ebnis/src/.elixir_ls"
+      - "nu_deps:/home/ebnis/src/deps"
 
   cra:
     build:
