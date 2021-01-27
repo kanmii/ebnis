@@ -6,6 +6,8 @@ defmodule EbnisData.Entry do
   alias EbnisData.Experience
   alias EbnisData
   alias EbnisData.DataObject
+  alias EbnisData.Comment
+  alias EbnisData.EntryComment
 
   @primary_key {:id, Ecto.ULID, autogenerate: true}
   @foreign_key_type Ecto.ULID
@@ -13,6 +15,13 @@ defmodule EbnisData.Entry do
     field(:client_id, :string)
     belongs_to(:experience, Experience)
     has_many(:data_objects, DataObject)
+
+    many_to_many(
+      :comments,
+      Comment,
+      join_through: EntryComment
+    )
+
     timestamps(type: :utc_datetime)
   end
 
