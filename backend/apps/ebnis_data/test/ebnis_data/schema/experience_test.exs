@@ -595,6 +595,61 @@ defmodule EbnisData.Schema.ExperienceTest do
                  context: context(user)
                )
     end
+
+    # @tag :skip
+    test "success: create with comments" do
+      user = RegFactory.insert()
+
+      input = %{
+        "clientId" => "a4",
+        "title" => "a4",
+        "dataDefinitions" => [
+          %{
+            "name" => "a1",
+            "type" => "INTEGER"
+          }
+        ],
+        "comment_text" => "text"
+      }
+
+      variables = %{
+        "input" => [
+          input
+        ]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createExperiences" => [
+                    %{
+                      "experience" => %{
+                        "id" => _,
+                        "title" => "a4",
+                        "dataDefinitions" => [
+                          %{
+                            "name" => "a1"
+                          }
+                        ],
+                        "clientId" => "a4",
+                        "comments" => [
+                          %{
+                            "id" => _,
+                            "text" => "text"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.create_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
   end
 
   describe "update experiences" do

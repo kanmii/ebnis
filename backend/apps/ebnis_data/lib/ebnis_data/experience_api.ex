@@ -667,6 +667,7 @@ defmodule EbnisData.ExperienceApi do
 
         experience
         |> create_entry(attrs)
+        |> create_comment(attrs)
 
       {:error, changeset} ->
         {:error, changeset}
@@ -867,6 +868,24 @@ defmodule EbnisData.ExperienceApi do
     experience
   end
 
+  defp create_comment(experience, %{comment_text: text}) do
+    comment =
+      EbnisData.create_experience_comment(%{
+        text: text,
+        experience_id: experience.id
+      })
+
+    %Experience{
+      experience
+      | comments: [
+          comment
+        ]
+    }
+  end
+
+  defp create_comment(experience, _) do
+    experience
+  end
 
   def pre_fetch_experiences(%{ids: ids} = args, user_id) do
     from(

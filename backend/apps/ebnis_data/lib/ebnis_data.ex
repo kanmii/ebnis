@@ -9,6 +9,7 @@ defmodule EbnisData do
   alias Ecto.Multi
   alias EbnisData.EntryApi
   alias EbnisData.ExperienceApi
+  alias EbnisData.CommentApi
 
   @authenticate_user_exception_header "\n\nException while authenticating user with username:"
 
@@ -181,6 +182,9 @@ defmodule EbnisData do
                 repo_opts
               ),
               to: EntryApi
+
+  defdelegate create_experience_comment(params),
+    to: CommentApi
 
   ################################ END ENTRY SECTION #################
 end
