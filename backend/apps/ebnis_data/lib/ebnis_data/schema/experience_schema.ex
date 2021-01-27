@@ -282,6 +282,14 @@ defmodule EbnisData.Schema.Experience do
     """
     field(:inserted_at, :datetime)
     field(:updated_at, :datetime)
+
+    @desc ~S"""
+      An entry may be created with an optional single comment
+    """
+    field(
+      :comment_text,
+      :string
+    )
   end
 
   @desc ~S"""
