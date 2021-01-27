@@ -1,7 +1,7 @@
 version: "3.4"
 services:
   db:
-    image: postgres:12.2
+    image: postgres:13.1
     ports:
       - "${DOCKER_HOST_DATABASE_PORT}:5432"
     restart: always
