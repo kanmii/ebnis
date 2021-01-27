@@ -1981,6 +1981,96 @@ defmodule EbnisData.Schema.ExperienceTest do
 
       assert is_binary(deleted_entry_not_found_error)
     end
+
+    test "success/create entry with comment" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id,
+        data_definitions: [
+          %{
+            id: definition0_id
+          }
+        ]
+      } =
+        _experience =
+        Factory.insert(
+          %{user_id: user.id},
+          [
+            "integer"
+          ]
+        )
+
+      create_entry_client_id_not_unique = %{
+        "experienceId" => experience_id,
+        "addEntries" => [
+          %{
+            "comment_text" => "text",
+            "clientId" => "a",
+            "dataObjects" => [
+              %{
+                "definitionId" => definition0_id,
+                "data" => ~s({"integer":1}),
+                "clientId" => "x"
+              }
+            ]
+          }
+        ]
+      }
+
+      variables = %{
+        "input" => [
+          create_entry_client_id_not_unique
+        ]
+      }
+
+      assert {
+               :ok,
+               %{
+                 data: %{
+                   "updateExperiences" => %{
+                     "experiences" => [
+                       %{
+                         "entries" => %{
+                           "newEntries" => [
+                             %{
+                               "entry" => %{
+                                 "id" => _,
+                                 "experienceId" => ^experience_id,
+                                 "clientId" => "a",
+                                 "dataObjects" => [
+                                   %{
+                                     "definitionId" => ^definition0_id,
+                                     "data" => ~s({"integer":1}),
+                                     "clientId" => "x"
+                                   }
+                                 ],
+                                 "comments" => [
+                                   %{
+                                     "id" => _,
+                                     "text" => "text"
+                                   }
+                                 ]
+                               }
+                             }
+                           ]
+                         },
+                         "experience" => %{
+                           "experienceId" => ^experience_id
+                         }
+                       }
+                     ]
+                   }
+                 }
+               }
+             } =
+               Absinthe.run(
+                 Query.update_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
   end
 
   describe "update data definition" do
