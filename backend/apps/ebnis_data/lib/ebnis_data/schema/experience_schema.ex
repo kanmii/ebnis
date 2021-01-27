@@ -98,6 +98,15 @@ defmodule EbnisData.Schema.Experience do
 
     field(:inserted_at, non_null(:datetime))
     field(:updated_at, non_null(:datetime))
+
+    @desc """
+      The list of comments belonging to an entry
+    """
+    field(
+      :comments,
+      :comment
+      |> list_of()
+    )
   end
 
   @desc """
