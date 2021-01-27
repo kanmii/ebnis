@@ -21,6 +21,24 @@ defmodule EbnisData.Schema.Experience do
 
   ###################### END ENUM SECTION ###########################
 
+  ############################################
+  # START COMMENT SCHEMA
+  ############################################
+  @desc """
+      A generic comment object. It will be referenced by several other objects
+  """
+  object :comment do
+    field(:id, non_null(:id))
+    field(:text, non_null(:string))
+
+    field(:inserted_at, non_null(:datetime))
+    field(:updated_at, non_null(:datetime))
+  end
+
+  ############################################
+  # END COMMENT SCHEMA
+  ############################################
+
   @desc """
       An entry data object
   """
@@ -119,6 +137,15 @@ defmodule EbnisData.Schema.Experience do
 
     field(:inserted_at, non_null(:datetime))
     field(:updated_at, non_null(:datetime))
+
+    @desc """
+      The list of comments belonging to an experience
+    """
+    field(
+      :comments,
+      :comment
+      |> list_of()
+    )
   end
 
   @desc "An Experience data definition Field"
