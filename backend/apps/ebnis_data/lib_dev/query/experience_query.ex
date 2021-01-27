@@ -70,6 +70,13 @@ defmodule EbnisData.Query.Experience do
       }
     }
   """
+  @comments """
+    comments {
+      id
+      text
+      updatedAt
+    }
+  """
 
   def get do
     """
@@ -264,6 +271,7 @@ defmodule EbnisData.Query.Experience do
                 clientId
                 name
               }
+              #{@comments}
             }
 
             entries {
