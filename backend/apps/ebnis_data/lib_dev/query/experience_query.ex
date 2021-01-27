@@ -17,6 +17,14 @@ defmodule EbnisData.Query.Experience do
     }
   """
 
+  @comments """
+    comments {
+      id
+      text
+      updatedAt
+    }
+  """
+
   @eintrag_scherbe """
     {
       id
@@ -30,6 +38,7 @@ defmodule EbnisData.Query.Experience do
         data
         clientId
       }
+      #{@comments}
     }
   """
 
@@ -68,13 +77,6 @@ defmodule EbnisData.Query.Experience do
         data
         clientId
       }
-    }
-  """
-  @comments """
-    comments {
-      id
-      text
-      updatedAt
     }
   """
 
