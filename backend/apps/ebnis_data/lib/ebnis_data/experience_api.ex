@@ -666,6 +666,7 @@ defmodule EbnisData.ExperienceApi do
         Cachex.put(:ebnis_cache, key, experience)
 
         experience
+        |> create_comment(attrs)
         |> create_entry(attrs)
 
       {:error, changeset} ->
@@ -867,6 +868,37 @@ defmodule EbnisData.ExperienceApi do
     experience
   end
 
+  defp create_comment(experience, %{comment_text: text}) do
+    case String.trim(text) do
+      "" ->
+        put_empty_comments(experience)
+
+      trimmed_text ->
+        comment =
+          EbnisData.create_experience_comment(%{
+            text: trimmed_text,
+            experience_id: experience.id
+          })
+
+        %Experience{
+          experience
+          | comments: [
+              comment
+            ]
+        }
+    end
+  end
+
+  defp create_comment(experience, _) do
+    put_empty_comments(experience)
+  end
+
+  defp put_empty_comments(experience) do
+    %Experience{
+      experience
+      | comments: []
+    }
+  end
 
   def pre_fetch_experiences(%{ids: ids} = args, user_id) do
     from(

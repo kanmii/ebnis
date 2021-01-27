@@ -500,6 +500,7 @@ defmodule EbnisData.Schema.ExperienceTest do
                         }
                       ],
                       "experience" => %{
+                        "comments" => [],
                         "id" => entry_experience_id_not_experience_client_id,
                         "title" => "a4",
                         "dataDefinitions" => [
@@ -583,6 +584,111 @@ defmodule EbnisData.Schema.ExperienceTest do
                             "id" => definition_id
                           }
                         ]
+                      }
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.create_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "success: create with comment/non empty string" do
+      user = RegFactory.insert()
+
+      input = %{
+        "clientId" => "a4",
+        "title" => "a4",
+        "dataDefinitions" => [
+          %{
+            "name" => "a1",
+            "type" => "INTEGER"
+          }
+        ],
+        "comment_text" => "text"
+      }
+
+      variables = %{
+        "input" => [
+          input
+        ]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createExperiences" => [
+                    %{
+                      "experience" => %{
+                        "id" => _,
+                        "title" => "a4",
+                        "dataDefinitions" => [
+                          %{
+                            "name" => "a1"
+                          }
+                        ],
+                        "clientId" => "a4",
+                        "comments" => [
+                          %{
+                            "id" => _,
+                            "text" => "text"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.create_experiences(),
+                 Schema,
+                 variables: variables,
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "success: create with comments/empty string" do
+      user = RegFactory.insert()
+
+      input = %{
+        "clientId" => "a4",
+        "title" => "a4",
+        "dataDefinitions" => [
+          %{
+            "name" => "a1",
+            "type" => "INTEGER"
+          }
+        ],
+        "comment_text" => "   "
+      }
+
+      variables = %{
+        "input" => [
+          input
+        ]
+      }
+
+      assert {:ok,
+              %{
+                data: %{
+                  "createExperiences" => [
+                    %{
+                      "experience" => %{
+                        "id" => _,
+                        "title" => "a4",
+                        "dataDefinitions" => [
+                          %{
+                            "name" => "a1"
+                          }
+                        ],
+                        "clientId" => "a4",
+                        "comments" => []
                       }
                     }
                   ]
