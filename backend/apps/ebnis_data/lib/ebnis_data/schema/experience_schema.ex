@@ -367,6 +367,14 @@ defmodule EbnisData.Schema.Experience do
       otherwise the entry will fail to save.
     """
     field(:entries, :create_entry_input |> list_of())
+
+    @desc ~S"""
+      An experience may be created with an optional single comment
+    """
+    field(
+      :comment_text,
+      :string
+    )
   end
 
   ################## END CREATE EXPERIENCES OBJECTS SECTION ###########
