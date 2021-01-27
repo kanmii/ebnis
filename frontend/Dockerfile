@@ -1,4 +1,4 @@
-FROM node:12.17.0-buster-slim AS web
+FROM node:14.15.3-buster-slim AS web
 
 ARG NODE_ENV
 
