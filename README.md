@@ -18,8 +18,12 @@ environment variables when building images. Sourcing in shell provides
 the flexibility to build and run different images in different shells since
 there can be only one `.env` file in the root of our project.
 
+## Start docker
+
 ```
-set -a; . .env-dev; set +a; docker-compose up
+set -a; . .env-dev; set +a;
+
+docker-compose up
 ```
 
 ## Attach to running iex session in another shell
@@ -63,7 +67,9 @@ In a new shell, `docker-compose exec` into a running `api` docker-compose
 service container running in development mode:
 
 ```
-set -a; . .env-dev; set +a; docker-compose exec api bash
+set -a; . .env-dev; set +a;
+
+docker-compose exec api bash
 ```
 
 Once inside the container,
