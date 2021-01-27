@@ -665,21 +665,8 @@ defmodule EbnisData.ExperienceApi do
         key = Ebnis.make_cache_key(:experience, user_id, id)
         Cachex.put(:ebnis_cache, key, experience)
 
-        case attrs[:entries] do
-          nil ->
-            experience
-
-          entries ->
-            created_entries_and_error_changesets =
-              validate_create_entries(
-                entries,
-                experience,
-                attrs[:client_id]
-              )
-              |> Enum.reverse()
-
-            {experience, created_entries_and_error_changesets}
-        end
+        experience
+        |> create_entry(attrs)
 
       {:error, changeset} ->
         {:error, changeset}
@@ -863,6 +850,23 @@ defmodule EbnisData.ExperienceApi do
 
     [changeset | created_entries_and_error_changesets]
   end
+
+  defp create_entry(experience, attrs = %{entries: entries}) do
+    created_entries_and_error_changesets =
+      validate_create_entries(
+        entries,
+        experience,
+        attrs[:client_id]
+      )
+      |> Enum.reverse()
+
+    {experience, created_entries_and_error_changesets}
+  end
+
+  defp create_entry(experience, _) do
+    experience
+  end
+
 
   def pre_fetch_experiences(%{ids: ids} = args, user_id) do
     from(
