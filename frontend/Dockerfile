@@ -4,8 +4,7 @@ ARG NODE_ENV
 
 ENV BUILD_DEPS="build-essential" \
   APP_DEPS="curl iputils-ping" \
-  NODE_ENV=$NODE_ENV \
-  HOST_APP_HOME="."
+  NODE_ENV=$NODE_ENV
 
 RUN apt-get update \
   && apt-get install -y ${BUILD_DEPS} \
@@ -16,14 +15,14 @@ RUN apt-get update \
   && apt-get clean \
   && mkdir -p /home/node/ebnis-web/packages
 
-COPY ${HOST_APP_HOME}/entrypoint.sh /usr/local/bin
+COPY ./entrypoint.sh /usr/local/bin
 
 ADD https://raw.githubusercontent.com/humpangle/wait-until/v0.1.1/wait-until /usr/local/bin/
 
 WORKDIR /home/node/ebnis-web
 
-# COPY ${HOST_APP_HOME}/package.json ${HOST_APP_HOME}/yarn.lock ${HOST_APP_HOME}/package-scripts.js ./
-COPY ${HOST_APP_HOME} .
+# COPY ./package.json ./yarn.lock ./package-scripts.js ./
+COPY . .
 
 RUN chown -R node:node /home/node \
   && chmod 755 /usr/local/bin/entrypoint.sh \
