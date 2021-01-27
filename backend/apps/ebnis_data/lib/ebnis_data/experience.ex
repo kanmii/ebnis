@@ -6,6 +6,8 @@ defmodule EbnisData.Experience do
   alias EbnisData.User
   alias EbnisData.Entry
   alias EbnisData.DataDefinition
+  alias EbnisData.ExperienceComment
+  alias EbnisData.Comment
 
   @always_required_fields [:title, :user_id]
 
@@ -19,6 +21,13 @@ defmodule EbnisData.Experience do
     belongs_to(:user, User)
     has_many(:entries, Entry)
     has_many(:data_definitions, DataDefinition)
+
+    many_to_many(
+      :comments,
+      Comment,
+      join_through: ExperienceComment
+    )
+
     timestamps()
   end
 
