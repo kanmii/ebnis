@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.11.1-erlang-23.1-ubuntu-bionic-20200630 AS dev
+FROM hexpm/elixir:1.11.3-erlang-23.2.3-ubuntu-bionic-20200921 AS dev
 
 ARG DOCKER_HOST_USER_NAME
 
