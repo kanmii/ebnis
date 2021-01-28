@@ -310,42 +310,12 @@ export type SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experien
   | SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_newEntries_CreateEntryErrors
   | SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_newEntries_CreateEntrySuccess;
 
-export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_deletedEntries_DeleteEntrySuccess_entry_dataObjects {
-  __typename: "DataObject";
-  id: string;
-  data: any;
-  definitionId: string;
-  /**
-   * Client ID indicates that data object was created offline
-   */
-  clientId: string | null;
-  insertedAt: any;
-  updatedAt: any;
-}
-
 export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_deletedEntries_DeleteEntrySuccess_entry {
   __typename: "Entry";
   /**
    * Entry ID
    */
   id: string;
-  /**
-   * The ID of experience to which this entry belongs.
-   */
-  experienceId: string;
-  /**
-   * The client ID which indicates that an entry has been created while server
-   * is offline and is to be saved. The client ID uniquely
-   * identifies this entry and will be used to prevent conflict while saving entry
-   * created offline and must thus be non null in this situation.
-   */
-  clientId: string | null;
-  insertedAt: any;
-  updatedAt: any;
-  /**
-   * The list of data belonging to this entry.
-   */
-  dataObjects: (SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_deletedEntries_DeleteEntrySuccess_entry_dataObjects | null)[];
 }
 
 export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_deletedEntries_DeleteEntrySuccess {
@@ -423,6 +393,12 @@ export interface SyncToServer_createExperiences_ExperienceSuccess_experience_dat
   clientId: string | null;
 }
 
+export interface SyncToServer_createExperiences_ExperienceSuccess_experience_comments {
+  __typename: "Comment";
+  id: string;
+  text: string;
+}
+
 export interface SyncToServer_createExperiences_ExperienceSuccess_experience {
   __typename: "Experience";
   /**
@@ -447,6 +423,12 @@ export interface SyncToServer_createExperiences_ExperienceSuccess_experience {
    * The field definitions used for the experience entries
    */
   dataDefinitions: SyncToServer_createExperiences_ExperienceSuccess_experience_dataDefinitions[];
+  /**
+   * The list of comments belonging to an experience
+   */
+  comments:
+    | (SyncToServer_createExperiences_ExperienceSuccess_experience_comments | null)[]
+    | null;
 }
 
 export interface SyncToServer_createExperiences_ExperienceSuccess_entries_CreateEntrySuccess_entry_dataObjects {

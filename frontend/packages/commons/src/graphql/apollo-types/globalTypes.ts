@@ -41,6 +41,7 @@ export interface CreateDataObject {
 
 export interface CreateEntryInput {
   clientId?: string | null;
+  commentText?: string | null;
   dataObjects: CreateDataObject[];
   experienceId?: string | null;
   insertedAt?: any | null;
@@ -52,6 +53,7 @@ export interface CreateEntryInput {
  */
 export interface CreateExperienceInput {
   clientId?: string | null;
+  commentText?: string | null;
   dataDefinitions: (CreateDataDefinition | null)[];
   description?: string | null;
   entries?: (CreateEntryInput | null)[] | null;

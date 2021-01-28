@@ -356,6 +356,10 @@ const CREATE_EXPERIENCE_SUCCESS_FRAGMENT = gql`
   fragment CreateExperienceSuccessFragment on ExperienceSuccess {
     experience {
       ...ExperienceFragment
+      comments {
+        id
+        text
+      }
     }
     entries {
       __typename

@@ -306,42 +306,12 @@ export type UpdateExperiencesOnline_updateExperiences_UpdateExperiencesSomeSucce
   | UpdateExperiencesOnline_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_newEntries_CreateEntryErrors
   | UpdateExperiencesOnline_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_newEntries_CreateEntrySuccess;
 
-export interface UpdateExperiencesOnline_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_deletedEntries_DeleteEntrySuccess_entry_dataObjects {
-  __typename: "DataObject";
-  id: string;
-  data: any;
-  definitionId: string;
-  /**
-   * Client ID indicates that data object was created offline
-   */
-  clientId: string | null;
-  insertedAt: any;
-  updatedAt: any;
-}
-
 export interface UpdateExperiencesOnline_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_deletedEntries_DeleteEntrySuccess_entry {
   __typename: "Entry";
   /**
    * Entry ID
    */
   id: string;
-  /**
-   * The ID of experience to which this entry belongs.
-   */
-  experienceId: string;
-  /**
-   * The client ID which indicates that an entry has been created while server
-   * is offline and is to be saved. The client ID uniquely
-   * identifies this entry and will be used to prevent conflict while saving entry
-   * created offline and must thus be non null in this situation.
-   */
-  clientId: string | null;
-  insertedAt: any;
-  updatedAt: any;
-  /**
-   * The list of data belonging to this entry.
-   */
-  dataObjects: (UpdateExperiencesOnline_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_deletedEntries_DeleteEntrySuccess_entry_dataObjects | null)[];
 }
 
 export interface UpdateExperiencesOnline_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries_deletedEntries_DeleteEntrySuccess {

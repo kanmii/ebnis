@@ -284,42 +284,12 @@ export type UpdateExperienceSomeSuccessFragment_entries_newEntries =
   | UpdateExperienceSomeSuccessFragment_entries_newEntries_CreateEntryErrors
   | UpdateExperienceSomeSuccessFragment_entries_newEntries_CreateEntrySuccess;
 
-export interface UpdateExperienceSomeSuccessFragment_entries_deletedEntries_DeleteEntrySuccess_entry_dataObjects {
-  __typename: "DataObject";
-  id: string;
-  data: any;
-  definitionId: string;
-  /**
-   * Client ID indicates that data object was created offline
-   */
-  clientId: string | null;
-  insertedAt: any;
-  updatedAt: any;
-}
-
 export interface UpdateExperienceSomeSuccessFragment_entries_deletedEntries_DeleteEntrySuccess_entry {
   __typename: "Entry";
   /**
    * Entry ID
    */
   id: string;
-  /**
-   * The ID of experience to which this entry belongs.
-   */
-  experienceId: string;
-  /**
-   * The client ID which indicates that an entry has been created while server
-   * is offline and is to be saved. The client ID uniquely
-   * identifies this entry and will be used to prevent conflict while saving entry
-   * created offline and must thus be non null in this situation.
-   */
-  clientId: string | null;
-  insertedAt: any;
-  updatedAt: any;
-  /**
-   * The list of data belonging to this entry.
-   */
-  dataObjects: (UpdateExperienceSomeSuccessFragment_entries_deletedEntries_DeleteEntrySuccess_entry_dataObjects | null)[];
 }
 
 export interface UpdateExperienceSomeSuccessFragment_entries_deletedEntries_DeleteEntrySuccess {
