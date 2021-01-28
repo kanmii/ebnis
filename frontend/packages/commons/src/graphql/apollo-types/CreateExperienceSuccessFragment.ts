@@ -29,6 +29,12 @@ export interface CreateExperienceSuccessFragment_experience_dataDefinitions {
   clientId: string | null;
 }
 
+export interface CreateExperienceSuccessFragment_experience_comments {
+  __typename: "Comment";
+  id: string;
+  text: string;
+}
+
 export interface CreateExperienceSuccessFragment_experience {
   __typename: "Experience";
   /**
@@ -53,6 +59,12 @@ export interface CreateExperienceSuccessFragment_experience {
    * The field definitions used for the experience entries
    */
   dataDefinitions: CreateExperienceSuccessFragment_experience_dataDefinitions[];
+  /**
+   * The list of comments belonging to an experience
+   */
+  comments:
+    | (CreateExperienceSuccessFragment_experience_comments | null)[]
+    | null;
 }
 
 export interface CreateExperienceSuccessFragment_entries_CreateEntrySuccess_entry_dataObjects {

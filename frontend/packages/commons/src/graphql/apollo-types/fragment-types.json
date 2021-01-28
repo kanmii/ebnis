@@ -1,32 +1,32 @@
 {
-  "DeleteExperienceUnion": [
-    "DeleteExperienceErrors",
-    "DeleteExperienceSuccess"
-  ],
-  "GetEntriesUnion": ["GetEntriesErrors", "GetEntriesSuccess"],
-  "RegisterUser": ["RegisterUserErrors", "UserSuccess"],
-  "DeleteExperiences": [
-    "DeleteExperiencesAllFail",
-    "DeleteExperiencesSomeSuccess"
-  ],
-  "UpdateDataObjectUnion": ["DataObjectErrors", "DataObjectSuccess"],
-  "UpdateExperienceUnion": [
-    "UpdateExperienceErrors",
-    "UpdateExperienceSomeSuccess"
-  ],
-  "Login": ["LoginError", "UserSuccess"],
-  "UpdateExperienceOwnFieldsUnion": [
-    "ExperienceOwnFieldsSuccess",
-    "UpdateExperienceOwnFieldsErrors"
-  ],
-  "DeleteEntriesUnion": ["DeleteEntryErrors", "DeleteEntrySuccess"],
   "UpdateDefinition": ["DefinitionErrors", "DefinitionSuccess"],
-  "CreateExperienceUnion": ["CreateExperienceErrors", "ExperienceSuccess"],
+  "UpdateDataObjectUnion": ["DataObjectErrors", "DataObjectSuccess"],
+  "GetEntriesUnion": ["GetEntriesErrors", "GetEntriesSuccess"],
   "UpdateUser": ["UpdateUserErrors", "UserSuccess"],
-  "CreateEntriesUnion": ["CreateEntryErrors", "CreateEntrySuccess"],
   "UpdateExperiencesUnion": [
     "UpdateExperiencesAllFail",
     "UpdateExperiencesSomeSuccess"
   ],
-  "UpdatedEntriesUnion": ["UpdateEntryErrors", "UpdateEntrySomeSuccess"]
+  "DeleteEntriesUnion": ["DeleteEntryErrors", "DeleteEntrySuccess"],
+  "UpdateExperienceUnion": [
+    "UpdateExperienceErrors",
+    "UpdateExperienceSomeSuccess"
+  ],
+  "CreateEntriesUnion": ["CreateEntryErrors", "CreateEntrySuccess"],
+  "DeleteExperiences": [
+    "DeleteExperiencesAllFail",
+    "DeleteExperiencesSomeSuccess"
+  ],
+  "CreateExperienceUnion": ["CreateExperienceErrors", "ExperienceSuccess"],
+  "Login": ["LoginError", "UserSuccess"],
+  "UpdatedEntriesUnion": ["UpdateEntryErrors", "UpdateEntrySomeSuccess"],
+  "UpdateExperienceOwnFieldsUnion": [
+    "ExperienceOwnFieldsSuccess",
+    "UpdateExperienceOwnFieldsErrors"
+  ],
+  "DeleteExperienceUnion": [
+    "DeleteExperienceErrors",
+    "DeleteExperienceSuccess"
+  ],
+  "RegisterUser": ["RegisterUserErrors", "UserSuccess"]
 }
