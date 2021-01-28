@@ -6,7 +6,7 @@ const apiUrl = process.env.API_URL;
 
 module.exports = {
   scripts: {
-    fgql: `node -e 'require("./package-scripts").fetchGqlTypes()'`,
+    gc: `node -e 'require("./package-scripts").fetchGqlTypes()'`,
     lint: {
       script: "eslint . --ext .js,.jsx,.ts,.tsx",
       description: "eslint lint this project",
