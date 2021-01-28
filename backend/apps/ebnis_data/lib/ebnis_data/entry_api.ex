@@ -5,11 +5,13 @@ defmodule EbnisData.EntryApi do
   alias EbnisData.Repo
   alias EbnisData.Entry
   alias EbnisData.DataObject
+  alias EbnisData.Comment
   alias Ecto.Changeset
   alias Ecto.Multi
   alias Absinthe.Relay.Connection
 
   @entry_multi_key "e"
+  @comment_multi_key "c"
 
   @delete_entry_exception_header "\nDelete entry exception ID: "
 
@@ -160,15 +162,70 @@ defmodule EbnisData.EntryApi do
     multi
   end
 
+  defp create_comment_multi(
+         multi,
+         _attrs = %{comment_text: text}
+       ) do
+    multi
+    |> Multi.run(@comment_multi_key, fn _, %{@entry_multi_key => entry} ->
+      %Comment{} =
+        comment =
+        EbnisData.create_entry_comment(%{
+          text: text,
+          entry_id: entry.id
+        })
+
+      {:ok, comment}
+    end)
+  end
+
+  defp create_comment_multi(
+         multi,
+         _attrs
+       ) do
+    multi
+  end
+
   defp process_create_entry_result(result) do
-    {entry, data_list_map} = Map.pop(result, @entry_multi_key)
+    {entry, data_list_map} = pick_apart_create_entry_multi(result)
 
     data_list =
       data_list_map
       |> Enum.sort_by(fn {index, _} -> index end)
       |> Enum.map(fn {_, v} -> v end)
 
-    %{entry | data_objects: data_list}
+    %{
+      entry
+      | data_objects: data_list
+    }
+  end
+
+  defp pick_apart_create_entry_multi(
+         %{
+           @entry_multi_key => entry,
+           @comment_multi_key => comment
+         } = result
+       ) do
+    entry_with_comment = %Entry{
+      entry
+      | comments: [
+          comment
+        ]
+    }
+
+    data_list_map =
+      Map.drop(result, [
+        @entry_multi_key,
+        @comment_multi_key
+      ])
+
+    {entry_with_comment, data_list_map}
+  end
+
+  defp pick_apart_create_entry_multi(result) do
+    {entry, data_list_map} = Map.pop(result, @entry_multi_key)
+
+    {entry, data_list_map}
   end
 
   defp fake_changeset_with_data_objects(changesets, attrs) do
@@ -471,6 +528,13 @@ defmodule EbnisData.EntryApi do
           )
         )
         |> Multi.merge(&create_data_objects_multi(&1, data_objects_changesets))
+        # |> IO.inspect(label: "
+        # -----------merge 1 data objects------------
+        # ")
+        |> create_comment_multi(attrs)
+        # |> IO.inspect(label: "
+        # -----------merge 2 comment------------
+        # ")
         |> Repo.transaction()
         |> case do
           {:ok, result} ->
