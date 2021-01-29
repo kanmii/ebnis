@@ -19,6 +19,7 @@ import {
 import {
   scrollIntoViewDomId,
   titleInputDomId,
+  commentInputDomId,
   descriptionInputDomId,
   definitionNameInputDomId,
   definitionTypeInputDomId,
@@ -64,10 +65,12 @@ export function UpsertExperience(props: Props) {
         validity: formValidity,
         fields: {
           title: titleState,
+          comment: commentState,
           description: descriptionState,
           dataDefinitions: dataDefinitionsStates,
         },
       },
+      mode,
     },
     effects: { general: generalEffects },
     context: { header, title },
@@ -117,6 +120,19 @@ export function UpsertExperience(props: Props) {
     });
   }, []);
 
+  const onCommentChanged = useCallback(
+    (e: ChangeEvent<HTMLTextAreaElement>) => {
+      const node = e.currentTarget;
+      dispatch({
+        type: ActionType.FORM_CHANGED,
+        key: "non-def",
+        value: node.value,
+        fieldName: "comment",
+      });
+    },
+    [],
+  );
+
   return (
     <form
       className={makeClassNames({
@@ -165,6 +181,13 @@ export function UpsertExperience(props: Props) {
             states={dataDefinitionsStates}
             dispatch={dispatch}
           />
+
+          {mode.value === StateValue.insert && (
+            <CommentComponent
+              state={commentState}
+              onCommentChanged={onCommentChanged}
+            />
+          )}
         </section>
 
         <footer className="modal-card-foot">
@@ -303,6 +326,43 @@ function TitleComponent(props: TitleProps) {
           })}
         </FormCtrlError>
       )}
+    </div>
+  );
+}
+
+function CommentComponent(props: CommentProps) {
+  const { state, onCommentChanged } = props;
+
+  let commentValue = "";
+
+  if (state.states.value === StateValue.changed) {
+    const {
+      context: { formValue },
+    } = state.states.changed;
+    commentValue = formValue;
+  }
+
+  return (
+    <div
+      className={makeClassNames({
+        "field form__field": true,
+      })}
+    >
+      <label htmlFor={commentInputDomId} className="form__label">
+        Comment
+      </label>
+
+      <div className="control">
+        <textarea
+          rows={7}
+          className={makeClassNames({
+            "form__control textarea": true,
+          })}
+          id={commentInputDomId}
+          value={commentValue}
+          onChange={onCommentChanged}
+        />
+      </div>
     </div>
   );
 }
@@ -624,6 +684,11 @@ interface DescriptionProps {
 interface TitleProps {
   state: FormField;
   onTitleChanged: (e: InputChangeEvent) => void;
+}
+
+interface CommentProps {
+  state: FormField;
+  onCommentChanged: (e: ChangeEvent<HTMLTextAreaElement>) => void;
 }
 
 interface DataDefinitionsProps {
