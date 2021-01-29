@@ -1,12 +1,19 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const fs = require("fs");
+const { resolve: resolvePath } = require("path");
 const shell = require("shelljs");
 
 const apiUrl = process.env.API_URL;
+const genClientOutputRelative = "./src/graphql/apollo-types";
+const genClientOutput = resolvePath(__dirname, genClientOutputRelative);
 
 module.exports = {
   scripts: {
-    gc: `node -e 'require("./package-scripts").fetchGqlTypes()'`,
+    gc: {
+      script: `node -e 'require("./package-scripts").fetchGqlTypes()' && \
+            yarn prettier --write ${genClientOutput}`,
+      description: `Generate client graphql typescript types`,
+    },
     lint: {
       script: "eslint . --ext .js,.jsx,.ts,.tsx",
       description: "eslint lint this project",
@@ -19,7 +26,8 @@ module.exports = {
     const fetch = require("node-fetch");
     const exec = require("child_process").exec;
 
-    const outputFilename = "./src/graphql/apollo-types/fragment-types.json";
+    const unionTypesOutputFilename =
+      "./src/graphql/apollo-types/fragment-types.json";
 
     const query = `
       {
@@ -35,7 +43,8 @@ module.exports = {
       }
     `;
 
-    shell.rm("-rf", "src/graphql/apollo-types");
+    shell.rm("-rf", genClientOutput);
+    shell.mkdir("-p", genClientOutput);
 
     exec(
       `./node_modules/.bin/apollo client:codegen \
@@ -43,7 +52,7 @@ module.exports = {
         --tagName=gql \
         --target=typescript \
         --includes=src/graphql/*.ts \
-        --outputFlat=src/graphql/apollo-types
+        --outputFlat=${genClientOutputRelative}
       `,
       (error, stdout, stderr) => {
         if (error) {
@@ -86,13 +95,17 @@ module.exports = {
               {},
             );
 
-            fs.writeFile(outputFilename, JSON.stringify(unionTypes), (err) => {
-              if (err) {
-                console.error("Error writing fragmentTypes file", err);
-              } else {
-                console.log("Fragment types successfully extracted!");
-              }
-            });
+            fs.writeFile(
+              unionTypesOutputFilename,
+              JSON.stringify(unionTypes),
+              (err) => {
+                if (err) {
+                  console.error("Error writing fragmentTypes file", err);
+                } else {
+                  console.log("Fragment types successfully extracted!");
+                }
+              },
+            );
           });
       },
     );
