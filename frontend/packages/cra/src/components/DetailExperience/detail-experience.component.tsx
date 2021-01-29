@@ -484,14 +484,14 @@ function ExperienceComponent() {
           />
         )}
 
+        <ExperienceMenuComponent className="no-entry-menu" />
+
         {entriesState.value === StateValue.success && (
           <EntriesComponent state={entriesState.success} />
         )}
 
         {entriesState.value === StateValue.fail && (
           <>
-            <ExperienceMenuComponent className="no-entry-menu" />
-
             <div className={noTriggerDocumentEventClassName}>
               {entriesState.error}
 
@@ -550,15 +550,11 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
           >
             Click here to create your first entry
           </button>
-
-          <ExperienceMenuComponent className="no-entry-menu" />
         </div>
       )}
 
       {entries && entries.length > 0 && (
         <>
-          <ExperienceMenuComponent />
-
           <div id={entriesContainerId}>
             {entries.map((daten, index) => {
               const {
@@ -792,7 +788,7 @@ function ExperienceMenuComponent(props: { className?: string }) {
     >
       <div
         className={makeClassNames({
-          "dropdown is-right": true,
+          "dropdown": true,
           [activeClassName]: state.value === StateValue.active,
           [noTriggerDocumentEventClassName]: true,
           [experienceMenuSelector]: true,
