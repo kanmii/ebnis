@@ -20,6 +20,7 @@ import {
   submitDomId,
   notificationCloseId,
   titleInputDomId,
+  commentInputDomId,
   fieldErrorSelector,
   definitionContainerDomSelector,
   definitionNameFormControlSelector,
@@ -34,7 +35,10 @@ import {
 } from "../components/UpsertExperience/upsert-experience.dom";
 import { warningClassName, errorClassName } from "../utils/utils.dom";
 import { fillField } from "../tests.utils";
-import { DataTypes } from "@ebnis/commons/src/graphql/apollo-types/globalTypes";
+import {
+  CreateExperienceInput,
+  DataTypes,
+} from "@ebnis/commons/src/graphql/apollo-types/globalTypes";
 import { getIsConnected } from "../utils/connections";
 import {
   CreateExperiencesMutationResult,
@@ -443,6 +447,9 @@ describe("components", () => {
 
     await waitFor(() => true);
 
+    // We should not be able to input comment when updating experience
+    expect(getCommentInputEl()).toBeNull();
+
     // form is now pre filled with values from experience we wish to update
     expect(titleInputEl.value).toBe(onlineTitle);
     expect(descriptionInputEl.value).toEqual("");
@@ -545,6 +552,69 @@ describe("components", () => {
     act(() => {
       onError("a");
     });
+  });
+
+  it("creates experience online with comment", async () => {
+    // Given that we are connected
+    mockIsConnected.mockReturnValue(true);
+
+    const { ui } = makeComp();
+    render(ui);
+
+    // When we complete the form
+    const commentInputEl = getCommentInputEl();
+    fillField(commentInputEl, "comment");
+
+    const descriptionInputEl = getDescriptionInputEl();
+    fillField(descriptionInputEl, "dd");
+
+    expect(getNotificationCloseEl()).toBeNull();
+
+    const titleInputEl = getTitleInputEl();
+    fillField(titleInputEl, "tt");
+
+    const definitionsEls = getDefinitionContainerEls();
+    const definition0El = definitionsEls.item(0) as HTMLElement;
+
+    const definition0NameEl = getDefinitionNameControlEl(definition0El);
+    fillField(definition0NameEl, "nn");
+
+    const definition0TypeEl = getDefinitionTypeControlEl(definition0El);
+    fillField(definition0TypeEl, DataTypes.DATE);
+
+    const serverResponse3 = {
+      data: {
+        createExperiences: [
+          {
+            __typename: "ExperienceSuccess",
+            experience: {},
+          },
+        ],
+      },
+    } as CreateExperiencesMutationResult;
+
+    mockCreateExperiencesOnline.mockResolvedValue(serverResponse3);
+
+    const submitEl = getSubmitEl();
+    submitEl.click();
+    await waitFor(() => true);
+
+    expect(mockWindowChangeUrl).toHaveBeenCalled();
+    expect(mockPersistFn).toHaveBeenCalled();
+
+    expect(
+      mockCreateExperiencesOnline.mock.calls[0][0].variables.input[0],
+    ).toEqual({
+      dataDefinitions: [
+        {
+          name: "nn",
+          type: DataTypes.DATE,
+        },
+      ],
+      title: "tt",
+      description: "dd",
+      commentText: "comment",
+    } as CreateExperienceInput);
   });
 });
 
@@ -975,6 +1045,10 @@ function getNotificationEl(notificationCloseEl: HTMLElement) {
 
 function getTitleInputEl() {
   return document.getElementById(titleInputDomId) as HTMLInputElement;
+}
+
+function getCommentInputEl() {
+  return document.getElementById(commentInputDomId) as HTMLInputElement;
 }
 
 function getParentFieldEl(childEl: HTMLElement) {

@@ -487,6 +487,11 @@ export function initState(props: Props): StateMachine {
         },
       },
     },
+    comment: {
+      states: {
+        value: StateValue.unchanged,
+      },
+    },
     dataDefinitions: {
       [emptyDefinition.id]: emptyDefinition,
     },
@@ -553,11 +558,16 @@ function handleFormChangedAction(
   if (payload.key === "non-def") {
     const field = fields[fieldName as KeyOfFormFields];
 
-    if (fieldName === "title") {
-      state = (field as FormField).states as ChangedState;
-    } else {
-      state = (field as DescriptionFormFieldActive).active
-        .states as ChangedState;
+    switch (fieldName) {
+      case "title":
+      case "comment":
+        state = (field as FormField).states as ChangedState;
+        break;
+
+      case "description":
+        state = (field as DescriptionFormFieldActive).active
+          .states as ChangedState;
+        break;
     }
   } else {
     const { index } = payload;
@@ -852,6 +862,29 @@ function validateForm(
 
           if (updateDefinitionInputs.length) {
             updateInput.updateDefinitions = updateDefinitionInputs;
+          }
+        }
+        break;
+
+      case "comment":
+        {
+          const state = (fieldState as FormField).states;
+
+          if (state.value === StateValue.changed) {
+            const {
+              changed: {
+                context: { formValue },
+                states: validityState,
+              },
+            } = state;
+
+            const value = formValue.trim();
+
+            if (value) {
+              formUpdated = true;
+              insertInput.commentText = value;
+              validityState.value = StateValue.valid;
+            }
           }
         }
         break;
@@ -1523,6 +1556,7 @@ type FormFields = {
   validity: FormValidity;
   fields: {
     title: FormField;
+    comment: FormField;
     description: DescriptionFormField;
     dataDefinitions: DataDefinitionFieldsMap;
   };

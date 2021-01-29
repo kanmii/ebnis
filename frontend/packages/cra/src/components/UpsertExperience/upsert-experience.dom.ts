@@ -4,6 +4,7 @@ export const domPrefix = "upsert-experience-component";
 
 export const scrollIntoViewDomId = `${domPrefix}-scroll-into-view`;
 export const titleInputDomId = `${domPrefix}-title-input`;
+export const commentInputDomId = `${domPrefix}-commet-input`;
 export const descriptionInputDomId = `${domPrefix}-description-input`;
 export const definitionNameInputDomId = `${domPrefix}-definition-name-input`;
 export const definitionTypeInputDomId = `${domPrefix}-definition-type-input`;
