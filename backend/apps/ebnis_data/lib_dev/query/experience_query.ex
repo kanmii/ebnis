@@ -367,6 +367,7 @@ defmodule EbnisData.Query.Experience do
       query PreFetchExperiences($ids: [ID!]!, $entryPagination: PaginationInput!) {
         preFetchExperiences(ids: $ids, entryPagination: $entryPagination) {
           #{@naked_erfarung}
+          #{@comments}
           entries(pagination: $entryPagination) {
             edges {
               node #{@eintrag_scherbe}

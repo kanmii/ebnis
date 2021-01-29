@@ -3837,6 +3837,7 @@ defmodule EbnisData.Schema.ExperienceTest do
                         ],
                         "pageInfo" => %{}
                       },
+                      "comments" => [],
                       "id" => ^experience_id,
                       "dataDefinitions" => [
                         %{
@@ -3915,6 +3916,58 @@ defmodule EbnisData.Schema.ExperienceTest do
                           "hasNextPage" => true
                         }
                       },
+                      "id" => ^experience_id,
+                      "dataDefinitions" => [
+                        %{
+                          "id" => _
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }} =
+               Absinthe.run(
+                 Query.vorholen_erfahrungen(),
+                 Schema,
+                 variables: %{
+                   "ids" => [experience_id],
+                   "entryPagination" => %{
+                     "first" => 1
+                   }
+                 },
+                 context: context(user)
+               )
+    end
+
+    # @tag :skip
+    test "fetch when comments present" do
+      user = RegFactory.insert()
+
+      %{
+        id: experience_id
+      } =
+        _experience =
+        Factory.insert(
+          %{
+            user_id: user.id,
+            comment_text: "a"
+          },
+          [
+            "integer"
+          ]
+        )
+
+      assert {:ok,
+              %{
+                data: %{
+                  "preFetchExperiences" => [
+                    %{
+                      "comments" => [
+                        %{
+                          "id" => _,
+                          "text" => "a"
+                        }
+                      ],
                       "id" => ^experience_id,
                       "dataDefinitions" => [
                         %{

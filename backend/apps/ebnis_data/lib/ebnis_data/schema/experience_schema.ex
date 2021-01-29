@@ -152,8 +152,8 @@ defmodule EbnisData.Schema.Experience do
     """
     field(
       :comments,
-      :comment
-      |> list_of()
+      list_of(:comment),
+      resolve: dataloader(:data)
     )
   end
 
