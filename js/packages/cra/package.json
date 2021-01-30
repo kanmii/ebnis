@@ -1,0 +1,114 @@
+{
+  "name": "@eb/cra",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "eject": "react-scripts eject",
+    "start": "nps"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "**/*.tsx"
+        ],
+        "rules": {
+          "import/no-anonymous-default-export": [
+            "warn",
+            {
+              "allowArray": false,
+              "allowArrowFunction": true,
+              "allowAnonymousClass": false,
+              "allowAnonymousFunction": true,
+              "allowCallExpression": true,
+              "allowLiteral": false,
+              "allowObject": false
+            }
+          ],
+          "react/prop-types": "off"
+        }
+      }
+    ]
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.ts*",
+      "!src/__tests__/**",
+      "!src/graphql/**",
+      "!src/register-service-worker.*",
+      "!src/react-app-env.d.ts"
+    ],
+    "watchPathIgnorePatterns": [
+      "<rootDir>/node_modules*",
+      "<rootDir>/package.json",
+      "<rootDir>/build/",
+      "<rootDir>/coverage/",
+      "<rootDir>/public/"
+    ]
+  },
+  "dependencies": {
+    "@apollo/client": "3.3.7",
+    "@eb/cm": "0.0.0",
+    "@eb/jsx": "0.0.0",
+    "@fortawesome/fontawesome-free": "5.15.2",
+    "@kanmii/socket": "0.2.2",
+    "@kanmii/socket-apollo-link": "0.2.3",
+    "apollo-cache-persist-dev": "0.2.1",
+    "broadcast-channel": "3.4.1",
+    "bulma": "0.9.2",
+    "classnames": "2.2.6",
+    "date-fns": "2.16.1",
+    "fuzzysort": "1.1.4",
+    "graphql": "15.5.0",
+    "immer": "8.0.1",
+    "lodash": "4.17.20",
+    "phoenix": "1.5.7",
+    "react": "17.0.1",
+    "react-app-rewired": "2.1.8",
+    "react-dom": "17.0.1",
+    "react-router-dom": "5.2.0",
+    "react-scripts": "4.0.1",
+    "uuid": "8.3.2",
+    "web-vitals": "0.2.4"
+  },
+  "devDependencies": {
+    "@babel/preset-typescript": "7.12.7",
+    "@testing-library/jest-dom": "5.11.9",
+    "@testing-library/react": "11.2.3",
+    "@testing-library/user-event": "12.6.2",
+    "@types/classnames": "2.2.11",
+    "@types/jest": "26.0.20",
+    "@types/lodash": "4.14.168",
+    "@types/node": "14.14.22",
+    "@types/phoenix": "1.5.1",
+    "@types/react": "17.0.0",
+    "@types/react-dom": "17.0.0",
+    "@types/react-router-dom": "5.1.7",
+    "@types/uuid": "8.3.0",
+    "env-cmd": "10.1.0",
+    "node-fetch": "2.6.1",
+    "nps": "5.10.0",
+    "prettier": "2.2.1",
+    "sass": "1.32.5",
+    "serve": "11.3.2",
+    "shelljs": "0.8.4",
+    "sort-package-json": "1.48.1",
+    "typescript": "4.1.3"
+  }
+}

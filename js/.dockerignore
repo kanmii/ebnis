@@ -1,0 +1,16 @@
+**/**/.git/
+**/**/Dockerfile*
+**/**/docker-compose*
+**/**/node_modules/
+**/**/coverage/
+**/**/build/
+**/**/.vim/
+**/**/.netlify/
+**/**/.vscode/
+**/**/tags
+**/**/.prettierrc.js
+**/**/.prettierignore
+**/**/yarn-error.log
+**/**/__logs__
+*.___scratch*
+*nvimlog*

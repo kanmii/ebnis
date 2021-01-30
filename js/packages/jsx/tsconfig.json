@@ -1,0 +1,5 @@
+{
+  "extends": "../../js-shared/_tsconfig.json",
+  "isolatedModules": true,
+  "include": ["src", "../commons/src/definitions.d.ts"]
+}

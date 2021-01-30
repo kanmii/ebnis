@@ -1,0 +1,125 @@
+/* istanbul ignore file */
+import {
+  ApolloClient,
+  ApolloLink,
+  createHttpLink,
+  InMemoryCache,
+} from "@apollo/client/core";
+import possibleTypes from "@eb/cm/src/graphql/apollo-types/fragment-types.json";
+import * as AbsintheSocket from "@kanmii/socket";
+import { createAbsintheSocketLink } from "@kanmii/socket-apollo-link";
+import { deleteExperienceVar } from "../apollo/delete-experience-cache";
+import { getSocket } from "../utils/phoenix-socket";
+import {
+  MakeSocketLinkFn,
+  middlewareAuthLink,
+  middlewareErrorLink,
+  middlewareLoggerLink,
+} from "./middlewares";
+import { syncErrorsPolicy, syncFlagVar } from "./sync-to-server-cache";
+import { unsyncedLedgerPolicy } from "./unsynced-ledger";
+
+export function makeApolloClient({ uri, mock }: MakeApolloClientArgs) {
+  let client = (undefined as unknown) as ApolloClient<{}>;
+  let cache = (undefined as unknown) as InMemoryCache;
+
+  const { cache: windowCache, client: windowClient } = window.____ebnis || {};
+
+  if (windowClient) {
+    client = windowClient;
+  }
+
+  if (windowCache) {
+    cache = windowCache;
+  }
+
+  if (client && cache) {
+    return { client, cache };
+  }
+
+  if (!cache) {
+    cache = makeCache();
+  }
+
+  let link = (undefined as unknown) as ApolloLink;
+
+  if (mock) {
+    link = createHttpLink({
+      uri: "http://localhost:4001/mocks",
+      fetch: (...args: any) => {
+        return (fetch as any)(...args);
+      },
+    });
+  } else {
+    const makeSocketLink: MakeSocketLinkFn = (makeSocketLinkArgs) => {
+      const absintheSocket = AbsintheSocket.create(
+        getSocket({
+          uri,
+          ...makeSocketLinkArgs,
+        }),
+      );
+
+      return createAbsintheSocketLink(absintheSocket);
+    };
+
+    link = middlewareAuthLink(makeSocketLink);
+  }
+
+  link = middlewareErrorLink(link);
+  link = middlewareLoggerLink(link);
+
+  client = new ApolloClient({
+    cache,
+    link,
+    queryDeduplication: false,
+    assumeImmutableResults: true,
+  });
+
+  const ebnis = window.____ebnis || {};
+  ebnis.client = client;
+  ebnis.cache = cache;
+
+  return { client, cache, link };
+}
+
+export function makeCache() {
+  const cache = new InMemoryCache({
+    addTypename: true,
+    possibleTypes,
+    typePolicies: {
+      unsyncedLedger: {
+        keyFields: false,
+      },
+
+      syncingExperiencesLedger: {
+        keyFields: false,
+      },
+
+      Query: {
+        fields: {
+          deleteExperience: {
+            read() {
+              return deleteExperienceVar();
+            },
+          },
+
+          syncFlag: {
+            read() {
+              return syncFlagVar();
+            },
+          },
+
+          unsyncedLedger: unsyncedLedgerPolicy,
+          syncErrors: syncErrorsPolicy,
+        },
+      },
+    },
+  });
+
+  return cache;
+}
+
+type MakeApolloClientArgs = {
+  uri?: string;
+  mock?: true;
+};

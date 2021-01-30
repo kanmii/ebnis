@@ -1,0 +1,32 @@
+{
+  "DeleteExperiences": [
+    "DeleteExperiencesAllFail",
+    "DeleteExperiencesSomeSuccess"
+  ],
+  "GetEntriesUnion": ["GetEntriesErrors", "GetEntriesSuccess"],
+  "DeleteEntriesUnion": ["DeleteEntryErrors", "DeleteEntrySuccess"],
+  "CreateExperienceUnion": ["CreateExperienceErrors", "ExperienceSuccess"],
+  "CreateEntriesUnion": ["CreateEntryErrors", "CreateEntrySuccess"],
+  "UpdateExperienceOwnFieldsUnion": [
+    "ExperienceOwnFieldsSuccess",
+    "UpdateExperienceOwnFieldsErrors"
+  ],
+  "RegisterUser": ["RegisterUserErrors", "UserSuccess"],
+  "UpdateExperienceUnion": [
+    "UpdateExperienceErrors",
+    "UpdateExperienceSomeSuccess"
+  ],
+  "DeleteExperienceUnion": [
+    "DeleteExperienceErrors",
+    "DeleteExperienceSuccess"
+  ],
+  "UpdateDefinition": ["DefinitionErrors", "DefinitionSuccess"],
+  "Login": ["LoginError", "UserSuccess"],
+  "UpdateUser": ["UpdateUserErrors", "UserSuccess"],
+  "UpdateDataObjectUnion": ["DataObjectErrors", "DataObjectSuccess"],
+  "UpdatedEntriesUnion": ["UpdateEntryErrors", "UpdateEntrySomeSuccess"],
+  "UpdateExperiencesUnion": [
+    "UpdateExperiencesAllFail",
+    "UpdateExperiencesSomeSuccess"
+  ]
+}

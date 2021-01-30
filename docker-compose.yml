@@ -17,13 +17,13 @@ services:
     volumes:
       - "./docker/data/postgres-${COMPOSE_PROJECT_NAME}:/var/lib/postgresql/data"
 
-  api:
+  ebnis-ex:
     build:
-      context: ./backend
+      context: ./ex
       target: "${MIX_ENV}"
       args:
         IS_E2E: "${IS_E2E:-false}"
-    image: "ebnis-be-${MIX_ENV}"
+    image: "ebnis-ex-${MIX_ENV}"
     depends_on:
       - "db"
     healthcheck:
@@ -42,19 +42,19 @@ services:
     ports:
       - "${DOCKER_HOST_API_PORT}:${PORT}"
     volumes:
-      - "./backend:/home/ebnis/src"
-      - "nu_build:/home/ebnis/src/_build"
-      - "nu_elixir_ls:/home/ebnis/src/.elixir_ls"
-      - "nu_deps:/home/ebnis/src/deps"
+      - "./ex:/home/ebnis/app"
+      - "nu_build:/home/ebnis/app/_build"
+      - "nu_elixir_ls:/home/ebnis/app/.elixir_ls"
+      - "nu_deps:/home/ebnis/app/deps"
 
-  cra:
+  ebnis-js-cra:
     build:
-      context: ./frontend
+      context: ./js
       args:
         NODE_ENV: "${NODE_ENV}"
     # without this, react scripts 3.4.1 will not attach to tty
     stdin_open: true
-    image: "ebnis-fe-${NODE_ENV}"
+    image: "ebnis-js-cra-${NODE_ENV}"
     entrypoint: ["/usr/local/bin/entrypoint.sh"]
     # depends_on:
     #   - "api"
@@ -62,14 +62,14 @@ services:
     ports:
       - "${DOCKER_HOST_WEB_PORT}:${PORT}"
     volumes:
-      - "./frontend:/home/node/ebnis-web"
-      - "nu_nm:/home/node/ebnis-web/node_modules/"
-      - "nu_nm_cra:/home/node/ebnis-web/packages/cra/node_modules/"
-      - "nu_co_cra:/home/node/ebnis-web/packages/cra/coverage/"
-      - "nu_build_cra:/home/node/ebnis-web/packages/cra/build/"
-      - "nu_nm_cy:/home/node/ebnis-web/packages/cy/node_modules/"
-      - "nu_nm_commons:/home/node/ebnis-web/packages/commons/node_modules/"
-      - "nu_nm_jsx:/home/node/ebnis-web/packages/jsx/node_modules/"
+      - "./js:/home/node/app"
+      - "nu_nm:/home/node/app/node_modules/"
+      - "nu_nm_cra:/home/node/app/packages/cra/node_modules/"
+      - "nu_co_cra:/home/node/app/packages/cra/coverage/"
+      - "nu_build_cra:/home/node/app/packages/cra/build/"
+      - "nu_nm_cy:/home/node/app/packages/cy/node_modules/"
+      - "nu_nm_commons:/home/node/app/packages/commons/node_modules/"
+      - "nu_nm_jsx:/home/node/app/packages/jsx/node_modules/"
 
 volumes:
   nu_build:
