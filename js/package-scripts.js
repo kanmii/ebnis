@@ -1,25 +1,53 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-const path = require("path");
+const { resolve: resolvePath, join: joinPath } = require("path");
 const { includePackage } = require("nps-utils");
+const { readdirSync, existsSync } = require("fs");
 
-const packagesPath = path.resolve(".", "packages");
+const { CLIENT_APP, API_APP, WEB_URL, IS_E2E } = process.env;
+
+const packagesPath = resolvePath(__dirname, "packages");
 
 const deployApp = "cra";
-const distAbsPath = path.join(packagesPath, `${deployApp}/build`);
+const distAbsPath = joinPath(packagesPath, `${deployApp}/build`);
 
-function makePackagePath(packageName) {
-  return path.resolve(packagesPath, packageName, "package-scripts");
+let devAppsCommands = "";
+
+const packagesScripts = [
+  ["commons", "cm"],
+  ["cra", "cra"],
+  ["cy", "cy"],
+  ["jsx", "jsx"],
+].reduce((acc, [packagePath, alias]) => {
+  const script = resolvePath(packagesPath, packagePath, "package-scripts");
+
+  if (existsSync(`${script}.js`)) {
+    const packageScript = includePackage({ path: script });
+    acc[alias] = packageScript;
+
+    if (CLIENT_APP === packagePath || API_APP === packagePath) {
+      // It is assumed that every package has a scripts.default
+      // If we ever use a javascript backend, then we will use
+      // concurrently package
+      devAppsCommands += `${packageScript.default.script} `;
+    }
+  }
+
+  return acc;
+}, {});
+
+if (devAppsCommands) {
+  packagesScripts.d = {
+    script: devAppsCommands,
+    description: `Start development server`,
+  };
 }
 
-const webUrl = process.env.WEB_URL;
-const isE2E = process.env.IS_E2E === "true";
+const webUrl = WEB_URL;
+const isE2E = IS_E2E === "true";
 
 module.exports = {
   scripts: {
-    cra: includePackage({ path: makePackagePath("cra") }),
-    cy: includePackage({ path: makePackagePath("cy") }),
-    cm: includePackage({ path: makePackagePath("commons") }),
-    jsx: includePackage({ path: makePackagePath("jsx") }),
+    ...packagesScripts,
     deploy: {
       netlify: `node -e 'require("./package-scripts").netlify()'`,
       l: {

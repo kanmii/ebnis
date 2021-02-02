@@ -14,3 +14,4 @@
 **/**/__logs__
 *.___scratch*
 *nvimlog*
+*.eslintcache*

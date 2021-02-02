@@ -2,7 +2,7 @@
 
 set -e
 
-app="cra"
+app="$EBNIS_APP_NAME"
 
 function yarnInstall {
   if ping -q -c 1 -W 1 google.com >/dev/null; then
@@ -15,9 +15,14 @@ function yarnInstall {
   fi
 }
 
-# Create react app inotify issue
-echo fs.inotify.max_user_watches=524288 | tee -a /etc/sysctl.conf && sysctl -p
+if [ -n "$FRONTEND_APP" ]; then
+  echo -e "\n\n :::::::: Starting Frontend App: $app :::::\n\n"
 
-yarnInstall;
+  yarnInstall;
+  yarn start "$FRONTEND_APP"
+else
+  echo -e "\n\n :::::::: Starting All Apps :::::\n\n"
 
-yarn start cra
+  yarnInstall;
+  yarn start d
+fi

@@ -1,25 +1,25 @@
 version: "3.4"
 services:
   db:
-    image: postgres:13.1
+    image: "postgres:13.1"
     ports:
       - "${DOCKER_HOST_DATABASE_PORT}:5432"
-    restart: always
     environment:
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: "postgres"
       POSTGRES_DB: "${DATABASE_NAME}"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
+      test:
+        - "CMD-SHELL"
+        - "pg_isready -U postgres"
+      interval: "10s"
+      timeout: "5s"
       retries: 5
-      start_period: 10s
+      start_period: "10s"
     volumes:
       - "./docker/data/postgres-${COMPOSE_PROJECT_NAME}:/var/lib/postgresql/data"
-
-  ebnis-ex:
+  ex:
     build:
-      context: ./ex
+      context: "./ex"
       target: "${MIX_ENV}"
       args:
         IS_E2E: "${IS_E2E:-false}"
@@ -28,57 +28,64 @@ services:
       - "db"
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "curl --silent --head --fail http://${BACKEND_SERVER_HOST}:${PORT}${BACKEND_HEALTH_CHECK_URL}",
-        ]
-      interval: 600s
-      timeout: 5s
+        - "CMD-SHELL"
+        - "curl --silent --head --fail http://${BACKEND_SERVER_HOST}:${PORT}${BACKEND_HEALTH_CHECK_URL}"
+      interval: "600s"
+      timeout: "5s"
       retries: 5
-      start_period: 10s
-    entrypoint: ["/usr/local/bin/entrypoint.sh"]
+      start_period: "10s"
+    entrypoint:
+      - "/usr/local/bin/entrypoint.sh"
     user: "ebnis"
     env_file: "${DOCKER_ENV_FILE}"
     ports:
       - "${DOCKER_HOST_API_PORT}:${PORT}"
     volumes:
       - "./ex:/home/ebnis/app"
-      - "nu_build:/home/ebnis/app/_build"
-      - "nu_elixir_ls:/home/ebnis/app/.elixir_ls"
-      - "nu_deps:/home/ebnis/app/deps"
-
-  ebnis-js-cra:
+      - "ex_not_used__build:/home/ebnis/app/_build/"
+      - "ex_not_used_deps:/home/ebnis/app/deps/"
+      - "ex_not_used_.elixir_ls:/home/ebnis/app/.elixir_ls/"
+  js-base:
     build:
-      context: ./js
+      context: "./js"
+      dockerfile: "Dockerfile.base"
+    image: "ebnis-js-base"
+    env_file: "${DOCKER_ENV_FILE}"
+  js-cra:
+    build:
+      context: "./js/packages/cra"
+      dockerfile: "Dockerfile.cra"
       args:
         NODE_ENV: "${NODE_ENV}"
-    # without this, react scripts 3.4.1 will not attach to tty
     stdin_open: true
     image: "ebnis-js-cra-${NODE_ENV}"
-    entrypoint: ["/usr/local/bin/entrypoint.sh"]
-    # depends_on:
-    #   - "api"
+    entrypoint:
+      - "/usr/local/bin/entrypoint.sh"
     env_file: "${DOCKER_ENV_FILE}"
+    user: "node"
     ports:
       - "${DOCKER_HOST_WEB_PORT}:${PORT}"
     volumes:
       - "./js:/home/node/app"
-      - "nu_nm:/home/node/app/node_modules/"
-      - "nu_nm_cra:/home/node/app/packages/cra/node_modules/"
-      - "nu_co_cra:/home/node/app/packages/cra/coverage/"
-      - "nu_build_cra:/home/node/app/packages/cra/build/"
-      - "nu_nm_cy:/home/node/app/packages/cy/node_modules/"
-      - "nu_nm_commons:/home/node/app/packages/commons/node_modules/"
-      - "nu_nm_jsx:/home/node/app/packages/jsx/node_modules/"
-
+      - "cra_not_used_node_modules:/home/node/app/node_modules/"
+      - "cra_not_used_netlify:/home/node/app/.netlify/"
+      - "cra_not_used_commons_node_modules:/home/node/app/packages/commons/node_modules/"
+      - "cra_not_used_commons_coverage:/home/node/app/packages/commons/coverage/"
+      - "cra_not_used_cra_node_modules:/home/node/app/packages/cra/node_modules/"
+      - "cra_not_used_cra_build:/home/node/app/packages/cra/build/"
+      - "cra_not_used_cra_coverage:/home/node/app/packages/cra/coverage/"
+      - "cra_not_used_jsx_node_modules:/home/node/app/packages/jsx/node_modules/"
+      - "cra_not_used_cy:/home/node/app/packages/cy/"
 volumes:
-  nu_build:
-  nu_elixir_ls:
-  nu_deps:
-  nu_nm:
-  nu_nm_cra:
-  nu_nm_cy:
-  nu_nm_commons:
-  nu_nm_jsx:
-  nu_co_cra:
-  nu_build_cra:
+  ex_not_used__build:
+  ex_not_used_deps:
+  ex_not_used_.elixir_ls:
+  cra_not_used_node_modules:
+  cra_not_used_netlify:
+  cra_not_used_commons_node_modules:
+  cra_not_used_commons_coverage:
+  cra_not_used_cra_node_modules:
+  cra_not_used_cra_build:
+  cra_not_used_cra_coverage:
+  cra_not_used_jsx_node_modules:
+  cra_not_used_cy:
