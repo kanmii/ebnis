@@ -21,6 +21,9 @@ defmodule EbnisData.ExperienceApi do
 
   @empty_relay_connection EbnisData.get_empty_relay_connection()
 
+  @experience_not_found_string "experience not found"
+  @experience_not_found_tuple {:error, @experience_not_found_string}
+
   @spec get_experience(id :: integer() | binary(), user_id :: integer() | binary()) ::
           Experience.t() | nil
   def get_experience(id, user_id) do
@@ -242,7 +245,7 @@ defmodule EbnisData.ExperienceApi do
         {:ok, bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
 
       _ ->
-        {:error, "experience not found"}
+        @experience_not_found_tuple
     end
   rescue
     error ->
@@ -258,7 +261,7 @@ defmodule EbnisData.ExperienceApi do
         ]
       end)
 
-      {:error, "experience not found"}
+      @experience_not_found_tuple
   end
 
   defp update_experience_p(acc, _key, nil) do
