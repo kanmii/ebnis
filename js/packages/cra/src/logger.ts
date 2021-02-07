@@ -25,7 +25,11 @@ export function wrapReducer<State, Action>(
   action: Action,
   reducer: Reducer<State, Action>,
 ) {
-  const shouldWrap = (window.____ebnis || {}).logReducers;
+  let shouldWrap = (window.____ebnis || {}).logReducers;
+
+  if (isDevEnv && shouldWrap === undefined) {
+    shouldWrap = true;
+  }
 
   if (shouldWrap) {
     console.log(

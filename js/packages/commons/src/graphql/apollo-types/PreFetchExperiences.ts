@@ -29,6 +29,12 @@ export interface PreFetchExperiences_preFetchExperiences_dataDefinitions {
   clientId: string | null;
 }
 
+export interface PreFetchExperiences_preFetchExperiences_comments {
+  __typename: "Comment";
+  id: string;
+  text: string;
+}
+
 export interface PreFetchExperiences_preFetchExperiences_entries_pageInfo {
   __typename: "PageInfo";
   /**
@@ -111,6 +117,10 @@ export interface PreFetchExperiences_preFetchExperiences {
    * The field definitions used for the experience entries
    */
   dataDefinitions: PreFetchExperiences_preFetchExperiences_dataDefinitions[];
+  /**
+   * The list of comments belonging to an experience
+   */
+  comments: (PreFetchExperiences_preFetchExperiences_comments | null)[] | null;
   /**
    * The entries of the experience - can be paginated
    */

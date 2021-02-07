@@ -19,7 +19,7 @@ import {
 import { syncErrorsPolicy, syncFlagVar } from "./sync-to-server-cache";
 import { unsyncedLedgerPolicy } from "./unsynced-ledger";
 
-export function makeApolloClient({ uri, mock }: MakeApolloClientArgs) {
+export function makeApolloClient({ uri, testing }: MakeApolloClientArgs) {
   let client = (undefined as unknown) as ApolloClient<{}>;
   let cache = (undefined as unknown) as InMemoryCache;
 
@@ -43,7 +43,9 @@ export function makeApolloClient({ uri, mock }: MakeApolloClientArgs) {
 
   let link = (undefined as unknown) as ApolloLink;
 
-  if (mock) {
+  // During testing, we use http instead of websocket. In the future, we
+  // should be able to use websocket for all request
+  if (testing) {
     link = createHttpLink({
       uri: "http://localhost:4001/mocks",
       fetch: (...args: any) => {
@@ -121,5 +123,5 @@ export function makeCache() {
 
 type MakeApolloClientArgs = {
   uri?: string;
-  mock?: true;
+  testing?: true;
 };

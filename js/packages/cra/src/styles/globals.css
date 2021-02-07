@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.ebnis-dropdown {
+  @apply relative inline-flex align-top;
+
+  .dropdown-menu {
+    @apply left-auto right-0 pt-1 absolute z-20 top-0;
+    min-width: 12rem;
+  }
+
+  .dropdown-content {
+    @apply bg-white rounded pl-5 font-semibold cursor-pointer;
+  }
+
+  &.is-active {
+    .dropdown-menu {
+      @apply block;
+    }
+  }
+}

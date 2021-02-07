@@ -378,4 +378,24 @@ defmodule EbnisData.Query.Experience do
       }
     """
   end
+
+  def get_experience_comments do
+    """
+      query GetExperienceComments($experienceId: ID!) {
+        getExperienceComments(experienceId: $experienceId) {
+          ... on GetExperienceCommentsSuccess {
+            #{@comments}
+            experienceId
+          }
+
+          ... on GetExperienceCommentsErrors {
+            errors {
+              experienceId
+              error
+            }
+          }
+        }
+      }
+    """
+  end
 end

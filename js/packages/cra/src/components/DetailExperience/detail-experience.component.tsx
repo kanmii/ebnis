@@ -1,75 +1,79 @@
+import { ReactComponent as DotsVerticalSvg } from "@eb/cm/src/styles/dots-vertical.svg";
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import makeClassNames from "classnames";
 import React, {
-  useLayoutEffect,
-  Suspense,
-  useReducer,
-  useEffect,
-  useMemo,
   createContext,
-  useContext,
   Fragment,
+  Suspense,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
 } from "react";
-import "./styles.scss";
-import Header from "../Header/header.component";
-import {
-  Props,
-  initState,
-  reducer,
-  ActionType,
-  effectFunctions,
-  DispatchType,
-  DataState,
-  EntriesDataSuccessSate,
-  ExperienceSyncError,
-  OldEntryData,
-  CallerProps,
-} from "./detailed-experience-utils";
+import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { setUpRoutePage } from "../../utils/global-window";
-import { UpsertEntry } from "./detail-experience.lazy";
-import Loading from "../Loading/loading.component";
 import {
-  StateValue,
-  ReactMouseAnchorEvent,
   OnlineStatus,
+  ReactMouseAnchorEvent,
+  StateValue,
 } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
+import { activeClassName } from "../../utils/utils.dom";
+import Entry from "../Entry/entry.component";
+import { ActivateUpdateEntryCb } from "../Entry/entry.utils";
+import Header from "../Header/header.component";
+import Loading from "../Loading/loading.component";
+import { UpsertExperience } from "../My/my.lazy";
 import {
-  closeUpsertEntryNotificationId,
-  syncErrorsNotificationId,
-  noTriggerDocumentEventClassName,
-  noEntryTriggerId,
-  refetchExperienceId,
-  refetchEntriesId,
-  fetchNextEntriesId,
-  updateExperienceSuccessNotificationId,
-  isPartOfflineClassName,
-  isOfflineClassName,
-  fixSyncErrorsId,
-  closeSyncErrorsMsgId,
-  closeSyncErrorsMsgBtnId,
-  syncEntriesErrorsMsgId,
-  syncExperienceErrorsMsgId,
-  entriesContainerId,
-  experienceMenuTriggerSelector,
-  experienceMenuSelector,
-  okDeleteEntryId,
   closeDeleteEntryConfirmationId,
-  entryDeleteSuccessNotificationId,
-  entryDeleteFailNotificationId,
+  closeSyncErrorsMsgBtnId,
+  closeSyncErrorsMsgId,
+  closeUpsertEntryNotificationId,
   deleteExperienceOkSelector,
+  entriesContainerId,
+  entryDeleteFailNotificationId,
+  entryDeleteSuccessNotificationId,
+  experienceMenuSelector,
+  experienceMenuTriggerSelector,
+  fetchNextEntriesId,
+  fixSyncErrorsId,
+  hideDetailedExperienceCommentsText,
+  isOfflineClassName,
+  isPartOfflineClassName,
+  noEntryTriggerId,
+  noTriggerDocumentEventClassName,
+  okDeleteEntryId,
+  refetchEntriesId,
+  refetchExperienceId,
+  showDetailedExperienceCommentsText,
   showExperienceCommentsLinkSelector,
+  syncEntriesErrorsMsgId,
+  syncErrorsNotificationId,
+  syncExperienceErrorsMsgId,
+  updateExperienceSuccessNotificationId,
 } from "./detail-experience.dom";
-import makeClassNames from "classnames";
 import {
   useDeleteExperiencesMutation,
   useUpdateExperiencesOnlineMutation,
 } from "./detail-experience.injectables";
-import { activeClassName } from "../../utils/utils.dom";
-import { useWithSubscriptionContext } from "../../apollo/injectables";
-import { UpsertExperience } from "../My/my.lazy";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { ActivateUpdateEntryCb } from "../Entry/entry.utils";
-import Entry from "../Entry/entry.component";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { UpsertEntry } from "./detail-experience.lazy";
+import {
+  ActionType,
+  CallerProps,
+  CommentsDataState,
+  DataState,
+  DispatchType,
+  effectFunctions,
+  EntriesDataSuccessSate,
+  ExperienceSyncError,
+  initState,
+  OldEntryData,
+  Props,
+  reducer,
+} from "./detailed-experience-utils";
+import "./styles.scss";
 
 type DispatchContextValue = Readonly<{
   onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
@@ -259,8 +263,12 @@ export function DetailExperience(props: Props) {
           key: StateValue.cancelled,
         });
       },
-      onShowComments() {
-        //
+      onShowComments(e) {
+        e.preventDefault();
+
+        dispatch({
+          type: ActionType.FETCH_COMMENTS,
+        });
       },
     };
   }, []);
@@ -351,6 +359,7 @@ function ExperienceComponent() {
       updateExperienceUiActive,
       syncErrorsMsg,
       entriesOptions,
+      comments: commentsState,
     },
   } = useContext(DataStateContextC);
 
@@ -491,6 +500,8 @@ function ExperienceComponent() {
 
         <ExperienceMenuComponent className="no-entry-menu" />
 
+        <CommentsComponent state={commentsState} />
+
         {entriesState.value === StateValue.success && (
           <EntriesComponent state={entriesState.success} />
         )}
@@ -606,6 +617,45 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
       )}
     </>
   );
+}
+
+function CommentsComponent(props: { state: CommentsDataState }) {
+  const { state } = props;
+
+  switch (state.value) {
+    case StateValue.success: {
+      const comments = state.success.context.comments;
+
+      return (
+        <div className="mb-5">
+          {comments.map((comment, index) => {
+            const { id, text } = comment;
+
+            return (
+              <div key={id} id={id} className="p-5 shadow-lg flex">
+                <p className="whitespace-pre-line flex-1">{text}</p>
+
+                <div className="ebnis-dropdown">
+                  <div className="dropdown-menu hidden1" role="menu">
+                    <div className="dropdown-content">Edit</div>
+
+                    <div className="dropdown-content">Delete</div>
+                  </div>
+                </div>
+
+                <div className="dropdown-trigger cursor-pointer">
+                  <DotsVerticalSvg />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    default:
+      return null;
+  }
 }
 
 function SyncErrorsNotificationComponent(props: {
@@ -776,7 +826,7 @@ function ExperienceMenuComponent(props: { className?: string }) {
 
   const {
     context: { onlineStatus },
-    states: { showingOptionsMenu: state },
+    states: { showingOptionsMenu: state, comments: commentsState },
   } = useContext(DataStateContextC);
 
   const {
@@ -829,7 +879,6 @@ function ExperienceMenuComponent(props: { className?: string }) {
           <a
             className={makeClassNames({
               "dropdown-content neutral-link": true,
-              [showExperienceCommentsLinkSelector]: true,
             })}
             onClick={onShowComments}
             href="*"
@@ -837,8 +886,15 @@ function ExperienceMenuComponent(props: { className?: string }) {
               display: "block",
             }}
           >
-            <div className="detailed-experience-menu__content">
-              Show comments
+            <div
+              className={makeClassNames({
+                "detailed-experience-menu__content": true,
+                [showExperienceCommentsLinkSelector]: true,
+              })}
+            >
+              {commentsState.value === StateValue.success
+                ? hideDetailedExperienceCommentsText
+                : showDetailedExperienceCommentsText}
             </div>
           </a>
         </div>

@@ -1,4 +1,5 @@
 import { ApolloError } from "@apollo/client";
+import { CommentFragment } from "@eb/cm/src/graphql/apollo-types/CommentFragment";
 import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
 import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
@@ -9,11 +10,12 @@ import {
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { GetExperienceAndEntriesDetailView } from "@eb/cm/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import {
   GetEntriesUnionFragment,
   GetEntriesUnionFragment_GetEntriesSuccess,
 } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
+import { GetExperienceAndEntriesDetailView } from "@eb/cm/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
+import { GetExperienceCommentsErrorsFragment_errors } from "@eb/cm/src/graphql/apollo-types/GetExperienceCommentsErrorsFragment";
 import { PaginationInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragment";
 import { toGetEntriesSuccessQuery } from "@eb/cm/src/graphql/utils.gql";
@@ -27,9 +29,11 @@ import {
   putOrRemoveDeleteExperienceLedger,
 } from "../../apollo/delete-experience-cache";
 import {
-  getCachedExperienceAndEntriesDetailView,
   getCachedEntriesDetailView,
+  getCachedExperienceAndEntriesDetailView,
+  readExperienceCompleteFragment,
   writeCachedEntriesDetailView,
+  writeCachedExperienceCompleteFragment,
 } from "../../apollo/get-detailed-experience-query";
 import {
   getAndRemoveOfflineExperienceIdFromSyncFlag,
@@ -61,8 +65,10 @@ import {
 import {
   DeleteExperiencesComponentProps,
   getEntriesDetailView,
-  getExperienceAndEntriesDetailView,
   GetEntriesDetailViewQueryResult,
+  getExperienceAndEntriesDetailView,
+  getExperienceComments,
+  GetExperienceCommentsQueryResult,
   UpdateExperiencesOnlineComponentProps,
   updateExperiencesOnlineEffectHelperFunc,
 } from "../../utils/experience.gql.types";
@@ -93,6 +99,7 @@ import {
   FailVal,
   FetchEntriesErrorVal,
   InActiveVal,
+  InitialVal,
   KeyOfTimeouts,
   LoadingState,
   OnlineStatus,
@@ -136,114 +143,118 @@ export enum ActionType {
   CLOSE_SYNC_ERRORS_MSG = "@detailed-experience/close-sync-errors-message",
   ENTRIES_OPTIONS = "@detailed-experience/entries-options",
   DELETE_ENTRY = "@detailed-experience/delete-entry",
+  COMMENTS_RECEIVED = "@detailed-experience/comments-received",
+  FETCH_COMMENTS = "@detailed-experience/fetch-comments",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
-  wrapReducer(
-    state,
-    action,
-    (prevState, { type, ...payload }) => {
-      return immer(prevState, (states) => {
-        const proxy = states as StateMachine;
-        proxy.effects.general.value = StateValue.noEffect;
-        deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
+  wrapReducer(state, action, (prevState, { type, ...payload }) => {
+    return immer(prevState, (states) => {
+      const proxy = states as StateMachine;
+      proxy.effects.general.value = StateValue.noEffect;
+      deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
 
-        switch (type) {
-          case ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE:
-            handleToggleUpsertEntryActiveAction(
-              proxy,
-              payload as UpsertEntryActivePayload,
-            );
-            break;
+      switch (type) {
+        case ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE:
+          handleToggleUpsertEntryActiveAction(
+            proxy,
+            payload as UpsertEntryActivePayload,
+          );
+          break;
 
-          case ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION:
-            handleOnCloseNewEntryCreatedNotification(proxy);
-            break;
+        case ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION:
+          handleOnCloseNewEntryCreatedNotification(proxy);
+          break;
 
-          case ActionType.RECORD_TIMEOUT:
-            handleRecordTimeoutAction(proxy, payload as SetTimeoutPayload);
-            break;
+        case ActionType.RECORD_TIMEOUT:
+          handleRecordTimeoutAction(proxy, payload as SetTimeoutPayload);
+          break;
 
-          case ActionType.DELETE_EXPERIENCE_REQUEST:
-            handleDeleteExperienceRequestAction(
-              proxy,
-              payload as DeleteExperienceRequestPayload,
-            );
-            break;
+        case ActionType.DELETE_EXPERIENCE_REQUEST:
+          handleDeleteExperienceRequestAction(
+            proxy,
+            payload as DeleteExperienceRequestPayload,
+          );
+          break;
 
-          case ActionType.DELETE_EXPERIENCE_CANCELLED:
-            handleDeleteExperienceCancelledAction(proxy);
-            break;
+        case ActionType.DELETE_EXPERIENCE_CANCELLED:
+          handleDeleteExperienceCancelledAction(proxy);
+          break;
 
-          case ActionType.DELETE_EXPERIENCE_CONFIRMED:
-            handleDeleteExperienceConfirmedAction(proxy);
-            break;
+        case ActionType.DELETE_EXPERIENCE_CONFIRMED:
+          handleDeleteExperienceConfirmedAction(proxy);
+          break;
 
-          case ActionType.TOGGLE_EXPERIENCE_MENU:
-            handleToggleExperienceMenuAction(
-              proxy,
-              payload as ToggleMenuPayload,
-            );
-            break;
+        case ActionType.TOGGLE_EXPERIENCE_MENU:
+          handleToggleExperienceMenuAction(proxy, payload as ToggleMenuPayload);
+          break;
 
-          case ActionType.ON_DATA_RECEIVED:
-            handleOnDataReceivedAction(proxy, payload as OnDataReceivedPayload);
-            break;
+        case ActionType.ON_DATA_RECEIVED:
+          handleOnDataReceivedAction(proxy, payload as OnDataReceivedPayload);
+          break;
 
-          case ActionType.RE_FETCH_EXPERIENCE:
-            handleRefetchExperienceAction(proxy);
-            break;
+        case ActionType.RE_FETCH_EXPERIENCE:
+          handleRefetchExperienceAction(proxy);
+          break;
 
-          case ActionType.RE_FETCH_ENTRIES:
-            handleRefetchEntriesAction(proxy);
-            break;
+        case ActionType.RE_FETCH_ENTRIES:
+          handleRefetchEntriesAction(proxy);
+          break;
 
-          case ActionType.ENTRIES_RECEIVED:
-            handleEntriesReceivedAction(
-              proxy,
-              payload as ProcessedEntriesQueryReturnVal,
-            );
-            break;
+        case ActionType.ENTRIES_RECEIVED:
+          handleEntriesReceivedAction(
+            proxy,
+            payload as ProcessedEntriesQueryReturnVal,
+          );
+          break;
 
-          case ActionType.FETCH_NEXT_ENTRIES:
-            handleFetchNextEntriesAction(proxy);
-            break;
+        case ActionType.FETCH_NEXT_ENTRIES:
+          handleFetchNextEntriesAction(proxy);
+          break;
 
-          case ActionType.REQUEST_UPDATE_EXPERIENCE_UI:
-            handleUpdateExperienceUiRequestAction(
-              proxy,
-              payload as UpdateExperiencePayload,
-            );
-            break;
+        case ActionType.REQUEST_UPDATE_EXPERIENCE_UI:
+          handleUpdateExperienceUiRequestAction(
+            proxy,
+            payload as UpdateExperiencePayload,
+          );
+          break;
 
-          case ActionType.ON_SYNC:
-            handleOnSyncAction(proxy, payload as OnSyncedData);
-            break;
+        case ActionType.ON_SYNC:
+          handleOnSyncAction(proxy, payload as OnSyncedData);
+          break;
 
-          case ActionType.ON_UPSERT_ENTRY_SUCCESS:
-            handleOnUpsertEntrySuccessAction(
-              proxy,
-              payload as OnEntryCreatedPayload,
-            );
-            break;
+        case ActionType.ON_UPSERT_ENTRY_SUCCESS:
+          handleOnUpsertEntrySuccessAction(
+            proxy,
+            payload as OnEntryCreatedPayload,
+          );
+          break;
 
-          case ActionType.CLOSE_SYNC_ERRORS_MSG:
-            handleCloseSyncErrorsMsgAction(proxy);
-            break;
+        case ActionType.CLOSE_SYNC_ERRORS_MSG:
+          handleCloseSyncErrorsMsgAction(proxy);
+          break;
 
-          case ActionType.ENTRIES_OPTIONS:
-            handleEntriesOptionsAction(proxy, payload as EntriesOptionsPayload);
-            break;
+        case ActionType.ENTRIES_OPTIONS:
+          handleEntriesOptionsAction(proxy, payload as EntriesOptionsPayload);
+          break;
 
-          case ActionType.DELETE_ENTRY:
-            handleDeleteEntryAction(proxy, payload as DeleteEntryPayload);
-            break;
-        }
-      });
-    },
+        case ActionType.DELETE_ENTRY:
+          handleDeleteEntryAction(proxy, payload as DeleteEntryPayload);
+          break;
 
-    // true,
-  );
+        case ActionType.COMMENTS_RECEIVED:
+          handleCommentsReceivedAction(
+            proxy,
+            payload as CommentsReceivedPayload,
+          );
+          break;
+
+        case ActionType.FETCH_COMMENTS:
+          handleFetchCommentAction(proxy);
+          break;
+      }
+    });
+  });
 
 ////////////////////////// STATE UPDATE SECTION ////////////////////////////
 
@@ -520,6 +531,9 @@ function handleOnDataReceivedAction(
           },
           entriesOptions: {
             value: StateValue.inactive,
+          },
+          comments: {
+            value: StateValue.initial,
           },
         };
 
@@ -1325,6 +1339,65 @@ function getEntriesState(
   return ob;
 }
 
+function handleCommentsReceivedAction(
+  proxy: StateMachine,
+  payload: CommentsReceivedPayload,
+) {
+  const { states: globalStates } = proxy;
+
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const {
+      states: { comments: commentsState, showingOptionsMenu },
+    } = globalStates.data;
+
+    switch (payload.value) {
+      case StateValue.success:
+        {
+          const state = commentsState as CommentsDataSuccessSate;
+          commentsState.value = StateValue.success;
+          state.success = {
+            context: {
+              comments: payload.comments,
+            },
+          };
+        }
+        break;
+
+      case StateValue.errors:
+        break;
+    }
+
+    showingOptionsMenu.value = StateValue.inactive;
+  }
+}
+
+function handleFetchCommentAction(proxy: StateMachine) {
+  const { states: globalStates } = proxy;
+
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const {
+      states: { comments: commentsState, showingOptionsMenu },
+    } = globalStates.data;
+
+    if (commentsState.value !== StateValue.success) {
+      const effects = getGeneralEffects(proxy);
+
+      effects.push({
+        key: "fetchCommentsEffect",
+        ownArgs: {},
+      });
+
+      return;
+    }
+
+    const c = (commentsState as unknown) as CommentsInitialState;
+    c.value = StateValue.initial;
+    showingOptionsMenu.value = StateValue.inactive;
+  }
+}
+
 ////////////////////////// END STATE UPDATE ////////////////////////////
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
@@ -1842,6 +1915,90 @@ type DefDeleteEntryEffect = EffectDefinition<
   }
 >;
 
+const fetchCommentsEffect: DefFetchCommentsEffect["func"] = async (
+  _,
+  props,
+  effectArgs,
+) => {
+  const experienceId = getExperienceId(props);
+  const { dispatch } = effectArgs;
+
+  const variables = {
+    experienceId,
+  };
+
+  const maybeCachedExperience = readExperienceCompleteFragment(experienceId);
+
+  if (maybeCachedExperience) {
+    const { comments } = maybeCachedExperience;
+
+    if (comments && comments.length) {
+      dispatch({
+        type: ActionType.COMMENTS_RECEIVED,
+        value: StateValue.success,
+        comments: comments as CommentFragment[],
+      });
+
+      return;
+    }
+  }
+
+  try {
+    const { data, error } =
+      (await getExperienceComments(variables)) ||
+      // istanbul ignore next:
+      ({} as GetExperienceCommentsQueryResult);
+
+    if (data) {
+      const maybeCommentsData = data.getExperienceComments;
+
+      switch (maybeCommentsData?.__typename) {
+        case "GetExperienceCommentsSuccess":
+          {
+            const { comments } = maybeCommentsData;
+            const commentsList = comments as CommentFragment[];
+
+            dispatch({
+              type: ActionType.COMMENTS_RECEIVED,
+              value: StateValue.success,
+              comments: commentsList,
+            });
+
+            const cachedExperience = maybeCachedExperience as ExperienceCompleteFragment;
+
+            writeCachedExperienceCompleteFragment({
+              ...cachedExperience,
+              comments: commentsList,
+            });
+          }
+          break;
+
+        case "GetExperienceCommentsErrors":
+          dispatch({
+            type: ActionType.COMMENTS_RECEIVED,
+            value: StateValue.errors,
+            errors: maybeCommentsData.errors,
+          });
+          break;
+      }
+    } else {
+      dispatch({
+        type: ActionType.ENTRIES_RECEIVED,
+        key: StateValue.fail,
+        error: error as ApolloError,
+      });
+    }
+  } catch (error) {
+    dispatch({
+      type: ActionType.ENTRIES_RECEIVED,
+      key: StateValue.fail,
+      error: error,
+    });
+  }
+};
+
+type DefFetchCommentsEffect = EffectDefinition<"fetchCommentsEffect">;
+
 export const effectFunctions = {
   scrollDocToTopEffect,
   timeoutsEffect,
@@ -1854,6 +2011,7 @@ export const effectFunctions = {
   postOfflineEntriesSyncEffect,
   deleteCreateEntrySyncErrorEffect,
   deleteEntryEffect,
+  fetchCommentsEffect,
 };
 
 function processGetExperienceQuery(
@@ -2289,6 +2447,35 @@ export type DataState = {
         | EntriesOptionDeleteRequested
         | EntryDeletedSuccess
         | EntryDeleteFail;
+
+      comments: CommentsDataState;
+    };
+  };
+};
+
+export type CommentsDataState =
+  | CommentsDataSuccessSate
+  | CommentsErrorState
+  | CommentsInitialState;
+
+type CommentsInitialState = {
+  value: InitialVal;
+};
+
+type CommentsDataSuccessSate = {
+  value: SuccessVal;
+  success: {
+    context: {
+      comments: CommentFragment[];
+    };
+  };
+};
+
+type CommentsErrorState = {
+  value: ErrorsVal;
+  errors: {
+    context: {
+      error: GetExperienceCommentsErrorsFragment_errors["error"];
     };
   };
 };
@@ -2440,7 +2627,23 @@ type Action =
     } & EntriesOptionsPayload)
   | ({
       type: ActionType.DELETE_ENTRY;
-    } & DeleteEntryPayload);
+    } & DeleteEntryPayload)
+  | ({
+      type: ActionType.COMMENTS_RECEIVED;
+    } & CommentsReceivedPayload)
+  | {
+      type: ActionType.FETCH_COMMENTS;
+    };
+
+type CommentsReceivedPayload =
+  | {
+      value: SuccessVal;
+      comments: CommentFragment[];
+    }
+  | {
+      value: ErrorsVal;
+      errors: GetExperienceCommentsErrorsFragment_errors;
+    };
 
 type DeleteEntryPayload =
   | {
@@ -2561,7 +2764,8 @@ export type EffectType =
   | DefPostOfflineExperiencesSyncEffect
   | DefPostOfflineEntriesSyncEffect
   | DefDeleteCreateEntrySyncErrorEffect
-  | DefDeleteEntryEffect;
+  | DefDeleteEntryEffect
+  | DefFetchCommentsEffect;
 
 type DataObjectErrorsList = [string | number, [string, string][]][];
 

@@ -1,35 +1,11 @@
-import { useMutation } from "@apollo/client";
 import {
+  ApolloQueryResult,
+  FetchPolicy,
+  MutationFunction,
   MutationFunctionOptions,
   MutationResult,
-  MutationFunction,
-  FetchPolicy,
-  ApolloQueryResult,
+  useMutation,
 } from "@apollo/client";
-import { ExecutionResult } from "graphql/execution/execute";
-import {
-  UPDATE_EXPERIENCES_ONLINE_MUTATION,
-  CREATE_EXPERIENCES_MUTATION,
-  DELETE_EXPERIENCES_MUTATION,
-  GET_EXPERIENCES_CONNECTION_LIST_VIEW_QUERY,
-  ON_EXPERIENCES_DELETED_SUBSCRIPTION,
-  PRE_FETCH_EXPERIENCES_QUERY,
-  GET_EXPERIENCE_DETAIL_VIEW_QUERY,
-  GET_DATA_OBJECTS_QUERY,
-  GET_EXPERIENCE_COMMENTS_QUERY,
-} from "@eb/cm/src/graphql/experience.gql";
-import { UpdateExperienceInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import {
-  CommonError,
-  OnlineStatus, //
-} from "../utils/types";
-import {
-  updateExperiencesManualCacheUpdate, //
-} from "../apollo/update-experiences-manual-cache-update";
-import {
-  UpdateExperiencesOnline,
-  UpdateExperiencesOnlineVariables,
-} from "@eb/cm/src/graphql/apollo-types/UpdateExperiencesOnline";
 import {
   CreateExperiences,
   CreateExperiencesVariables,
@@ -38,43 +14,64 @@ import {
   DeleteExperiences,
   DeleteExperiencesVariables,
 } from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
-import {
-  GetExperienceAndEntriesDetailView,
-  GetExperienceAndEntriesDetailViewVariables,
-} from "@eb/cm/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
-import {
-  GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY,
-  GET_ENTRIES_DETAIL_VIEW_QUERY,
-} from "@eb/cm/src/graphql/experience.gql";
-import {
-  GetExperiencesConnectionListViewVariables,
-  GetExperiencesConnectionListView,
-} from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
-import { OnExperiencesDeletedSubscription } from "@eb/cm/src/graphql/apollo-types/OnExperiencesDeletedSubscription";
-import { getSessionId } from "./session-manager";
-import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragment";
+import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
-import { UpdateExperienceSomeSuccessFragment } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
+import {
+  GetDataObjects,
+  GetDataObjectsVariables,
+} from "@eb/cm/src/graphql/apollo-types/GetDataObjects";
 import {
   GetEntriesDetailView,
   GetEntriesDetailViewVariables,
 } from "@eb/cm/src/graphql/apollo-types/GetEntriesDetailView";
 import {
+  GetExperienceAndEntriesDetailView,
+  GetExperienceAndEntriesDetailViewVariables,
+} from "@eb/cm/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
+import {
+  GetExperienceComments,
+  GetExperienceCommentsVariables,
+} from "@eb/cm/src/graphql/apollo-types/GetExperienceComments";
+import {
+  GetExperienceDetailView,
+  GetExperienceDetailViewVariables,
+} from "@eb/cm/src/graphql/apollo-types/GetExperienceDetailView";
+import {
+  GetExperiencesConnectionListView,
+  GetExperiencesConnectionListViewVariables,
+} from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
+import { UpdateExperienceInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { OnExperiencesDeletedSubscription } from "@eb/cm/src/graphql/apollo-types/OnExperiencesDeletedSubscription";
+import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragment";
+import {
   PreFetchExperiences,
   PreFetchExperiencesVariables,
 } from "@eb/cm/src/graphql/apollo-types/PreFetchExperiences";
+import { UpdateExperienceSomeSuccessFragment } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
 import {
-  GetExperienceDetailViewVariables,
-  GetExperienceDetailView,
-} from "@eb/cm/src/graphql/apollo-types/GetExperienceDetailView";
+  UpdateExperiencesOnline,
+  UpdateExperiencesOnlineVariables,
+} from "@eb/cm/src/graphql/apollo-types/UpdateExperiencesOnline";
 import {
-  GetDataObjectsVariables,
-  GetDataObjects,
-} from "@eb/cm/src/graphql/apollo-types/GetDataObjects";
-import { SyncError } from "./sync-to-server.types";
-import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
+  CREATE_EXPERIENCES_MUTATION,
+  DELETE_EXPERIENCES_MUTATION,
+  GET_DATA_OBJECTS_QUERY,
+  GET_ENTRIES_DETAIL_VIEW_QUERY,
+  GET_EXPERIENCES_CONNECTION_LIST_VIEW_QUERY,
+  GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY,
+  GET_EXPERIENCE_COMMENTS_QUERY,
+  GET_EXPERIENCE_DETAIL_VIEW_QUERY,
+  ON_EXPERIENCES_DELETED_SUBSCRIPTION,
+  PRE_FETCH_EXPERIENCES_QUERY,
+  UPDATE_EXPERIENCES_ONLINE_MUTATION,
+} from "@eb/cm/src/graphql/experience.gql";
+import { ExecutionResult } from "graphql/execution/execute";
 import { getCachedExperienceDetailView } from "../apollo/get-detailed-experience-query";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { updateExperiencesManualCacheUpdate } from "../apollo/update-experiences-manual-cache-update";
+import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
+import { CommonError, OnlineStatus } from "../utils/types";
+import { getSessionId } from "./session-manager";
+import { SyncError } from "./sync-to-server.types";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 
@@ -346,8 +343,10 @@ export function getGetDataObjects(variables: GetDataObjectsVariables) {
 export function getExperienceComments(variables: { experienceId: string }) {
   const { client } = window.____ebnis;
 
-  return client.query({
+  return client.query<GetExperienceComments, GetExperienceCommentsVariables>({
     query: GET_EXPERIENCE_COMMENTS_QUERY,
     variables,
   });
 }
+
+export type GetExperienceCommentsQueryResult = ApolloQueryResult<GetExperienceComments>;
