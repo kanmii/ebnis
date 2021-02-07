@@ -7,13 +7,18 @@ const commonScripts = require("../../js-shared/_package-scripts");
 
 const distFolderName = "build";
 const distAbsPath = path.resolve(__dirname, `./${distFolderName}`);
-const reactScript = "react-app-rewired";
+const reactScript = "craco ";
 // const reactScript = "react-scripts";
 
 const apiUrl = process.env.API_URL_ALTERNATE || process.env.API_URL;
 const webUrl = process.env.WEB_URL || "";
 
-const dev_envs = `BROWSER=none EXTEND_ESLINT=true TSC_COMPILE_ON_ERROR=true REACT_APP_API_URL=${apiUrl} `;
+const devEnvs = `CHOKIDAR_USEPOLLING=true \
+  BROWSER=none \
+  EXTEND_ESLINT=true \
+  TSC_COMPILE_ON_ERROR=true \
+  REACT_APP_API_URL=${apiUrl} \
+  `;
 
 const test_envs = `REACT_APP_API_URL=http://localhost:2222 IS_UNIT_TEST=true NODE_ENV=test`;
 
@@ -23,7 +28,7 @@ module.exports = {
   scripts: {
     ...commonScripts.scripts,
     default: {
-      script: `${dev_envs} yarn ${reactScript} start`,
+      script: `${devEnvs} yarn ${reactScript} start`,
       description: `Start create react app server for development`,
     },
     build: {

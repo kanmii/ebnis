@@ -64,6 +64,7 @@
   },
   "dependencies": {
     "@apollo/client": "3.3.7",
+    "@craco/craco": "6.1.0",
     "@eb/cm": "0.0.0",
     "@eb/jsx": "0.0.0",
     "@fortawesome/fontawesome-free": "5.15.2",
@@ -80,7 +81,6 @@
     "lodash": "4.17.20",
     "phoenix": "1.5.7",
     "react": "17.0.1",
-    "react-app-rewired": "2.1.8",
     "react-dom": "17.0.1",
     "react-router-dom": "5.2.0",
     "react-scripts": "4.0.1",
