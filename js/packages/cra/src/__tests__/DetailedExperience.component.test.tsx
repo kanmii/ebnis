@@ -1,108 +1,107 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars*/
-import React, { ComponentType } from "react";
-import { render, cleanup, waitFor } from "@testing-library/react";
-import { DetailExperience } from "../components/DetailExperience/detail-experience.component";
-import {
-  Props,
-  ActionType,
-  Match,
-  initState,
-  reducer,
-  DataState,
-  FetchEntriesErrorState,
-  EffectType,
-  effectFunctions,
-  EntriesDataSuccessSate,
-  EntriesDataFailureState,
-  ExperienceSyncError,
-} from "../components/DetailExperience/detailed-experience-utils";
-import { EntryConnectionFragment } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import { scrollDocumentToTop } from "../components/DetailExperience/detail-experience.injectables";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import {
-  closeUpsertEntryNotificationId,
-  syncErrorsNotificationId,
-  noEntryTriggerId,
-  refetchExperienceId,
-  refetchEntriesId,
-  fetchNextEntriesId,
-  closeSyncErrorsMsgId,
-  fixSyncErrorsId,
-  closeSyncErrorsMsgBtnId,
-  syncEntriesErrorsMsgId,
-  syncExperienceErrorsMsgId,
-  updateExperienceSuccessNotificationId,
-  entriesContainerId,
-  experienceMenuTriggerSelector,
-  experienceMenuSelector,
-  closeDeleteEntryConfirmationId,
-  okDeleteEntryId,
-  entryDeleteSuccessNotificationId,
-  entryDeleteFailNotificationId,
-  noTriggerDocumentEventClassName,
-  deleteExperienceOkSelector,
-} from "../components/DetailExperience/detail-experience.dom";
-import { act } from "react-dom/test-utils";
-import { makeOfflineId } from "../utils/offlines";
 import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
-import { E2EWindowObject, StateValue, OnlineStatus } from "../utils/types";
-import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
+import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
+import { DefinitionErrorFragment } from "@eb/cm/src/graphql/apollo-types/DefinitionErrorFragment";
+import { EntryConnectionFragment } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { GetEntriesUnionFragment_GetEntriesSuccess } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
+import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import React, { ComponentType } from "react";
+import { act } from "react-dom/test-utils";
 import {
   getDeleteExperienceLedger,
   putOrRemoveDeleteExperienceLedger,
 } from "../apollo/delete-experience-cache";
-import { getIsConnected } from "../utils/connections";
 import {
-  getExperienceAndEntriesDetailView,
-  GetExperienceAndEntriesDetailViewQueryResult,
-  DeleteExperiencesMutationResult,
-  getEntriesDetailView,
-  GetEntriesDetailViewQueryResult,
-  updateExperiencesOnlineEffectHelperFunc,
-} from "../utils/experience.gql.types";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import {
-  getCachedExperienceAndEntriesDetailView,
   getCachedEntriesDetailView,
+  getCachedExperienceAndEntriesDetailView,
 } from "../apollo/get-detailed-experience-query";
-import { activeClassName, nonsenseId } from "../utils/utils.dom";
 import { useWithSubscriptionContext } from "../apollo/injectables";
-import { GenericHasEffect } from "../utils/effects";
-import { scrollIntoView } from "../utils/scroll-into-view";
 import {
-  getSyncError,
   getAndRemoveOfflineExperienceIdFromSyncFlag,
+  getSyncError,
   putOfflineExperienceIdInSyncFlag,
   putOrRemoveSyncError,
 } from "../apollo/sync-to-server-cache";
-import { Props as NewEntryProps } from "../components/UpsertEntry/upsert-entry.utils";
+import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
+import { DetailExperience } from "../components/DetailExperience/detail-experience.component";
 import {
-  OfflineIdToCreateEntrySyncErrorMap,
-  UpdateEntrySyncErrors,
-  OnSyncedData,
-} from "../utils/sync-to-server.types";
-import { DefinitionErrorFragment } from "@eb/cm/src/graphql/apollo-types/DefinitionErrorFragment";
+  closeDeleteEntryConfirmationId,
+  closeSyncErrorsMsgBtnId,
+  closeSyncErrorsMsgId,
+  closeUpsertEntryNotificationId,
+  deleteExperienceOkSelector,
+  entriesContainerId,
+  entryDeleteFailNotificationId,
+  entryDeleteSuccessNotificationId,
+  experienceMenuSelector,
+  experienceMenuTriggerSelector,
+  fetchNextEntriesId,
+  fixSyncErrorsId,
+  noEntryTriggerId,
+  noTriggerDocumentEventClassName,
+  okDeleteEntryId,
+  refetchEntriesId,
+  refetchExperienceId,
+  syncEntriesErrorsMsgId,
+  syncErrorsNotificationId,
+  syncExperienceErrorsMsgId,
+  updateExperienceSuccessNotificationId,
+} from "../components/DetailExperience/detail-experience.dom";
+import { scrollDocumentToTop } from "../components/DetailExperience/detail-experience.injectables";
+import {
+  ActionType,
+  DataState,
+  effectFunctions,
+  EffectType,
+  EntriesDataFailureState,
+  EntriesDataSuccessSate,
+  ExperienceSyncError,
+  FetchEntriesErrorState,
+  initState,
+  Match,
+  Props,
+  reducer,
+} from "../components/DetailExperience/detailed-experience-utils";
+import {
+  entryDeleteMenuItemSelector,
+  entryDropdownIsActiveClassName,
+  entryDropdownTriggerClassName,
+  entryUpdateMenuItemSelector,
+} from "../components/Entry/entry.dom";
+import { Props as NewEntryProps } from "../components/UpsertEntry/upsert-entry.utils";
+import { updateExperienceOfflineFn } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { Props as UpsertExperienceProps } from "../components/UpsertExperience/upsert-experience.utils";
-import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
-import { WithSubscriptionContextProps } from "../utils/app-context";
 import {
   cleanUpOfflineExperiences,
   cleanUpSyncedOfflineEntries,
 } from "../components/WithSubscriptions/with-subscriptions.utils";
-import { GetEntriesUnionFragment_GetEntriesSuccess } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
-import { windowChangeUrl, ChangeUrlType } from "../utils/global-window";
-import {
-  entryDropdownTriggerClassName,
-  entryDropdownIsActiveClassName,
-  entryDeleteMenuItemSelector,
-  entryUpdateMenuItemSelector,
-} from "../components/Entry/entry.dom";
-import { updateExperienceOfflineFn } from "../components/UpsertExperience/upsert-experience.resolvers";
-import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
-import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { deleteObjectKey } from "../utils";
+import { WithSubscriptionContextProps } from "../utils/app-context";
+import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
+import { getIsConnected } from "../utils/connections";
+import { GenericHasEffect } from "../utils/effects";
+import {
+  DeleteExperiencesMutationResult,
+  getEntriesDetailView,
+  GetEntriesDetailViewQueryResult,
+  getExperienceAndEntriesDetailView,
+  GetExperienceAndEntriesDetailViewQueryResult,
+  updateExperiencesOnlineEffectHelperFunc,
+} from "../utils/experience.gql.types";
+import { ChangeUrlType, windowChangeUrl } from "../utils/global-window";
+import { makeOfflineId } from "../utils/offlines";
+import { scrollIntoView } from "../utils/scroll-into-view";
+import {
+  OfflineIdToCreateEntrySyncErrorMap,
+  OnSyncedData,
+  UpdateEntrySyncErrors,
+} from "../utils/sync-to-server.types";
+import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
+import { E2EWindowObject, OnlineStatus, StateValue } from "../utils/types";
+import { activeClassName, nonsenseId } from "../utils/utils.dom";
 
 jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
 const mockUpdateExperienceOfflineFn = updateExperienceOfflineFn as jest.Mock;
@@ -126,7 +125,7 @@ jest.mock("../apollo/injectables");
 const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
 
 jest.mock("../apollo/get-detailed-experience-query");
-const mockGetCachedExperience = getCachedExperienceAndEntriesDetailView as jest.Mock;
+const mockGetCachedExperienceAndEntriesDetailView = getCachedExperienceAndEntriesDetailView as jest.Mock;
 
 const mockGetEntriesQuery = getCachedEntriesDetailView as jest.Mock;
 
@@ -225,6 +224,8 @@ const ebnisObject = {
   persistor: {
     persist: mockPersistFunc as any,
   },
+  // logApolloQueries: true,
+  // logReducers: true,
 } as E2EWindowObject;
 
 const mockUpdateExperiencesOnline = jest.fn();
@@ -243,9 +244,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  jest.runTimersToTime(MAX_TIMEOUT_MS);
-  jest.clearAllTimers();
-  jest.resetAllMocks();
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
   mockUpdatedExperience = undefined;
   mockUpdatedExperienceOnlineStatus = undefined;
 });
@@ -453,7 +453,7 @@ describe("components", () => {
   it("fetches entries from cache/deletes experience", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
         getEntries: onlineEntrySuccess,
@@ -528,7 +528,7 @@ describe("components", () => {
   it("entries pagination", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({ connected: true });
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
         getEntries: {
@@ -613,7 +613,7 @@ describe("components", () => {
       } as OfflineIdToCreateEntrySyncErrorMap,
     });
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
         getEntries: {
@@ -665,7 +665,7 @@ describe("first fetch of experience: display sync errors", () => {
       },
     } as ExperienceSyncError);
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
         getEntries: onlineEntrySuccess,
@@ -762,7 +762,7 @@ describe("first fetch of experience: display sync errors", () => {
       },
     } as ExperienceSyncError);
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
         getEntries: offlineEntrySuccess,
@@ -867,7 +867,7 @@ describe("first fetch of experience: display sync errors", () => {
       },
     } as ExperienceSyncError);
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
         getEntries: onlineOfflineEntriesSuccess,
@@ -922,7 +922,7 @@ describe("first fetch of experience: display sync errors", () => {
       },
     } as ExperienceSyncError);
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
         getEntries: onlineEntrySuccess,
@@ -982,7 +982,7 @@ describe("update experience", () => {
   it("shows experience menu when entries can not be fetched", () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
       },
@@ -999,7 +999,7 @@ describe("update experience", () => {
   it("shows experience menu when entries list is empty", () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
         getEntries: emptyEntriesSuccessList,
@@ -1018,7 +1018,7 @@ describe("update experience", () => {
     mockUpdatedExperience = onlineExperience;
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
       },
@@ -1078,7 +1078,7 @@ describe("sync", () => {
       } as OnSyncedData,
     } as WithSubscriptionContextProps);
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
         getEntries: offlineEntrySuccess,
@@ -1568,7 +1568,7 @@ describe("reducers", () => {
     const fetchDetailedExperienceEffect = effectFunctions[effect.key];
 
     mockgetAndRemoveOfflineExperienceIdFromSyncFlag.mockReturnValue("a");
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: {
           ...onlineExperience,
@@ -2087,7 +2087,7 @@ describe("Entry component", () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
     mockUpdateExperienceOfflineFn.mockReturnValueOnce(onlineExperience);
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
         getEntries: {
@@ -2303,7 +2303,7 @@ describe("Entry component", () => {
   it("updates entry", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockGetCachedExperience.mockReturnValueOnce({
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
         getEntries: {

@@ -40,9 +40,13 @@ export const EXPERIENCE_REST_FRAGMENT = gql`
     dataDefinitions {
       ...DataDefinitionFragment
     }
+    comments {
+      ...CommentFragment
+    }
   }
 
   ${DEFINITION_FRAGMENT}
+  ${COMMENT_FRAGMENT}
 `;
 
 // ====================================================
@@ -664,12 +668,38 @@ export const SYNC_TO_SERVER_MUTATION = gql`
 
 ////////////////////////// END START SYNC_TO_SERVER ////////////////////////////
 
-export const GET_EXPERIENCE_COMMENTS_QUERY = gql`
-  query GetExperienceComments($experienceId: ID!) {
-    getExperienceComments(experienceId: $experienceId) {
-      ...CommentFragment
+const GET_EXPERIENCE_COMMENTS_ERRORS_FRAGMENT = gql`
+  fragment GetExperienceCommentsErrorsFragment on GetExperienceCommentsErrors {
+    errors {
+      experienceId
+      error
+    }
+  }
+`;
+
+const GET_EXPERIENCE_COMMENTS_UNION_FRAGMENT = gql`
+  fragment GetExperienceCommentsUnionFragment on GetExperienceCommentsUnion {
+    ... on GetExperienceCommentsSuccess {
+      comments {
+        ...CommentFragment
+      }
+    }
+
+    ... on GetExperienceCommentsErrors {
+      ...GetExperienceCommentsErrorsFragment
     }
   }
 
   ${COMMENT_FRAGMENT}
+  ${GET_EXPERIENCE_COMMENTS_ERRORS_FRAGMENT}
+`;
+
+export const GET_EXPERIENCE_COMMENTS_QUERY = gql`
+  query GetExperienceComments($experienceId: ID!) {
+    getExperienceComments(experienceId: $experienceId) {
+      ...GetExperienceCommentsUnionFragment
+    }
+  }
+
+  ${GET_EXPERIENCE_COMMENTS_UNION_FRAGMENT}
 `;

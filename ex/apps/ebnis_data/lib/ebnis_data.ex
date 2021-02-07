@@ -189,5 +189,8 @@ defmodule EbnisData do
   defdelegate create_entry_comment(params),
     to: CommentApi
 
+  defdelegate get_experience_comments(user_id, experience_id),
+    to: CommentApi
+
   ################################ END ENTRY SECTION #################
 end

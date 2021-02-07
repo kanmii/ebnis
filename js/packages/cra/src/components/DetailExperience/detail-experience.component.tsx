@@ -22,6 +22,7 @@ import {
   ExperienceSyncError,
   OldEntryData,
   CallerProps,
+  CommentsDataState,
 } from "./detailed-experience-utils";
 import { setUpRoutePage } from "../../utils/global-window";
 import { UpsertEntry } from "./detail-experience.lazy";
@@ -57,6 +58,8 @@ import {
   entryDeleteFailNotificationId,
   deleteExperienceOkSelector,
   showExperienceCommentsLinkSelector,
+  showDetailedExperienceCommentsText,
+  hideDetailedExperienceCommentsText,
 } from "./detail-experience.dom";
 import makeClassNames from "classnames";
 import {
@@ -259,8 +262,12 @@ export function DetailExperience(props: Props) {
           key: StateValue.cancelled,
         });
       },
-      onShowComments() {
-        //
+      onShowComments(e) {
+        e.preventDefault();
+
+        dispatch({
+          type: ActionType.FETCH_COMMENTS,
+        });
       },
     };
   }, []);
@@ -351,6 +358,7 @@ function ExperienceComponent() {
       updateExperienceUiActive,
       syncErrorsMsg,
       entriesOptions,
+      comments: commentsState,
     },
   } = useContext(DataStateContextC);
 
@@ -491,6 +499,8 @@ function ExperienceComponent() {
 
         <ExperienceMenuComponent className="no-entry-menu" />
 
+        <CommentsComponent state={commentsState} />
+
         {entriesState.value === StateValue.success && (
           <EntriesComponent state={entriesState.success} />
         )}
@@ -606,6 +616,47 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
       )}
     </>
   );
+}
+
+function CommentsComponent(props: { state: CommentsDataState }) {
+  const { state } = props;
+
+  switch (state.value) {
+    case StateValue.success: {
+      const comments = state.success.context.comments;
+
+      return (
+        <>
+          {comments.map((comment) => {
+            const { id, text } = comment;
+
+            return (
+              <div
+                key={id}
+                id={id}
+                className={makeClassNames({
+                  "box media comment": true,
+                })}
+              >
+                <div className="media-content">
+                  <p
+                    style={{
+                      whiteSpace: "pre-line",
+                    }}
+                  >
+                    {text}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </>
+      );
+    }
+
+    default:
+      return null;
+  }
 }
 
 function SyncErrorsNotificationComponent(props: {
@@ -776,7 +827,7 @@ function ExperienceMenuComponent(props: { className?: string }) {
 
   const {
     context: { onlineStatus },
-    states: { showingOptionsMenu: state },
+    states: { showingOptionsMenu: state, comments: commentsState },
   } = useContext(DataStateContextC);
 
   const {
@@ -829,7 +880,6 @@ function ExperienceMenuComponent(props: { className?: string }) {
           <a
             className={makeClassNames({
               "dropdown-content neutral-link": true,
-              [showExperienceCommentsLinkSelector]: true,
             })}
             onClick={onShowComments}
             href="*"
@@ -837,8 +887,15 @@ function ExperienceMenuComponent(props: { className?: string }) {
               display: "block",
             }}
           >
-            <div className="detailed-experience-menu__content">
-              Show comments
+            <div
+              className={makeClassNames({
+                "detailed-experience-menu__content": true,
+                [showExperienceCommentsLinkSelector]: true,
+              })}
+            >
+              {commentsState.value === StateValue.success
+                ? hideDetailedExperienceCommentsText
+                : showDetailedExperienceCommentsText}
             </div>
           </a>
         </div>

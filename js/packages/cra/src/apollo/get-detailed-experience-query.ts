@@ -50,7 +50,6 @@ export function readExperienceCompleteFragment(experienceId: string) {
 
   return experience;
 }
-// window.readExperienceFragment = readExperienceFragment
 
 export function getCachedExperienceAndEntriesDetailView(erfahrungId: string) {
   const getExperience = getCachedExperienceDetailView(erfahrungId);

@@ -870,6 +870,37 @@ defmodule EbnisData.Schema.Experience do
     resolve_type(&ExperienceResolver.get_entries_union/2)
   end
 
+  object :get_experience_comments_success do
+    field(
+      :comments,
+      :comment
+      |> list_of()
+      |> non_null()
+    )
+
+    field(
+      :experience_id,
+      non_null(:string)
+    )
+  end
+
+  object :get_experience_comments_errors do
+    field(
+      :errors,
+      :experience_error
+      |> non_null()
+    )
+  end
+
+  union :get_experience_comments_union do
+    types([
+      :get_experience_comments_errors,
+      :get_experience_comments_success
+    ])
+
+    resolve_type(&ExperienceResolver.get_experience_comments_union/2)
+  end
+
   ################# AUFHÖREN SAMMELN EINTRÄGE #####################
 
   ######################### END REGULAR OBJECTS ###########################
@@ -1062,6 +1093,21 @@ defmodule EbnisData.Schema.Experience do
       )
 
       resolve(&ExperienceResolver.get_data_objects/2)
+    end
+
+    @desc ~S"""
+      Get comments belonging to an experience.
+    """
+    field :get_experience_comments, :get_experience_comments_union do
+      @desc ~S"""
+        Die Erfahrung ID
+      """
+      arg(
+        :experience_id,
+        non_null(:id)
+      )
+
+      resolve(&ExperienceResolver.get_experience_comments/2)
     end
   end
 

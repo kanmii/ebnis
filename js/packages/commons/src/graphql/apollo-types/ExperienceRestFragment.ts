@@ -29,6 +29,12 @@ export interface ExperienceRestFragment_dataDefinitions {
   clientId: string | null;
 }
 
+export interface ExperienceRestFragment_comments {
+  __typename: "Comment";
+  id: string;
+  text: string;
+}
+
 export interface ExperienceRestFragment {
   __typename: "Experience";
   /**
@@ -39,4 +45,8 @@ export interface ExperienceRestFragment {
    * The field definitions used for the experience entries
    */
   dataDefinitions: ExperienceRestFragment_dataDefinitions[];
+  /**
+   * The list of comments belonging to an experience
+   */
+  comments: (ExperienceRestFragment_comments | null)[] | null;
 }

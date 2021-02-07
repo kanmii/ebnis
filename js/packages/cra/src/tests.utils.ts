@@ -10,6 +10,10 @@ export function fillField(element: Element, value: string) {
   });
 }
 
+export function getById<T extends HTMLElement = HTMLElement>(domId: string) {
+  return document.getElementById(domId) as T;
+}
+
 export const defaultExperience = {
   id: "1",
   dataDefinitions: [

@@ -729,4 +729,37 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   def get_data_objects(_, _) do
     Resolver.unauthorized()
   end
+
+  def get_experience_comments_union(%{errors: _}, _) do
+    :get_experience_comments_errors
+  end
+
+  def get_experience_comments_union(_, _) do
+    :get_experience_comments_success
+  end
+
+  def get_experience_comments(
+        %{
+          experience_id: experience_id
+        },
+        %{context: %{current_user: user}}
+      ) do
+    result =
+      EbnisData.get_experience_comments(
+        user.id,
+        experience_id
+      )
+
+    {
+      :ok,
+      %{
+        comments: result,
+        experience_id: experience_id
+      }
+    }
+  end
+
+  def get_experience_comments(_, _) do
+    Resolver.unauthorized()
+  end
 end

@@ -23,3 +23,5 @@ export const entryDeleteSuccessNotificationId = `${domPrefix}-entry-delete-succe
 export const entryDeleteFailNotificationId = `${domPrefix}-entry-delete-fail-notification`;
 export const deleteExperienceOkSelector = `js-${domPrefix}-delete-experience-ok`;
 export const showExperienceCommentsLinkSelector = `${domPrefix}-show-experience-comments-link`;
+export const showDetailedExperienceCommentsText = `Show comments`;
+export const hideDetailedExperienceCommentsText = `Hide comments`;

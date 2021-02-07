@@ -1,4 +1,6 @@
 defmodule EbnisData.CommentApi do
+  import Ecto.Query, warn: true
+
   alias EbnisData.Repo
   alias EbnisData.Comment
   alias EbnisData.ExperienceComment
@@ -42,5 +44,36 @@ defmodule EbnisData.CommentApi do
       {:ok, comment} ->
         comment
     end
+  end
+
+  @spec get_experience_comments(
+          user_id :: String.t(),
+          experience_id :: String.t()
+        ) :: [%Comment{}]
+  def get_experience_comments(user_id, experience_id) do
+    from(
+      ec in ExperienceComment,
+      join: c in assoc(ec, :comment),
+      join: e in assoc(ec, :experience),
+      where: ec.experience_id == ^experience_id,
+      where: e.user_id == ^user_id,
+      preload: [
+        comment: c
+      ]
+    )
+    |> Repo.all()
+
+    from(
+      ec in ExperienceComment,
+      join: c in assoc(ec, :comment),
+      join: e in assoc(ec, :experience),
+      where: ec.experience_id == ^experience_id,
+      where: e.user_id == ^user_id,
+      preload: [
+        comment: c
+      ]
+    )
+    |> Repo.all()
+    |> Enum.map(& &1.comment)
   end
 end
