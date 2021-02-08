@@ -1,6 +1,3 @@
-@import "../../styles/variables";
-@import "../../styles/extensions";
-
 .my {
   &__fetch {
     &-errors {
@@ -22,7 +19,7 @@
   }
 
   &-component {
-    padding-bottom: $floating-circular-bottom * 1.5;
+    padding-bottom: calc(var(--floating-circular-bottom) * 1.5);
     padding-top: 60px;
 
     .no-experiences {
@@ -49,11 +46,13 @@
 
     .experience {
       &--is-danger {
-        box-shadow: $media-shadow-1 $danger, $media-shadow-2 $danger;
+        box-shadow: var(--media-shadow-1) var(--danger-color),
+          var(--media-shadow-2) var(--danger-color);
       }
 
       &--is-warning {
-        box-shadow: $media-shadow-1 $warning, $media-shadow-2 $warning;
+        box-shadow: var(--media-shadow-1) var(--warning-color),
+          var(--media-shadow-2) var(--warning-color);
       }
 
       &__title {
@@ -131,10 +130,6 @@
   }
 }
 
-.new-experience-trigger {
-  @extend %floating-circular;
-}
-
 .my-experiences {
   &__prev-next {
     text-align: center;
@@ -148,7 +143,6 @@
 
 .my-experience {
   &__scroll-to {
-    @extend %visually-hidden;
     position: relative;
     top: -150px;
   }

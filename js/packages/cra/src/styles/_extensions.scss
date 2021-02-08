@@ -1,5 +1,3 @@
-@import "./variables";
-
 %modal {
   .modal {
     &-background {
@@ -21,41 +19,23 @@
     }
 
     &-card-body {
-      border-left: 1px solid $modal-card-body-border-color;
-      border-right: 1px solid $modal-card-body-border-color;
+      border-left: 1px solid var(--modal-card-body-border-color);
+      border-right: 1px solid var(--modal-card-body-border-color);
     }
   }
 }
 
 %form-field-errors {
-  color: $danger;
+  color: var(--danger-color);
 
   label {
-    color: $danger;
+    color: var(--danger-color);
   }
 
   input {
-    color: $danger;
-    border-color: $danger;
+    color: var(--danger-color);
+    border-color: var(--danger-color);
   }
-}
-
-%visually-hidden {
-  width: 1px;
-  height: 1px;
-  visibility: hidden;
-  clip: rect(1px, 1px, 1px, 1px);
-  display: block;
-}
-
-%scroll-into-view {
-  @extend %visually-hidden;
-}
-
-%modal-scroll-into-view {
-  @extend %scroll-into-view;
-  position: relative;
-  top: -$modal-card-body-padding;
 }
 
 %chevron-down {
@@ -74,21 +54,6 @@
   border-top: 10px solid black;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-}
-
-%floating-circular {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background-color: var(--app-color);
-  color: #fff;
-  position: fixed;
-  right: 30px;
-  bottom: $floating-circular-bottom;
-  cursor: pointer;
 }
 
 %auth-form {

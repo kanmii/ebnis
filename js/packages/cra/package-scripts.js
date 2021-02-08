@@ -13,7 +13,7 @@ const reactScript = "craco ";
 const apiUrl = process.env.API_URL_ALTERNATE || process.env.API_URL;
 const webUrl = process.env.WEB_URL || "";
 
-const devEnvs = `CHOKIDAR_USEPOLLING=true \
+const devEnvs = `
   BROWSER=none \
   EXTEND_ESLINT=true \
   TSC_COMPILE_ON_ERROR=true \

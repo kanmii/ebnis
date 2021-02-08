@@ -7,7 +7,7 @@ import { BroadcastChannel } from "broadcast-channel";
 import { OnSyncedData } from "./sync-to-server.types";
 
 export type ReactMouseAnchorEvent = React.MouseEvent<
-  HTMLAnchorElement | HTMLButtonElement,
+  HTMLAnchorElement | HTMLButtonElement | HTMLDivElement,
   MouseEvent
 >;
 
@@ -103,6 +103,8 @@ export type WarningVal = "warning";
 export type ValidVal = "valid";
 export type InvalidVal = "invalid";
 export type InitialVal = "initial";
+export type UnRequestedVal = "unRequested";
+export type EmptyVal = "empty";
 export type UnChangedVal = "unchanged";
 export type ChangedVal = "changed";
 export type ErrorsVal = "errors";
@@ -156,6 +158,8 @@ export const StateValue = {
   offline: "offline" as OfflineVal,
   partOffline: "part-offline" as PartOfflineVal,
   deleteSuccess: "deleteSuccess" as DeleteSuccess,
+  unRequested: "unRequested" as UnRequestedVal,
+  empty: "empty" as EmptyVal,
 } as const;
 
 export type LoadingState = {

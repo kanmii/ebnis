@@ -83,7 +83,7 @@ export function UpsertEntry(props: Props) {
           </header>
 
           <div className="modal-card-body">
-            <span className="scroll-into-view" />
+            <span className="modal-scroll-into-view" />
 
             <NotificationComponent
               submissionState={submissionState}

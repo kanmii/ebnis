@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import "./header.styles.scss";
+import "./header.styles.css";
 import logo from "@eb/cm/src/media/logo.png";
 import { MY_URL } from "../../utils/urls";
 import { Link, useLocation } from "react-router-dom";

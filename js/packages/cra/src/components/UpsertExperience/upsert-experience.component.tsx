@@ -161,7 +161,7 @@ export function UpsertExperience(props: Props) {
         </header>
 
         <section className="modal-card-body">
-          <span className="scroll-into-view" id={scrollIntoViewDomId} />
+          <span className="modal-scroll-into-view" id={scrollIntoViewDomId} />
 
           <ErrorOrWarning
             formValidity={formValidity}

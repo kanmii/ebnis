@@ -1,9 +1,6 @@
-@import "../../styles/variables";
-
-$part-shadow: 0 1px var(--blur-radius);
-
 .app-header {
   --blur-radius: 4px;
+  --part-shadow: 0 1px var(--blur-radius);
   height: var(--header-height);
   z-index: var(--header-z-index);
   position: fixed;
@@ -15,11 +12,11 @@ $part-shadow: 0 1px var(--blur-radius);
   margin: 0;
 
   &--connected {
-    box-shadow: $part-shadow var(--app-color);
+    box-shadow: var(--part-shadow) var(--app-color);
   }
 
   &--unconnected {
-    box-shadow: $part-shadow $danger;
+    box-shadow: var(--part-shadow) var(--danger-color);
   }
 
   .logo {

@@ -32,7 +32,9 @@ import {
   closeSyncErrorsMsgBtnId,
   closeSyncErrorsMsgId,
   closeUpsertEntryNotificationId,
+  deleteExperienceMenuItemSelector,
   deleteExperienceOkSelector,
+  editExperienceMenuItemSelector,
   entriesContainerId,
   entryDeleteFailNotificationId,
   entryDeleteSuccessNotificationId,
@@ -40,6 +42,7 @@ import {
   experienceMenuTriggerSelector,
   fetchNextEntriesId,
   fixSyncErrorsId,
+  newEntryMenuItemSelector,
   noEntryTriggerId,
   noTriggerDocumentEventClassName,
   okDeleteEntryId,
@@ -2376,7 +2379,7 @@ function getNoEntryEl() {
 
 function getUpsertEntryTriggerEl() {
   return document
-    .getElementsByClassName("upsert-entry-trigger")
+    .getElementsByClassName(newEntryMenuItemSelector)
     .item(0) as HTMLElement;
 }
 
@@ -2460,7 +2463,7 @@ function getSyncExperienceErrors() {
 
 function getUpdateExperienceEl(index: number = 0) {
   return document
-    .getElementsByClassName("detailed__edit-experience-link")
+    .getElementsByClassName(editExperienceMenuItemSelector)
     .item(index) as HTMLElement;
 }
 
@@ -2476,7 +2479,7 @@ function getMockUpsertExperienceSuccess() {
 
 function getDeleteExperienceEl() {
   return document
-    .getElementsByClassName("delete-experience-link")
+    .getElementsByClassName(deleteExperienceMenuItemSelector)
     .item(0) as HTMLElement;
 }
 

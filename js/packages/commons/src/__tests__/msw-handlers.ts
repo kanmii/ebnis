@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* istanbul ignore file */
 import { ApolloError } from "@apollo/client/core";
 import { graphql } from "msw";
 import { GetExperienceAndEntriesDetailView } from "../graphql/apollo-types/GetExperienceAndEntriesDetailView";
@@ -7,7 +8,7 @@ import { GetExperienceComments } from "../graphql/apollo-types/GetExperienceComm
 const { query, mutation } = graphql;
 
 export function getMswListExperiencesGql(
-  data: Partial<GetExperienceAndEntriesDetailView>,
+  data: Partial<GetExperienceAndEntriesDetailView> | ApolloError,
 ) {
   return execGraphqlOperation(query, "GetExperienceAndEntriesDetailView", data);
 }

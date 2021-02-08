@@ -1,5 +1,3 @@
-@import "./variables";
-
 :root {
   --app-color: #5faac7;
   --modal-content-width: 450px;
@@ -19,6 +17,13 @@
   --header-z-index: 1;
   --body-padding-top: calc(var(--header-height) + 10px);
   --app-root-height: calc(100vh - var(--body-padding-top));
+  --media-shadow-1: 0 0.5em 1em -0.125em;
+  --media-shadow-2: 0 0px 0 1px;
+  --floating-circular-bottom: 30px;
+  --danger-color: hsl(348, 86%, 61%);
+  --warning-color: hsl(44, 100%, 77%);
+  --modal-card-body-border-color: #e8e8e8;
+  --modal-background-background-color: rgba(255, 255, 255, 0.85);
 }
 
 @import "../../node_modules/bulma/bulma.sass";

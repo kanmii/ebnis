@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.animation {
+  animation-duration: 0.6s;
+  animation-fill-mode: both;
+}
+
+@keyframes drop-up-animate-up {
+  0% {
+    transform: translateY(20px);
+    opacity: 0.7;
+  }
+
+  80% {
+    transform: translateY(0px);
+    opacity: 0.7;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.drop-up-animate-up {
+  animation-name: drop-up-animate-up;
+}
+
+.ebnis-dropdown-menu {
+  @apply relative inline-flex align-top;
+
+  .dropdown-menu {
+    @apply left-auto right-0 pt-1 absolute z-20 top-0;
+    min-width: 12rem;
+  }
+
+  .dropdown-content {
+    @apply bg-white rounded pl-5 font-semibold cursor-pointer;
+  }
+
+  &.is-active {
+    .dropdown-menu {
+      @apply block;
+    }
+  }
+}
+
+
+.ebnis-drop-up {
+  @apply hidden;
+
+  .content {
+    @apply cursor-pointer bg-blue-400 mb-2 pl-2 pr-4 py-1 text-white mb-4 font-bold whitespace-nowrap;
+  }
+
+  &.is-active {
+    @apply flex flex-col items-end absolute right-0;
+    bottom: 50px;
+  }
+}
+
+.floating-circular {
+  --right: 30px;
+  @apply fixed;
+  right: var(--right);
+  bottom: var(--floating-circular-bottom);
+
+  .circular {
+    @apply flex items-center justify-center rounded-full text-white font-black cursor-pointer;
+    width: 50px;
+    height: 50px;
+    background-color: var(--app-color);
+  }
+}
+
+.visually-hidden {
+  width: 1px;
+  height: 1px;
+  visibility: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  display: block;
+}
+
+.modal-scroll-into-view {
+  width: 1px;
+  height: 1px;
+  visibility: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  display: block;
+}

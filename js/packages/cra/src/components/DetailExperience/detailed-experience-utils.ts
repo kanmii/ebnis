@@ -95,6 +95,7 @@ import {
   DataVal,
   DeletedVal,
   DeleteSuccess,
+  EmptyVal,
   ErrorsVal,
   FailVal,
   FetchEntriesErrorVal,
@@ -108,6 +109,7 @@ import {
   StateValue,
   SuccessVal,
   Timeouts,
+  UnRequestedVal,
 } from "../../utils/types";
 import {
   DetailExperienceRouteMatch,
@@ -533,7 +535,7 @@ function handleOnDataReceivedAction(
             value: StateValue.inactive,
           },
           comments: {
-            value: StateValue.initial,
+            value: StateValue.unRequested,
           },
         };
 
@@ -1354,17 +1356,37 @@ function handleCommentsReceivedAction(
     switch (payload.value) {
       case StateValue.success:
         {
-          const state = commentsState as CommentsDataSuccessSate;
-          commentsState.value = StateValue.success;
-          state.success = {
-            context: {
-              comments: payload.comments,
-            },
-          };
+          const dataState = commentsState as CommentsDataSuccessSate;
+          const emptyState = commentsState as CommentsEmptyState;
+
+          const { comments } = payload;
+
+          if (comments.length === 0) {
+            emptyState.value = StateValue.empty;
+          } else {
+            commentsState.value = StateValue.success;
+
+            dataState.success = {
+              context: {
+                comments,
+              },
+            };
+          }
         }
         break;
 
       case StateValue.errors:
+        {
+          const errorState = commentsState as CommentsErrorState;
+          errorState.value = StateValue.errors;
+          const { errors } = payload;
+
+          errorState.errors = {
+            context: {
+              error: errors.error,
+            },
+          };
+        }
         break;
     }
 
@@ -1392,8 +1414,8 @@ function handleFetchCommentAction(proxy: StateMachine) {
       return;
     }
 
-    const c = (commentsState as unknown) as CommentsInitialState;
-    c.value = StateValue.initial;
+    const c = (commentsState as unknown) as CommentsUnRequestedState;
+    c.value = StateValue.unRequested;
     showingOptionsMenu.value = StateValue.inactive;
   }
 }
@@ -1943,58 +1965,76 @@ const fetchCommentsEffect: DefFetchCommentsEffect["func"] = async (
     }
   }
 
-  try {
-    const { data, error } =
-      (await getExperienceComments(variables)) ||
-      // istanbul ignore next:
-      ({} as GetExperienceCommentsQueryResult);
+  let timeoutId: null | NodeJS.Timeout = null;
 
-    if (data) {
-      const maybeCommentsData = data.getExperienceComments;
+  async function fetchOnlineComments() {
+    try {
+      const { data, error } =
+        (await getExperienceComments(variables)) ||
+        // istanbul ignore next:
+        ({} as GetExperienceCommentsQueryResult);
 
-      switch (maybeCommentsData?.__typename) {
-        case "GetExperienceCommentsSuccess":
-          {
-            const { comments } = maybeCommentsData;
-            const commentsList = comments as CommentFragment[];
+      if (data) {
+        const maybeCommentsData = data.getExperienceComments;
 
+        switch (maybeCommentsData?.__typename) {
+          case "GetExperienceCommentsSuccess":
+            {
+              const { comments } = maybeCommentsData;
+              const commentsList = comments as CommentFragment[];
+
+              dispatch({
+                type: ActionType.COMMENTS_RECEIVED,
+                value: StateValue.success,
+                comments: commentsList,
+              });
+
+              const cachedExperience = maybeCachedExperience as ExperienceCompleteFragment;
+
+              writeCachedExperienceCompleteFragment({
+                ...cachedExperience,
+                comments: commentsList,
+              });
+            }
+            break;
+
+          case "GetExperienceCommentsErrors":
             dispatch({
               type: ActionType.COMMENTS_RECEIVED,
-              value: StateValue.success,
-              comments: commentsList,
+              value: StateValue.errors,
+              errors: maybeCommentsData.errors,
             });
-
-            const cachedExperience = maybeCachedExperience as ExperienceCompleteFragment;
-
-            writeCachedExperienceCompleteFragment({
-              ...cachedExperience,
-              comments: commentsList,
-            });
-          }
-          break;
-
-        case "GetExperienceCommentsErrors":
-          dispatch({
-            type: ActionType.COMMENTS_RECEIVED,
-            value: StateValue.errors,
-            errors: maybeCommentsData.errors,
-          });
-          break;
+            break;
+        }
+      } else {
+        dispatch({
+          type: ActionType.ENTRIES_RECEIVED,
+          key: StateValue.fail,
+          error: error as ApolloError,
+        });
       }
-    } else {
+    } catch (error) {
       dispatch({
         type: ActionType.ENTRIES_RECEIVED,
         key: StateValue.fail,
-        error: error as ApolloError,
+        error: error,
       });
     }
-  } catch (error) {
-    dispatch({
-      type: ActionType.ENTRIES_RECEIVED,
-      key: StateValue.fail,
-      error: error,
-    });
   }
+
+  if (getIsConnected()) {
+    await fetchOnlineComments();
+    return;
+  }
+
+  let fetchExperienceAttemptsCount = 0;
+
+  timeoutId = setTimeout(
+    () => {
+
+    },
+    FETCH_EXPERIENCES_TIMEOUTS[fetchExperienceAttemptsCount++],
+  );
 };
 
 type DefFetchCommentsEffect = EffectDefinition<"fetchCommentsEffect">;
@@ -2456,10 +2496,15 @@ export type DataState = {
 export type CommentsDataState =
   | CommentsDataSuccessSate
   | CommentsErrorState
-  | CommentsInitialState;
+  | CommentsUnRequestedState
+  | CommentsEmptyState;
 
-type CommentsInitialState = {
-  value: InitialVal;
+type CommentsEmptyState = {
+  value: EmptyVal;
+};
+
+type CommentsUnRequestedState = {
+  value: UnRequestedVal;
 };
 
 type CommentsDataSuccessSate = {

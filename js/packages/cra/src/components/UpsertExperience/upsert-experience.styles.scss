@@ -3,10 +3,6 @@
 .component-upsert-experience {
   @extend %modal;
 
-  .scroll-into-view {
-    @extend %modal-scroll-into-view;
-  }
-
   .form {
     &__control {
       width: 100%;
@@ -63,7 +59,7 @@
     border-radius: 4px;
 
     &.errors {
-      border-color: $danger;
+      border-color: var(--danger-color);
     }
   }
 
