@@ -35,7 +35,7 @@ import {
   noTriggerDocumentEventClassName,
 } from "./my.dom";
 import { setUpRoutePage } from "../../utils/global-window";
-import "./my.styles.scss";
+import "./my.styles.css";
 import Loading from "../Loading/loading.component";
 import {
   StateValue,
@@ -283,7 +283,7 @@ function MyExperiences() {
       <a
         href="*"
         id={activateInsertExperienceDomId}
-        className="new-experience-trigger"
+        className="floating-circular"
         onClick={onUpsertExperienceActivated}
       >
         <span>+</span>
@@ -352,7 +352,7 @@ function ExperienceComponent(props: ExperienceProps) {
         <div className="content">
           <div
             id={makeScrollToDomId(id)}
-            className="my-experience__scroll-to"
+            className="my-experience__scroll-to visually-hidden"
           />
 
           {showingUpdateSuccess && (

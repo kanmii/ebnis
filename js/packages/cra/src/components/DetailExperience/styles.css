@@ -1,8 +1,5 @@
-@import "../../styles/variables";
-@import "../../styles/extensions";
-
 .detailed-experience-component {
-  padding-bottom: $floating-circular-bottom * 2.66;
+  padding-bottom: calc(var(--floating-circular-bottom) * 2.66);
   padding-top: 10px;
 
   .data-object {
@@ -21,7 +18,8 @@
 
   .entry {
     &--is-danger {
-      box-shadow: $media-shadow-1 $danger, $media-shadow-2 $danger;
+      box-shadow: var(--media-shadow-1) var(--danger-color),
+        var(--media-shadow-2) var(--danger-color);
     }
 
     &__updated-at {
@@ -31,7 +29,7 @@
   }
 
   .entry__unsynced-error {
-    color: $danger;
+    color: var(--danger-color);
     font-weight: bold;
   }
 
@@ -51,7 +49,6 @@
 }
 
 .upsert-entry-trigger {
-  @extend %floating-circular;
   z-index: 1;
 }
 
@@ -78,28 +75,6 @@
   &__next-entries {
     margin-top: 20px;
     text-align: center;
-  }
-}
-
-.detailed-experience-menu {
-  display: flex;
-
-  &--is-danger {
-    color: $danger;
-  }
-
-  &--is-warning {
-    color: $warning;
-  }
-
-  &__menu {
-    top: 75%;
-  }
-
-  &__content {
-    padding-left: 20px;
-    cursor: pointer;
-    font-weight: 500;
   }
 }
 

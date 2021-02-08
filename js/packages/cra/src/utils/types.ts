@@ -7,7 +7,7 @@ import { BroadcastChannel } from "broadcast-channel";
 import { OnSyncedData } from "./sync-to-server.types";
 
 export type ReactMouseAnchorEvent = React.MouseEvent<
-  HTMLAnchorElement | HTMLButtonElement,
+  HTMLAnchorElement | HTMLButtonElement | HTMLDivElement,
   MouseEvent
 >;
 

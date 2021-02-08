@@ -1356,9 +1356,12 @@ function handleCommentsReceivedAction(
         {
           const state = commentsState as CommentsDataSuccessSate;
           commentsState.value = StateValue.success;
+          const { comments } = payload;
+
           state.success = {
             context: {
-              comments: payload.comments,
+              comments,
+              empty: comments.length === 0,
             },
           };
         }
@@ -2467,6 +2470,7 @@ type CommentsDataSuccessSate = {
   success: {
     context: {
       comments: CommentFragment[];
+      empty?: boolean
     };
   };
 };

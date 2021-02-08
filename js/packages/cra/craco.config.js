@@ -4,6 +4,15 @@ const { getLoader, loaderByName } = require("@craco/craco");
 const absolutePath = path.join(__dirname, "../components");
 
 module.exports = {
+  style: {
+    postcss: {
+      plugins: [
+        require("tailwindcss"),
+        require("postcss-nested"),
+        require("autoprefixer"),
+      ],
+    },
+  },
   webpack: {
     alias: {},
     plugins: [],

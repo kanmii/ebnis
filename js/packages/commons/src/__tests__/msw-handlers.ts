@@ -7,7 +7,7 @@ import { GetExperienceComments } from "../graphql/apollo-types/GetExperienceComm
 const { query, mutation } = graphql;
 
 export function getMswListExperiencesGql(
-  data: Partial<GetExperienceAndEntriesDetailView>,
+  data: Partial<GetExperienceAndEntriesDetailView> | ApolloError,
 ) {
   return execGraphqlOperation(query, "GetExperienceAndEntriesDetailView", data);
 }

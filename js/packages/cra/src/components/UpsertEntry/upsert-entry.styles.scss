@@ -22,8 +22,4 @@
     font-style: italic;
     font-weight: 400;
   }
-
-  .scroll-into-view {
-    @extend %modal-scroll-into-view;
-  }
 }

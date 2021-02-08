@@ -1,5 +1,5 @@
 import React, { PropsWithChildren, useRef, useState, useEffect } from "react";
-import "./loading.styles.scss";
+import "./loading.styles.css";
 import makeClassNames from "classnames";
 import { domPrefix } from "./loading-dom";
 import { onUnmount } from "./loading.injectables";

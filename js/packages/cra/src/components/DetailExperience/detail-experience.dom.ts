@@ -25,3 +25,7 @@ export const deleteExperienceOkSelector = `js-${domPrefix}-delete-experience-ok`
 export const showExperienceCommentsLinkSelector = `${domPrefix}-show-experience-comments-link`;
 export const showDetailedExperienceCommentsText = `Show comments`;
 export const hideDetailedExperienceCommentsText = `Hide comments`;
+export const noCommentsContainerSelector = `${domPrefix}-no-comments-container`;
+export const editExperienceMenuItemSelector = `${domPrefix}-edit-experience-menu-item`;
+export const deleteExperienceMenuItemSelector = `${domPrefix}-delete-experience-menu-item`;
+export const newEntryMenuItemSelector = `${domPrefix}-new-entry-menu-item`;

@@ -23,6 +23,7 @@ import {
   hideDetailedExperienceCommentsText,
   showDetailedExperienceCommentsText,
   showExperienceCommentsLinkSelector,
+  noCommentsContainerSelector,
 } from "../components/DetailExperience/detail-experience.dom";
 import {
   Match,
@@ -111,25 +112,35 @@ const onlineExperience = {
 // ====================================================
 
 describe("components", () => {
-  const commentId = "aa";
+  const comment1Id = "comment-1";
+  const comment2Id = "comment-2";
 
-  const comment: CommentFragment = {
-    id: commentId,
-    text: "aa",
+  const comment1: CommentFragment = {
+    id: comment1Id,
+    text: "comment-1",
     __typename: "Comment",
   };
 
-  it("displays online comments", async () => {
-    mswServer.use(
-      getMswListExperiencesGql({
-        getExperience: onlineExperience,
-        getEntries: null,
-      }),
+  const comment2: CommentFragment = {
+    id: comment1Id,
+    text: "comment-2",
+    __typename: "Comment",
+  };
 
+  it("create online comment", async () => {
+    mockGetIsConnected.mockReturnValue(true);
+
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
+      data: {
+        getExperience: onlineExperience,
+      },
+    });
+
+    mswServer.use(
       getMswExperienceCommentsGql({
         getExperienceComments: {
           __typename: "GetExperienceCommentsSuccess",
-          comments: [comment],
+          comments: [],
         },
       }),
     );
@@ -143,7 +154,60 @@ describe("components", () => {
       render(ui);
 
       // Comments should not be visible
-      expect(getById(commentId)).toBeNull();
+      expect(getById(comment1Id)).toBeNull();
+
+      // Menu item should prompt user to show comments
+      const commentMenuItem = await waitForCount(async () => {
+        const el = await waitFor(getShowExperienceCommentsEl);
+        return el;
+      });
+
+      expect(commentMenuItem.textContent).toBe(
+        showDetailedExperienceCommentsText,
+      );
+
+      // When show comments menu item is clicked
+      commentMenuItem.click();
+
+      // Comment should be visible
+      const noCommentsEl = await waitForCount(async () => {
+        const noCommentsEl = await waitFor(() => {
+          const noCommentsEl = getById(noCommentsContainerSelector);
+          return noCommentsEl;
+        });
+
+        return noCommentsEl;
+      });
+
+      expect(noCommentsEl).not.toBeNull();
+    });
+  });
+
+  it("displays online comments", async () => {
+    mswServer.use(
+      getMswListExperiencesGql({
+        getExperience: onlineExperience,
+        getEntries: null,
+      }),
+
+      getMswExperienceCommentsGql({
+        getExperienceComments: {
+          __typename: "GetExperienceCommentsSuccess",
+          comments: [comment1],
+        },
+      }),
+    );
+
+    mockReadExperienceCompleteFragment.mockReturnValue(onlineExperience);
+    mockUseWithSubscriptionContext.mockReturnValue({});
+    mockGetIsConnected.mockReturnValue(true);
+
+    const { ui } = makeComp();
+    await act(async () => {
+      render(ui);
+
+      // Comments should not be visible
+      expect(getById(comment1Id)).toBeNull();
 
       // Menu item should prompt user to show comments
       const commentMenuItem = await waitForCount(async () => {
@@ -164,17 +228,18 @@ describe("components", () => {
       // Comment should be visible
       const commentEl = await waitForCount(async () => {
         const commentEl = await waitFor(() => {
-          return getById(commentId);
+          return getById(comment1Id);
         });
         return commentEl;
       });
 
-      expect(commentEl.id).toBe(commentId);
+      expect(commentEl.id).toBe(comment1Id);
+      expect(getById(noCommentsContainerSelector)).toBeNull();
 
       // comments should have been written to cache
       expect(mockWriteCachedExperienceCompleteFragment).toHaveBeenCalledWith({
         ...onlineExperience,
-        comments: [comment],
+        comments: [comment1],
       });
 
       // Menu item should prompt user to hide comments
@@ -186,7 +251,7 @@ describe("components", () => {
       commentMenuItem.click();
 
       // Comments should not be visible
-      expect(getById(commentId)).toBeNull();
+      expect(getById(comment1Id)).toBeNull();
     });
   });
 
@@ -201,7 +266,7 @@ describe("components", () => {
 
     mockReadExperienceCompleteFragment.mockReturnValue({
       ...onlineExperience,
-      comments: [comment],
+      comments: [comment1],
     });
 
     mockUseWithSubscriptionContext.mockReturnValue({});
@@ -215,7 +280,7 @@ describe("components", () => {
       await waitFor(() => true);
 
       // Comment should not be visible
-      expect(getById(commentId)).toBeNull();
+      expect(getById(comment1Id)).toBeNull();
 
       // When show comments menu item is clicked
       // const commentMenuItem = await waitFor(getShowExperienceCommentsEl);
@@ -230,14 +295,15 @@ describe("components", () => {
       // Comment should be visible
       const commentEl = await waitForCount(async () => {
         const commentEl = await waitFor(() => {
-          const commentEl = getById(commentId);
+          const commentEl = getById(comment1Id);
           return commentEl;
         });
 
         return commentEl;
       });
 
-      expect(commentEl.id).toBe(commentId);
+      expect(commentEl.id).toBe(comment1Id);
+      expect(getById(noCommentsContainerSelector)).toBeNull();
 
       // comments should not have been written to cache
       expect(mockWriteCachedExperienceCompleteFragment).not.toHaveBeenCalled();

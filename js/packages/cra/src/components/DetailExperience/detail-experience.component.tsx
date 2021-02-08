@@ -1,78 +1,81 @@
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { ReactComponent as DotsVerticalSvg } from "@eb/cm/src/styles/dots-vertical.svg";
+import makeClassNames from "classnames";
 import React, {
-  useLayoutEffect,
-  Suspense,
-  useReducer,
-  useEffect,
-  useMemo,
   createContext,
-  useContext,
   Fragment,
+  Suspense,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
 } from "react";
-import "./styles.scss";
-import Header from "../Header/header.component";
-import {
-  Props,
-  initState,
-  reducer,
-  ActionType,
-  effectFunctions,
-  DispatchType,
-  DataState,
-  EntriesDataSuccessSate,
-  ExperienceSyncError,
-  OldEntryData,
-  CallerProps,
-  CommentsDataState,
-} from "./detailed-experience-utils";
+import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { setUpRoutePage } from "../../utils/global-window";
-import { UpsertEntry } from "./detail-experience.lazy";
-import Loading from "../Loading/loading.component";
 import {
-  StateValue,
-  ReactMouseAnchorEvent,
   OnlineStatus,
+  ReactMouseAnchorEvent,
+  StateValue,
 } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
+import { activeClassName } from "../../utils/utils.dom";
+import Entry from "../Entry/entry.component";
+import { ActivateUpdateEntryCb } from "../Entry/entry.utils";
+import Header from "../Header/header.component";
+import Loading from "../Loading/loading.component";
+import { UpsertExperience } from "../My/my.lazy";
 import {
-  closeUpsertEntryNotificationId,
-  syncErrorsNotificationId,
-  noTriggerDocumentEventClassName,
-  noEntryTriggerId,
-  refetchExperienceId,
-  refetchEntriesId,
-  fetchNextEntriesId,
-  updateExperienceSuccessNotificationId,
-  isPartOfflineClassName,
-  isOfflineClassName,
-  fixSyncErrorsId,
-  closeSyncErrorsMsgId,
-  closeSyncErrorsMsgBtnId,
-  syncEntriesErrorsMsgId,
-  syncExperienceErrorsMsgId,
-  entriesContainerId,
-  experienceMenuTriggerSelector,
-  experienceMenuSelector,
-  okDeleteEntryId,
   closeDeleteEntryConfirmationId,
-  entryDeleteSuccessNotificationId,
-  entryDeleteFailNotificationId,
+  closeSyncErrorsMsgBtnId,
+  closeSyncErrorsMsgId,
+  closeUpsertEntryNotificationId,
+  deleteExperienceMenuItemSelector,
   deleteExperienceOkSelector,
-  showExperienceCommentsLinkSelector,
-  showDetailedExperienceCommentsText,
+  editExperienceMenuItemSelector,
+  entriesContainerId,
+  entryDeleteFailNotificationId,
+  entryDeleteSuccessNotificationId,
+  experienceMenuSelector,
+  experienceMenuTriggerSelector,
+  fetchNextEntriesId,
+  fixSyncErrorsId,
   hideDetailedExperienceCommentsText,
+  newEntryMenuItemSelector,
+  noCommentsContainerSelector,
+  noEntryTriggerId,
+  noTriggerDocumentEventClassName,
+  okDeleteEntryId,
+  refetchEntriesId,
+  refetchExperienceId,
+  showDetailedExperienceCommentsText,
+  showExperienceCommentsLinkSelector,
+  syncEntriesErrorsMsgId,
+  syncErrorsNotificationId,
+  syncExperienceErrorsMsgId,
+  updateExperienceSuccessNotificationId,
 } from "./detail-experience.dom";
-import makeClassNames from "classnames";
 import {
   useDeleteExperiencesMutation,
   useUpdateExperiencesOnlineMutation,
 } from "./detail-experience.injectables";
-import { activeClassName } from "../../utils/utils.dom";
-import { useWithSubscriptionContext } from "../../apollo/injectables";
-import { UpsertExperience } from "../My/my.lazy";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { ActivateUpdateEntryCb } from "../Entry/entry.utils";
-import Entry from "../Entry/entry.component";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { UpsertEntry } from "./detail-experience.lazy";
+import {
+  ActionType,
+  CallerProps,
+  CommentsDataState,
+  DataState,
+  DispatchType,
+  effectFunctions,
+  EntriesDataSuccessSate,
+  ExperienceSyncError,
+  initState,
+  OldEntryData,
+  Props,
+  reducer,
+} from "./detailed-experience-utils";
+import "./styles.css";
 
 type DispatchContextValue = Readonly<{
   onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
@@ -298,16 +301,9 @@ export function DetailExperience(props: Props) {
             <DispatchProvider value={contextVal}>
               <DataStateProvider value={states.data}>
                 <ExperienceComponent />
+                <ExperienceMenuComponent />
               </DataStateProvider>
             </DispatchProvider>
-
-            <a
-              className="upsert-entry-trigger"
-              onClick={contextVal.onOpenNewEntry}
-              href="*"
-            >
-              <span>+</span>
-            </a>
           </>
         );
       }
@@ -497,8 +493,6 @@ function ExperienceComponent() {
           />
         )}
 
-        <ExperienceMenuComponent className="no-entry-menu" />
-
         <CommentsComponent state={commentsState} />
 
         {entriesState.value === StateValue.success && (
@@ -623,34 +617,50 @@ function CommentsComponent(props: { state: CommentsDataState }) {
 
   switch (state.value) {
     case StateValue.success: {
-      const comments = state.success.context.comments;
+      const { comments, empty } = state.success.context;
 
       return (
-        <>
-          {comments.map((comment) => {
+        <div
+          className={makeClassNames({
+            "mb-5": true,
+          })}
+        >
+          {empty && (
+            <div
+              id={noCommentsContainerSelector}
+              className={makeClassNames({
+                "cursor-pointer": true,
+                "font-semibold": true,
+                "text-blue-400": true,
+                "hover:text-blue-500": true,
+              })}
+            >
+              No comments. Click here to create one.
+            </div>
+          )}
+
+          {comments.map((comment, index) => {
             const { id, text } = comment;
 
             return (
-              <div
-                key={id}
-                id={id}
-                className={makeClassNames({
-                  "box media comment": true,
-                })}
-              >
-                <div className="media-content">
-                  <p
-                    style={{
-                      whiteSpace: "pre-line",
-                    }}
-                  >
-                    {text}
-                  </p>
+              <div key={id} id={id} className="p-5 shadow-lg flex">
+                <p className="whitespace-pre-line flex-1">{text}</p>
+
+                <div className="ebnis-dropdown-menu">
+                  <div className="dropdown-menu hidden1" role="menu">
+                    <div className="dropdown-content">Edit</div>
+
+                    <div className="dropdown-content">Delete</div>
+                  </div>
+                </div>
+
+                <div className="dropdown-trigger cursor-pointer">
+                  <DotsVerticalSvg />
                 </div>
               </div>
             );
           })}
-        </>
+        </div>
       );
     }
 
@@ -822,11 +832,8 @@ function DeleteExperienceModal() {
   );
 }
 
-function ExperienceMenuComponent(props: { className?: string }) {
-  const { className = "" } = props;
-
+function ExperienceMenuComponent() {
   const {
-    context: { onlineStatus },
     states: { showingOptionsMenu: state, comments: commentsState },
   } = useContext(DataStateContextC);
 
@@ -835,86 +842,76 @@ function ExperienceMenuComponent(props: { className?: string }) {
     onDeleteExperienceRequest,
     requestUpdateExperienceUi,
     onShowComments,
+    onOpenNewEntry,
   } = useContext(DispatchContext);
 
   return (
     <div
       className={makeClassNames({
-        [`detailed-experience-menu ${className}`]: true,
+        "floating-circular": true,
+        [noTriggerDocumentEventClassName]: true,
       })}
     >
       <div
         className={makeClassNames({
-          dropdown: true,
+          "ebnis-drop-up animation": true,
           [activeClassName]: state.value === StateValue.active,
-          [noTriggerDocumentEventClassName]: true,
           [experienceMenuSelector]: true,
         })}
       >
         <div
-          className="dropdown-menu detailed-experience-menu__menu"
-          role="menu"
+          className={makeClassNames({
+            content: true,
+            [editExperienceMenuItemSelector]: true,
+          })}
+          onClick={requestUpdateExperienceUi}
         >
-          <a
-            className="dropdown-content neutral-link detailed__edit-experience-link"
-            onClick={requestUpdateExperienceUi}
-            href="*"
-            style={{
-              display: "block",
-            }}
-          >
-            <div className="detailed-experience-menu__content">Edit</div>
-          </a>
+          Edit
+        </div>
 
-          <a
-            className="dropdown-content neutral-link delete-experience-link"
-            onClick={onDeleteExperienceRequest}
-            href="*"
-            style={{
-              display: "block",
-            }}
-          >
-            <div className="detailed-experience-menu__content">Delete</div>
-          </a>
+        <div
+          className={makeClassNames({
+            content: true,
+            [deleteExperienceMenuItemSelector]: true,
+          })}
+          onClick={onDeleteExperienceRequest}
+        >
+          Delete
+        </div>
 
-          <a
-            className={makeClassNames({
-              "dropdown-content neutral-link": true,
-            })}
-            onClick={onShowComments}
-            href="*"
-            style={{
-              display: "block",
-            }}
-          >
-            <div
-              className={makeClassNames({
-                "detailed-experience-menu__content": true,
-                [showExperienceCommentsLinkSelector]: true,
-              })}
-            >
-              {commentsState.value === StateValue.success
-                ? hideDetailedExperienceCommentsText
-                : showDetailedExperienceCommentsText}
-            </div>
-          </a>
+        <div
+          className={makeClassNames({
+            content: true,
+            [showExperienceCommentsLinkSelector]: true,
+          })}
+          onClick={onShowComments}
+        >
+          {commentsState.value === StateValue.success &&
+          !commentsState.success.context.empty
+            ? hideDetailedExperienceCommentsText
+            : showDetailedExperienceCommentsText}
+        </div>
+
+        <div
+          className={makeClassNames({
+            content: true,
+            [newEntryMenuItemSelector]: true,
+          })}
+          onClick={onOpenNewEntry}
+        >
+          New entry
         </div>
       </div>
 
-      <button
+      <div
         className={makeClassNames({
-          "button top-options-menu dropdown-trigger": true,
-          [noTriggerDocumentEventClassName]: true,
-          [isOfflineClassName]: onlineStatus === StateValue.offline,
-          [isPartOfflineClassName]: onlineStatus === StateValue.partOffline,
+          circular: true,
           [experienceMenuTriggerSelector]: true,
         })}
         onClick={toggleExperienceMenu}
       >
-        <span className="icon is-small">
-          <i className="fas fa-ellipsis-h" aria-hidden="true" />
-        </span>
-      </button>
+        <span>+</span>
+      </div>
     </div>
   );
 }
