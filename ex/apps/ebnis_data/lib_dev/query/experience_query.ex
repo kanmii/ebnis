@@ -16,12 +16,42 @@ defmodule EbnisData.Query.Experience do
       startCursor
     }
   """
-
-  @comments """
-    comments {
+  @comment """
+    {
       id
       text
       updatedAt
+    }
+  """
+
+  @comments """
+    comments #{@comment}
+  """
+
+
+  @comment_success """
+    {
+      comment #{@comment}
+    }
+  """
+
+  @comment_union """
+    {
+      ... on CommentSuccess #{@comment_success}
+
+      ... on CommentUnionErrors {
+        errors {
+          meta {
+            id
+            index
+          }
+          errors {
+            id
+            association
+            error
+          }
+        }
+      }
     }
   """
 
@@ -247,6 +277,14 @@ defmodule EbnisData.Query.Experience do
                     }
                   }
 
+                }
+
+                comments {
+                  updates #{@comment_union}
+
+                  inserts #{@comment_union}
+
+                  deletes #{@comment_union}
                 }
               }
             }

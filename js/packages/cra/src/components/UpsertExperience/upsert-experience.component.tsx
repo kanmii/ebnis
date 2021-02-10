@@ -38,10 +38,7 @@ import {
   disposeComponentDomId,
   domPrefix,
 } from "./upsert-experience.dom";
-import {
-  useCreateExperiencesMutation,
-  useUpdateExperiencesOnlineMutation,
-} from "../../utils/experience.gql.types";
+import { useCreateExperiencesMutation } from "../../utils/experience.gql.types";
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import Loading from "../Loading/loading.component";
 import { FormCtrlError } from "../FormCtrlError/form-ctrl-error.component";
@@ -664,15 +661,8 @@ function DataDefinitionsComponent(props: DataDefinitionsProps) {
 // istanbul ignore next:
 export default (props: CallerProps) => {
   const [createExperiences] = useCreateExperiencesMutation();
-  const [updateExperiencesOnline] = useUpdateExperiencesOnlineMutation();
 
-  return (
-    <UpsertExperience
-      {...props}
-      createExperiences={createExperiences}
-      updateExperiencesOnline={updateExperiencesOnline}
-    />
-  );
+  return <UpsertExperience {...props} createExperiences={createExperiences} />;
 };
 
 interface DescriptionProps {

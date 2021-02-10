@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import immer from "immer";
 import {
   EntryConnectionFragment_edges_node,
@@ -29,7 +28,7 @@ export function upsertNewEntry(
 
   const [updatedGetEntriesQuery, updatedExperience] = immer(
     [entriesQuery, experience],
-    ([proxy, _]) => {
+    ([proxy]) => {
       const edges = proxy.edges as EntryConnectionFragment_edges[];
 
       const existingEntry = edges.find((e) => {

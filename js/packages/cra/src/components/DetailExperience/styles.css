@@ -1,19 +1,11 @@
+@import "../../../../commons/src/styles/extensions.css";
+
 .detailed-experience-component {
   padding-bottom: calc(var(--floating-circular-bottom) * 2.66);
   padding-top: 10px;
 
   .data-object {
     border: none;
-  }
-
-  .no-entry-alert {
-    display: flex;
-    flex-direction: column;
-    max-width: 16rem;
-    margin: 0 auto;
-    height: initial;
-    white-space: normal;
-    font-weight: 500;
   }
 
   .entry {

@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* istanbul ignore file */
 import { ApolloError } from "@apollo/client/core";
 import { graphql } from "msw";
 import { GetExperienceAndEntriesDetailView } from "../graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import { GetExperienceComments } from "../graphql/apollo-types/GetExperienceComments";
+import { UpdateExperiencesOnline } from "../graphql/apollo-types/UpdateExperiencesOnline";
 
 const { query, mutation } = graphql;
 
@@ -16,6 +18,12 @@ export function getMswExperienceCommentsGql(
   data: Partial<GetExperienceComments> | ApolloError,
 ) {
   return execGraphqlOperation(query, "GetExperienceComments", data);
+}
+
+export function updateMswExperiencesGql(
+  data: Partial<UpdateExperiencesOnline> | ApolloError,
+) {
+  return execGraphqlOperation(mutation, "UpdateExperiencesOnline", data);
 }
 
 function execGraphqlOperation<TData>(

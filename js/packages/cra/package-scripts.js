@@ -14,8 +14,8 @@ const apiUrl = process.env.API_URL_ALTERNATE || process.env.API_URL;
 const webUrl = process.env.WEB_URL || "";
 
 const devEnvs = `
+  FAST_REFRESH=false \
   BROWSER=none \
-  EXTEND_ESLINT=true \
   TSC_COMPILE_ON_ERROR=true \
   REACT_APP_API_URL=${apiUrl} \
   `;
@@ -67,7 +67,8 @@ module.exports = {
         description: "Test create react app with watch and coverage",
       },
       c: {
-        script: `shx rm -rf coverage && CI=true ${test} --coverage --forceExit`,
+        script: `shx rm -rf coverage && \
+          CI=true ${test} --runInBand --coverage --forceExit`,
         description: "Test create react app with coverage",
       },
     },

@@ -1,69 +1,70 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { ComponentType } from "react";
-import { render, cleanup, waitFor } from "@testing-library/react";
-import { UpsertExperience } from "../components/UpsertExperience/upsert-experience.component";
-import {
-  Props,
-  reducer,
-  initState,
-  effectFunctions,
-  ActionType,
-  EffectArgs,
-  StateMachine,
-  ChangedState,
-  FieldInValid,
-  FormInValid,
-  SubmissionCommonErrors,
-  EffectState,
-} from "../components/UpsertExperience/upsert-experience.utils";
-import {
-  submitDomId,
-  notificationCloseId,
-  titleInputDomId,
-  commentInputDomId,
-  fieldErrorSelector,
-  definitionContainerDomSelector,
-  definitionNameFormControlSelector,
-  definitionTypeFormControlSelector,
-  resetDomId,
-  descriptionInputDomId,
-  addDefinitionSelector,
-  moveUpDefinitionSelector,
-  moveDownDefinitionSelector,
-  removeDefinitionSelector,
-  disposeComponentDomId,
-} from "../components/UpsertExperience/upsert-experience.dom";
-import { warningClassName, errorClassName } from "../utils/utils.dom";
-import { fillField } from "../tests.utils";
+import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "@eb/cm/src/graphql/apollo-types/CreateExperiences";
+import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import {
   CreateExperienceInput,
   DataTypes,
 } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { Any } from "@eb/cm/src/utils/types";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import React, { ComponentType } from "react";
+import { act } from "react-dom/test-utils";
+import {
+  getCachedEntriesDetailViewSuccess,
+  getCachedExperienceDetailView,
+} from "../apollo/get-detailed-experience-query";
+import { UpsertExperience } from "../components/UpsertExperience/upsert-experience.component";
+import {
+  addDefinitionSelector,
+  commentInputDomId,
+  definitionContainerDomSelector,
+  definitionNameFormControlSelector,
+  definitionTypeFormControlSelector,
+  descriptionInputDomId,
+  disposeComponentDomId,
+  fieldErrorSelector,
+  moveDownDefinitionSelector,
+  moveUpDefinitionSelector,
+  notificationCloseId,
+  removeDefinitionSelector,
+  resetDomId,
+  submitDomId,
+  titleInputDomId,
+} from "../components/UpsertExperience/upsert-experience.dom";
+import {
+  createOfflineExperience,
+  updateExperienceOfflineFn,
+} from "../components/UpsertExperience/upsert-experience.resolvers";
+import {
+  ActionType,
+  ChangedState,
+  EffectArgs,
+  effectFunctions,
+  EffectState,
+  FieldInValid,
+  FormInValid,
+  initState,
+  Props,
+  reducer,
+  StateMachine,
+  SubmissionCommonErrors,
+} from "../components/UpsertExperience/upsert-experience.utils";
+import { fillField } from "../tests.utils";
+import { deleteObjectKey } from "../utils";
+import { updateExperiencesMutation } from "../utils/update-experiences.gql";
+import { AppPersistor } from "../utils/app-context";
 import { getIsConnected } from "../utils/connections";
 import {
   CreateExperiencesMutationResult,
   getExperienceDetailView,
   GetExperienceQueryResult,
-  updateExperiencesOnlineEffectHelperFunc,
   getGetDataObjects,
 } from "../utils/experience.gql.types";
 import { windowChangeUrl } from "../utils/global-window";
-import { AppPersistor } from "../utils/app-context";
-import { scrollIntoView } from "../utils/scroll-into-view";
-import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "@eb/cm/src/graphql/apollo-types/CreateExperiences";
-import { E2EWindowObject, StateValue } from "../utils/types";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import {
-  getCachedExperienceDetailView,
-  getCachedEntriesDetailViewSuccess,
-} from "../apollo/get-detailed-experience-query";
-import { act } from "react-dom/test-utils";
-import {
-  createOfflineExperience,
-  updateExperienceOfflineFn,
-} from "../components/UpsertExperience/upsert-experience.resolvers";
 import { makeOfflineId } from "../utils/offlines";
-import { deleteObjectKey } from "../utils";
+import { scrollIntoView } from "../utils/scroll-into-view";
+import { E2EWindowObject, StateValue } from "../utils/types";
+import { errorClassName, warningClassName } from "../utils/utils.dom";
 
 jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
 const mockCreateOfflineExperience = createOfflineExperience as jest.Mock;
@@ -75,7 +76,9 @@ const mockGetEntriesQuerySuccess = getCachedEntriesDetailViewSuccess as jest.Moc
 
 jest.mock("../utils/experience.gql.types");
 const mockFetchExperienceDetailView = getExperienceDetailView as jest.Mock;
-const mockUpdateExperiencesOnlineEffectHelperFunc = updateExperiencesOnlineEffectHelperFunc as jest.Mock;
+
+jest.mock("../utils/update-experiences.gql");
+const mockUpdateExperiencesMutation = updateExperiencesMutation as jest.Mock;
 const mockManuallyGetDataObjects = getGetDataObjects as jest.Mock;
 
 jest.mock("../utils/connections");
@@ -92,7 +95,6 @@ const mockOnError = jest.fn();
 const mockOnSuccess = jest.fn();
 const mockDispatch = jest.fn();
 const mockCreateExperiencesOnline = jest.fn();
-const mockUpdateExperiencesOnline = jest.fn();
 const mockPersistFn = jest.fn();
 const persistor = {
   persist: mockPersistFn as any,
@@ -468,7 +470,7 @@ describe("components", () => {
 
     // get a warning
     let notificationCloseEl = getNotificationCloseEl();
-    let notificationEl = getNotificationEl(notificationCloseEl);
+    const notificationEl = getNotificationEl(notificationCloseEl);
     expect(notificationEl.classList).toContain(warningClassName);
 
     notificationCloseEl.click();
@@ -516,7 +518,7 @@ describe("components", () => {
     const {
       onUpdateSuccess,
       onError,
-    } = mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0];
+    } = mockUpdateExperiencesMutation.mock.calls[0][0];
 
     const updatedExperience = { id: "a" };
     mockGetEntriesQuery.mockReturnValue(updatedExperience);
@@ -787,7 +789,7 @@ describe("reducer", () => {
       } as CreateExperiences_createExperiences_CreateExperienceErrors_errors,
     });
 
-    let formValidity = state.states.form.validity as FormInValid;
+    const formValidity = state.states.form.validity as FormInValid;
     expect(formValidity.invalid).not.toBeDefined();
 
     commonErrors = (state.states.submission as SubmissionCommonErrors)
@@ -894,7 +896,7 @@ describe("reducer", () => {
       onError: mockOnError as any,
     } as Props;
 
-    let state = initState(props);
+    const state = initState(props);
 
     const effect = (state.effects.general as EffectState).hasEffects.context
       .effects[0];
@@ -992,7 +994,7 @@ describe("reducer", () => {
       type: ActionType.SUBMISSION,
     });
 
-    let dataState = (state.states.form.fields.dataDefinitions[0].type
+    const dataState = (state.states.form.fields.dataDefinitions[0].type
       .states as ChangedState).changed.states;
 
     expect(dataState.value).toEqual(StateValue.valid);
@@ -1016,12 +1018,11 @@ describe("reducer", () => {
 
 const UpsertExperienceP = UpsertExperience as ComponentType<Partial<Props>>;
 
-function makeComp({ props = {} }: { props?: Partial<{}> } = {}) {
+function makeComp({ props = {} }: { props?: Partial<Any> } = {}) {
   return {
     ui: (
       <UpsertExperienceP
         createExperiences={mockCreateExperiencesOnline}
-        updateExperiencesOnline={mockUpdateExperiencesOnline}
         onClose={mockOnClose}
         onError={mockOnError}
         onSuccess={mockOnSuccess}

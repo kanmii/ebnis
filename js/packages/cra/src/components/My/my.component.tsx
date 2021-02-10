@@ -1,77 +1,73 @@
+import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
+import errorImage from "@eb/cm/src/media/error-96.png";
+import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+import makeClassNames from "classnames";
 import React, {
-  useLayoutEffect,
-  useReducer,
-  useCallback,
-  Suspense,
-  useEffect,
   createContext,
-  useMemo,
+  Suspense,
+  useCallback,
   useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
 } from "react";
-import {
-  MY_TITLE,
-  activateInsertExperienceDomId,
-  noExperiencesActivateNewDomId,
-  domPrefix,
-  experiencesDomId,
-  searchInputDomId,
-  isOfflineClassName,
-  isPartOfflineClassName,
-  descriptionMoreClassName,
-  descriptionSummaryClassName,
-  descriptionFullClassName,
-  descriptionLessClassName,
-  descriptionControlClassName,
-  dropdownTriggerClassName,
-  dropdownIsActiveClassName,
-  fetchExperiencesErrorsDomId,
-  fetchErrorRetryDomId,
-  onDeleteExperienceSuccessNotificationId,
-  onDeleteExperienceCancelledNotificationId,
-  makeScrollToDomId,
-  updateExperienceMenuItemSelector,
-  updateExperienceSuccessNotificationCloseClassName,
-  experienceContainerSelector,
-  noTriggerDocumentEventClassName,
-} from "./my.dom";
+import { unstable_batchedUpdates } from "react-dom";
+import { Link } from "react-router-dom";
+import { useWithSubscriptionContext } from "../../apollo/injectables";
+import { ExperienceData } from "../../utils/experience.gql.types";
 import { setUpRoutePage } from "../../utils/global-window";
-import "./my.styles.css";
+import { InputChangeEvent, OnlineStatus, StateValue } from "../../utils/types";
+import { makeDetailedExperienceRoute } from "../../utils/urls";
+import { useRunEffects } from "../../utils/use-run-effects";
+import Header from "../Header/header.component";
 import Loading from "../Loading/loading.component";
 import {
-  StateValue,
-  ReactMouseAnchorEvent,
-  OnlineStatus,
-} from "../../utils/types";
-import {
-  reducer,
-  initState,
-  ActionType,
-  Props,
-  DispatchType,
-  ExperienceState,
-  SearchActive,
-  makeDefaultSearchActive,
-  effectFunctions,
-  DataState,
-} from "./my.utils";
+  activateInsertExperienceDomId,
+  descriptionControlClassName,
+  descriptionFullClassName,
+  descriptionLessClassName,
+  descriptionMoreClassName,
+  descriptionSummaryClassName,
+  domPrefix,
+  dropdownIsActiveClassName,
+  dropdownTriggerClassName,
+  experienceContainerSelector,
+  experiencesDomId,
+  fetchErrorRetryDomId,
+  fetchExperiencesErrorsDomId,
+  isOfflineClassName,
+  isPartOfflineClassName,
+  makeScrollToDomId,
+  MY_TITLE,
+  noExperiencesActivateNewDomId,
+  noTriggerDocumentEventClassName,
+  onDeleteExperienceCancelledNotificationId,
+  onDeleteExperienceSuccessNotificationId,
+  searchInputDomId,
+  updateExperienceMenuItemSelector,
+  updateExperienceSuccessNotificationCloseClassName,
+} from "./my.dom";
 import { UpsertExperience } from "./my.lazy";
-import makeClassNames from "classnames";
-import { Link } from "react-router-dom";
-import { makeDetailedExperienceRoute } from "../../utils/urls";
-import { InputChangeEvent } from "../../utils/types";
-import { useRunEffects } from "../../utils/use-run-effects";
-import errorImage from "@eb/cm/src/media/error-96.png";
-import Header from "../Header/header.component";
-import { unstable_batchedUpdates } from "react-dom";
-import { useWithSubscriptionContext } from "../../apollo/injectables";
-import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
-import { ExperienceData } from "../../utils/experience.gql.types";
+import "./my.styles.css";
+import {
+  ActionType,
+  DataState,
+  DispatchType,
+  effectFunctions,
+  ExperienceState,
+  initState,
+  makeDefaultSearchActive,
+  Props,
+  reducer,
+  SearchActive,
+} from "./my.utils";
 
 type DispatchContextValue = Readonly<{
   dispatch: DispatchType;
-  onUpsertExperienceActivated: (e: ReactMouseAnchorEvent) => void;
+  onUpsertExperienceActivated: (e: ReactMouseEvent) => void;
   onCloseDeleteExperienceNotification: () => void;
-  deactivateUpsertExperienceUiCb: (e: ReactMouseAnchorEvent) => void;
+  deactivateUpsertExperienceUiCb: (e: ReactMouseEvent) => void;
   onExperienceUpsertSuccess: (
     e: ExperienceListViewFragment,
     o: OnlineStatus,
@@ -194,7 +190,6 @@ export function My(props: Props) {
         });
       },
     };
-    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
 
   return (
@@ -391,7 +386,6 @@ function ExperienceComponent(props: ExperienceProps) {
                     type: ActionType.TOGGLE_SHOW_DESCRIPTION,
                     id,
                   });
-                  /* eslint-disable-next-line react-hooks/exhaustive-deps*/
                 }}
                 className={descriptionControlClassName}
               >
@@ -560,7 +554,6 @@ const SearchComponent = () => {
       type: ActionType.SEARCH,
       text,
     });
-    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, []);
 
   return (

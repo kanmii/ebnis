@@ -311,6 +311,32 @@ const UPDATE_EXPERIENCE_FRAGMENT = gql`
   ${ENTRY_FRAGMENT}
 `;
 
+const COMMENT_UNION_FRAGMENT = gql`
+  fragment CommentUnionFragment on CommentUnion {
+    ... on CommentSuccess {
+      comment {
+        ...CommentFragment
+      }
+    }
+
+    ... on CommentUnionErrors {
+      errors {
+        meta {
+          index
+          id
+        }
+        errors {
+          id
+          association
+          error
+        }
+      }
+    }
+  }
+
+  ${COMMENT_FRAGMENT}
+`;
+
 const UPDATE_EXPERIENCE_SOME_SUCCESS_FRAGMENT = gql`
   fragment UpdateExperienceSomeSuccessFragment on UpdateExperienceSomeSuccess {
     experience {
@@ -344,11 +370,26 @@ const UPDATE_EXPERIENCE_SOME_SUCCESS_FRAGMENT = gql`
         }
       }
     }
+
+    comments {
+      updates {
+        ...CommentUnionFragment
+      }
+
+      inserts {
+        ...CommentUnionFragment
+      }
+
+      deletes {
+        ...CommentUnionFragment
+      }
+    }
   }
   ${UPDATE_EXPERIENCE_FRAGMENT}
   ${UPDATE_ENTRY_UNION_FRAGMENT}
   ${CREATE_ENTRY_SUCCESS_FRAGMENT}
   ${CREATE_ENTRY_ERRORS_FRAGMENT}
+  ${COMMENT_UNION_FRAGMENT}
 `;
 
 const UPDATE_EXPERIENCES_ONLINE_FRAGMENT = gql`

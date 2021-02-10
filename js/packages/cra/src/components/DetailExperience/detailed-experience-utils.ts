@@ -69,9 +69,8 @@ import {
   getExperienceAndEntriesDetailView,
   getExperienceComments,
   GetExperienceCommentsQueryResult,
-  UpdateExperiencesOnlineComponentProps,
-  updateExperiencesOnlineEffectHelperFunc,
 } from "../../utils/experience.gql.types";
+import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
 import { isOfflineId } from "../../utils/offlines";
 import { scrollIntoView } from "../../utils/scroll-into-view";
@@ -95,6 +94,7 @@ import {
   DataVal,
   DeletedVal,
   DeleteSuccess,
+  EmptyVal,
   ErrorsVal,
   FailVal,
   FetchEntriesErrorVal,
@@ -124,6 +124,16 @@ import {
 } from "../WithSubscriptions/with-subscriptions.utils";
 import { scrollDocumentToTop } from "./detail-experience.injectables";
 
+export enum CommentAction {
+  CREATE = "@detailed-experience/comment/create",
+  SHOW = "@detailed-experience/comment/show",
+  HIDE = "@detailed-experience/comment/hide",
+  DELETE = "@detailed-experience/comment/delete",
+  CLOSE_NOTIFICATION = "@detailed-experience/comment/close-notification",
+  CLOSE_UPSERT_UI = "@detailed-experience/comment/close-upsert-ui",
+  TOGGLE_MENU = "@detailed-experience/comment/toggle-menu",
+}
+
 export enum ActionType {
   TOGGLE_UPSERT_ENTRY_ACTIVE = "@detailed-experience/toggle-upsert-entry",
   ON_UPSERT_ENTRY_SUCCESS = "@detailed-experience/on-upsert-entry-success",
@@ -143,8 +153,8 @@ export enum ActionType {
   CLOSE_SYNC_ERRORS_MSG = "@detailed-experience/close-sync-errors-message",
   ENTRIES_OPTIONS = "@detailed-experience/entries-options",
   DELETE_ENTRY = "@detailed-experience/delete-entry",
-  COMMENTS_RECEIVED = "@detailed-experience/comments-received",
-  FETCH_COMMENTS = "@detailed-experience/fetch-comments",
+  ON_COMMENTS_FETCHED = "@detailed-experience/on-comments-fetched",
+  COMMENT_ACTION = "@detailed-experience/comment-action",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -242,15 +252,22 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           handleDeleteEntryAction(proxy, payload as DeleteEntryPayload);
           break;
 
-        case ActionType.COMMENTS_RECEIVED:
-          handleCommentsReceivedAction(
+        case ActionType.ON_COMMENTS_FETCHED:
+          handleOnCommentsFetchedAction(
             proxy,
             payload as CommentsReceivedPayload,
           );
           break;
 
-        case ActionType.FETCH_COMMENTS:
-          handleFetchCommentAction(proxy);
+        case ActionType.COMMENT_ACTION:
+          handleCommentAction(proxy, payload as CommentActionPayload);
+          break;
+
+        case ActionType.ON_UPSERT_COMMENT:
+          handleOnUpsertCommentAction(
+            proxy,
+            payload as OnCommentCreatedPayload,
+          );
           break;
       }
     });
@@ -338,7 +355,7 @@ function handleOnCloseNewEntryCreatedNotification(proxy: StateMachine) {
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const { states } = globalStates.data;
-    states.newEntryCreated.value = StateValue.inactive;
+    states.entryNotification.value = StateValue.inactive;
 
     const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
 
@@ -501,7 +518,7 @@ function handleOnDataReceivedAction(
           notification: {
             value: StateValue.inactive,
           },
-          newEntryCreated: {
+          entryNotification: {
             value: StateValue.inactive,
           },
           deleteExperience: {
@@ -532,8 +549,16 @@ function handleOnDataReceivedAction(
           entriesOptions: {
             value: StateValue.inactive,
           },
-          comments: {
+          comment: {
             value: StateValue.initial,
+          },
+
+          upsertComment: {
+            value: StateValue.inactive,
+          },
+
+          commentNotification: {
+            value: StateValue.inactive,
           },
         };
 
@@ -547,13 +572,15 @@ function handleOnDataReceivedAction(
       break;
 
     case StateValue.errors:
-      states.value = StateValue.errors;
-      const errorsState = states as ErrorState;
-      errorsState.errors = {
-        context: {
-          error: parseStringError(experienceData.error),
-        },
-      };
+      {
+        states.value = StateValue.errors;
+        const errorsState = states as ErrorState;
+        errorsState.errors = {
+          context: {
+            error: parseStringError(experienceData.error),
+          },
+        };
+      }
       break;
   }
 }
@@ -642,21 +669,22 @@ function handleEntriesReceivedAction(
               break;
 
             case StateValue.reFetchOnly:
-              const { entries } = payload;
-              const idToEntryMap = (entries.edges as EntryConnectionFragment_edges[]).reduce(
-                (acc, edge) => {
-                  const entry = edge.node as EntryFragment;
-                  acc[entry.id] = entry;
-                  return acc;
-                },
-                {} as { [entryId: string]: EntryFragment },
-              );
+              {
+                const { entries } = payload;
+                const idToEntryMap = (entries.edges as EntryConnectionFragment_edges[]).reduce(
+                  (acc, edge) => {
+                    const entry = edge.node as EntryFragment;
+                    acc[entry.id] = entry;
+                    return acc;
+                  },
+                  {} as { [entryId: string]: EntryFragment },
+                );
 
-              context.entries.forEach((val) => {
-                const oldEntry = val.entryData;
-                val.entryData = idToEntryMap[oldEntry.id];
-              });
-
+                context.entries.forEach((val) => {
+                  const oldEntry = val.entryData;
+                  val.entryData = idToEntryMap[oldEntry.id];
+                });
+              }
               break;
 
             case StateValue.fail:
@@ -669,37 +697,39 @@ function handleEntriesReceivedAction(
       case StateValue.fail:
         switch (payload.key) {
           case StateValue.success:
-            const entriesSuccessState = states.entries as EntriesDataSuccessSate;
+            {
+              const entriesSuccessState = states.entries as EntriesDataSuccessSate;
 
-            entriesSuccessState.value = StateValue.success;
-            entriesSuccessState.success = {
-              context: {
-                entries: payload.entries,
-                pageInfo: payload.pageInfo,
-              },
-            };
-
+              entriesSuccessState.value = StateValue.success;
+              entriesSuccessState.success = {
+                context: {
+                  entries: payload.entries,
+                  pageInfo: payload.pageInfo,
+                },
+              };
+            }
             break;
 
           case StateValue.reFetchOnly:
-            const { entries } = payload;
+            {
+              const { entries } = payload;
 
-            const { data } = processEntriesQuery(
-              toGetEntriesSuccessQuery(entries),
-            );
+              const { data } = processEntriesQuery(
+                toGetEntriesSuccessQuery(entries),
+              );
 
-            const fetchEntriesErrorState = states.entries as FetchEntriesErrorState;
+              const fetchEntriesErrorState = states.entries as FetchEntriesErrorState;
 
-            fetchEntriesErrorState.value = StateValue.fetchEntriesError;
+              fetchEntriesErrorState.value = StateValue.fetchEntriesError;
 
-            fetchEntriesErrorState.fetchEntriesError = {
-              context: {
-                entries: (data as ProcessedEntriesQuerySuccessReturnVal)
-                  .entries,
-                fetchError: (states.entries as EntriesDataFailureState).error,
-              },
-            };
-
+              fetchEntriesErrorState.fetchEntriesError = {
+                context: {
+                  entries: (data as ProcessedEntriesQuerySuccessReturnVal)
+                    .entries,
+                  fetchError: (states.entries as EntriesDataFailureState).error,
+                },
+              };
+            }
             break;
         }
         break;
@@ -912,7 +942,7 @@ function handleOnUpsertEntrySuccessAction(
     const {
       upsertEntryActive,
       notification,
-      newEntryCreated,
+      entryNotification,
       entries: entriesState,
     } = states;
 
@@ -937,7 +967,7 @@ function handleOnUpsertEntrySuccessAction(
 
     // completely new entry created online
     if (!oldData) {
-      const newEntryState = newEntryCreated as NewEntryCreatedNotification;
+      const newEntryState = entryNotification as EntryNotificationState;
 
       newEntryState.value = StateValue.active;
 
@@ -957,12 +987,13 @@ function handleOnUpsertEntrySuccessAction(
       switch (entriesState.value) {
         case StateValue.success:
         case StateValue.fetchEntriesError:
-          const { context } = getEntriesState(entriesState);
+          {
+            const { context } = getEntriesState(entriesState);
 
-          context.entries.unshift({
-            entryData: newEntry,
-          });
-
+            context.entries.unshift({
+              entryData: newEntry,
+            });
+          }
           break;
 
         case StateValue.fail:
@@ -1103,13 +1134,14 @@ function handleDeleteEntryAction(
 
     switch (payload.key) {
       case StateValue.requested:
-        const { entry } = payload;
-        const state = entriesOptions as EntriesOptionDeleteRequested;
-        state.value = StateValue.requested;
-        state.requested = {
-          entry,
-        };
-
+        {
+          const { entry } = payload;
+          const state = entriesOptions as EntriesOptionDeleteRequested;
+          state.value = StateValue.requested;
+          state.requested = {
+            entry,
+          };
+        }
         break;
 
       case StateValue.cancelled:
@@ -1296,6 +1328,7 @@ function processSyncErrors(
     const list: FieldError = [];
     syncErrors.definitionsErrors = list;
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     Object.entries(definitions).forEach(([, { __typename, id, ...errors }]) => {
       Object.entries(errors).forEach(([k, v]) => {
         if (v) {
@@ -1310,6 +1343,7 @@ function processSyncErrors(
   if (ownFields) {
     const list: FieldError = [];
     syncErrors.ownFieldsErrors = list;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { __typename, ...errors } = ownFields;
 
     Object.entries(errors).forEach(([k, v]) => {
@@ -1339,7 +1373,7 @@ function getEntriesState(
   return ob;
 }
 
-function handleCommentsReceivedAction(
+function handleOnCommentsFetchedAction(
   proxy: StateMachine,
   payload: CommentsReceivedPayload,
 ) {
@@ -1348,58 +1382,201 @@ function handleCommentsReceivedAction(
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const {
-      states: { comments: commentsState, showingOptionsMenu },
+      states: { comment: commentsState },
     } = globalStates.data;
 
     switch (payload.value) {
       case StateValue.success:
         {
-          const state = commentsState as CommentsDataSuccessSate;
-          commentsState.value = StateValue.success;
+          const dataState = commentsState as CommentDataSate;
+          const emptyState = commentsState as CommentEmptyState;
+
           const { comments } = payload;
 
-          state.success = {
-            context: {
+          if (comments.length === 0) {
+            emptyState.value = StateValue.empty;
+          } else {
+            commentsState.value = StateValue.success;
+
+            const success =
+              dataState.success ||
+              // istanbul ignore next:
+              ({
+                states: {
+                  menu: {
+                    value: StateValue.inactive,
+                  },
+                },
+              } as CommentDataSate["success"]);
+
+            dataState.success = success;
+
+            success.context = {
               comments,
-              empty: comments.length === 0,
-            },
-          };
+            };
+          }
         }
         break;
 
       case StateValue.errors:
+        {
+          const errorState = commentsState as CommentErrorState;
+          errorState.value = StateValue.errors;
+          const { errors } = payload;
+
+          errorState.errors = {
+            context: {
+              error: errors.error,
+            },
+          };
+        }
         break;
     }
-
-    showingOptionsMenu.value = StateValue.inactive;
   }
 }
 
-function handleFetchCommentAction(proxy: StateMachine) {
+function handleCommentAction(
+  proxy: StateMachine,
+  payload: CommentActionPayload,
+) {
+  const { states: globalStates } = proxy;
+  const { action } = payload;
+
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const {
+      states: {
+        comment: commentsState,
+        showingOptionsMenu,
+        upsertComment,
+        commentNotification,
+      },
+    } = globalStates.data;
+
+    commentNotification.value = StateValue.inactive;
+    showingOptionsMenu.value = StateValue.inactive;
+
+    switch (action) {
+      case CommentAction.SHOW: {
+        const effects = getGeneralEffects(proxy);
+
+        effects.push({
+          key: "fetchCommentsEffect",
+          ownArgs: {},
+        });
+
+        return;
+      }
+
+      case CommentAction.HIDE: {
+        const c = (commentsState as unknown) as CommentInitialState;
+        c.value = StateValue.initial;
+
+        return;
+      }
+
+      case CommentAction.CREATE: {
+        upsertComment.value = StateValue.active;
+
+        return;
+      }
+
+      case CommentAction.CLOSE_NOTIFICATION: {
+        commentNotification.value = StateValue.inactive;
+        return;
+      }
+
+      case CommentAction.CLOSE_UPSERT_UI: {
+        upsertComment.value = StateValue.inactive;
+        return;
+      }
+    }
+  }
+}
+
+function handleOnUpsertCommentAction(
+  proxy: StateMachine,
+  payload: OnCommentCreatedPayload,
+) {
+  const { data: comment } = payload;
   const { states: globalStates } = proxy;
 
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const {
-      states: { comments: commentsState, showingOptionsMenu },
+      states: { comment: commentsState, upsertComment },
     } = globalStates.data;
 
-    if (commentsState.value !== StateValue.success) {
-      const effects = getGeneralEffects(proxy);
+    const dataState = commentsState as CommentDataSate;
+    upsertComment.value = StateValue.inactive;
 
-      effects.push({
-        key: "fetchCommentsEffect",
-        ownArgs: {},
-      });
+    switch (commentsState.value) {
+      case StateValue.success:
+        {
+          commentsState.success.context.comments.unshift(comment);
+          commentCreated(proxy);
+        }
+        break;
 
-      return;
+      case StateValue.empty:
+      case StateValue.initial:
+        {
+          dataState.value = StateValue.success;
+
+          dataState.success = {
+            context: {
+              comments: [comment],
+            },
+          };
+
+          commentCreated(proxy);
+        }
+        break;
     }
-
-    const c = (commentsState as unknown) as CommentsInitialState;
-    c.value = StateValue.initial;
-    showingOptionsMenu.value = StateValue.inactive;
   }
 }
+
+// ====================================================
+// START STATE UPDATE HELPERS SECTION
+// ====================================================
+
+function commentCreated(proxy: StateMachine) {
+  const { states } = proxy;
+  const globalStates = states as DataState;
+
+  const {
+    states: { commentNotification },
+  } = globalStates.data;
+
+  const active = commentNotification as CommentNotificationState;
+
+  active.value = StateValue.active;
+  active.active = {
+    context: {
+      message: "Comment created successfully!",
+    },
+  };
+
+  const effects = getGeneralEffects(proxy);
+
+  effects.push(
+    {
+      key: "scrollDocToTopEffect",
+      ownArgs: {},
+    },
+
+    {
+      key: "timeoutsEffect",
+      ownArgs: {
+        set: "set-close-comment-notification",
+      },
+    },
+  );
+}
+
+// ====================================================
+// END STATE UPDATE HELPERS SECTION
+// ====================================================
 
 ////////////////////////// END STATE UPDATE ////////////////////////////
 
@@ -1413,10 +1590,13 @@ type DefScrollDocToTopEffect = EffectDefinition<"scrollDocToTopEffect">;
 
 const timeoutsEffect: DefTimeoutsEffect["func"] = (
   { set, clear },
-  __,
+  props,
   effectArgs,
 ) => {
   const { dispatch } = effectArgs;
+  const {
+    componentTimeoutsMs: { closeNotification: closeNotificationTimeout },
+  } = props;
 
   if (clear) {
     clearTimeout(clear);
@@ -1443,9 +1623,19 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
         };
 
         break;
+
+      case "set-close-comment-notification":
+        timeoutCb = () => {
+          dispatch({
+            type: ActionType.COMMENT_ACTION,
+            action: CommentAction.CLOSE_NOTIFICATION,
+          });
+        };
+
+        break;
     }
 
-    const timeoutId = setTimeout(timeoutCb, CLOSE_NOTIFICATION_TIMEOUT_MS);
+    const timeoutId = setTimeout(timeoutCb, closeNotificationTimeout);
 
     dispatch({
       type: ActionType.RECORD_TIMEOUT,
@@ -1459,7 +1649,8 @@ type DefTimeoutsEffect = EffectDefinition<
   {
     set?:
       | "set-close-upsert-entry-created-notification"
-      | "set-close-update-experience-success-notification";
+      | "set-close-update-experience-success-notification"
+      | "set-close-comment-notification";
     clear?: NodeJS.Timeout;
   }
 >;
@@ -1566,7 +1757,9 @@ const deleteExperienceEffect: DefDeleteExperienceEffect["func"] = async (
     await persistor.persist();
 
     history.push(MY_URL);
-  } catch (error) {}
+  } catch (error) {
+    //
+  }
 };
 
 type DefDeleteExperienceEffect = EffectDefinition<
@@ -1586,7 +1779,7 @@ const fetchDetailedExperienceEffect: DefFetchDetailedExperienceEffect["func"] = 
   let timeoutId: null | NodeJS.Timeout = null;
   const timeoutsLen = FETCH_EXPERIENCES_TIMEOUTS.length - 1;
 
-  let cachedResult = getCachedExperienceAndEntriesDetailView(experienceId);
+  const cachedResult = getCachedExperienceAndEntriesDetailView(experienceId);
 
   const offlineId = getAndRemoveOfflineExperienceIdFromSyncFlag(experienceId);
 
@@ -1724,7 +1917,7 @@ const fetchEntriesEffect: DefFetchEntriesEffect["func"] = async (
       ({} as GetEntriesDetailViewQueryResult);
 
     if (data) {
-      let { data: processedEntries } = processEntriesQuery(data.getEntries);
+      const { data: processedEntries } = processEntriesQuery(data.getEntries);
 
       if (pagination) {
         const blätternZuId = appendToPreviousEntries(
@@ -1861,7 +2054,6 @@ const deleteEntryEffect: DefDeleteEntryEffect["func"] = (
   effectArgs,
 ) => {
   const { id } = entry;
-  const { updateExperiencesOnline } = props;
   const { dispatch } = effectArgs;
 
   const input = {
@@ -1870,9 +2062,8 @@ const deleteEntryEffect: DefDeleteEntryEffect["func"] = (
   };
 
   if (!isOfflineId(id) && getIsConnected()) {
-    updateExperiencesOnlineEffectHelperFunc({
+    updateExperiencesMutation({
       input: [input],
-      updateExperiencesOnline,
       onUpdateSuccess(successArgs) {
         const deletedEntries =
           successArgs &&
@@ -1930,6 +2121,10 @@ const fetchCommentsEffect: DefFetchCommentsEffect["func"] = async (
     experienceId,
   };
 
+  const {
+    componentTimeoutsMs: { fetchRetries },
+  } = props;
+
   const maybeCachedExperience = readExperienceCompleteFragment(experienceId);
 
   if (maybeCachedExperience) {
@@ -1937,67 +2132,106 @@ const fetchCommentsEffect: DefFetchCommentsEffect["func"] = async (
 
     if (comments && comments.length) {
       dispatch({
-        type: ActionType.COMMENTS_RECEIVED,
+        type: ActionType.ON_COMMENTS_FETCHED,
         value: StateValue.success,
         comments: comments as CommentFragment[],
       });
+
+      scrollDocumentToTop();
 
       return;
     }
   }
 
-  try {
-    const { data, error } =
-      (await getExperienceComments(variables)) ||
-      // istanbul ignore next:
-      ({} as GetExperienceCommentsQueryResult);
+  let timeoutId: null | NodeJS.Timeout = null;
 
-    if (data) {
-      const maybeCommentsData = data.getExperienceComments;
+  async function fetchOnlineComments() {
+    try {
+      const { data, error } =
+        (await getExperienceComments(variables)) ||
+        // istanbul ignore next:
+        ({} as GetExperienceCommentsQueryResult);
 
-      switch (maybeCommentsData?.__typename) {
-        case "GetExperienceCommentsSuccess":
-          {
-            const { comments } = maybeCommentsData;
-            const commentsList = comments as CommentFragment[];
+      if (data) {
+        const maybeCommentsData = data.getExperienceComments;
 
+        switch (maybeCommentsData?.__typename) {
+          case "GetExperienceCommentsSuccess":
+            {
+              const { comments } = maybeCommentsData;
+              const commentsList = comments as CommentFragment[];
+
+              dispatch({
+                type: ActionType.ON_COMMENTS_FETCHED,
+                value: StateValue.success,
+                comments: commentsList,
+              });
+
+              scrollDocumentToTop();
+
+              const cachedExperience = maybeCachedExperience as ExperienceCompleteFragment;
+
+              writeCachedExperienceCompleteFragment({
+                ...cachedExperience,
+                comments: commentsList,
+              });
+            }
+            break;
+
+          case "GetExperienceCommentsErrors":
             dispatch({
-              type: ActionType.COMMENTS_RECEIVED,
-              value: StateValue.success,
-              comments: commentsList,
+              type: ActionType.ON_COMMENTS_FETCHED,
+              value: StateValue.errors,
+              errors: maybeCommentsData.errors,
             });
-
-            const cachedExperience = maybeCachedExperience as ExperienceCompleteFragment;
-
-            writeCachedExperienceCompleteFragment({
-              ...cachedExperience,
-              comments: commentsList,
-            });
-          }
-          break;
-
-        case "GetExperienceCommentsErrors":
-          dispatch({
-            type: ActionType.COMMENTS_RECEIVED,
-            value: StateValue.errors,
-            errors: maybeCommentsData.errors,
-          });
-          break;
+            break;
+        }
+      } else {
+        dispatch({
+          type: ActionType.ENTRIES_RECEIVED,
+          key: StateValue.fail,
+          error: error as ApolloError,
+        });
       }
-    } else {
+    } catch (error) {
       dispatch({
         type: ActionType.ENTRIES_RECEIVED,
         key: StateValue.fail,
-        error: error as ApolloError,
+        error: error,
       });
     }
-  } catch (error) {
-    dispatch({
-      type: ActionType.ENTRIES_RECEIVED,
-      key: StateValue.fail,
-      error: error,
-    });
+
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
+
+  let fetchAttemptsCount = 0;
+  const timeoutsLen = fetchRetries.length;
+
+  function schedule() {
+    // we are connected
+    if (getIsConnected()) {
+      fetchOnlineComments();
+      return;
+    }
+
+    if (fetchAttemptsCount === timeoutsLen) {
+      dispatch({
+        type: ActionType.ON_COMMENTS_FETCHED,
+        value: StateValue.errors,
+        errors: {
+          error: DATA_FETCHING_FAILED,
+        } as GetExperienceCommentsErrorsFragment_errors,
+      });
+
+      return;
+    }
+
+    timeoutId = setTimeout(schedule, fetchRetries[fetchAttemptsCount++]);
+  }
+
+  schedule();
 };
 
 type DefFetchCommentsEffect = EffectDefinition<"fetchCommentsEffect">;
@@ -2195,6 +2429,7 @@ function appendToPreviousEntries(
 
 function processCreateEntriesErrors(
   entryErrors: IndexToEntryErrorsList,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   { __typename, meta, dataObjects, ...errors }: CreateEntryErrorFragment,
   index: number,
 ) {
@@ -2248,6 +2483,7 @@ function processDataObjectsErrors(dataObjects: DataObjectErrorFragment[]) {
     const list: [string, string][] = [];
 
     const {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       __typename,
       meta: { index: dIndex },
       ...errors
@@ -2407,11 +2643,11 @@ export type DataState = {
           }
         | UpsertEntryActive;
 
-      newEntryCreated:
+      entryNotification:
         | {
             value: InActiveVal;
           }
-        | NewEntryCreatedNotification;
+        | EntryNotificationState;
 
       notification:
         | {
@@ -2451,31 +2687,72 @@ export type DataState = {
         | EntryDeletedSuccess
         | EntryDeleteFail;
 
-      comments: CommentsDataState;
+      comment: CommentState;
+
+      upsertComment:
+        | {
+            value: InActiveVal;
+          }
+        | UpsertCommentActive;
+
+      commentNotification:
+        | {
+            value: InActiveVal;
+          }
+        | CommentNotificationState;
     };
   };
 };
 
-export type CommentsDataState =
-  | CommentsDataSuccessSate
-  | CommentsErrorState
-  | CommentsInitialState;
+type CommentNotificationState = {
+  value: ActiveVal;
+  active: {
+    context: {
+      message: string;
+    };
+  };
+};
 
-type CommentsInitialState = {
+type UpsertCommentActive = {
+  value: ActiveVal;
+  // active: {
+  //   context: ''
+  // }
+};
+
+export type CommentState =
+  | CommentDataSate
+  | CommentErrorState
+  | CommentInitialState
+  | CommentEmptyState;
+
+type CommentEmptyState = {
+  value: EmptyVal;
+};
+
+type CommentInitialState = {
   value: InitialVal;
 };
 
-type CommentsDataSuccessSate = {
+type CommentDataSate = {
   value: SuccessVal;
   success: {
     context: {
       comments: CommentFragment[];
-      empty?: boolean
+    };
+    states: {
+      menu:
+        | {
+            value: InActiveVal;
+          }
+        | {
+            value: ActiveVal;
+          };
     };
   };
 };
 
-type CommentsErrorState = {
+type CommentErrorState = {
   value: ErrorsVal;
   errors: {
     context: {
@@ -2546,7 +2823,7 @@ type UpsertEntryActive = {
   };
 };
 
-type NewEntryCreatedNotification = {
+type EntryNotificationState = {
   value: ActiveVal;
   active: {
     context: {
@@ -2564,6 +2841,16 @@ type NotificationActive = {
   };
 };
 
+export type ComponentTimeoutsMs = {
+  fetchRetries: number[];
+  closeNotification: number;
+};
+
+export const componentTimeoutsMs: ComponentTimeoutsMs = {
+  fetchRetries: [2000, 3000, 5000],
+  closeNotification: CLOSE_NOTIFICATION_TIMEOUT_MS,
+};
+
 export type CallerProps = RouteChildrenProps<
   DetailExperienceRouteMatch,
   {
@@ -2572,8 +2859,9 @@ export type CallerProps = RouteChildrenProps<
 >;
 
 export type Props = DeleteExperiencesComponentProps &
-  CallerProps &
-  UpdateExperiencesOnlineComponentProps;
+  CallerProps & {
+    componentTimeoutsMs: ComponentTimeoutsMs;
+  };
 
 export type Match = match<DetailExperienceRouteMatch>;
 
@@ -2633,11 +2921,22 @@ type Action =
       type: ActionType.DELETE_ENTRY;
     } & DeleteEntryPayload)
   | ({
-      type: ActionType.COMMENTS_RECEIVED;
+      type: ActionType.ON_COMMENTS_FETCHED;
     } & CommentsReceivedPayload)
-  | {
-      type: ActionType.FETCH_COMMENTS;
-    };
+  | ({
+      type: ActionType.COMMENT_ACTION;
+    } & CommentActionPayload)
+  | ({
+      type: ActionType.ON_UPSERT_COMMENT;
+    } & OnCommentCreatedPayload);
+
+type OnCommentCreatedPayload = {
+  data: CommentFragment;
+};
+
+type CommentActionPayload = {
+  action: CommentAction;
+};
 
 type CommentsReceivedPayload =
   | {
@@ -2754,7 +3053,7 @@ export type EffectArgs = {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = {}
+  OwnArgs = Record<string, unknown>
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 export type EffectType =

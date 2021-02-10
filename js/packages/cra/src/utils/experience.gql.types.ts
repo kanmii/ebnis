@@ -14,7 +14,6 @@ import {
   DeleteExperiences,
   DeleteExperiencesVariables,
 } from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
 import {
   GetDataObjects,
@@ -40,14 +39,12 @@ import {
   GetExperiencesConnectionListView,
   GetExperiencesConnectionListViewVariables,
 } from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
-import { UpdateExperienceInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import { OnExperiencesDeletedSubscription } from "@eb/cm/src/graphql/apollo-types/OnExperiencesDeletedSubscription";
 import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragment";
 import {
   PreFetchExperiences,
   PreFetchExperiencesVariables,
 } from "@eb/cm/src/graphql/apollo-types/PreFetchExperiences";
-import { UpdateExperienceSomeSuccessFragment } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
 import {
   UpdateExperiencesOnline,
   UpdateExperiencesOnlineVariables,
@@ -63,79 +60,13 @@ import {
   GET_EXPERIENCE_DETAIL_VIEW_QUERY,
   ON_EXPERIENCES_DELETED_SUBSCRIPTION,
   PRE_FETCH_EXPERIENCES_QUERY,
-  UPDATE_EXPERIENCES_ONLINE_MUTATION,
 } from "@eb/cm/src/graphql/experience.gql";
 import { ExecutionResult } from "graphql/execution/execute";
-import { getCachedExperienceDetailView } from "../apollo/get-detailed-experience-query";
-import { updateExperiencesManualCacheUpdate } from "../apollo/update-experiences-manual-cache-update";
-import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
-import { CommonError, OnlineStatus } from "../utils/types";
+import { OnlineStatus } from "../utils/types";
 import { getSessionId } from "./session-manager";
 import { SyncError } from "./sync-to-server.types";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
-
-export function useUpdateExperiencesOnlineMutation(): UseUpdateExperiencesOnlineMutation {
-  return useMutation(UPDATE_EXPERIENCES_ONLINE_MUTATION);
-}
-
-interface UpdateExperiencesOnlineEffectHelperFunc {
-  input: UpdateExperienceInput[];
-  updateExperiencesOnline: UpdateExperiencesOnlineMutationFn;
-  onUpdateSuccess: (
-    updateResult: UpdateExperienceSomeSuccessFragment,
-    experience: ExperienceCompleteFragment,
-  ) => void;
-  onError: (error?: CommonError) => void;
-  onDone?: () => void;
-}
-
-export async function updateExperiencesOnlineEffectHelperFunc({
-  input,
-  updateExperiencesOnline,
-  onUpdateSuccess,
-  onError,
-}: UpdateExperiencesOnlineEffectHelperFunc) {
-  try {
-    const response = await updateExperiencesOnline({
-      variables: {
-        input,
-      },
-
-      update: updateExperiencesManualCacheUpdate,
-    });
-
-    const validResponse =
-      response && response.data && response.data.updateExperiences;
-
-    if (!validResponse) {
-      onError();
-      return;
-    }
-
-    if (validResponse.__typename === "UpdateExperiencesAllFail") {
-      onError(validResponse.error);
-    } else {
-      const updateResult = validResponse.experiences[0];
-
-      if (updateResult.__typename === "UpdateExperienceErrors") {
-        onError(updateResult.errors.error);
-      } else {
-        const { experienceId } = updateResult.experience;
-
-        const updatedExperience = getCachedExperienceDetailView(
-          experienceId,
-        ) as ExperienceCompleteFragment;
-
-        floatExperienceToTheTopInGetExperiencesMiniQuery(updatedExperience);
-
-        onUpdateSuccess(updateResult, updatedExperience);
-      }
-    }
-  } catch (errors) {
-    onError(errors);
-  }
-}
 
 export type UpdateExperiencesOnlineMutationFn = MutationFunction<
   UpdateExperiencesOnline,
@@ -154,11 +85,6 @@ export type UseUpdateExperiencesOnlineMutation = [
   UpdateExperiencesOnlineMutationFn,
   MutationResult<UpdateExperiencesOnline>,
 ];
-
-// component's props should extend this
-export interface UpdateExperiencesOnlineComponentProps {
-  updateExperiencesOnline: UpdateExperiencesOnlineMutationFn;
-}
 
 ////////////////////////// END UPDATE EXPERIENCES SECTION //////////////////
 

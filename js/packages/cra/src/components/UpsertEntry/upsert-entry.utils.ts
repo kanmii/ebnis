@@ -1,50 +1,48 @@
-import { Reducer, Dispatch } from "react";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import immer, { Draft } from "immer";
-import {
-  DataTypes,
-  CreateEntryInput,
-  CreateDataObject,
-} from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import dateFnFormat from "date-fns/format";
-import parseISO from "date-fns/parseISO";
-import { createOfflineEntryMutation } from "./upsert-entry.resolvers";
-import { wrapReducer } from "../../logger";
-import { getIsConnected } from "../../utils/connections";
-import { scrollIntoView } from "../../utils/scroll-into-view";
-import { scrollIntoViewNonFieldErrorDomId } from "./upsert-entry.dom";
-import {
-  UpdateExperiencesOnlineComponentProps,
-  updateExperiencesOnlineEffectHelperFunc,
-} from "../../utils/experience.gql.types";
-import {
-  StringyErrorPayload,
-  parseStringError,
-  FORM_CONTAINS_ERRORS_MESSAGE,
-  GENERIC_SERVER_ERROR,
-} from "../../utils/common-errors";
 import {
   CreateEntryErrorFragment,
   CreateEntryErrorFragment_dataObjects,
 } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
+import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
+import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import {
-  HasEffectsVal,
-  ActiveVal,
-  InActiveVal,
-  ErrorsVal,
-  StateValue,
-  OnlineStatus,
-} from "../../utils/types";
+  CreateDataObject,
+  CreateEntryInput,
+  DataTypes,
+} from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { Any } from "@eb/cm/src/utils/types";
+import dateFnFormat from "date-fns/format";
+import parseISO from "date-fns/parseISO";
+import immer, { Draft } from "immer";
+import { Dispatch, Reducer } from "react";
+import { wrapReducer } from "../../logger";
+import { deleteObjectKey } from "../../utils";
 import {
-  GenericGeneralEffect,
+  FORM_CONTAINS_ERRORS_MESSAGE,
+  GENERIC_SERVER_ERROR,
+  parseStringError,
+  StringyErrorPayload,
+} from "../../utils/common-errors";
+import { getIsConnected } from "../../utils/connections";
+import {
   GenericEffectDefinition,
+  GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
+import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { isOfflineId } from "../../utils/offlines";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
-import { deleteObjectKey } from "../../utils";
-import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
+import { scrollIntoView } from "../../utils/scroll-into-view";
+import {
+  ActiveVal,
+  ErrorsVal,
+  HasEffectsVal,
+  InActiveVal,
+  OnlineStatus,
+  StateValue,
+} from "../../utils/types";
+import { scrollIntoViewNonFieldErrorDomId } from "./upsert-entry.dom";
+import { createOfflineEntryMutation } from "./upsert-entry.resolvers";
 
 const NEW_LINE_REGEX = /\n/g;
 export const ISO_DATE_FORMAT = "yyyy-MM-dd";
@@ -132,8 +130,6 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
         }
       });
     },
-
-    // true,
   );
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
@@ -168,7 +164,6 @@ async function upsertOnlineEntryEffectHelper(
 ) {
   const {
     experience: { id: experienceId },
-    updateExperiencesOnline,
     updatingEntry,
     onSuccess,
   } = props;
@@ -201,9 +196,8 @@ async function upsertOnlineEntryEffectHelper(
     },
   ];
 
-  updateExperiencesOnlineEffectHelperFunc({
+  updateExperiencesMutation({
     input: inputs,
-    updateExperiencesOnline,
     onUpdateSuccess: async ({ entries }) => {
       const newEntries = entries && entries.newEntries;
 
@@ -544,7 +538,7 @@ export interface CallerProps {
   className?: string;
 }
 
-export type Props = CallerProps & UpdateExperiencesOnlineComponentProps;
+export type Props = CallerProps;
 
 export type UpdatingEntryPayload = {
   entry: EntryFragment;
@@ -653,5 +647,5 @@ interface EffectArgs {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = {}
+  OwnArgs = Any
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;

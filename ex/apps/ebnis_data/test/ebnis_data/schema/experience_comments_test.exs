@@ -154,7 +154,7 @@ defmodule EbnisData.Schema.ExperienceCommentsTest do
       Factory.insert(
         %{
           user_id: user.id,
-          comment_text: "a"
+          comment_text: "aa"
         },
         [
           "integer"
@@ -169,7 +169,7 @@ defmodule EbnisData.Schema.ExperienceCommentsTest do
                     "comments" => [
                       %{
                         "id" => _,
-                        "text" => "a"
+                        "text" => "aa"
                       }
                     ],
                     "id" => ^experience_id
@@ -201,7 +201,7 @@ defmodule EbnisData.Schema.ExperienceCommentsTest do
       Factory.insert(
         %{
           user_id: user.id,
-          comment_text: "a"
+          comment_text: "aa"
         },
         [
           "integer"
@@ -232,6 +232,88 @@ defmodule EbnisData.Schema.ExperienceCommentsTest do
                variables: variables,
                context: context(user)
              )
+  end
+
+  # @tag :skip
+  test "success/error:text too short: create comment for existing experience" do
+    user = RegFactory.insert()
+
+    %{
+      id: experience_id
+    } =
+      _experience =
+      Factory.insert(
+        %{user_id: user.id},
+        [
+          "integer"
+        ]
+      )
+
+    create_comments_input = %{
+      "experienceId" => experience_id,
+      "createComments" => [
+        %{
+          "text" => "text"
+        },
+        %{
+          "text" => "a"
+        }
+      ]
+    }
+
+    variables = %{
+      "input" => [
+        create_comments_input
+      ]
+    }
+
+    assert {
+             :ok,
+             %{
+               data: %{
+                 "updateExperiences" => %{
+                   "experiences" => [
+                     %{
+                       "comments" => %{
+                         "inserts" => [
+                           %{
+                             "comment" => %{
+                               "id" => _,
+                               "text" => "text"
+                             }
+                           },
+                           %{
+                             "errors" => %{
+                               "meta" => %{
+                                 "id" => _,
+                                 "index" => 1
+                               },
+                               "errors" => %{
+                                 "id" => nil,
+                                 "association" => nil,
+                                 "error" => text_error
+                               }
+                             }
+                           }
+                         ]
+                       },
+                       "experience" => %{
+                         "experienceId" => ^experience_id
+                       }
+                     }
+                   ]
+                 }
+               }
+             }
+           } =
+             Absinthe.run(
+               Query.update_experiences(),
+               Schema,
+               variables: variables,
+               context: context(user)
+             )
+
+    assert is_binary(text_error)
   end
 
   defp context(user) do

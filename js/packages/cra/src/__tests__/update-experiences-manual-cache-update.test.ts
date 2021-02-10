@@ -432,7 +432,36 @@ test("updated entries errors", () => {
   );
 });
 
-function call({ experience, entries }: UpdateExperienceSomeSuccessFragment) {
+it("inserts comments successfully", () => {
+  mockReadExperienceCompleteFragment.mockReturnValueOnce({});
+
+  call({
+    comments: {
+      inserts: [
+        {
+          __typename: "CommentSuccess",
+          comment: {
+            id: "a",
+          },
+        },
+      ],
+    },
+  } as UpdateExperienceSomeSuccessFragment);
+
+  expect(mockWriteExperienceFragmentToCache.mock.calls[0][0]).toEqual({
+    comments: [
+      {
+        id: "a",
+      },
+    ],
+  });
+});
+
+function call({
+  experience,
+  entries,
+  comments,
+}: UpdateExperienceSomeSuccessFragment) {
   updateExperiencesManualCacheUpdate(dataProxy, {
     data: {
       updateExperiences: {
@@ -445,6 +474,7 @@ function call({ experience, entries }: UpdateExperienceSomeSuccessFragment) {
               ...(experience as any),
             },
             entries,
+            comments,
           },
         ],
       },

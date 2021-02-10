@@ -1,3 +1,4 @@
+import { Any } from "@eb/cm/src/utils/types";
 import { Draft } from "immer";
 import { HasEffectsVal, NoEffectVal, StateValue } from "./types";
 
@@ -46,7 +47,12 @@ export interface GenericHasEffect<EffectType> {
   };
 }
 
-export interface GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs = {}> {
+export interface GenericEffectDefinition<
+  EffectArgs,
+  Props,
+  Key,
+  OwnArgs = Any
+> {
   key: Key;
   ownArgs: OwnArgs;
   func?: (

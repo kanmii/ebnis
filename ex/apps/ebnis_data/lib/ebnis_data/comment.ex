@@ -18,5 +18,6 @@ defmodule EbnisData.Comment do
         :text
       ]
     )
+    |> validate_length(:text, min: 2)
   end
 end

@@ -326,8 +326,133 @@ export interface UpdateExperienceSomeSuccessFragment_entries {
     | null;
 }
 
+export interface UpdateExperienceSomeSuccessFragment_comments_updates_CommentSuccess_comment {
+  __typename: "Comment";
+  id: string;
+  text: string;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_updates_CommentSuccess {
+  __typename: "CommentSuccess";
+  comment: UpdateExperienceSomeSuccessFragment_comments_updates_CommentSuccess_comment;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_updates_CommentUnionErrors_errors_meta {
+  __typename: "CommentErrorsMeta";
+  index: number;
+  id: string | null;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_updates_CommentUnionErrors_errors_errors {
+  __typename: "CommentErrorsErrors";
+  id: string | null;
+  association: string | null;
+  error: string | null;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_updates_CommentUnionErrors_errors {
+  __typename: "CommentErrors";
+  meta: UpdateExperienceSomeSuccessFragment_comments_updates_CommentUnionErrors_errors_meta | null;
+  errors: UpdateExperienceSomeSuccessFragment_comments_updates_CommentUnionErrors_errors_errors;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_updates_CommentUnionErrors {
+  __typename: "CommentUnionErrors";
+  errors: UpdateExperienceSomeSuccessFragment_comments_updates_CommentUnionErrors_errors;
+}
+
+export type UpdateExperienceSomeSuccessFragment_comments_updates =
+  | UpdateExperienceSomeSuccessFragment_comments_updates_CommentSuccess
+  | UpdateExperienceSomeSuccessFragment_comments_updates_CommentUnionErrors;
+
+export interface UpdateExperienceSomeSuccessFragment_comments_inserts_CommentSuccess_comment {
+  __typename: "Comment";
+  id: string;
+  text: string;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_inserts_CommentSuccess {
+  __typename: "CommentSuccess";
+  comment: UpdateExperienceSomeSuccessFragment_comments_inserts_CommentSuccess_comment;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_inserts_CommentUnionErrors_errors_meta {
+  __typename: "CommentErrorsMeta";
+  index: number;
+  id: string | null;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_inserts_CommentUnionErrors_errors_errors {
+  __typename: "CommentErrorsErrors";
+  id: string | null;
+  association: string | null;
+  error: string | null;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_inserts_CommentUnionErrors_errors {
+  __typename: "CommentErrors";
+  meta: UpdateExperienceSomeSuccessFragment_comments_inserts_CommentUnionErrors_errors_meta | null;
+  errors: UpdateExperienceSomeSuccessFragment_comments_inserts_CommentUnionErrors_errors_errors;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_inserts_CommentUnionErrors {
+  __typename: "CommentUnionErrors";
+  errors: UpdateExperienceSomeSuccessFragment_comments_inserts_CommentUnionErrors_errors;
+}
+
+export type UpdateExperienceSomeSuccessFragment_comments_inserts =
+  | UpdateExperienceSomeSuccessFragment_comments_inserts_CommentSuccess
+  | UpdateExperienceSomeSuccessFragment_comments_inserts_CommentUnionErrors;
+
+export interface UpdateExperienceSomeSuccessFragment_comments_deletes_CommentSuccess_comment {
+  __typename: "Comment";
+  id: string;
+  text: string;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_deletes_CommentSuccess {
+  __typename: "CommentSuccess";
+  comment: UpdateExperienceSomeSuccessFragment_comments_deletes_CommentSuccess_comment;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_deletes_CommentUnionErrors_errors_meta {
+  __typename: "CommentErrorsMeta";
+  index: number;
+  id: string | null;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_deletes_CommentUnionErrors_errors_errors {
+  __typename: "CommentErrorsErrors";
+  id: string | null;
+  association: string | null;
+  error: string | null;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_deletes_CommentUnionErrors_errors {
+  __typename: "CommentErrors";
+  meta: UpdateExperienceSomeSuccessFragment_comments_deletes_CommentUnionErrors_errors_meta | null;
+  errors: UpdateExperienceSomeSuccessFragment_comments_deletes_CommentUnionErrors_errors_errors;
+}
+
+export interface UpdateExperienceSomeSuccessFragment_comments_deletes_CommentUnionErrors {
+  __typename: "CommentUnionErrors";
+  errors: UpdateExperienceSomeSuccessFragment_comments_deletes_CommentUnionErrors_errors;
+}
+
+export type UpdateExperienceSomeSuccessFragment_comments_deletes =
+  | UpdateExperienceSomeSuccessFragment_comments_deletes_CommentSuccess
+  | UpdateExperienceSomeSuccessFragment_comments_deletes_CommentUnionErrors;
+
+export interface UpdateExperienceSomeSuccessFragment_comments {
+  __typename: "CommentCrud";
+  updates: UpdateExperienceSomeSuccessFragment_comments_updates[] | null;
+  inserts: UpdateExperienceSomeSuccessFragment_comments_inserts[] | null;
+  deletes: UpdateExperienceSomeSuccessFragment_comments_deletes[] | null;
+}
+
 export interface UpdateExperienceSomeSuccessFragment {
   __typename: "UpdateExperienceSomeSuccess";
   experience: UpdateExperienceSomeSuccessFragment_experience;
   entries: UpdateExperienceSomeSuccessFragment_entries | null;
+  comments: UpdateExperienceSomeSuccessFragment_comments | null;
 }

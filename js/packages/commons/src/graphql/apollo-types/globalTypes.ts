@@ -19,6 +19,13 @@ export enum DataTypes {
   SINGLE_LINE_TEXT = "SINGLE_LINE_TEXT",
 }
 
+export interface CommentInput {
+  id?: string | null;
+  insertedAt?: any | null;
+  text: string;
+  updatedAt?: any | null;
+}
+
 /**
  * Variables for defining field while defining a new experience
  */
@@ -117,9 +124,12 @@ export interface UpdateEntryInput {
  */
 export interface UpdateExperienceInput {
   addEntries?: CreateEntryInput[] | null;
+  createComments?: CommentInput[] | null;
   deleteEntries?: string[] | null;
+  deletedComments?: string[] | null;
   experienceId: string;
   ownFields?: UpdateExperienceOwnFieldsInput | null;
+  updateComments?: CommentInput[] | null;
   updateDefinitions?: UpdateDefinitionInput[] | null;
   updateEntries?: UpdateEntryInput[] | null;
 }

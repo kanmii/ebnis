@@ -1,6 +1,7 @@
 defmodule EbnisData.CommentApi do
   import Ecto.Query, warn: true
 
+  alias Ecto.Changeset
   alias EbnisData.Repo
   alias EbnisData.Comment
   alias EbnisData.ExperienceComment
@@ -8,16 +9,18 @@ defmodule EbnisData.CommentApi do
 
   @spec create_experience_comment(params :: map()) :: %Comment{}
   def create_experience_comment(params) do
-    comment = create_comment(params)
-
-    params_with_comment = Map.put(params, :comment_id, comment.id)
-
-    %ExperienceComment{}
-    |> ExperienceComment.changeset(params_with_comment)
-    |> Repo.insert()
-    |> case do
-      {:ok, %ExperienceComment{} = _experience_comment} ->
-        comment
+    with %Comment{} = comment <- create_comment(params),
+         params_with_comment <- Map.put(params, :comment_id, comment.id) do
+      %ExperienceComment{}
+      |> ExperienceComment.changeset(params_with_comment)
+      |> Repo.insert()
+      |> case do
+        {:ok, %ExperienceComment{} = _experience_comment} ->
+          comment
+      end
+    else
+      %Changeset{} = changeset ->
+        changeset
     end
   end
 
@@ -43,6 +46,9 @@ defmodule EbnisData.CommentApi do
     |> case do
       {:ok, comment} ->
         comment
+
+      {:error, changeset} ->
+        changeset
     end
   end
 

@@ -81,6 +81,14 @@ import {
   cleanUpOfflineExperiences,
   cleanUpSyncedOfflineEntries,
 } from "../components/WithSubscriptions/with-subscriptions.utils";
+import {
+  offlineEntry,
+  offlineEntryId,
+  offlineEntrySuccess,
+  onlineEntry,
+  onlineEntryId,
+  onlineEntrySuccess,
+} from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { WithSubscriptionContextProps } from "../utils/app-context";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
@@ -92,8 +100,8 @@ import {
   GetEntriesDetailViewQueryResult,
   getExperienceAndEntriesDetailView,
   GetExperienceAndEntriesDetailViewQueryResult,
-  updateExperiencesOnlineEffectHelperFunc,
 } from "../utils/experience.gql.types";
+import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { ChangeUrlType, windowChangeUrl } from "../utils/global-window";
 import { makeOfflineId } from "../utils/offlines";
 import { scrollIntoView } from "../utils/scroll-into-view";
@@ -144,7 +152,9 @@ const mockPutOrRemoveDeleteExperienceLedger = putOrRemoveDeleteExperienceLedger 
 jest.mock("../utils/experience.gql.types");
 const mockManuallyFetchDetailedExperience = getExperienceAndEntriesDetailView as jest.Mock;
 const mockManuallyFetchEntries = getEntriesDetailView as jest.Mock;
-const mockUpdateExperiencesOnlineEffectHelperFunc = updateExperiencesOnlineEffectHelperFunc as jest.Mock;
+
+jest.mock("../utils/update-experiences.gql");
+const mockUpdateExperiencesMutation = updateExperiencesMutation as jest.Mock;
 
 const mockGetIsConnected = getIsConnected as jest.Mock;
 jest.mock("../utils/connections");
@@ -231,8 +241,6 @@ const ebnisObject = {
   // logReducers: true,
 } as E2EWindowObject;
 
-const mockUpdateExperiencesOnline = jest.fn();
-
 beforeAll(() => {
   window.____ebnis = ebnisObject;
 });
@@ -266,64 +274,6 @@ const onlineExperience = {
     },
   ],
 } as ExperienceDetailViewFragment;
-
-const onlineEntryClientId = "aa";
-const onlineEntryId = "a";
-
-const onlineEntry = {
-  __typename: "Entry",
-  id: onlineEntryId,
-  clientId: onlineEntryClientId,
-  insertedAt: "2020-09-16T20:00:37Z",
-  updatedAt: "2020-09-16T20:00:37Z",
-  dataObjects: [
-    {
-      id: "a",
-      definitionId: "1",
-      data: `{"integer":1}`,
-    },
-  ],
-} as EntryFragment;
-
-const onlineEntrySuccess = {
-  __typename: "GetEntriesSuccess",
-  entries: {
-    edges: [
-      {
-        node: onlineEntry,
-      },
-    ],
-    pageInfo: {},
-  } as EntryConnectionFragment,
-};
-
-const offlineEntryId = makeOfflineId("b");
-const offlineEntry = {
-  __typename: "Entry",
-  id: offlineEntryId,
-  clientId: offlineEntryId,
-  insertedAt: "2020-09-16T20:00:37Z",
-  updatedAt: "2020-09-16T20:00:37Z",
-  dataObjects: [
-    {
-      id: "a",
-      definitionId: "1",
-      data: `{"integer":1}`,
-    },
-  ],
-} as EntryFragment;
-
-const offlineEntrySuccess = {
-  __typename: "GetEntriesSuccess",
-  entries: {
-    edges: [
-      {
-        node: offlineEntry,
-      },
-    ],
-    pageInfo: {},
-  },
-};
 
 const onlineOfflineEntriesSuccess = {
   __typename: "GetEntriesSuccess",
@@ -1433,7 +1383,7 @@ describe("reducers", () => {
   });
 
   it("fetch experiences with timeouts", async () => {
-    let state = initState();
+    const state = initState();
 
     const [effect] = (state.effects
       .general as GenericHasEffect<EffectType>).hasEffects.context.effects;
@@ -1563,7 +1513,7 @@ describe("reducers", () => {
   });
 
   it("deletes 'createEntries' and 'updateErrors' keys from sync errors / cleans up offline entries", async () => {
-    let state = initState();
+    const state = initState();
 
     const [effect] = (state.effects
       .general as GenericHasEffect<EffectType>).hasEffects.context.effects;
@@ -1761,8 +1711,9 @@ describe("reducers", () => {
 
     state = reducer(state, dispatchOnFetchEntries);
 
-    let dataState = state.states as DataState;
-    let entriesState = dataState.data.states.entries as EntriesDataSuccessSate;
+    const dataState = state.states as DataState;
+    const entriesState = dataState.data.states
+      .entries as EntriesDataSuccessSate;
     expect(entriesState.success.context.entries[0].entryData.clientId).toBe(
       clientId,
     );
@@ -1994,12 +1945,11 @@ describe("reducers", () => {
 
     mockGetIsConnected.mockReturnValueOnce(true);
 
-    let ownArgs = effect.ownArgs as any;
+    const ownArgs = effect.ownArgs as any;
     deleteEntryEffect(ownArgs, props, effectArgs);
 
     let successFunc =
-      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0]
-        .onUpdateSuccess;
+      mockUpdateExperiencesMutation.mock.calls[0][0].onUpdateSuccess;
 
     successFunc();
 
@@ -2019,13 +1969,12 @@ describe("reducers", () => {
     });
 
     mockDispatchFn.mockReset();
-    mockUpdateExperiencesOnlineEffectHelperFunc.mockReset();
+    mockUpdateExperiencesMutation.mockReset();
     mockGetIsConnected.mockReturnValueOnce(true);
     deleteEntryEffect(ownArgs, props, effectArgs);
 
     successFunc =
-      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0]
-        .onUpdateSuccess;
+      mockUpdateExperiencesMutation.mock.calls[0][0].onUpdateSuccess;
 
     successFunc({
       entries: {
@@ -2051,12 +2000,11 @@ describe("reducers", () => {
     jest.runAllTimers();
 
     mockDispatchFn.mockReset();
-    mockUpdateExperiencesOnlineEffectHelperFunc.mockReset();
+    mockUpdateExperiencesMutation.mockReset();
     mockGetIsConnected.mockReturnValueOnce(true);
     deleteEntryEffect(ownArgs, props, effectArgs);
 
-    let onErrorFunc =
-      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0].onError;
+    const onErrorFunc = mockUpdateExperiencesMutation.mock.calls[0][0].onError;
 
     onErrorFunc();
     callArgs = mockDispatchFn.mock.calls[0][0];
@@ -2213,8 +2161,7 @@ describe("Entry component", () => {
 
     await waitFor(() => true);
 
-    const errorFunc =
-      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[0][0].onError;
+    const errorFunc = mockUpdateExperiencesMutation.mock.calls[0][0].onError;
 
     act(() => {
       errorFunc(new Error("ttt"));
@@ -2251,8 +2198,7 @@ describe("Entry component", () => {
     });
 
     const successFunc =
-      mockUpdateExperiencesOnlineEffectHelperFunc.mock.calls[1][0]
-        .onUpdateSuccess;
+      mockUpdateExperiencesMutation.mock.calls[1][0].onUpdateSuccess;
 
     act(() => {
       successFunc({
@@ -2367,7 +2313,7 @@ function makeComp({
         history={history}
         {...props}
         deleteExperiences={mockDeleteExperiences}
-        updateExperiencesOnline={mockUpdateExperiencesOnline}
+        componentTimeoutsMs={{ fetchRetries: [0], closeNotification: 0 }}
       />
     ),
   };
@@ -2403,7 +2349,7 @@ function getCancelDeleteExperienceEl() {
     .item(0) as HTMLElement;
 }
 
-function getOkDeleteExperienceEl(index: number = 0) {
+function getOkDeleteExperienceEl(index = 0) {
   return document
     .getElementsByClassName(deleteExperienceOkSelector)
     .item(index) as HTMLElement;
@@ -2423,7 +2369,7 @@ function getExperiencePaginationErrorEl() {
     .item(0);
 }
 
-function getUpdateEntryLaunchEl(index: number = 0) {
+function getUpdateEntryLaunchEl(index = 0) {
   return document
     .getElementsByClassName("detailed-experience__entry-edit")
     .item(index) as HTMLElement;
@@ -2461,7 +2407,7 @@ function getSyncExperienceErrors() {
   return document.getElementById(syncExperienceErrorsMsgId) as HTMLElement;
 }
 
-function getUpdateExperienceEl(index: number = 0) {
+function getUpdateExperienceEl(index = 0) {
   return document
     .getElementsByClassName(editExperienceMenuItemSelector)
     .item(index) as HTMLElement;
@@ -2483,13 +2429,13 @@ function getDeleteExperienceEl() {
     .item(0) as HTMLElement;
 }
 
-function getEntryDropdownTrigger(index: number = 0) {
+function getEntryDropdownTrigger(index = 0) {
   return document
     .getElementsByClassName(entryDropdownTriggerClassName)
     .item(index) as HTMLElement;
 }
 
-function getEntryDropdown(index: number = 0) {
+function getEntryDropdown(index = 0) {
   return document
     .getElementsByClassName(entryDropdownIsActiveClassName)
     .item(index) as HTMLElement;
@@ -2501,7 +2447,7 @@ function getExperienceMenu() {
     .item(0) as HTMLElement;
 }
 
-function getEntryDeleteMenuItem(index: number = 0) {
+function getEntryDeleteMenuItem(index = 0) {
   return document
     .getElementsByClassName(entryDeleteMenuItemSelector)
     .item(index) as HTMLElement;
@@ -2525,7 +2471,7 @@ function getEntryDeleteFailNotification() {
   return document.getElementById(entryDeleteFailNotificationId) as HTMLElement;
 }
 
-function getEntryUpdateMenuItem(index: number = 0) {
+function getEntryUpdateMenuItem(index = 0) {
   return document
     .getElementsByClassName(entryUpdateMenuItemSelector)
     .item(index) as HTMLElement;

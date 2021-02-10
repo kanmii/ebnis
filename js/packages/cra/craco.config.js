@@ -7,11 +7,19 @@ module.exports = {
   style: {
     postcss: {
       plugins: [
-        require("tailwindcss"),
+        require("postcss-advanced-variables"),
+        require("postcss-extend-rule"),
         require("postcss-nested"),
+        require("tailwindcss"),
         require("autoprefixer"),
       ],
     },
+  },
+  typescript: {
+    enableTypeChecking: false,
+  },
+  eslint: {
+    enable: false,
   },
   webpack: {
     alias: {},

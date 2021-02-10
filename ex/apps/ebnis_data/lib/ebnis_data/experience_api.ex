@@ -216,24 +216,32 @@ defmodule EbnisData.ExperienceApi do
     case get_experience(experience_id, user_id) do
       %{} = experience ->
         bearbeitet_erfahrung_komponenten = %{}
-        einträge_komponenten = []
+
+        processed_entries = []
+        processed_comments = []
+
+        processed_associations = %{
+          entries: processed_entries,
+          comments: processed_comments
+        }
 
         {
           bearbeitet_erfahrung_komponenten_1,
-          einträge_komponenten_1,
+          processed_associations,
           updated_experience
         } =
-          [
-            :delete_entries,
-            :update_definitions,
-            :update_entries,
-            :own_fields,
-            :add_entries
-          ]
-          |> Enum.reduce(
+          Enum.reduce(
+            [
+              :delete_entries,
+              :update_definitions,
+              :update_entries,
+              :own_fields,
+              :add_entries,
+              :create_comments
+            ],
             {
               bearbeitet_erfahrung_komponenten,
-              einträge_komponenten,
+              processed_associations,
               experience
             },
             &update_experience_p(&2, &1, update_params[&1])
@@ -242,7 +250,7 @@ defmodule EbnisData.ExperienceApi do
         key = Ebnis.make_cache_key(:experience, user_id, experience_id)
         Cachex.put(:ebnis_cache, key, updated_experience)
 
-        {:ok, bearbeitet_erfahrung_komponenten_1, einträge_komponenten_1}
+        {:ok, bearbeitet_erfahrung_komponenten_1, processed_associations}
 
       _ ->
         @experience_not_found_tuple
@@ -272,7 +280,7 @@ defmodule EbnisData.ExperienceApi do
   defp update_experience_p(
          {
            bearbeitet_erfahrung_komponenten,
-           einträge_komponenten,
+           processed_associations,
            experience
          },
          :delete_entries,
@@ -290,14 +298,18 @@ defmodule EbnisData.ExperienceApi do
         &EntryApi.delete_entry(&1)
       )
 
-    einträge_komponenten_1 = [
-      {:gelöscht_einträge, gelöscht_einträge}
-      | einträge_komponenten
-    ]
+    next_processed_associations =
+      update_in(
+        processed_associations.entries,
+        &[
+          {:gelöscht_einträge, gelöscht_einträge}
+          | &1
+        ]
+      )
 
     {
       bearbeitet_erfahrung_komponenten_1,
-      einträge_komponenten_1,
+      next_processed_associations,
       experience
     }
   end
@@ -306,7 +318,7 @@ defmodule EbnisData.ExperienceApi do
   defp update_experience_p(
          {
            bearbeitet_erfahrung_komponenten,
-           einträge_komponenten,
+           processed_associations,
            experience
          },
          :update_definitions,
@@ -352,7 +364,7 @@ defmodule EbnisData.ExperienceApi do
 
     {
       bearbeitet_erfahrung_komponenten_1,
-      einträge_komponenten,
+      processed_associations,
       new_experience
     }
   end
@@ -361,7 +373,7 @@ defmodule EbnisData.ExperienceApi do
   defp update_experience_p(
          {
            bearbeitet_erfahrung_komponenten,
-           einträge_komponenten,
+           processed_associations,
            experience
          },
          :update_entries,
@@ -381,14 +393,18 @@ defmodule EbnisData.ExperienceApi do
         &EntryApi.update_entry(&1, experience)
       )
 
-    einträge_komponenten_1 = [
-      {:bearbeitet_einträge, bearbeitet_einträge}
-      | einträge_komponenten
-    ]
+    next_processed_associations =
+      update_in(
+        processed_associations.entries,
+        &[
+          {:bearbeitet_einträge, bearbeitet_einträge}
+          | &1
+        ]
+      )
 
     {
       bearbeitet_erfahrung_komponenten_1,
-      einträge_komponenten_1,
+      next_processed_associations,
       experience
     }
   end
@@ -397,7 +413,7 @@ defmodule EbnisData.ExperienceApi do
   defp update_experience_p(
          {
            bearbeitet_erfahrung_komponenten,
-           einträge_komponenten,
+           processed_associations,
            experience
          },
          :own_fields,
@@ -442,7 +458,7 @@ defmodule EbnisData.ExperienceApi do
 
     {
       bearbeitet_erfahrung_komponenten_1,
-      einträge_komponenten,
+      processed_associations,
       updated_experience
     }
   end
@@ -452,7 +468,7 @@ defmodule EbnisData.ExperienceApi do
   defp update_experience_p(
          {
            bearbeitet_erfahrung_komponenten,
-           einträge_komponenten,
+           processed_associations,
            experience
          },
          :add_entries,
@@ -468,14 +484,61 @@ defmodule EbnisData.ExperienceApi do
 
     neue_einträge = Enum.map(inputs, &EntryApi.create_entry(&1, experience))
 
-    einträge_komponenten_1 = [
-      {:neue_einträge, neue_einträge}
-      | einträge_komponenten
-    ]
+    next_processed_associations =
+      update_in(
+        processed_associations.entries,
+        &[
+          {:neue_einträge, neue_einträge} | &1
+        ]
+      )
 
     {
       bearbeitet_erfahrung_komponenten_1,
-      einträge_komponenten_1,
+      next_processed_associations,
+      experience
+    }
+  end
+
+  # insert comments
+  defp update_experience_p(
+         {
+           previous_updates,
+           processed_associations,
+           experience
+         },
+         :create_comments,
+         inputs
+       ) do
+    next_updates =
+      Map.merge(
+        previous_updates,
+        %{
+          updated_at: experience.updated_at
+        }
+      )
+
+    experience_id = experience.id
+
+    new_comments =
+      Enum.map(
+        inputs,
+        &EbnisData.create_experience_comment(%{
+          text: &1.text,
+          experience_id: experience_id
+        })
+      )
+
+    next_processed_associations =
+      update_in(
+        processed_associations.comments,
+        &[
+          {:new_comments, new_comments} | &1
+        ]
+      )
+
+    {
+      next_updates,
+      next_processed_associations,
       experience
     }
   end

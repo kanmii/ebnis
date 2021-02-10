@@ -1,20 +1,15 @@
 /* istanbul ignore file */
-/* eslint-disable @typescript-eslint/no-explicit-any*/
-import { InMemoryCache, ApolloClient } from "@apollo/client";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
+import { Any } from "@eb/cm/src/utils/types";
 import { CachePersistor } from "apollo-cache-persist-dev";
-import { ChangeEvent } from "react";
 import { BroadcastChannel } from "broadcast-channel";
+import { ChangeEvent } from "react";
 import { OnSyncedData } from "./sync-to-server.types";
-
-export type ReactMouseAnchorEvent = React.MouseEvent<
-  HTMLAnchorElement | HTMLButtonElement | HTMLDivElement,
-  MouseEvent
->;
 
 export interface E2EWindowObject {
   cache: InMemoryCache;
-  client: ApolloClient<{}>;
-  persistor: CachePersistor<{}>;
+  client: ApolloClient<Any>;
+  persistor: CachePersistor<Any>;
   connectionStatus: ConnectionStatus;
   logApolloQueries?: boolean;
   logReducers?: boolean;
@@ -80,10 +75,10 @@ export type BChannel = BroadcastChannel<BroadcastMessage>;
 export type CommonError = Error | string;
 
 export type RestoreCacheOrPurgeStorageFn = (
-  persistor: CachePersistor<{}>,
-) => Promise<CachePersistor<{}>>;
+  persistor: CachePersistor<Any>,
+) => Promise<CachePersistor<Any>>;
 
-export type IEnum<T extends object> = T[keyof T];
+export type IEnum<T extends Any> = T[keyof T];
 
 export type InputChangeEvent = ChangeEvent<HTMLInputElement>;
 
@@ -103,6 +98,7 @@ export type WarningVal = "warning";
 export type ValidVal = "valid";
 export type InvalidVal = "invalid";
 export type InitialVal = "initial";
+export type EmptyVal = "empty";
 export type UnChangedVal = "unchanged";
 export type ChangedVal = "changed";
 export type ErrorsVal = "errors";
@@ -156,6 +152,7 @@ export const StateValue = {
   offline: "offline" as OfflineVal,
   partOffline: "part-offline" as PartOfflineVal,
   deleteSuccess: "deleteSuccess" as DeleteSuccess,
+  empty: "empty" as EmptyVal,
 } as const;
 
 export type LoadingState = {

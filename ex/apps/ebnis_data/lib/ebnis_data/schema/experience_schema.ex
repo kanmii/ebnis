@@ -480,7 +480,9 @@ defmodule EbnisData.Schema.Experience do
     field(:errors, non_null(:create_entry_error))
   end
 
-  ################## UPDATE EXPERIENCES OBJECTS SECTION ###########
+  ############################################
+  # START UPDATE EXPERIENCES OBJECTS SECTION
+  ############################################
 
   union :delete_entries_union do
     types([
@@ -660,6 +662,7 @@ defmodule EbnisData.Schema.Experience do
   object :update_experience_some_success do
     field(:experience, non_null(:update_experience))
     field(:entries, :update_experience_entries_komponenten)
+    field(:comments, :comment_crud)
   end
 
   @desc ~S"""
@@ -679,7 +682,11 @@ defmodule EbnisData.Schema.Experience do
   end
 
   union :update_experience_union do
-    types([:update_experience_some_success, :update_experience_errors])
+    types([
+      :update_experience_some_success,
+      :update_experience_errors
+    ])
+
     resolve_type(&ExperienceResolver.update_experience_union/2)
   end
 
@@ -740,6 +747,27 @@ defmodule EbnisData.Schema.Experience do
       |> non_null()
       |> list_of()
     )
+
+    field(
+      :update_comments,
+      :comment_input
+      |> non_null()
+      |> list_of()
+    )
+
+    field(
+      :create_comments,
+      :comment_input
+      |> non_null()
+      |> list_of()
+    )
+
+    field(
+      :deleted_comments,
+      :id
+      |> non_null()
+      |> list_of()
+    )
   end
 
   input_object :update_data_object_input do
@@ -778,7 +806,9 @@ defmodule EbnisData.Schema.Experience do
     )
   end
 
-  ################## END UPDATE EXPERIENCES OBJECTS SECTION ###########
+  ############################################
+  # END UPDATE EXPERIENCES OBJECTS SECTION
+  ############################################
 
   ################## DELETE EXPERIENCES OBJECTS SECTION ###########
 
@@ -903,6 +933,70 @@ defmodule EbnisData.Schema.Experience do
 
   ################# AUFHÖREN SAMMELN EINTRÄGE #####################
 
+  ############################################
+  # START CREATE COMMENT OBJECT SECTION
+  ############################################
+
+  object :comment_success do
+    field(:comment, non_null(:comment))
+  end
+
+  object :comment_errors_meta do
+    field(:id, :id)
+    field(:index, non_null(:integer))
+  end
+
+  object :comment_errors_errors do
+    field(:id, :string)
+    field(:association, :string)
+    field(:error, :string)
+  end
+
+  object :comment_errors do
+    field(:meta, :comment_errors_meta)
+    field(:errors, non_null(:comment_errors_errors))
+  end
+
+  object :comment_union_errors do
+    field(:errors, non_null(:comment_errors))
+  end
+
+  union :comment_union do
+    types([
+      :comment_success,
+      :comment_union_errors
+    ])
+
+    resolve_type(&ExperienceResolver.comment_union/2)
+  end
+
+  object :comment_crud do
+    field(
+      :updates,
+      :comment_union
+      |> non_null()
+      |> list_of()
+    )
+
+    field(
+      :inserts,
+      :comment_union
+      |> non_null()
+      |> list_of()
+    )
+
+    field(
+      :deletes,
+      :comment_union
+      |> non_null()
+      |> list_of()
+    )
+  end
+
+  ############################################
+  # END CREATE COMMENT OBJECT SECTION
+  ############################################
+
   ######################### END REGULAR OBJECTS ###########################
 
   ############################ START INPUT OBJECTS SECTION ####################
@@ -954,6 +1048,21 @@ defmodule EbnisData.Schema.Experience do
     field(:description, :string)
   end
 
+  ############################################
+  # START CREATE COMMENT INPUT SECTION
+  ############################################
+
+  input_object :comment_input do
+    field(:id, :id)
+    field(:text, non_null(:string))
+    field(:inserted_at, :datetime)
+    field(:updated_at, :datetime)
+  end
+
+  ############################################
+  # END CREATE COMMENT INPUT
+  ############################################
+
   ######################### END INPUT OBJECTS SECTION ##################
 
   ######################### MUTATION SECTION #######################
@@ -998,6 +1107,13 @@ defmodule EbnisData.Schema.Experience do
           |> non_null()
           |> list_of do
       arg(:input, :create_experience_input |> list_of() |> non_null())
+
+      resolve(&ExperienceResolver.create_experiences/2)
+    end
+
+    @desc "Create comment for various objects"
+    field :create_comment, :comment_union do
+      arg(:input, non_null(:comment_input))
 
       resolve(&ExperienceResolver.create_experiences/2)
     end

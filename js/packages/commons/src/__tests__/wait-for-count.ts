@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function waitForCount<T>(
-  callbackfn: (t: any) => T | Promise<T>,
-  maxExecutionCount = 10,
-  timeout = 50,
-  ...callbackArgs: any
+  callbackfn: (...t: any) => T | Promise<T>,
+  { retries = 2, interval = 50, callbackArgs = [] } = {},
 ): Promise<T> {
-  const result = await callbackfn(callbackArgs);
+  const result = await callbackfn(...callbackArgs);
 
   if (result) {
     return result;
@@ -16,17 +14,17 @@ export async function waitForCount<T>(
 
   function execute() {
     setTimeout(async () => {
-      const result = await callbackfn(callbackArgs);
+      const result = await callbackfn(...callbackArgs);
 
       if (result) {
         d.resolve(result);
         return;
       }
 
-      if (++count <= maxExecutionCount) {
+      if (++count <= retries) {
         execute();
       }
-    }, timeout);
+    }, interval);
   }
 
   execute();

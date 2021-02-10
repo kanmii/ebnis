@@ -1,80 +1,80 @@
-import { Reducer, Dispatch } from "react";
-import immer from "immer";
+import { Any } from "@eb/cm/src/utils/types";
 import {
-  CreateExperienceInput,
-  CreateDataDefinition,
-  DataTypes,
-  UpdateExperienceInput,
-  UpdateDefinitionInput,
-} from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { wrapReducer } from "../../logger";
-import {
-  StringyErrorPayload,
-  parseStringError,
-  FORM_CONTAINS_ERRORS_MESSAGE,
-  NOTHING_TO_SAVE_WARNING_MESSAGE,
-  GENERIC_SERVER_ERROR,
-  FieldError,
-} from "../../utils/common-errors";
-import {
-  GenericGeneralEffect,
-  getGeneralEffects,
-  GenericEffectDefinition,
-  GenericHasEffect,
-} from "../../utils/effects";
-import { scrollIntoView } from "../../utils/scroll-into-view";
-import {
-  CreateExperiencesOnlineComponentProps,
-  CreateExperiencesMutationFn,
-  UpdateExperiencesOnlineComponentProps,
-  getExperienceDetailView,
-  updateExperiencesOnlineEffectHelperFunc,
-  getGetDataObjects,
-} from "../../utils/experience.gql.types";
-import { getIsConnected } from "../../utils/connections";
+  CreateExperienceErrorsFragment,
+  CreateExperienceErrorsFragment_errors,
+} from "@eb/cm/src/graphql/apollo-types/CreateExperienceErrorsFragment";
 import {
   CreateExperiences_createExperiences_CreateExperienceErrors_errors,
   CreateExperiences_createExperiences_CreateExperienceErrors_errors_dataDefinitions,
 } from "@eb/cm/src/graphql/apollo-types/CreateExperiences";
+import { CreateExperienceSuccessFragment } from "@eb/cm/src/graphql/apollo-types/CreateExperienceSuccessFragment";
+import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
+import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
+import { EntryConnectionFragment_edges } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import {
+  CreateDataDefinition,
+  CreateExperienceInput,
+  DataTypes,
+  UpdateDefinitionInput,
+  UpdateExperienceInput,
+} from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+import immer from "immer";
+import { Dispatch, Reducer } from "react";
+import { v4 } from "uuid";
 import { createExperiencesManualUpdate } from "../../apollo/create-experiences-manual-update";
+import { getCachedEntriesDetailViewSuccess } from "../../apollo/get-detailed-experience-query";
+import { wrapReducer } from "../../logger";
+import { deleteObjectKey } from "../../utils";
+import {
+  FieldError,
+  FORM_CONTAINS_ERRORS_MESSAGE,
+  GENERIC_SERVER_ERROR,
+  NOTHING_TO_SAVE_WARNING_MESSAGE,
+  parseStringError,
+  StringyErrorPayload,
+} from "../../utils/common-errors";
+import { getIsConnected } from "../../utils/connections";
+import {
+  GenericEffectDefinition,
+  GenericGeneralEffect,
+  GenericHasEffect,
+  getGeneralEffects,
+} from "../../utils/effects";
+import {
+  CreateExperiencesMutationFn,
+  CreateExperiencesOnlineComponentProps,
+  getExperienceDetailView,
+  getGetDataObjects,
+} from "../../utils/experience.gql.types";
+import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
+import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
+import { isOfflineId } from "../../utils/offlines";
+import { scrollIntoView } from "../../utils/scroll-into-view";
+import {
+  ActiveVal,
+  ChangedVal,
+  CommonErrorsVal,
+  InActiveVal,
+  InitialVal,
+  InsertVal,
+  InvalidVal,
+  OnlineStatus,
+  StateValue,
+  SubmissionVal,
+  UnChangedVal,
+  UpdateVal,
+  ValidVal,
+  WarningVal,
+} from "../../utils/types";
+import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { scrollIntoViewDomId } from "./upsert-experience.dom";
 import {
   createOfflineExperience,
   updateExperienceOfflineFn,
 } from "./upsert-experience.resolvers";
-import { makeDetailedExperienceRoute } from "../../utils/urls";
-import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
-import { v4 } from "uuid";
-import {
-  InActiveVal,
-  UnChangedVal,
-  CommonErrorsVal,
-  WarningVal,
-  InitialVal,
-  SubmissionVal,
-  ActiveVal,
-  ChangedVal,
-  ValidVal,
-  InvalidVal,
-  StateValue,
-  UpdateVal,
-  InsertVal,
-  ReactMouseAnchorEvent,
-  OnlineStatus,
-} from "../../utils/types";
-import {
-  CreateExperienceErrorsFragment,
-  CreateExperienceErrorsFragment_errors,
-} from "@eb/cm/src/graphql/apollo-types/CreateExperienceErrorsFragment";
-import { CreateExperienceSuccessFragment } from "@eb/cm/src/graphql/apollo-types/CreateExperienceSuccessFragment";
-import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
-import { getCachedEntriesDetailViewSuccess } from "../../apollo/get-detailed-experience-query";
-import { EntryConnectionFragment_edges } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
-import { isOfflineId } from "../../utils/offlines";
-import { deleteObjectKey } from "../../utils";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
 
 export const fieldTypeKeys = Object.values(DataTypes);
 
@@ -389,13 +389,12 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
   props,
   effectArgs,
 ) => {
-  const { updateExperiencesOnline, onSuccess } = props;
+  const { onSuccess } = props;
   if (getIsConnected()) {
     const { dispatch } = effectArgs;
 
-    updateExperiencesOnlineEffectHelperFunc({
+    updateExperiencesMutation({
       input: [input],
-      updateExperiencesOnline,
       onUpdateSuccess: async (successArgs, updatedExperience) => {
         const { experienceId } = successArgs.experience;
 
@@ -1453,7 +1452,7 @@ export type CallerProps = {
     experience: ExperienceDetailViewFragment,
     onlineStatus: OnlineStatus,
   ) => void;
-  onClose: (e: ReactMouseAnchorEvent) => void;
+  onClose: (e: ReactMouseEvent) => void;
   experience?: {
     id: string;
     title: string;
@@ -1462,9 +1461,7 @@ export type CallerProps = {
   className?: string;
 };
 
-export type Props = CreateExperiencesOnlineComponentProps &
-  UpdateExperiencesOnlineComponentProps &
-  CallerProps;
+export type Props = CreateExperiencesOnlineComponentProps & CallerProps;
 
 export type Action =
   | ({
@@ -1684,7 +1681,7 @@ export interface EffectArgs {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = {}
+  OwnArgs = Any
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 type EffectType =

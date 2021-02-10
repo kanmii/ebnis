@@ -1,6 +1,8 @@
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import { ReactComponent as DotsVerticalSvg } from "@eb/cm/src/styles/dots-vertical.svg";
+import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+import Notification from "@eb/jsx/src/components/Notification/notification.component";
 import makeClassNames from "classnames";
 import React, {
   createContext,
@@ -14,11 +16,7 @@ import React, {
 } from "react";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { setUpRoutePage } from "../../utils/global-window";
-import {
-  OnlineStatus,
-  ReactMouseAnchorEvent,
-  StateValue,
-} from "../../utils/types";
+import { OnlineStatus, StateValue } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { activeClassName } from "../../utils/utils.dom";
 import Entry from "../Entry/entry.component";
@@ -31,9 +29,14 @@ import {
   closeSyncErrorsMsgBtnId,
   closeSyncErrorsMsgId,
   closeUpsertEntryNotificationId,
+  commentNotificationId,
+  commentsErrorContainerId,
+  createCommentsLabelText,
+  createCommentsMenuId,
   deleteExperienceMenuItemSelector,
   deleteExperienceOkSelector,
   editExperienceMenuItemSelector,
+  emptyCommentsContainerId,
   entriesContainerId,
   entryDeleteFailNotificationId,
   entryDeleteSuccessNotificationId,
@@ -41,30 +44,29 @@ import {
   experienceMenuTriggerSelector,
   fetchNextEntriesId,
   fixSyncErrorsId,
-  hideDetailedExperienceCommentsText,
+  hideCommentsLabelText,
+  hideCommentsMenuId,
   newEntryMenuItemSelector,
-  noCommentsContainerSelector,
   noEntryTriggerId,
   noTriggerDocumentEventClassName,
   okDeleteEntryId,
   refetchEntriesId,
   refetchExperienceId,
-  showDetailedExperienceCommentsText,
-  showExperienceCommentsLinkSelector,
+  showCommentsLabelText,
+  showCommentsMenuId,
   syncEntriesErrorsMsgId,
   syncErrorsNotificationId,
   syncExperienceErrorsMsgId,
   updateExperienceSuccessNotificationId,
 } from "./detail-experience.dom";
-import {
-  useDeleteExperiencesMutation,
-  useUpdateExperiencesOnlineMutation,
-} from "./detail-experience.injectables";
-import { UpsertEntry } from "./detail-experience.lazy";
+import { useDeleteExperiencesMutation } from "./detail-experience.injectables";
+import { UpsertComment, UpsertEntry } from "./detail-experience.lazy";
 import {
   ActionType,
   CallerProps,
-  CommentsDataState,
+  CommentAction,
+  CommentState,
+  componentTimeoutsMs,
   DataState,
   DispatchType,
   effectFunctions,
@@ -78,40 +80,40 @@ import {
 import "./styles.css";
 
 type DispatchContextValue = Readonly<{
-  onOpenNewEntry: (e: ReactMouseAnchorEvent) => void;
-  onCloseNewEntryCreatedNotification: (e: ReactMouseAnchorEvent) => void;
-  onDeclineDeleteExperience: (e: ReactMouseAnchorEvent) => void;
-  onConfirmDeleteExperience: (e: ReactMouseAnchorEvent) => void;
-  onDeleteExperienceRequest: (e: ReactMouseAnchorEvent) => void;
-  requestUpdateExperienceUi: (e: ReactMouseAnchorEvent) => void;
-  cancelEditExperienceUiRequestCb: (e: ReactMouseAnchorEvent) => void;
+  onOpenNewEntry: (e: ReactMouseEvent) => void;
+  onCloseNewEntryCreatedNotification: (e: ReactMouseEvent) => void;
+  onDeclineDeleteExperience: (e: ReactMouseEvent) => void;
+  onConfirmDeleteExperience: (e: ReactMouseEvent) => void;
+  onDeleteExperienceRequest: (e: ReactMouseEvent) => void;
+  requestUpdateExperienceUi: (e: ReactMouseEvent) => void;
+  cancelEditExperienceUiRequestCb: (e: ReactMouseEvent) => void;
   onExperienceUpdatedSuccess: (
     e: ExperienceDetailViewFragment,
     onlineStatus: OnlineStatus,
   ) => void;
-  toggleExperienceMenu: (e: ReactMouseAnchorEvent) => void;
-  refetchEntries: (e: ReactMouseAnchorEvent) => void;
-  fetchNextEntries: (e: ReactMouseAnchorEvent) => void;
+  toggleExperienceMenu: (e: ReactMouseEvent) => void;
+  refetchEntries: (e: ReactMouseEvent) => void;
+  fetchNextEntries: (e: ReactMouseEvent) => void;
   dispatch: DispatchType;
   onUpdateExperienceError: (error: string) => void;
-  closeSyncErrorsMsg: (e: ReactMouseAnchorEvent) => void;
-  refetchExperience: (e: ReactMouseAnchorEvent) => void;
+  closeSyncErrorsMsg: (e: ReactMouseEvent) => void;
+  refetchExperience: (e: ReactMouseEvent) => void;
   activateUpdateEntryCb: ActivateUpdateEntryCb;
   entriesOptionsCb: (entry: EntryFragment) => void;
   deleteEntryRequest: (entry: EntryFragment) => void;
-  deleteEntry: (e: ReactMouseAnchorEvent) => void;
-  cancelDeleteEntry: (e: ReactMouseAnchorEvent) => void;
-  onShowComments: (e: ReactMouseAnchorEvent) => void;
+  deleteEntry: (e: ReactMouseEvent) => void;
+  cancelDeleteEntry: (e: ReactMouseEvent) => void;
+  commentCb: (e: ReactMouseEvent, commentAction: CommentAction) => void;
 }>;
 const DispatchContext = createContext<DispatchContextValue>(
   {} as DispatchContextValue,
 );
 const DispatchProvider = DispatchContext.Provider;
 
-const DataStateContextC = createContext<DataState["data"]>(
+const DataStateContext = createContext<DataState["data"]>(
   {} as DataState["data"],
 );
-const DataStateProvider = DataStateContextC.Provider;
+const DataStateProvider = DataStateContext.Provider;
 
 export function DetailExperience(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
@@ -265,11 +267,10 @@ export function DetailExperience(props: Props) {
           key: StateValue.cancelled,
         });
       },
-      onShowComments(e) {
-        e.preventDefault();
-
+      commentCb(e, action) {
         dispatch({
-          type: ActionType.FETCH_COMMENTS,
+          type: ActionType.COMMENT_ACTION,
+          action,
         });
       },
     };
@@ -301,7 +302,7 @@ export function DetailExperience(props: Props) {
             <DispatchProvider value={contextVal}>
               <DataStateProvider value={states.data}>
                 <ExperienceComponent />
-                <ExperienceMenuComponent />
+                <MenuComponent />
               </DataStateProvider>
             </DispatchProvider>
           </>
@@ -322,13 +323,12 @@ export function DetailExperience(props: Props) {
 // istanbul ignore next:
 export default (props: CallerProps) => {
   const [deleteExperiences] = useDeleteExperiencesMutation();
-  const [updateExperiencesOnline] = useUpdateExperiencesOnlineMutation();
 
   return (
     <DetailExperience
       {...props}
       deleteExperiences={deleteExperiences}
-      updateExperiencesOnline={updateExperiencesOnline}
+      componentTimeoutsMs={componentTimeoutsMs}
     />
   );
 };
@@ -342,6 +342,7 @@ function ExperienceComponent() {
     onUpdateExperienceError,
     requestUpdateExperienceUi,
     cancelDeleteEntry,
+    commentCb,
   } = useContext(DispatchContext);
 
   const {
@@ -349,14 +350,15 @@ function ExperienceComponent() {
     states: {
       deleteExperience: deleteExperienceState,
       upsertEntryActive,
-      newEntryCreated,
+      upsertComment,
+      entryNotification: newEntryCreated,
       entries: entriesState,
       updateExperienceUiActive,
       syncErrorsMsg,
       entriesOptions,
-      comments: commentsState,
+      comment: commentsState,
     },
-  } = useContext(DataStateContextC);
+  } = useContext(DataStateContext);
 
   const { experience, syncErrors } = context;
 
@@ -386,7 +388,6 @@ function ExperienceComponent() {
     return () => {
       document.documentElement.removeEventListener("click", onDocClicked);
     };
-    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
   }, [experience]);
 
   const oldEditedEntryProps =
@@ -418,6 +419,26 @@ function ExperienceComponent() {
 
       {entriesOptions.value === StateValue.requested && (
         <DeleteEntryConfirmationComponent />
+      )}
+
+      {upsertComment.value === StateValue.active && (
+        <Suspense fallback={<Loading />}>
+          <UpsertComment
+            association={{
+              id: experience.id,
+            }}
+            className={noTriggerDocumentEventClassName}
+            onSuccess={(data) => {
+              dispatch({
+                type: ActionType.ON_UPSERT_COMMENT,
+                data,
+              });
+            }}
+            onClose={(e) => {
+              commentCb(e, CommentAction.CLOSE_UPSERT_UI);
+            }}
+          />
+        </Suspense>
       )}
 
       {(oldEditedEntryProps ||
@@ -532,8 +553,8 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
 
   const {
     context: { dataDefinitionIdToNameMap },
-    states: { entriesOptions },
-  } = useContext(DataStateContextC);
+    states: { entriesOptions, comment: commentsState },
+  } = useContext(DataStateContext);
 
   const {
     context: {
@@ -545,26 +566,39 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
 
   return (
     <>
-      {entries.length === 0 && (
+      {entries.length === 0 ? (
         <div
+          id={noEntryTriggerId}
           className={makeClassNames({
-            "no-entry-alert": true,
             [noTriggerDocumentEventClassName]: true,
+            "cursor-pointer": true,
+            "font-semibold": true,
+            "text-blue-400": true,
+            "hover:text-blue-500": true,
+            "pt-3": true,
           })}
+          onClick={onOpenNewEntry}
         >
-          <button
-            id={noEntryTriggerId}
-            className="button"
-            onClick={onOpenNewEntry}
-          >
-            Click here to create your first entry
-          </button>
+          Click here to create your first entry
         </div>
-      )}
-
-      {entries && entries.length > 0 && (
+      ) : (
         <>
           <div id={entriesContainerId}>
+            {commentsState.value !== StateValue.initial && (
+              <p
+                className={makeClassNames({
+                  "font-black": true,
+                  "text-2xl": true,
+                  "mb-2": true,
+                  "mt-10": true,
+                  shadow: true,
+                  "pl-3": true,
+                })}
+              >
+                Entries
+              </p>
+            )}
+
             {entries.map((daten, index) => {
               const {
                 entryData: { id },
@@ -612,12 +646,17 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
   );
 }
 
-function CommentsComponent(props: { state: CommentsDataState }) {
+function CommentsComponent(props: { state: CommentState }) {
   const { state } = props;
+
+  const { commentCb } = useContext(DispatchContext);
+  const {
+    states: { commentNotification },
+  } = useContext(DataStateContext);
 
   switch (state.value) {
     case StateValue.success: {
-      const { comments, empty } = state.success.context;
+      const { comments } = state.success.context;
 
       return (
         <div
@@ -625,41 +664,142 @@ function CommentsComponent(props: { state: CommentsDataState }) {
             "mb-5": true,
           })}
         >
-          {empty && (
+          <div>
             <div
-              id={noCommentsContainerSelector}
-              className={makeClassNames({
-                "cursor-pointer": true,
-                "font-semibold": true,
-                "text-blue-400": true,
-                "hover:text-blue-500": true,
-              })}
+              className={`
+                font-black
+                text-2xl
+                mb-2
+                shadow
+                pl-3
+                flex
+                justify-between
+              `}
             >
-              No comments. Click here to create one.
+              <div>Comments</div>
+              <span
+                className={`
+                  bg-blue-300
+                  cursor-pointer
+                  pl-5
+                  pr-5
+                  rounded-br
+                  rounded-tr
+                  text-white
+                `}
+                onClick={(e) => {
+                  commentCb(e, CommentAction.CREATE);
+                }}
+              >
+                +
+              </span>
             </div>
-          )}
 
-          {comments.map((comment, index) => {
-            const { id, text } = comment;
+            {commentNotification.value === StateValue.active && (
+              <Notification
+                id={commentNotificationId}
+                type="success"
+                onClose={(e) => {
+                  commentCb(e, CommentAction.CLOSE_NOTIFICATION);
+                }}
+              >
+                {commentNotification.active.context.message}
+              </Notification>
+            )}
 
-            return (
-              <div key={id} id={id} className="p-5 shadow-lg flex">
-                <p className="whitespace-pre-line flex-1">{text}</p>
+            {comments.map((comment) => {
+              const { id, text } = comment;
 
-                <div className="ebnis-dropdown-menu">
-                  <div className="dropdown-menu hidden1" role="menu">
-                    <div className="dropdown-content">Edit</div>
+              return (
+                <div
+                  key={id}
+                  id={id}
+                  className={makeClassNames({
+                    "shadow-lg": true,
+                    relative: true,
+                  })}
+                >
+                  <p
+                    className={`
+                      eb-tiny-scroll
+                      whitespace-pre-line
+                      max-h-80
+                      overflow-y-auto
+                      p-5
+                      mt-5
+                      border-t
+                      break-words
+                    `}
+                  >
+                    {text}
+                  </p>
 
-                    <div className="dropdown-content">Delete</div>
+                  <div
+                    className={makeClassNames({
+                      absolute: true,
+                    })}
+                    style={{
+                      right: "1.5rem",
+                      top: "10px",
+                    }}
+                  >
+                    <div
+                      className={`
+                        eb-dropdown-menu
+                        is-active
+                      })}
+                      `}
+                      role="menu"
+                    >
+                      <div className="eb-content">Edit</div>
+
+                      <div className="eb-content">Delete</div>
+                    </div>
+
+                    <div className="dropdown-trigger">
+                      <DotsVerticalSvg />
+                    </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
 
-                <div className="dropdown-trigger cursor-pointer">
-                  <DotsVerticalSvg />
-                </div>
-              </div>
-            );
+    case StateValue.empty:
+      return (
+        <div
+          id={emptyCommentsContainerId}
+          className={makeClassNames({
+            [noTriggerDocumentEventClassName]: true,
+            "cursor-pointer": true,
+            "font-semibold": true,
+            "text-blue-400": true,
+            "hover:text-blue-500": true,
+            "mb-3": true,
+            "pt-3": true,
           })}
+          onClick={(e) => {
+            commentCb(e, CommentAction.CREATE);
+          }}
+        >
+          No comments. Click here to create one.
+        </div>
+      );
+
+    case StateValue.errors: {
+      const { error } = state.errors.context;
+      return (
+        <div id={commentsErrorContainerId}>
+          <div>
+            <p>Error occurred while fetching comments:</p>
+
+            <p>{error}</p>
+          </div>
+
+          <p>Click here to retry.</p>
         </div>
       );
     }
@@ -749,7 +889,7 @@ function SyncErrorsNotificationComponent(props: {
 }
 
 function UpsertEntryNotification(props: {
-  state: DataState["data"]["states"]["newEntryCreated"];
+  state: DataState["data"]["states"]["entryNotification"];
 }) {
   const { state } = props;
   const { onCloseNewEntryCreatedNotification } = useContext(DispatchContext);
@@ -779,7 +919,7 @@ function DeleteExperienceModal() {
     context: {
       experience: { title },
     },
-  } = useContext(DataStateContextC);
+  } = useContext(DataStateContext);
 
   return (
     <div
@@ -832,18 +972,32 @@ function DeleteExperienceModal() {
   );
 }
 
-function ExperienceMenuComponent() {
+function MenuComponent() {
   const {
-    states: { showingOptionsMenu: state, comments: commentsState },
-  } = useContext(DataStateContextC);
+    states: {
+      showingOptionsMenu: state,
+      comment: commentsState,
+      upsertComment: upsertCommentState,
+    },
+  } = useContext(DataStateContext);
 
   const {
     toggleExperienceMenu,
     onDeleteExperienceRequest,
     requestUpdateExperienceUi,
-    onShowComments,
+    commentCb,
     onOpenNewEntry,
   } = useContext(DispatchContext);
+
+  const createCommentLabel = createCommentsLabelText;
+  let showCommentLabel = "";
+  let hideCommentLabel = "";
+
+  if (commentsState.value === StateValue.initial) {
+    showCommentLabel = showCommentsLabelText;
+  } else {
+    hideCommentLabel = hideCommentsLabelText;
+  }
 
   return (
     <div
@@ -854,7 +1008,9 @@ function ExperienceMenuComponent() {
     >
       <div
         className={makeClassNames({
-          "ebnis-drop-up animation": true,
+          "ebnis-drop-up": true,
+          animation: true,
+          "drop-up-animate-up": true,
           [activeClassName]: state.value === StateValue.active,
           [experienceMenuSelector]: true,
         })}
@@ -879,18 +1035,45 @@ function ExperienceMenuComponent() {
           Delete
         </div>
 
-        <div
-          className={makeClassNames({
-            content: true,
-            [showExperienceCommentsLinkSelector]: true,
-          })}
-          onClick={onShowComments}
-        >
-          {commentsState.value === StateValue.success &&
-          !commentsState.success.context.empty
-            ? hideDetailedExperienceCommentsText
-            : showDetailedExperienceCommentsText}
-        </div>
+        {upsertCommentState.value === StateValue.inactive && (
+          <>
+            {hideCommentLabel && (
+              <div
+                id={hideCommentsMenuId}
+                className={`content`}
+                onClick={(e) => {
+                  commentCb(e, CommentAction.HIDE);
+                }}
+              >
+                {hideCommentLabel}
+              </div>
+            )}
+
+            {showCommentLabel && (
+              <div
+                id={showCommentsMenuId}
+                className={`content`}
+                onClick={(e) => {
+                  commentCb(e, CommentAction.SHOW);
+                }}
+              >
+                {showCommentLabel}
+              </div>
+            )}
+
+            {createCommentLabel && (
+              <div
+                id={createCommentsMenuId}
+                className={`content`}
+                onClick={(e) => {
+                  commentCb(e, CommentAction.CREATE);
+                }}
+              >
+                {createCommentLabel}
+              </div>
+            )}
+          </>
+        )}
 
         <div
           className={makeClassNames({
@@ -917,7 +1100,7 @@ function ExperienceMenuComponent() {
 }
 
 function SuccessNotificationComponent(props: {
-  onClose: (e: ReactMouseAnchorEvent) => void;
+  onClose: (e: ReactMouseEvent) => void;
   message: React.ReactNode;
   domId: string;
   type: "success" | "error";
@@ -945,7 +1128,7 @@ function SyncErrorsMessageNotificationComponent() {
 
   const {
     context: { syncErrors },
-  } = useContext(DataStateContextC);
+  } = useContext(DataStateContext);
 
   const {
     definitionsErrors,

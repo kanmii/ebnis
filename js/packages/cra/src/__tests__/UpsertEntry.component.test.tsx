@@ -1,46 +1,45 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars*/
+import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
+import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import React, { ComponentType } from "react";
-import { render, cleanup, waitFor } from "@testing-library/react";
+import { act } from "react-dom/test-utils";
 import { UpsertEntry } from "../components/UpsertEntry/upsert-entry.component";
 import {
+  fieldErrorSelector,
+  notificationCloseId,
+  submitBtnDomId,
+} from "../components/UpsertEntry/upsert-entry.dom";
+import { createOfflineEntryMutation } from "../components/UpsertEntry/upsert-entry.resolvers";
+import {
+  ActionType,
+  effectFunctions,
+  GeneralEffect,
+  initState,
   Props,
+  reducer,
+  SubmissionErrors,
   toISODateString,
   toISODatetimeString,
-  reducer,
-  ActionType,
-  initState,
-  GeneralEffect,
-  effectFunctions,
-  SubmissionErrors,
 } from "../components/UpsertEntry/upsert-entry.utils";
 import { defaultExperience, fillField } from "../tests.utils";
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
-import {
-  submitBtnDomId,
-  notificationCloseId,
-  fieldErrorSelector,
-} from "../components/UpsertEntry/upsert-entry.dom";
-import { getIsConnected } from "../utils/connections";
-import { UpdateExperiencesOnlineMutationResult } from "../utils/experience.gql.types";
-import { scrollIntoView } from "../utils/scroll-into-view";
-import { createOfflineEntryMutation } from "../components/UpsertEntry/upsert-entry.resolvers";
+import { deleteObjectKey } from "../utils";
+import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { AppPersistor } from "../utils/app-context";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
-import { E2EWindowObject, StateValue } from "../utils/types";
+import { getIsConnected } from "../utils/connections";
 import { makeOfflineId } from "../utils/offlines";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
-import { deleteObjectKey } from "../utils";
-// import { getExperienceQuery } from "../apollo/get-detailed-experience-query";
-import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
+import { scrollIntoView } from "../utils/scroll-into-view";
+import { E2EWindowObject, StateValue } from "../utils/types";
+
+jest.mock("../utils/update-experiences.gql");
+const mockUpdateExperiencesMutation = updateExperiencesMutation as jest.Mock;
 
 jest.mock("../apollo/get-detailed-experience-query");
-
-jest.mock("../apollo/update-get-experiences-list-view-query");
-const mockFloatExperienceToTheTopInGetExperiencesMiniQuery = floatExperienceToTheTopInGetExperiencesMiniQuery as jest.Mock;
 
 jest.mock("../components/UpsertEntry/upsert-entry.resolvers");
 const mockCreateOfflineEntry = createOfflineEntryMutation as jest.Mock;
@@ -92,7 +91,6 @@ jest.mock(
 );
 
 const mockDispatch = jest.fn();
-const mockUpdateExperiencesOnline = jest.fn();
 const mockPersistFn = jest.fn();
 const mockOnSuccess = jest.fn();
 const mockOnClose = jest.fn();
@@ -103,7 +101,9 @@ const persistor = {
 
 const globals = {
   persistor,
-  client: null as any,
+  // client: null as any,
+  // logApolloQueries: true,
+  // logReducers: true,
 } as E2EWindowObject;
 
 beforeAll(() => {
@@ -122,7 +122,6 @@ afterEach(() => {
 describe("component", () => {
   it("connected/renders date field/invalid server response", async () => {
     mockIsConnected.mockReturnValue(true);
-    mockUpdateExperiencesOnline.mockResolvedValue({});
 
     const { ui } = makeComp({
       props: {
@@ -140,24 +139,20 @@ describe("component", () => {
     });
     render(ui);
     const inputEl = document.getElementById("1") as HTMLInputElement;
-    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
     const now = new Date();
     fillField(inputEl, now.toJSON());
+
     expect(getNotificationEl()).toBeNull();
     expect(mockScrollIntoView).not.toHaveBeenCalled();
 
+    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
     submitEl.click();
 
     await waitFor(() => true);
-    const notificationEl = getNotificationEl();
-    expect(mockScrollIntoView).toHaveBeenCalled();
-    notificationEl.click();
-    expect(getNotificationEl()).toBeNull();
 
-    expect(
-      mockUpdateExperiencesOnline.mock.calls[0][0].variables.input[0]
-        .addEntries[0],
-    ).toEqual({
+    const { onError, input } = mockUpdateExperiencesMutation.mock.calls[0][0];
+
+    expect(input[0].addEntries[0]).toEqual({
       dataObjects: [
         {
           data: `{"date":"${toISODateString(now)}"}`,
@@ -166,11 +161,21 @@ describe("component", () => {
       ],
       experienceId: "1",
     });
+
+    act(() => {
+      onError();
+    });
+
+    // const notificationEl = getNotificationEl();
+    const notificationEl = await waitFor(getNotificationEl);
+    expect(mockScrollIntoView).toHaveBeenCalled();
+
+    notificationEl.click();
+    expect(getNotificationEl()).toBeNull();
   });
 
   it("connected/renders datetime field/javascript exception", async () => {
     mockIsConnected.mockReturnValue(true);
-    mockUpdateExperiencesOnline.mockRejectedValue("a");
 
     const { ui } = makeComp({
       props: {
@@ -188,17 +193,18 @@ describe("component", () => {
     });
     render(ui);
     const inputEl = document.getElementById("1") as HTMLInputElement;
-    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
     const now = new Date().toJSON();
     fillField(inputEl, now);
     expect(getNotificationEl()).toBeNull();
 
+    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
     submitEl.click();
-    await waitFor(getNotificationEl);
-    expect(
-      mockUpdateExperiencesOnline.mock.calls[0][0].variables.input[0]
-        .addEntries[0],
-    ).toEqual({
+
+    await waitFor(() => true);
+
+    const { onError, input } = mockUpdateExperiencesMutation.mock.calls[0][0];
+
+    expect(input[0].addEntries[0]).toEqual({
       dataObjects: [
         {
           data: `{"datetime":"${toISODatetimeString(now)}"}`,
@@ -207,41 +213,17 @@ describe("component", () => {
       ],
       experienceId: "1",
     });
+
+    act(() => {
+      onError("a");
+    });
+
+    const notificationEl = await waitFor(getNotificationEl);
+    expect(notificationEl).not.toBeNull();
   });
 
   it("connected/renders integer/server field errors/closes component", async () => {
     mockIsConnected.mockReturnValue(true);
-    mockUpdateExperiencesOnline.mockResolvedValue({
-      data: {
-        updateExperiences: {
-          __typename: "UpdateExperiencesSomeSuccess",
-          experiences: [
-            {
-              __typename: "UpdateExperienceSomeSuccess",
-              entries: {
-                newEntries: [
-                  {
-                    __typename: "CreateEntryErrors",
-                    errors: {
-                      dataObjects: [
-                        {
-                          meta: {
-                            index: 0,
-                          },
-                          clientId: "a",
-                          definitionId: null,
-                        },
-                      ],
-                    },
-                  },
-                ],
-              },
-              experience: {},
-            },
-          ],
-        },
-      },
-    } as UpdateExperiencesOnlineMutationResult);
 
     const { ui } = makeComp({
       props: {
@@ -257,22 +239,26 @@ describe("component", () => {
         },
       },
     });
+
     render(ui);
+
     const inputEl = document.getElementById("1") as HTMLInputElement;
-    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
     fillField(inputEl, "1");
+
     expect(getNotificationEl()).toBeNull();
     expect(getFieldError()).toBeNull();
 
+    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
     submitEl.click();
-    await waitFor(getNotificationEl);
-    expect(getFieldError()).not.toBeNull();
 
-    getCloseComponentEl().click();
-    expect(
-      mockUpdateExperiencesOnline.mock.calls[0][0].variables.input[0]
-        .addEntries[0],
-    ).toEqual({
+    await waitFor(() => true);
+
+    const {
+      onUpdateSuccess,
+      input,
+    } = mockUpdateExperiencesMutation.mock.calls[0][0];
+
+    expect(input[0].addEntries[0]).toEqual({
       dataObjects: [
         {
           data: `{"integer":"1"}`,
@@ -281,6 +267,36 @@ describe("component", () => {
       ],
       experienceId: "1",
     });
+
+    act(() => {
+      onUpdateSuccess({
+        entries: {
+          newEntries: [
+            {
+              __typename: "CreateEntryErrors",
+              errors: {
+                dataObjects: [
+                  {
+                    meta: {
+                      index: 0,
+                    },
+                    clientId: "a",
+                    definitionId: null,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      });
+    });
+
+    const notificationEl = await waitFor(getNotificationEl);
+    expect(notificationEl).not.toBeNull();
+
+    expect(getFieldError()).not.toBeNull();
+
+    getCloseComponentEl().click();
   });
 
   it("unconnected/renders single line text/javascript exception", async () => {
@@ -405,38 +421,6 @@ describe("component", () => {
 
     mockIsConnected.mockReturnValue(true);
 
-    mockUpdateExperiencesOnline.mockResolvedValue({
-      data: {
-        updateExperiences: {
-          __typename: "UpdateExperiencesSomeSuccess",
-          experiences: [
-            {
-              __typename: "UpdateExperienceSomeSuccess",
-              entries: {
-                newEntries: [
-                  {
-                    __typename: "CreateEntryErrors",
-                    errors: {
-                      dataObjects: [
-                        {
-                          meta: {
-                            index: 0,
-                          },
-                          clientId: "a",
-                          definitionId: null,
-                        },
-                      ],
-                    },
-                  },
-                ],
-              },
-              experience: {},
-            },
-          ],
-        },
-      },
-    } as UpdateExperiencesOnlineMutationResult);
-
     const { ui } = makeComp({
       props: {
         updatingEntry,
@@ -462,20 +446,44 @@ describe("component", () => {
 
     const inputEl = document.getElementById("1") as HTMLInputElement;
     expect(inputEl.value).toBe("1");
-    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
+
     fillField(inputEl, "2");
     expect(getNotificationEl()).toBeNull();
     expect(getFieldError()).toBeNull();
 
+    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
     submitEl.click();
-    await waitFor(getNotificationEl);
-    expect(getFieldError()).not.toBeNull();
+    await waitFor(() => true);
 
-    getCloseComponentEl().click();
-    expect(
-      mockUpdateExperiencesOnline.mock.calls[0][0].variables.input[0]
-        .addEntries[0],
-    ).toEqual({
+    const {
+      onUpdateSuccess,
+      input,
+    } = mockUpdateExperiencesMutation.mock.calls[0][0];
+
+    act(() => {
+      onUpdateSuccess({
+        entries: {
+          newEntries: [
+            {
+              __typename: "CreateEntryErrors",
+              errors: {
+                dataObjects: [
+                  {
+                    meta: {
+                      index: 0,
+                    },
+                    clientId: "a",
+                    definitionId: null,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      });
+    });
+
+    expect(input[0].addEntries[0]).toEqual({
       clientId: "a",
       dataObjects: [
         {
@@ -489,6 +497,10 @@ describe("component", () => {
       ],
       experienceId: "1",
     });
+
+    expect(getFieldError()).not.toBeNull();
+
+    getCloseComponentEl().click();
   });
 });
 
@@ -517,7 +529,6 @@ describe("reducer", () => {
   };
 
   const props = ({
-    updateExperiencesOnline: mockUpdateExperiencesOnline as any,
     experience: onlineExperience,
     onSuccess: mockOnSuccess,
     onClose: mockOnClose,
@@ -541,36 +552,24 @@ describe("reducer", () => {
     const { key, ownArgs } = (state.effects
       .general as GeneralEffect).hasEffects.context.effects[0];
 
-    mockUpdateExperiencesOnline.mockResolvedValue({
-      data: {
-        updateExperiences: {
-          __typename: "UpdateExperiencesSomeSuccess",
-          experiences: [
-            {
-              __typename: "UpdateExperienceSomeSuccess",
-              entries: {
-                newEntries: [
-                  {
-                    __typename: "CreateEntrySuccess",
-                    entry: {},
-                  },
-                ],
-              },
-              experience: {},
-            },
-          ],
-        },
-      },
-    } as UpdateExperiencesOnlineMutationResult);
-
     expect(mockPersistFn).not.toHaveBeenCalled();
 
     effectFunctions[key](ownArgs as any, props, effectArgs);
     await waitFor(() => true);
-    expect(
-      mockFloatExperienceToTheTopInGetExperiencesMiniQuery,
-    ).toHaveBeenCalled();
-    expect(mockUpdateExperiencesOnline).toHaveBeenCalled();
+
+    const { onUpdateSuccess } = mockUpdateExperiencesMutation.mock.calls[0][0];
+
+    onUpdateSuccess({
+      entries: {
+        newEntries: [
+          {
+            __typename: "CreateEntrySuccess",
+            entry: {},
+          },
+        ],
+      },
+    });
+
     expect(mockPersistFn).toHaveBeenCalled();
   });
 
@@ -586,27 +585,22 @@ describe("reducer", () => {
     const { key, ownArgs } = (state.effects
       .general as GeneralEffect).hasEffects.context.effects[0];
 
-    mockUpdateExperiencesOnline.mockResolvedValue({
-      data: {
-        updateExperiences: {
-          __typename: "UpdateExperiencesSomeSuccess",
-          experiences: [
-            {
-              __typename: "UpdateExperienceSomeSuccess",
-              entries: {
-                newEntries: [] as any,
-              },
-            },
-          ],
-        },
-      },
-    } as UpdateExperiencesOnlineMutationResult);
-
     expect(mockDispatch).not.toHaveBeenCalled();
 
     effectFunctions[key](ownArgs as any, props, effectArgs);
+
     await waitFor(() => true);
+
     expect(mockPersistFn).not.toHaveBeenCalled();
+
+    const { onUpdateSuccess } = mockUpdateExperiencesMutation.mock.calls[0][0];
+
+    onUpdateSuccess({
+      entries: {
+        newEntries: [],
+      },
+    });
+
     expect(mockDispatch.mock.calls[0][0].type).toBe(ActionType.ON_COMMON_ERROR);
   });
 
@@ -672,7 +666,6 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
     ui: (
       <UpsertEntryP
         {...props}
-        updateExperiencesOnline={mockUpdateExperiencesOnline}
         experience={experience}
         onSuccess={mockOnSuccess}
         onClose={mockOnClose}

@@ -1,32 +1,31 @@
-import React, { useReducer, useCallback, FormEvent, ChangeEvent } from "react";
+import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
+import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import makeClassNames from "classnames";
-import "./upsert-entry.styles.scss";
-import {
-  CallerProps,
-  Props,
-  effectFunctions,
-  reducer,
-  initState,
-  ActionType,
-  DispatchType,
-  FieldState,
-  FormObjVal,
-  Submission,
-} from "./upsert-entry.utils";
-import { useUpdateExperiencesOnlineMutation } from "../../utils/experience.gql.types";
+import React, { ChangeEvent, FormEvent, useCallback, useReducer } from "react";
+import { StateValue } from "../../utils/types";
+import { useRunEffects } from "../../utils/use-run-effects";
+import { errorClassName } from "../../utils/utils.dom";
+import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
 import Loading from "../Loading/loading.component";
 import { componentFromDataType } from "./component-from-data-type";
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
-import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
 import {
-  submitBtnDomId,
-  notificationCloseId,
   fieldErrorSelector,
+  notificationCloseId,
+  submitBtnDomId,
 } from "./upsert-entry.dom";
-import { StateValue } from "../../utils/types";
-import { errorClassName } from "../../utils/utils.dom";
-import { useRunEffects } from "../../utils/use-run-effects";
+import "./upsert-entry.styles.scss";
+import {
+  ActionType,
+  CallerProps,
+  DispatchType,
+  effectFunctions,
+  FieldState,
+  FormObjVal,
+  initState,
+  Props,
+  reducer,
+  Submission,
+} from "./upsert-entry.utils";
 
 export function UpsertEntry(props: Props) {
   const { experience, onClose, className = "" } = props;
@@ -143,7 +142,7 @@ const DataComponent = React.memo(
         type === DataTypes.DATE || type === DataTypes.DATETIME
           ? makeDateChangedFn(dispatch, index)
           : (e: ChangeEvent<HTMLInputElement>) => {
-              let value = e.currentTarget.value;
+              const value = e.currentTarget.value;
 
               dispatch({
                 type: ActionType.ON_FORM_FIELD_CHANGED,
@@ -203,7 +202,7 @@ function NotificationComponent({
   submissionState: Submission;
   onCloseNotification: () => void;
 }) {
-  let errorNode =
+  const errorNode =
     submissionState.value === StateValue.errors &&
     submissionState.errors.context.errors;
 
@@ -253,11 +252,7 @@ function makeDateChangedFn(dispatch: DispatchType, index: number) {
 
 // istanbul ignore next:
 export default (props: CallerProps) => {
-  const [updateExperiencesOnline] = useUpdateExperiencesOnlineMutation();
-
-  return (
-    <UpsertEntry {...props} updateExperiencesOnline={updateExperiencesOnline} />
-  );
+  return <UpsertEntry {...props} />;
 };
 
 interface DataComponentProps {

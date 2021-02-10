@@ -2,15 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "../../../commons//src//styles//extensions.css";
+
+body {
+  @extend %scroll-bar;
+}
+
+.eb-tiny-scroll {
+  @extend %scroll-bar;
+}
+
+button:focus,
+button:active {
+  outline: none;
+}
+
 .animation {
-  animation-duration: 1s;
+  animation-duration: 0.6s;
   animation-fill-mode: both;
 }
 
 @keyframes drop-up-animate-up {
   0% {
     transform: translateY(20px);
-    opacity: 0.5;
+    opacity: 0.7;
   }
 
   80% {
@@ -23,35 +38,63 @@
   }
 }
 
-.ebnis-dropdown-menu {
-  @apply relative inline-flex align-top;
+.drop-up-animate-up {
+  animation-name: drop-up-animate-up;
+}
 
-  .dropdown-menu {
-    @apply left-auto right-0 pt-1 absolute z-20 top-0;
-    min-width: 12rem;
-  }
+.eb-dropdown-menu {
+  @apply bg-white hidden;
 
-  .dropdown-content {
-    @apply bg-white rounded pl-5 font-semibold cursor-pointer;
+  .eb-content {
+    @apply bg-white
+      rounded
+      cursor-pointer
+      pl-4
+      pr-3
+      pt-3
+      pb-3
+      z-20
+      whitespace-nowrap;
+    border-top-width: 0.5px;
   }
 
   &.is-active {
-    .dropdown-menu {
-      @apply block;
-    }
+    @apply flex
+      flex-col
+      absolute
+      top-0
+      shadow-md;
+    right: 24px;
+    min-width: 10rem;
   }
+}
+
+.dropdown-trigger {
+  @apply cursor-pointer;
 }
 
 .ebnis-drop-up {
   @apply hidden;
-  animation-name: drop-up-animate-up;
 
   .content {
-    @apply cursor-pointer bg-blue-400 mb-2 pl-2 pr-4 py-1 text-white mb-4 font-bold whitespace-nowrap;
+    @apply cursor-pointer
+      bg-blue-400
+      mb-2
+      pl-2
+      pr-4
+      py-1
+      text-white
+      mb-4
+      font-bold
+      whitespace-nowrap;
   }
 
   &.is-active {
-    @apply flex flex-col items-end absolute right-0;
+    @apply flex
+      flex-col
+      items-end
+      absolute
+      right-0;
     bottom: 50px;
   }
 }
@@ -63,7 +106,13 @@
   bottom: var(--floating-circular-bottom);
 
   .circular {
-    @apply flex items-center justify-center rounded-full text-white font-black cursor-pointer;
+    @apply flex
+      items-center
+      justify-center
+      rounded-full
+      text-white
+      font-black
+      cursor-pointer;
     width: 50px;
     height: 50px;
     background-color: var(--app-color);
@@ -84,4 +133,127 @@
   visibility: hidden;
   clip: rect(1px, 1px, 1px, 1px);
   display: block;
+}
+
+.eb {
+  /* BUTTON */
+  &-btn {
+    @extend %button;
+  }
+
+  &-delete {
+    @apply bg-gray-300
+      rounded-full
+      cursor-pointer
+      flex-grow-0
+      flex-shrink-0
+      h-5
+      w-5
+      align-top
+      border-0
+      text-white
+      text-xs
+      inline-flex
+      justify-center
+      items-center
+      border-none;
+
+    &:hover {
+      @apply bg-gray-400;
+    }
+
+    &:active {
+      @apply bg-gray-400;
+    }
+
+    &:focus {
+      @apply bg-gray-400;
+    }
+
+    .is-success & {
+      @apply bg-green-500;
+    }
+  }
+
+  /* MODAL */
+  &-modal {
+    @apply items-center
+      flex-col
+      justify-center
+      overflow-hidden
+      fixed
+      z-40
+      bottom-0
+      left-0
+      right-0
+      top-0
+      flex;
+
+    &-background {
+      @apply bg-black
+        absolute
+        bottom-0
+        left-0
+        right-0
+        top-0;
+    }
+
+    &-card {
+      max-height: min(80vh, 40rem);
+      margin: 0 auto;
+
+      @apply flex
+        flex-col
+        overflow-hidden
+        relative
+        w-11/12;
+
+      @media (min-width: 580px) {
+        width: 540px;
+      }
+
+      &-head {
+        @apply border
+          rounded
+          border-gray-400
+          bg-gray-100
+          flex
+          flex-shrink-0
+          justify-start
+          relative
+          rounded-b-none
+          border-b-0
+          p-4;
+      }
+
+      &-title {
+        @apply text-black
+          flex-grow
+          flex-shrink-0
+          text-base;
+      }
+
+      &-body {
+        @apply bg-white
+          flex-grow
+          flex-shrink
+          overflow-auto
+          p-4;
+      }
+
+      &-foot {
+        @apply border-t
+          rounded-b
+          border-gray-100
+          border-solid
+          items-center
+          bg-gray-100
+          flex
+          flex-shrink-0
+          justify-start
+          p-5
+          relative;
+      }
+    }
+  }
 }

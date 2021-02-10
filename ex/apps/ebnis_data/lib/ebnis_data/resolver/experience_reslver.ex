@@ -4,6 +4,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
   alias EbnisData.Resolver
   alias EbnisData.Experience
   alias EbnisData.Entry
+  alias EbnisData.Comment
 
   defp changeset_errors_to_map(errors) do
     errors
@@ -101,7 +102,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
         experience_id = params.experience_id
 
         case EbnisData.update_experience(params, user.id) do
-          {:ok, erfahrung_komponenten, einträge_komponenten} ->
+          {:ok, erfahrung_komponenten, processed_associations} ->
             with_experience_id = %{
               experience_id: experience_id
             }
@@ -115,7 +116,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
 
             einträge =
               Enum.reduce(
-                einträge_komponenten,
+                processed_associations.entries,
                 %{},
                 &verarbeiten_bearbeiten_erfahrung_einträge(
                   &1,
@@ -124,9 +125,21 @@ defmodule EbnisData.Resolver.ExperienceResolver do
                 )
               )
 
+            comments =
+              Enum.reduce(
+                processed_associations.comments,
+                %{},
+                &process_update_experience_comments(
+                  &1,
+                  &2,
+                  experience_id
+                )
+              )
+
             %{
               experience: bearbeitet_erfahrung,
-              entries: einträge
+              entries: einträge,
+              comments: comments
             }
 
           {:error, error} ->
@@ -344,6 +357,52 @@ defmodule EbnisData.Resolver.ExperienceResolver do
             )
         }
     end)
+  end
+
+  defp process_update_experience_comments(
+         {
+           :new_comments,
+           may_be_new_comments
+         },
+         acc,
+         _
+       ) do
+    Map.put(
+      acc,
+      :inserts,
+      may_be_new_comments
+      |> Enum.with_index()
+      |> Enum.map(&process_update_experience_comment/1)
+    )
+  end
+
+  defp process_update_experience_comment({
+         %Comment{} = comment,
+         _index
+       }) do
+    %{
+      comment: comment
+    }
+  end
+
+  defp process_update_experience_comment({changeset, index}) do
+    %{
+      errors: %{
+        meta: %{
+          index: index
+        },
+        errors:
+          changeset.errors
+          |> Resolver.changeset_errors_to_map()
+          |> Enum.reduce(%{}, fn
+            {:text, v}, acc ->
+              Map.put(acc, :error, "text #{v}")
+
+            {k, v}, acc ->
+              Map.put(acc, k, "#{k} #{v}")
+          end)
+      }
+    }
   end
 
   defp entry_changeset_errors_to_map(changeset) do
@@ -761,5 +820,13 @@ defmodule EbnisData.Resolver.ExperienceResolver do
 
   def get_experience_comments(_, _) do
     Resolver.unauthorized()
+  end
+
+  def comment_union(%{errors: _}, _) do
+    :comment_union_errors
+  end
+
+  def comment_union(_, _) do
+    :comment_success
   end
 end

@@ -354,10 +354,141 @@ export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_exp
     | null;
 }
 
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentSuccess_comment {
+  __typename: "Comment";
+  id: string;
+  text: string;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentSuccess {
+  __typename: "CommentSuccess";
+  comment: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentSuccess_comment;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors_meta {
+  __typename: "CommentErrorsMeta";
+  index: number;
+  id: string | null;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors_errors {
+  __typename: "CommentErrorsErrors";
+  id: string | null;
+  association: string | null;
+  error: string | null;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors {
+  __typename: "CommentErrors";
+  meta: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors_meta | null;
+  errors: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors_errors;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors {
+  __typename: "CommentUnionErrors";
+  errors: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors;
+}
+
+export type SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates =
+  | SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentSuccess
+  | SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors;
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentSuccess_comment {
+  __typename: "Comment";
+  id: string;
+  text: string;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentSuccess {
+  __typename: "CommentSuccess";
+  comment: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentSuccess_comment;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors_meta {
+  __typename: "CommentErrorsMeta";
+  index: number;
+  id: string | null;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors_errors {
+  __typename: "CommentErrorsErrors";
+  id: string | null;
+  association: string | null;
+  error: string | null;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors {
+  __typename: "CommentErrors";
+  meta: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors_meta | null;
+  errors: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors_errors;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors {
+  __typename: "CommentUnionErrors";
+  errors: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors;
+}
+
+export type SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts =
+  | SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentSuccess
+  | SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors;
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentSuccess_comment {
+  __typename: "Comment";
+  id: string;
+  text: string;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentSuccess {
+  __typename: "CommentSuccess";
+  comment: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentSuccess_comment;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors_meta {
+  __typename: "CommentErrorsMeta";
+  index: number;
+  id: string | null;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors_errors {
+  __typename: "CommentErrorsErrors";
+  id: string | null;
+  association: string | null;
+  error: string | null;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors {
+  __typename: "CommentErrors";
+  meta: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors_meta | null;
+  errors: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors_errors;
+}
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors {
+  __typename: "CommentUnionErrors";
+  errors: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors;
+}
+
+export type SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes =
+  | SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentSuccess
+  | SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors;
+
+export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments {
+  __typename: "CommentCrud";
+  updates:
+    | SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates[]
+    | null;
+  inserts:
+    | SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts[]
+    | null;
+  deletes:
+    | SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes[]
+    | null;
+}
+
 export interface SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess {
   __typename: "UpdateExperienceSomeSuccess";
   experience: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_experience;
   entries: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_entries | null;
+  comments: SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments | null;
 }
 
 export type SyncToServer_updateExperiences_UpdateExperiencesSomeSuccess_experiences =
