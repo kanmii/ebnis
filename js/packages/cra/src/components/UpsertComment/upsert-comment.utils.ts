@@ -1,11 +1,14 @@
-import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
 import { CommentFragment } from "@eb/cm/src/graphql/apollo-types/CommentFragment";
 import { CommentInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
 import { DeepReadonly } from "utility-types";
 import { wrapReducer } from "../../logger";
-import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
+import {
+  GENERIC_SERVER_ERROR,
+  parseStringError,
+} from "../../utils/common-errors";
 import {
   GenericEffectDefinition,
   GenericGeneralEffect,
@@ -21,10 +24,7 @@ import {
   UnChangedVal,
   UpdateVal,
 } from "../../utils/types";
-import {
-  GENERIC_SERVER_ERROR,
-  parseStringError,
-} from "../../utils/common-errors";
+import { UpdateExperiencesMutation } from "../../utils/update-experiences.gql";
 
 export enum ActionType {
   SUBMISSION = "@upsert-comment/submission",
@@ -210,7 +210,7 @@ const upsertEffect: DefInsertExperienceEffect["func"] = async (
   effectArgs,
 ) => {
   const { dispatch } = effectArgs;
-  const { association, onSuccess } = props;
+  const { association, onSuccess, updateExperiencesMutation } = props;
   const { input } = ownArgs;
 
   updateExperiencesMutation({
@@ -371,7 +371,9 @@ export type CallerProps = {
   onClose: (e: ReactMouseEvent) => void;
 };
 
-export type Props = CallerProps;
+export type Props = CallerProps & {
+  updateExperiencesMutation: UpdateExperiencesMutation;
+};
 
 // ====================================================
 // START ACTIONS SECTION

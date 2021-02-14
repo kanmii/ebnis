@@ -1,6 +1,7 @@
 import { ReactComponent as ExclamationErrorSvg } from "@eb/cm/src/styles/exclamation-error.svg";
 import { ChangeEvent, useCallback, useReducer } from "react";
 import { StateValue } from "../../utils/types";
+import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
 import {
   closeId,
@@ -244,7 +245,12 @@ function TextComponent(props: TextProps) {
 
 // istanbul ignore next:
 export default (props: CallerProps) => {
-  return <UpsertComment {...props} />;
+  return (
+    <UpsertComment
+      updateExperiencesMutation={updateExperiencesMutation}
+      {...props}
+    />
+  );
 };
 
 interface TextProps {

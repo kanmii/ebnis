@@ -1,5 +1,3 @@
-import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
-import { getCachedExperienceDetailView } from "../apollo/get-detailed-experience-query";
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { UpdateExperienceInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import { UpdateExperienceSomeSuccessFragment } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
@@ -8,14 +6,16 @@ import {
   UpdateExperiencesOnlineVariables,
 } from "@eb/cm/src/graphql/apollo-types/UpdateExperiencesOnline";
 import { UPDATE_EXPERIENCES_ONLINE_MUTATION } from "@eb/cm/src/graphql/experience.gql";
+import { getCachedExperienceDetailView } from "../apollo/get-detailed-experience-query";
 import { updateExperiencesManualCacheUpdate } from "../apollo/update-experiences-manual-cache-update";
+import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
 import { CommonError } from "../utils/types";
 
 export async function updateExperiencesMutation({
   input,
   onUpdateSuccess,
   onError,
-}: UpdateExperiencesMutationFn) {
+}: UpdateExperiencesMutationArgs) {
   const { client } = window.____ebnis;
 
   try {
@@ -62,7 +62,7 @@ export async function updateExperiencesMutation({
   }
 }
 
-type UpdateExperiencesMutationFn = {
+type UpdateExperiencesMutationArgs = {
   input: UpdateExperienceInput[];
   onUpdateSuccess: (
     updateResult: UpdateExperienceSomeSuccessFragment,
@@ -71,3 +71,5 @@ type UpdateExperiencesMutationFn = {
   onError: (error?: CommonError) => void;
   onDone?: () => void;
 };
+
+export type UpdateExperiencesMutation = typeof updateExperiencesMutation;

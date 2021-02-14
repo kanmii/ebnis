@@ -26,6 +26,7 @@ import {
 import { fillField, getById, getEffects, mockComment1 } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { E2EWindowObject } from "../utils/types";
+import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 
 jest.mock("../apollo/update-get-experiences-list-view-query");
 const mockFloatExperienceToTheTopInGetExperiencesMiniQuery = floatExperienceToTheTopInGetExperiencesMiniQuery as jest.Mock;
@@ -206,6 +207,7 @@ describe("UpsertComment", () => {
         id: "a",
       },
       onSuccess: mockOnSuccess,
+      updateExperiencesMutation,
     } as unknown) as Props;
 
     it("errors on create", async () => {
@@ -289,12 +291,13 @@ function makeComp(props: Partial<Props> = {}) {
   return {
     ui: (
       <UpsertCommentP
-        {...props}
+        updateExperiencesMutation={updateExperiencesMutation}
         onSuccess={mockOnSuccess}
         onClose={mockOnClose}
         association={{
           id: "a",
         }}
+        {...props}
       />
     ),
   };
