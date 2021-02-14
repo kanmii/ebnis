@@ -15,6 +15,7 @@ import React, {
   useReducer,
 } from "react";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
+import { getExperienceComments } from "../../utils/experience.gql.types";
 import { setUpRoutePage } from "../../utils/global-window";
 import { OnlineStatus, StateValue } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
@@ -329,6 +330,7 @@ export default (props: CallerProps) => {
       {...props}
       deleteExperiences={deleteExperiences}
       componentTimeoutsMs={componentTimeoutsMs}
+      getExperienceComments={getExperienceComments}
     />
   );
 };

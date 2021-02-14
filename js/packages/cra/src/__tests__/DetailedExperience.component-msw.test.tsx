@@ -24,6 +24,7 @@ import {
   hideCommentsMenuId,
   showCommentsMenuId,
 } from "../components/DetailExperience/detail-experience.dom";
+import { getExperienceComments } from "../utils/experience.gql.types";
 import { scrollDocumentToTop } from "../components/DetailExperience/detail-experience.injectables";
 import {
   Match,
@@ -480,8 +481,9 @@ function makeComp({
   return {
     ui: (
       <DetailExperienceP
-        {...props}
         componentTimeoutsMs={{ fetchRetries: [0], closeNotification: 0 }}
+        getExperienceComments={getExperienceComments}
+        {...props}
       />
     ),
   };

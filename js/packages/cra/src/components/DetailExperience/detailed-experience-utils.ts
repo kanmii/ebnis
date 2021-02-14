@@ -67,7 +67,7 @@ import {
   getEntriesDetailView,
   GetEntriesDetailViewQueryResult,
   getExperienceAndEntriesDetailView,
-  getExperienceComments,
+  GetExperienceCommentsFn,
   GetExperienceCommentsQueryResult,
 } from "../../utils/experience.gql.types";
 import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
@@ -2135,6 +2135,7 @@ const fetchCommentsEffect: DefFetchCommentsEffect["func"] = async (
 
   const {
     componentTimeoutsMs: { fetchRetries },
+    getExperienceComments,
   } = props;
 
   const maybeCachedExperience = readExperienceCompleteFragment(experienceId);
@@ -2873,6 +2874,7 @@ export type CallerProps = RouteChildrenProps<
 export type Props = DeleteExperiencesComponentProps &
   CallerProps & {
     componentTimeoutsMs: ComponentTimeoutsMs;
+    getExperienceComments: GetExperienceCommentsFn;
   };
 
 export type Match = match<DetailExperienceRouteMatch>;

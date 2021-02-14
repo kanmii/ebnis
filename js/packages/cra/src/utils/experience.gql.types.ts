@@ -275,4 +275,6 @@ export function getExperienceComments(variables: { experienceId: string }) {
   });
 }
 
+export type GetExperienceCommentsFn = typeof getExperienceComments;
+
 export type GetExperienceCommentsQueryResult = ApolloQueryResult<GetExperienceComments>;
