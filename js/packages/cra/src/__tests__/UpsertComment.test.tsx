@@ -7,25 +7,24 @@ import { makeApolloClient } from "../apollo/client";
 import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
 import UpsertComment from "../components/UpsertComment/upsert-comment.component";
 import {
+  closeId,
   errorsId,
+  resetId,
   submitId,
   textInputId,
-  resetId,
-  closeId,
 } from "../components/UpsertComment/upsert-comment.dom";
 import {
   ActionType,
   EffectArgs,
   effectFunctions,
-  EffectType,
+  EffectType as E,
   initState,
   Props,
   reducer,
-  StateMachine,
+  StateMachine as S,
 } from "../components/UpsertComment/upsert-comment.utils";
-import { fillField, getById, mockComment1 } from "../tests.utils";
+import { fillField, getById, getEffects, mockComment1 } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
-import { GenericHasEffect } from "../utils/effects";
 import { E2EWindowObject } from "../utils/types";
 
 jest.mock("../apollo/update-get-experiences-list-view-query");
@@ -267,7 +266,7 @@ describe("UpsertComment", () => {
         type: ActionType.SUBMISSION,
       });
 
-      const { key, ownArgs } = getEffects(submitState)[0];
+      const { key, ownArgs } = getEffects<E, S>(submitState)[0];
       await effectFunctions[key](ownArgs, props, effectArgs);
 
       const calls = await waitForCount(() => {
@@ -299,9 +298,4 @@ function makeComp(props: Partial<Props> = {}) {
       />
     ),
   };
-}
-
-function getEffects(state: StateMachine) {
-  return (state.effects.general as GenericHasEffect<EffectType>).hasEffects
-    .context.effects;
 }

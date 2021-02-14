@@ -6,6 +6,7 @@ import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/Expe
 import { GetEntriesUnionFragment } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import { fireEvent } from "@testing-library/react";
+import { GenericGeneralEffect, GenericHasEffect } from "./utils/effects";
 import { makeOfflineId } from "./utils/offlines";
 
 export function fillField(element: Element, value: string) {
@@ -134,3 +135,8 @@ export const mockOnlineExperience1 = {
   ],
   __typename: "Experience",
 } as ExperienceCompleteFragment;
+
+export function getEffects<E, S extends GenericGeneralEffect<E>>(state: S) {
+  return (state.effects.general as GenericHasEffect<E>).hasEffects.context
+    .effects;
+}
