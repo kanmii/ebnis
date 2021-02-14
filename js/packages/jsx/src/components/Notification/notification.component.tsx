@@ -1,5 +1,4 @@
-import { ComponentProps } from "@eb/cm/src/utils/types/react";
-import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+import { ComponentProps, ReactMouseEvent } from "@eb/cm/src/utils/types/react";
 
 export function Notification(props: Props) {
   const { children, type, onClose } = props;
@@ -8,7 +7,6 @@ export function Notification(props: Props) {
 
   return (
     <div
-      id={id}
       className={`
         ${type === "success" ? "is-success bg-green-400" : ""}
         text-white
@@ -19,6 +17,7 @@ export function Notification(props: Props) {
       `}
     >
       <button
+        id={id}
         className={`
           eb-delete
           absolute

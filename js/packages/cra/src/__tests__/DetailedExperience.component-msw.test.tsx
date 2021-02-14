@@ -19,8 +19,10 @@ import {
 import { useWithSubscriptionContext } from "../apollo/injectables";
 import { DetailExperience } from "../components/DetailExperience/detail-experience.component";
 import {
-  commentNotificationId,
+  commentNotificationCloseId,
   commentsErrorContainerId,
+  commentsHeaderNewId,
+  commentSuccessSelector,
   createCommentsMenuId,
   emptyCommentsContainerId,
   hideCommentsMenuId,
@@ -45,6 +47,8 @@ import {
   getEffects,
   mockComment1,
   mockComment1Id,
+  mockComment2,
+  mockComment2Id,
   mockOnlineExperience1,
   mockOnlineExperienceId1,
   onlineEntrySuccess,
@@ -62,7 +66,7 @@ const mockGetExperienceComments = DetailExperienceInjectables.getExperienceComme
 
 const mockUpsertCommentSuccessId = "@test/1";
 const mockUpsertCommentCloseId = "@test/2";
-const mockSuccess: CommentFragment = {
+const mockNewCommentSuccess: CommentFragment = {
   ...mockComment1,
 };
 jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
@@ -76,7 +80,7 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
           <button
             id={mockUpsertCommentSuccessId}
             onClick={() => {
-              onSuccess(mockSuccess);
+              onSuccess(mockNewCommentSuccess);
             }}
           />
 
@@ -436,7 +440,7 @@ describe("components", () => {
       expect(getById(mockUpsertCommentSuccessId)).toBeNull();
 
       // Notification should not be visible
-      expect(getById(commentNotificationId)).toBeNull();
+      expect(getById(commentNotificationCloseId)).toBeNull();
 
       // Page should not be scrolled
       expect(mockScrollDocumentToTop).not.toHaveBeenCalled();
@@ -451,25 +455,113 @@ describe("components", () => {
       getById(mockUpsertCommentSuccessId).click();
 
       // Notification should be visible
-      expect(getById(commentNotificationId)).not.toBeNull();
+      expect(getById(commentNotificationCloseId)).not.toBeNull();
 
       // Comment should be visible
       expect(getById(mockComment1Id)).not.toBeNull();
 
       // Notification should not be visible after a while
       await waitFor(() => {
-        expect(getById(commentNotificationId)).toBeNull();
+        expect(getById(commentNotificationCloseId)).toBeNull();
       });
 
       // Page should be scrolled
       expect(mockScrollDocumentToTop).toHaveBeenCalled();
 
-      // When comment UI is closed
-      // getById(mockUpsertCommentCloseId).click();
-
       // Comment Ui should not be visible
       expect(getById(mockUpsertCommentCloseId)).toBeNull();
       expect(getById(mockUpsertCommentSuccessId)).toBeNull();
+    });
+  });
+
+  it("none empty comments/insert comment/close upsert comment UI", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
+      data: {
+        getExperience: mockOnlineExperience1,
+      },
+    });
+
+    const mockOnlineExperience1WithComment = {
+      ...mockOnlineExperience1,
+      comments: [mockComment2],
+    };
+
+    mockReadExperienceCompleteFragment.mockReturnValue(
+      mockOnlineExperience1WithComment,
+    );
+
+    const { ui } = makeComp();
+    await act(async () => {
+      render(ui);
+
+      // Show comments menu item should not be visible
+      expect(getById(showCommentsMenuId)).toBeNull();
+
+      // Show comments menu item should be visible shortly
+      const showCommentMenuItem = await waitFor(() => {
+        const commentMenuItem = getById(showCommentsMenuId);
+        expect(commentMenuItem).not.toBeNull();
+        return commentMenuItem;
+      });
+
+      // Button to create new comment should not be visible
+      expect(getById(commentsHeaderNewId)).toBeNull();
+
+      // When show comments menu item is clicked
+      showCommentMenuItem.click();
+
+      // Button to create new comment should be visible
+      const insertCommentEl = await waitFor(() => {
+        const el = getById(commentsHeaderNewId);
+        expect(el).not.toBeNull();
+        return el;
+      });
+
+      // Upsert comment UI should not be visible
+      expect(getById(mockUpsertCommentSuccessId)).toBeNull();
+
+      // When user clicks to create element
+      insertCommentEl.click();
+
+      // Upsert comment UI should be visible
+      expect(getById(mockUpsertCommentSuccessId)).not.toBeNull();
+
+      // When insert comment UI is closed
+      getById(mockUpsertCommentCloseId).click();
+
+      // Upsert comment UI should not be visible
+      expect(getById(mockUpsertCommentSuccessId)).toBeNull();
+
+      // There should be only one comment displayed
+      const el = document.getElementsByClassName(commentSuccessSelector);
+      expect(el.length).toBe(1);
+      expect(el.item(0)).toBe(getById(mockComment2Id));
+
+      // When menu to create new comment is clicked
+      getById(createCommentsMenuId).click();
+
+      // New comment should not be visible
+      expect(getById(mockComment1Id)).toBeNull();
+
+      // Notification should not be visible
+      expect(getById(commentNotificationCloseId)).toBeNull();
+
+      // When user create a comment successfully
+      getById(mockUpsertCommentSuccessId).click();
+
+      // Two comments should be displayed
+      expect(el.length).toBe(2);
+
+      // First comment should be newly created comment
+      expect(el.item(0)).toBe(getById(mockComment1Id));
+
+      // When notification is closed
+      getById(commentNotificationCloseId).click();
+
+      // Notification should not be visible
+      expect(getById(commentNotificationCloseId)).toBeNull();
     });
   });
 });

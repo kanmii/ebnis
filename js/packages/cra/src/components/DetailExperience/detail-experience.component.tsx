@@ -30,8 +30,10 @@ import {
   closeSyncErrorsMsgBtnId,
   closeSyncErrorsMsgId,
   closeUpsertEntryNotificationId,
-  commentNotificationId,
+  commentNotificationCloseId,
   commentsErrorContainerId,
+  commentsHeaderNewId,
+  commentSuccessSelector,
   createCommentsLabelText,
   createCommentsMenuId,
   deleteExperienceMenuItemSelector,
@@ -681,6 +683,7 @@ function CommentsComponent(props: { state: CommentState }) {
             >
               <div>Comments</div>
               <span
+                id={commentsHeaderNewId}
                 className={`
                   bg-blue-300
                   cursor-pointer
@@ -700,7 +703,7 @@ function CommentsComponent(props: { state: CommentState }) {
 
             {commentNotification.value === StateValue.active && (
               <Notification
-                id={commentNotificationId}
+                id={commentNotificationCloseId}
                 type="success"
                 onClose={(e) => {
                   commentCb(e, CommentAction.CLOSE_NOTIFICATION);
@@ -717,10 +720,11 @@ function CommentsComponent(props: { state: CommentState }) {
                 <div
                   key={id}
                   id={id}
-                  className={makeClassNames({
-                    "shadow-lg": true,
-                    relative: true,
-                  })}
+                  className={`
+                    ${commentSuccessSelector}
+                    shadow-lg
+                    relative
+                 `}
                 >
                   <p
                     className={`

@@ -114,6 +114,14 @@ export const mockComment1: CommentFragment = {
   __typename: "Comment",
 };
 
+export const mockComment2Id = "comment-2";
+
+export const mockComment2: CommentFragment = {
+  id: mockComment2Id,
+  text: "comment-2",
+  __typename: "Comment",
+};
+
 export const mockOnlineExperienceId1 = "onlineId";
 const mockOnlineDefinitionId1 = "1";
 

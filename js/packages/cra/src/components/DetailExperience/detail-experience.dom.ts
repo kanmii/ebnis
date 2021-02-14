@@ -27,10 +27,12 @@ export const hideCommentsMenuId = `${domPrefix}-hide-comments-menu-item`;
 export const createCommentsMenuId = `${domPrefix}-create-comments-menu-item`;
 export const emptyCommentsContainerId = `${domPrefix}-empty-comments-container-id`;
 export const commentsErrorContainerId = `${domPrefix}-comments-error-container-id`;
+export const commentSuccessSelector = `js-${domPrefix}-comment-success`;
 export const editExperienceMenuItemSelector = `${domPrefix}-edit-experience-menu-item`;
 export const deleteExperienceMenuItemSelector = `${domPrefix}-delete-experience-menu-item`;
 export const newEntryMenuItemSelector = `${domPrefix}-new-entry-menu-item`;
-export const commentNotificationId = `${domPrefix}-comment-notification`;
+export const commentNotificationCloseId = `${domPrefix}-comment-notification-close`;
+export const commentsHeaderNewId = `${domPrefix}-comments-header-new-comment`;
 
 export const showCommentsLabelText = `Show comments`;
 export const hideCommentsLabelText = `Hide comments`;
