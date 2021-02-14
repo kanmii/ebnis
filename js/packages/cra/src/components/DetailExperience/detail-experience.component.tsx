@@ -218,6 +218,7 @@ export function DetailExperience(props: Props) {
           onlineStatus,
         });
       },
+      // istanbul ignore next:
       onUpdateExperienceError() {
         //
       },
