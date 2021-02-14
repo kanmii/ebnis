@@ -1524,10 +1524,21 @@ function handleOnUpsertCommentAction(
         {
           dataState.value = StateValue.success;
 
-          dataState.success = {
-            context: {
-              comments: [comment],
-            },
+          const success =
+            dataState.success ||
+            // istanbul ignore next:
+            ({
+              states: {
+                menu: {
+                  value: StateValue.inactive,
+                },
+              },
+            } as CommentDataSate["success"]);
+
+          dataState.success = success;
+
+          success.context = {
+            comments: [comment],
           };
 
           commentCreated(proxy);
