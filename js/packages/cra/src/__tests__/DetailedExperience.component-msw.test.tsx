@@ -28,7 +28,7 @@ import {
   hideCommentsMenuId,
   showCommentsMenuId,
 } from "../components/DetailExperience/detail-experience.dom";
-import * as DetailExperienceInjectables from "../components/DetailExperience/detail-experience.injectables";
+import { scrollDocumentToTop } from "../components/DetailExperience/detail-experience.injectables";
 import {
   ActionType,
   CommentAction,
@@ -61,8 +61,8 @@ import { E2EWindowObject } from "../utils/types";
 jest.mock("../apollo/sync-to-server-cache");
 
 jest.mock("../components/DetailExperience/detail-experience.injectables");
-const mockScrollDocumentToTop = DetailExperienceInjectables.scrollDocumentToTop as jest.Mock;
-const mockGetExperienceComments = DetailExperienceInjectables.getExperienceComments as jest.Mock;
+const mockScrollDocumentToTop = scrollDocumentToTop as jest.Mock;
+const mockGetExperienceComments = jest.fn();
 
 const mockUpsertCommentSuccessId = "@test/1";
 const mockUpsertCommentCloseId = "@test/2";
