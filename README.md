@@ -36,7 +36,7 @@ Inside the container:
 2. Node name is `MIX_ENV` by default. Customize by setting `DEV_NODE_NAME`
    environment variable.
 
-See the file `backend/entrypoint.sh`
+See the file `ex/entrypoint.sh`
 
 ---
 
@@ -59,9 +59,9 @@ or `HOSTNAME` environment variable inside the container
 or run `docker ps` in another shell to obtain your `container_id`
 
 To make it easy, a `bash` alias was created: `conn-iex`
-See the file `backend/entrypoint.sh`
+See the file `ex/entrypoint.sh`
 
-# Testing elixir backend
+# Testing elixir app
 
 In a new shell, `docker-compose exec` into a running `api` docker-compose
 service container running in development mode:
@@ -101,7 +101,7 @@ And set `MIX_ENV` to `prod`
 Source the environment variables in your shell and build the docker image
 
 ```
-set -a; . .env-prod; set +a; docker build --build-arg DOCKER_HOST_USER_NAME -t ebnis-be-release ./backend
+set -a; . .env-prod; set +a; docker build --build-arg DOCKER_HOST_USER_NAME -t ebnis-be-release ./ex
 ```
 
 A docker image named `ebnis-be-release` will be built
@@ -166,9 +166,9 @@ docker run -it --rm \
   ebnis-be-release /usr/local/bin/entrypoint.sh
 ```
 
-## frontend
+## Javascript App
 
-`cd` into `frontend` folder
+`cd` into `js` folder
 
 Get dependencies
 

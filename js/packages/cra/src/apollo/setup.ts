@@ -1,0 +1,189 @@
+/* istanbul ignore file */
+import { ApolloClient, InMemoryCache } from "@apollo/client";
+import { Any } from "@eb/cm/src/utils/types";
+import { CachePersistor } from "apollo-cache-persist-dev";
+import {
+  PersistedData,
+  PersistentStorage,
+} from "apollo-cache-persist-dev/types";
+import { makeBChannel } from "../utils/broadcast-channel-manager";
+import {
+  makeConnectionObject,
+  resetConnectionObject,
+} from "../utils/connections";
+import { E2EWindowObject } from "../utils/types";
+import { makeApolloClient } from "./client";
+import { SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY } from "./schema-keys";
+
+export function buildClientCache(
+  {
+    uri,
+    resolvers,
+    newE2eTest,
+    appHydrated,
+  }: BuildClientCache = {} as BuildClientCache,
+) {
+  // use cypress version of cache if it has been set by cypress
+  const globalVars = getOrMakeGlobals(newE2eTest);
+  let { cache, persistor } = globalVars;
+
+  // cache has been set by e2e test
+  if (cache) {
+    // e2e test is now serving our app
+    if (appHydrated) {
+      // storeConnectionStatus(true);
+    }
+    return globalVars;
+  }
+
+  const { client, ...others } = makeApolloClient({ uri });
+  cache = others.cache;
+
+  persistor = makePersistor(cache, persistor);
+
+  if (resolvers) {
+    client.addResolvers(resolvers);
+  }
+
+  const { bc } = addToGlobals({ client, cache, persistor });
+
+  return { client, cache, persistor, bc };
+}
+
+function makePersistor(
+  appCache: InMemoryCache,
+  persistor?: CachePersistor<Any>,
+) {
+  persistor = persistor
+    ? persistor
+    : (new CachePersistor({
+        cache: appCache,
+        storage: localStorage as PersistentStorage<PersistedData<Any>>,
+        key: SCHEMA_KEY,
+        maxSize: false,
+      }) as CachePersistor<Any>);
+
+  return persistor;
+}
+
+export async function restoreCacheOrPurgeStorage(
+  persistor: CachePersistor<Any>,
+) {
+  if (persistor === getGlobalsFromCypress().persistor) {
+    return persistor;
+  }
+
+  const currentVersion = localStorage.getItem(SCHEMA_VERSION_KEY);
+
+  if (currentVersion === SCHEMA_VERSION) {
+    // If the current version matches the latest version,
+    // we're good to go and can restore the cache.
+    await persistor.restore();
+  } else {
+    // Otherwise, we'll want to purge the outdated persisted cache
+    // and mark ourselves as having updated to the latest version.
+    await persistor.purge();
+    localStorage.setItem(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
+  }
+
+  return persistor;
+}
+
+export const resetClientAndPersistor = async (
+  appClient: ApolloClient<Any>,
+  appPersistor: CachePersistor<Any>,
+) => {
+  await appPersistor.pause(); // Pause automatic persistence.
+  await appPersistor.purge(); // Delete everything in the storage provider.
+  await appClient.clearStore();
+  await appPersistor.resume();
+};
+
+interface BuildClientCache {
+  uri?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  resolvers?: any;
+  newE2eTest?: boolean;
+  // this will be set in react app to show we are not in e2e test
+  appHydrated?: boolean;
+}
+
+///////////////////// END TO END TESTS THINGS ///////////////////////
+
+export const CYPRESS_APOLLO_KEY = "ebnis-cypress-apollo";
+
+function getOrMakeGlobals(newE2eTest?: boolean) {
+  if (!window.____ebnis) {
+    window.____ebnis = {} as E2EWindowObject;
+  }
+
+  if (!window.Cypress) {
+    makeBChannel(window.____ebnis);
+    makeConnectionObject();
+    return window.____ebnis;
+  }
+
+  let cypressApollo = getGlobalsFromCypress();
+
+  if (newE2eTest) {
+    // We need to set up local storage for local state management
+    // so that whatever we persist in e2e tests will be picked up by apollo
+    // when app starts. Otherwise, apollo will always clear out the local
+    // storage when the app starts if it can not read the schema version.
+    localStorage.setItem(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
+
+    // reset globals
+    cypressApollo = {} as E2EWindowObject;
+    makeBChannel(cypressApollo);
+
+    // reset connections
+    cypressApollo.connectionStatus = resetConnectionObject();
+  }
+
+  window.____ebnis = cypressApollo;
+  window.Cypress.env(CYPRESS_APOLLO_KEY, cypressApollo);
+
+  return cypressApollo;
+}
+
+function addToGlobals(args: {
+  client: ApolloClient<Any>;
+  cache: InMemoryCache;
+  persistor: CachePersistor<Any>;
+}) {
+  const keys: (keyof typeof args)[] = ["client", "cache", "persistor"];
+  const globals = window.Cypress ? getGlobalsFromCypress() : window.____ebnis;
+
+  keys.forEach((key) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any*/
+    (globals as any)[key] = args[key];
+  });
+
+  if (window.Cypress) {
+    window.Cypress.env(CYPRESS_APOLLO_KEY, globals);
+    window.____ebnis = globals;
+  }
+
+  return globals;
+}
+
+function getGlobalsFromCypress() {
+  let globalVars = {} as E2EWindowObject;
+
+  if (window.Cypress) {
+    globalVars = (window.Cypress.env(CYPRESS_APOLLO_KEY) ||
+      {}) as E2EWindowObject;
+  }
+
+  return globalVars;
+}
+
+declare global {
+  interface Window {
+    Cypress: {
+      env: <T>(k?: string, v?: T) => void | T;
+    };
+
+    ____ebnis: E2EWindowObject;
+  }
+}

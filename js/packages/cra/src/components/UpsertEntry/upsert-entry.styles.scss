@@ -1,0 +1,25 @@
+@import "../../styles/extensions";
+
+.component-upsert-entry {
+  @extend %modal;
+
+  &.submitting * {
+    pointer-events: none;
+  }
+
+  .upsert-entry {
+    &__delete {
+      position: absolute;
+      right: 15px;
+      top: 15px;
+    }
+  }
+
+  .experience-title {
+    font-size: 1rem;
+    position: relative;
+    bottom: -10px;
+    font-style: italic;
+    font-weight: 400;
+  }
+}
