@@ -70,7 +70,6 @@ import {
   getExperienceComments,
   GetExperienceCommentsQueryResult,
 } from "../../utils/experience.gql.types";
-import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
 import { isOfflineId } from "../../utils/offlines";
 import { scrollIntoView } from "../../utils/scroll-into-view";
@@ -109,6 +108,7 @@ import {
   SuccessVal,
   Timeouts,
 } from "../../utils/types";
+import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import {
   DetailExperienceRouteMatch,
   makeDetailedExperienceRoute,

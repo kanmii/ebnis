@@ -19,10 +19,10 @@ import { DetailExperience } from "../components/DetailExperience/detail-experien
 import {
   commentNotificationId,
   commentsErrorContainerId,
-  emptyCommentsContainerId,
-  showCommentsMenuId,
-  hideCommentsMenuId,
   createCommentsMenuId,
+  emptyCommentsContainerId,
+  hideCommentsMenuId,
+  showCommentsMenuId,
 } from "../components/DetailExperience/detail-experience.dom";
 import { scrollDocumentToTop } from "../components/DetailExperience/detail-experience.injectables";
 import {
@@ -40,6 +40,7 @@ import {
 } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { getIsConnected } from "../utils/connections";
+import { getExperienceComments } from "../utils/experience.gql.types";
 import { E2EWindowObject } from "../utils/types";
 
 jest.mock("../components/DetailExperience/detail-experience.injectables");
