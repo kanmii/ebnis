@@ -202,6 +202,8 @@ describe("UpsertComment", () => {
       dispatch: mockDispatch,
     } as EffectArgs;
 
+    const mockUpdateExperiencesMutation = jest.fn();
+
     const props = ({
       association: {
         id: "a",
@@ -277,6 +279,18 @@ describe("UpsertComment", () => {
       });
 
       expect(calls[0].errors).toEqual([["1", "a"]]);
+
+      props.updateExperiencesMutation = mockUpdateExperiencesMutation;
+      mockDispatch.mockClear();
+      await effectFunctions[key](ownArgs, props, effectArgs);
+
+      const {
+        onUpdateSuccess,
+      } = mockUpdateExperiencesMutation.mock.calls[0][0];
+
+      onUpdateSuccess({ comments: null });
+
+      expect(typeof mockDispatch.mock.calls[0][0].errors[0][1]).toBe("string");
     });
   });
 });

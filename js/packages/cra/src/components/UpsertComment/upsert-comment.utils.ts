@@ -260,6 +260,13 @@ const upsertEffect: DefInsertExperienceEffect["func"] = async (
             }
             break;
         }
+      } else {
+        dispatch({
+          type: ActionType.ERRORS,
+          errors: [
+            ["1", "comment can not be created at this time, please try again"],
+          ],
+        });
       }
     },
     onError: (errors) => {
