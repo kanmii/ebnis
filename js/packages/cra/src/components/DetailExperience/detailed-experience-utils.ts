@@ -2160,10 +2160,12 @@ const fetchCommentsEffect: DefFetchCommentsEffect["func"] = async (
 
   async function fetchOnlineComments() {
     try {
-      const { data, error } =
+      const result =
         (await getExperienceComments(variables)) ||
         // istanbul ignore next:
         ({} as GetExperienceCommentsQueryResult);
+
+      const { data } = result;
 
       if (data) {
         const maybeCommentsData = data.getExperienceComments;
@@ -2201,16 +2203,20 @@ const fetchCommentsEffect: DefFetchCommentsEffect["func"] = async (
         }
       } else {
         dispatch({
-          type: ActionType.ENTRIES_RECEIVED,
-          key: StateValue.fail,
-          error: error as ApolloError,
+          type: ActionType.ON_COMMENTS_FETCHED,
+          value: StateValue.errors,
+          errors: {
+            error: DATA_FETCHING_FAILED,
+          } as GetExperienceCommentsErrorsFragment_errors,
         });
       }
     } catch (error) {
       dispatch({
-        type: ActionType.ENTRIES_RECEIVED,
-        key: StateValue.fail,
-        error: error,
+        type: ActionType.ON_COMMENTS_FETCHED,
+        value: StateValue.errors,
+        errors: {
+          error: DATA_FETCHING_FAILED,
+        } as GetExperienceCommentsErrorsFragment_errors,
       });
     }
 

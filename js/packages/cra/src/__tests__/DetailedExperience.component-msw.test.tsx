@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { ApolloError } from "@apollo/client";
 import { CommentFragment } from "@eb/cm/src/graphql/apollo-types/CommentFragment";
 import {
   getMswExperienceCommentsGql,
@@ -6,6 +7,7 @@ import {
 } from "@eb/cm/src/__tests__/msw-handlers";
 import { mswServer, mswServerListen } from "@eb/cm/src/__tests__/msw-server";
 import { cleanup, render, waitFor } from "@testing-library/react";
+import { GraphQLError } from "graphql";
 import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
 import { makeApolloClient } from "../apollo/client";
@@ -24,15 +26,23 @@ import {
   hideCommentsMenuId,
   showCommentsMenuId,
 } from "../components/DetailExperience/detail-experience.dom";
-import { getExperienceComments } from "../utils/experience.gql.types";
-import { scrollDocumentToTop } from "../components/DetailExperience/detail-experience.injectables";
+import * as DetailExperienceInjectables from "../components/DetailExperience/detail-experience.injectables";
 import {
+  ActionType,
+  CommentAction,
+  EffectArgs,
+  effectFunctions,
+  EffectType as E,
+  initState,
   Match,
   Props,
+  reducer,
+  StateMachine as S,
 } from "../components/DetailExperience/detailed-experience-utils";
 import { Props as UpsertCommentProps } from "../components/UpsertComment/upsert-comment.utils";
 import {
   getById,
+  getEffects,
   mockComment1,
   mockComment1Id,
   mockOnlineExperience1,
@@ -44,8 +54,11 @@ import { getIsConnected } from "../utils/connections";
 import { getExperienceComments } from "../utils/experience.gql.types";
 import { E2EWindowObject } from "../utils/types";
 
+jest.mock("../apollo/sync-to-server-cache");
+
 jest.mock("../components/DetailExperience/detail-experience.injectables");
-const mockScrollDocumentToTop = scrollDocumentToTop as jest.Mock;
+const mockScrollDocumentToTop = DetailExperienceInjectables.scrollDocumentToTop as jest.Mock;
+const mockGetExperienceComments = DetailExperienceInjectables.getExperienceComments as jest.Mock;
 
 const mockUpsertCommentSuccessId = "@test/1";
 const mockUpsertCommentCloseId = "@test/2";
@@ -461,6 +474,100 @@ describe("components", () => {
   });
 });
 
+describe("reducers", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.clearAllTimers();
+  });
+
+  const componentTimeoutsMs = {
+    fetchRetries: [0],
+    closeNotification: 0,
+  };
+
+  const props = {
+    componentTimeoutsMs,
+    match: {
+      params: {
+        experienceId: mockOnlineExperience1.id,
+      },
+    },
+    getExperienceComments: mockGetExperienceComments as any,
+  } as Props;
+
+  const mockDispatchFn = jest.fn();
+  const effectArgs = ({
+    dispatch: mockDispatchFn,
+  } as unknown) as EffectArgs;
+
+  it("no cached experience/online comments error timeout", async () => {
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
+      data: {
+        getExperience: mockOnlineExperience1,
+      },
+    });
+
+    const state0 = initState();
+    const fetchExperienceEffect = getEffects<E, S>(state0)[0];
+
+    await effectFunctions[fetchExperienceEffect.key](
+      fetchExperienceEffect.ownArgs as any,
+      props,
+      effectArgs,
+    );
+
+    const experienceFetchedState = reducer(
+      state0,
+      mockDispatchFn.mock.calls[0][0],
+    );
+
+    const fetchEntriesState = reducer(experienceFetchedState, {
+      type: ActionType.COMMENT_ACTION,
+      action: CommentAction.SHOW,
+    });
+
+    mockDispatchFn.mockClear();
+
+    // first time to fetch , there is not network
+    mockGetIsConnected
+      .mockReturnValueOnce(false)
+      // So we try again
+      .mockReturnValue(true);
+
+    mockGetExperienceComments.mockResolvedValueOnce({
+      error: new ApolloError({
+        graphQLErrors: [new GraphQLError("a")],
+      }),
+    });
+
+    const e = getEffects<E, S>(fetchEntriesState)[0];
+    await effectFunctions[e.key](e.ownArgs as any, props, effectArgs);
+
+    jest.runOnlyPendingTimers();
+
+    await waitFor(() => true);
+
+    expect(typeof mockDispatchFn.mock.calls[0][0].errors.error).toEqual(
+      "string",
+    );
+
+    mockDispatchFn.mockClear();
+    mockGetExperienceComments.mockRejectedValueOnce(new Error("b"));
+
+    await effectFunctions[e.key](e.ownArgs as any, props, effectArgs);
+
+    await waitFor(() => true);
+
+    expect(typeof mockDispatchFn.mock.calls[0][0].errors.error).toEqual(
+      "string",
+    );
+  });
+});
+
 // ====================================================
 // HELPER FUNCTIONS
 // ====================================================
@@ -481,7 +588,10 @@ function makeComp({
   return {
     ui: (
       <DetailExperienceP
-        componentTimeoutsMs={{ fetchRetries: [0], closeNotification: 0 }}
+        componentTimeoutsMs={{
+          fetchRetries: [0],
+          closeNotification: 0,
+        }}
         getExperienceComments={getExperienceComments}
         {...props}
       />
