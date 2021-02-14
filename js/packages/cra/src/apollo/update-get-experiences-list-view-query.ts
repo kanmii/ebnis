@@ -1,31 +1,31 @@
+import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
+import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
+import { EntryConnectionFragment } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import {
-  GetExperiencesConnectionListView,
-  GetExperiencesConnectionListViewVariables,
-  GetExperiencesConnectionListView_getExperiences,
-  GetExperiencesConnectionListView_getExperiences_edges,
-} from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
-import immer from "immer";
 import {
   ExperienceConnectionFragment_edges,
   ExperienceConnectionFragment_edges_node,
 } from "@eb/cm/src/graphql/apollo-types/ExperienceConnectionFragment";
 import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
 import {
-  getCachedExperiencesConnectionListView,
-  readOptions,
-  makeGetExperienceApolloCacheKey,
-} from "./cached-experiences-list-view";
-import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
-import { EntryConnectionFragment } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
-import { emptyPageInfo } from "@eb/cm/src/graphql/utils.gql";
+  GetExperiencesConnectionListView,
+  GetExperiencesConnectionListViewVariables,
+  GetExperiencesConnectionListView_getExperiences,
+  GetExperiencesConnectionListView_getExperiences_edges,
+} from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
 import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragment";
+import { emptyPageInfo } from "@eb/cm/src/graphql/utils.gql";
+import immer from "immer";
 import {
+  getCachedExperiencesConnectionListView,
+  makeGetExperienceApolloCacheKey,
+  readOptions,
+} from "./cached-experiences-list-view";
+import {
+  erzeugenSammelnEinträgenAbfrage,
   getCachedEntriesDetailViewSuccess,
   readExperienceCompleteFragment,
-  erzeugenSammelnEinträgenAbfrage,
 } from "./get-detailed-experience-query";
 
 export function makeDefaultExperienceMiniConnection(): GetExperiencesConnectionListView_getExperiences {
@@ -300,7 +300,9 @@ export function purgeExperience(experienceId: string, data?: any) {
         delete data.ROOT_QUERY[erzeugenSammelnEinträgenAbfrage(experienceId)];
       }
     }
-  } catch (error) {}
+  } catch (error) {
+    //
+  }
 
   delete data[toDelete];
   delete data.ROOT_QUERY[makeGetExperienceApolloCacheKey(experienceId)];

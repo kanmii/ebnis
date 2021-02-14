@@ -6,6 +6,7 @@ import {
   InMemoryCache,
 } from "@apollo/client/core";
 import possibleTypes from "@eb/cm/src/graphql/apollo-types/fragment-types.json";
+import { Any } from "@eb/cm/src/utils/types";
 import * as AbsintheSocket from "@kanmii/socket";
 import { createAbsintheSocketLink } from "@kanmii/socket-apollo-link";
 import { deleteExperienceVar } from "../apollo/delete-experience-cache";
@@ -20,7 +21,7 @@ import { syncErrorsPolicy, syncFlagVar } from "./sync-to-server-cache";
 import { unsyncedLedgerPolicy } from "./unsynced-ledger";
 
 export function makeApolloClient({ uri, testing }: MakeApolloClientArgs) {
-  let client = (undefined as unknown) as ApolloClient<{}>;
+  let client = (undefined as unknown) as ApolloClient<Any>;
   let cache = (undefined as unknown) as InMemoryCache;
 
   const { cache: windowCache, client: windowClient } = window.____ebnis || {};

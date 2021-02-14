@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { cleanup, render } from "@testing-library/react";
 import React, { ComponentType } from "react";
-import { render, cleanup } from "@testing-library/react";
-import { Loading } from "../components/Loading/loading.component";
-import { defaultLoadingDomId } from "../components/Loading/loading-dom";
 import { act } from "react-dom/test-utils";
+import { defaultLoadingDomId } from "../components/Loading/loading-dom";
+import { Loading, Props } from "../components/Loading/loading.component";
 import { onUnmount } from "../components/Loading/loading.injectables";
 import { MAX_TIMEOUT_MS } from "../utils/timers";
 
@@ -69,9 +69,9 @@ it("executes clean up code", () => {
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
-const LoadingP = Loading as ComponentType<Partial<{}>>;
+const LoadingP = Loading as ComponentType<Partial<Props>>;
 
-function makeComp({ props = {} }: { props?: Partial<{}> } = {}) {
+function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   return {
     ui: <LoadingP {...props} />,
   };

@@ -1,42 +1,43 @@
-import { Reducer, Dispatch } from "react";
-import { wrapReducer } from "../../logger";
-import immer, { Draft } from "immer";
-import {
-  parseStringError,
-  StringyErrorPayload,
-  NOTHING_TO_SAVE_WARNING_MESSAGE,
-  FORM_CONTAINS_ERRORS_MESSAGE,
-  GENERIC_SERVER_ERROR,
-  FieldError,
-  CommonErrorsState,
-} from "../../utils/common-errors";
-import { scrollIntoView } from "../../utils/scroll-into-view";
-import {
-  StateValue,
-  InActiveVal,
-  WarningVal,
-  ValidVal,
-  InvalidVal,
-  InitialVal,
-  UnChangedVal,
-  ChangedVal,
-  SubmissionVal,
-} from "../../utils/types";
-import {
-  GenericGeneralEffect,
-  getGeneralEffects,
-  GenericEffectDefinition,
-  GenericHasEffect,
-} from "../../utils/effects";
 import { RegisterUserInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import { RegisterUserErrorFragment } from "@eb/cm/src/graphql/apollo-types/RegisterUserErrorFragment";
-import { RegisterUserMutationComponentProps } from "../../utils/user.gql.types";
-import { manageUserAuthentication } from "../../utils/manage-user-auth";
-import { EbnisContextProps } from "../../utils/app-context";
-import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
-import { MY_URL } from "../../utils/urls";
-import { scrollIntoViewDomId } from "./sign-up.dom";
+import { Any } from "@eb/cm/src/utils/types";
+import immer, { Draft } from "immer";
+import { Dispatch, Reducer } from "react";
+import { wrapReducer } from "../../logger";
 import { deleteObjectKey } from "../../utils";
+import { EbnisContextProps } from "../../utils/app-context";
+import {
+  CommonErrorsState,
+  FieldError,
+  FORM_CONTAINS_ERRORS_MESSAGE,
+  GENERIC_SERVER_ERROR,
+  NOTHING_TO_SAVE_WARNING_MESSAGE,
+  parseStringError,
+  StringyErrorPayload,
+} from "../../utils/common-errors";
+import {
+  GenericEffectDefinition,
+  GenericGeneralEffect,
+  GenericHasEffect,
+  getGeneralEffects,
+} from "../../utils/effects";
+import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
+import { manageUserAuthentication } from "../../utils/manage-user-auth";
+import { scrollIntoView } from "../../utils/scroll-into-view";
+import {
+  ChangedVal,
+  InActiveVal,
+  InitialVal,
+  InvalidVal,
+  StateValue,
+  SubmissionVal,
+  UnChangedVal,
+  ValidVal,
+  WarningVal,
+} from "../../utils/types";
+import { MY_URL } from "../../utils/urls";
+import { RegisterUserMutationComponentProps } from "../../utils/user.gql.types";
+import { scrollIntoViewDomId } from "./sign-up.dom";
 
 export enum ActionType {
   SUBMISSION = "@sign-up/submission",
@@ -476,7 +477,7 @@ const scrollIntoViewEffect: DefScrollToTopEffect["func"] = () => {
   scrollIntoView(scrollIntoViewDomId);
 };
 
-type DefScrollToTopEffect = EffectDefinition<"scrollIntoViewEffect", {}>;
+type DefScrollToTopEffect = EffectDefinition<"scrollIntoViewEffect", Any>;
 
 const registerUserEffect: DefRegisterUserEffect["func"] = async (
   ownArgs,
@@ -667,7 +668,7 @@ export interface EffectArgs {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = {}
+  OwnArgs = Any
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 type EffectType = DefRegisterUserEffect | DefScrollToTopEffect;

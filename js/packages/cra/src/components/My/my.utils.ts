@@ -1,73 +1,74 @@
-import { Reducer, Dispatch } from "react";
-import { wrapReducer } from "../../logger";
-import immer from "immer";
 import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
+import {
+  GetExperiencesConnectionListViewVariables,
+  GetExperiencesConnectionListView_getExperiences,
+  GetExperiencesConnectionListView_getExperiences_edges,
+} from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
+import { Any } from "@eb/cm/src/utils/types";
 import fuzzysort from "fuzzysort";
+import immer from "immer";
+import { Dispatch, Reducer } from "react";
 import { RouteChildrenProps } from "react-router-dom";
+import { getCachedExperiencesConnectionListView } from "../../apollo/cached-experiences-list-view";
 import {
-  StateValue,
-  Timeouts,
-  InActiveVal,
-  ActiveVal,
-  DeletedVal,
-  CancelledVal,
-  DataVal,
-  ErrorsVal,
-  LoadingVal,
-  LoadingState,
-  BroadcastMessageType,
-  OnlineStatus,
-  KeyOfTimeouts,
-} from "../../utils/types";
-import {
-  GenericGeneralEffect,
-  getGeneralEffects,
-  GenericEffectDefinition,
-} from "../../utils/effects";
-import { makeDetailedExperienceRoute } from "../../utils/urls";
-import {
-  putOrRemoveDeleteExperienceLedger,
-  getDeleteExperienceLedger,
   DeletedExperienceLedger,
+  getDeleteExperienceLedger,
+  putOrRemoveDeleteExperienceLedger,
 } from "../../apollo/delete-experience-cache";
+import { getSyncErrors } from "../../apollo/sync-to-server-cache";
+import {
+  getOnlineStatus,
+  getUnsyncedExperience,
+} from "../../apollo/unsynced-ledger";
 import {
   purgeExperiencesFromCache1,
   writeGetExperiencesMiniQuery,
 } from "../../apollo/update-get-experiences-list-view-query";
-import { getIsConnected } from "../../utils/connections";
+import { wrapReducer } from "../../logger";
+import { deleteObjectKey } from "../../utils";
+import { broadcastMessage } from "../../utils/broadcast-channel-manager";
 import {
   DATA_FETCHING_FAILED,
   parseStringError,
 } from "../../utils/common-errors";
+import { getIsConnected } from "../../utils/connections";
 import {
-  getExperienceConnectionListView,
-  EXPERIENCES_MINI_FETCH_COUNT,
-  ExperiencesData,
+  GenericEffectDefinition,
+  GenericGeneralEffect,
+  getGeneralEffects,
+} from "../../utils/effects";
+import {
   ExperienceData,
+  ExperiencesData,
+  EXPERIENCES_MINI_FETCH_COUNT,
+  getExperienceConnectionListView,
 } from "../../utils/experience.gql.types";
-import {
-  GetExperiencesConnectionListView_getExperiences,
-  GetExperiencesConnectionListView_getExperiences_edges,
-  GetExperiencesConnectionListViewVariables,
-} from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
-import { getCachedExperiencesConnectionListView } from "../../apollo/cached-experiences-list-view";
 import { scrollIntoView } from "../../utils/scroll-into-view";
-import { nonsenseId } from "../../utils/utils.dom";
-import { handlePreFetchExperiences } from "./my.injectables";
-import { makeScrollToDomId } from "./my.dom";
 import {
   OfflineIdToOnlineExperienceMap,
   OnSyncedData,
 } from "../../utils/sync-to-server.types";
-import { broadcastMessage } from "../../utils/broadcast-channel-manager";
-import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
-import { getSyncErrors } from "../../apollo/sync-to-server-cache";
-import {
-  getUnsyncedExperience,
-  getOnlineStatus,
-} from "../../apollo/unsynced-ledger";
 import { FETCH_EXPERIENCES_TIMEOUTS } from "../../utils/timers";
-import { deleteObjectKey } from "../../utils";
+import {
+  ActiveVal,
+  BroadcastMessageType,
+  CancelledVal,
+  DataVal,
+  DeletedVal,
+  ErrorsVal,
+  InActiveVal,
+  KeyOfTimeouts,
+  LoadingState,
+  LoadingVal,
+  OnlineStatus,
+  StateValue,
+  Timeouts,
+} from "../../utils/types";
+import { makeDetailedExperienceRoute } from "../../utils/urls";
+import { nonsenseId } from "../../utils/utils.dom";
+import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
+import { makeScrollToDomId } from "./my.dom";
+import { handlePreFetchExperiences } from "./my.injectables";
 
 export enum ActionType {
   ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
@@ -387,52 +388,53 @@ function handleOnDataReceivedAction(
 ) {
   switch (payload.key) {
     case StateValue.data:
-      const {
-        data,
-        deletedExperience,
-        paginating,
-        preparedExperiences,
-      } = payload;
-      const { experiences, pageInfo } = data;
+      {
+        const {
+          data,
+          deletedExperience,
+          paginating,
+          preparedExperiences,
+        } = payload;
+        const { experiences, pageInfo } = data;
 
-      const state = {
-        value: StateValue.data,
-      } as DataState;
+        const state = {
+          value: StateValue.data,
+        } as DataState;
 
-      if (paginating) {
-        const { context } = (proxy.states as DataState).data;
-        context.experiences = [...context.experiences, ...experiences];
-        context.pageInfo = pageInfo;
-        context.experiencesPrepared = [
-          ...context.experiencesPrepared,
-          ...preparedExperiences,
-        ];
-      } else {
-        state.data = {
-          context: {
-            experiencesPrepared: preparedExperiences,
-            experiences,
-            pageInfo,
-          },
-
-          states: {
-            upsertExperienceActivated: {
-              value: StateValue.inactive,
+        if (paginating) {
+          const { context } = (proxy.states as DataState).data;
+          context.experiences = [...context.experiences, ...experiences];
+          context.pageInfo = pageInfo;
+          context.experiencesPrepared = [
+            ...context.experiencesPrepared,
+            ...preparedExperiences,
+          ];
+        } else {
+          state.data = {
+            context: {
+              experiencesPrepared: preparedExperiences,
+              experiences,
+              pageInfo,
             },
-            experiences: {},
-            search: {
-              value: StateValue.inactive,
-            },
-            deletedExperience: {
-              value: StateValue.inactive,
-            },
-          },
-        };
 
-        proxy.states = state;
-        handleOnDeleteExperienceProcessedHelper(state, deletedExperience);
+            states: {
+              upsertExperienceActivated: {
+                value: StateValue.inactive,
+              },
+              experiences: {},
+              search: {
+                value: StateValue.inactive,
+              },
+              deletedExperience: {
+                value: StateValue.inactive,
+              },
+            },
+          };
+
+          proxy.states = state;
+          handleOnDeleteExperienceProcessedHelper(state, deletedExperience);
+        }
       }
-
       break;
 
     case StateValue.errors:
@@ -1218,7 +1220,7 @@ interface SetSearchTextPayload {
 export type DispatchType = Dispatch<Action>;
 
 export type CallerProps = RouteChildrenProps<
-  {},
+  Record<string, string | undefined>,
   {
     cancelledExperienceDelete: string;
   }
@@ -1255,7 +1257,7 @@ export type EffectType =
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = {}
+  OwnArgs = Any
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 type PreparedExperience = {

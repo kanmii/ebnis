@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { cleanup, render } from "@testing-library/react";
 import React, { ComponentType } from "react";
-import { render, cleanup } from "@testing-library/react";
-import { Header } from "../components/Header/header.component";
 import { useLocation } from "react-router-dom";
-import { MY_URL } from "../utils/urls";
+import { Header, Props } from "../components/Header/header.component";
 import { domPrefix } from "../components/Header/header.dom";
+import { MY_URL } from "../utils/urls";
 
 jest.mock("react-router-dom", () => ({
   Link: ({ className = "", to, children }: any) => {
@@ -66,9 +66,9 @@ it("renders in My route", () => {
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
-const HeaderP = Header as ComponentType<Partial<{}>>;
+const HeaderP = Header as ComponentType<Partial<Props>>;
 
-function makeComp({ props = {} }: { props?: Partial<{}> } = {}) {
+function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   return {
     ui: <HeaderP {...props} />,
   };

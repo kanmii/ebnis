@@ -1,39 +1,40 @@
-import { Reducer, Dispatch, PropsWithChildren } from "react";
-import { wrapReducer } from "../../logger";
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences } from "@eb/cm/src/graphql/apollo-types/OnExperiencesDeletedSubscription";
+import { Any } from "@eb/cm/src/utils/types";
 import immer, { Draft } from "immer";
-import { StateValue } from "../../utils/types";
+import { Dispatch, PropsWithChildren, Reducer } from "react";
+import { readEntryFragment } from "../../apollo/get-detailed-experience-query";
+import { syncToServer } from "../../apollo/sync-to-server";
+import {
+  purgeEntry,
+  purgeExperiencesFromCache1,
+} from "../../apollo/update-get-experiences-list-view-query";
+import { wrapReducer } from "../../logger";
+import { deleteObjectKey } from "../../utils";
+import { WithSubscriptionContextProps } from "../../utils/app-context";
+import {
+  GenericEffectDefinition,
+  GenericGeneralEffect,
+  getGeneralEffects,
+} from "../../utils/effects";
+import {
+  ChangeUrlType,
+  getLocation,
+  windowChangeUrl,
+} from "../../utils/global-window";
+import { getUser } from "../../utils/manage-user-auth";
+import {
+  OfflineIdToOnlineExperienceMap,
+  OnlineExperienceIdToOfflineEntriesMap,
+  OnSyncedData,
+} from "../../utils/sync-to-server.types";
 import {
   BChannel,
   BroadcastMessageConnectionChangedPayload,
+  StateValue,
 } from "../../utils/types";
 import { MY_URL } from "../../utils/urls";
-import {
-  getLocation,
-  windowChangeUrl,
-  ChangeUrlType,
-} from "../../utils/global-window";
-import { OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences } from "@eb/cm/src/graphql/apollo-types/OnExperiencesDeletedSubscription";
-import {
-  GenericGeneralEffect,
-  getGeneralEffects,
-  GenericEffectDefinition,
-} from "../../utils/effects";
-import {
-  purgeExperiencesFromCache1,
-  purgeEntry,
-} from "../../apollo/update-get-experiences-list-view-query";
-import { syncToServer } from "../../apollo/sync-to-server";
-import {
-  OnSyncedData,
-  OfflineIdToOnlineExperienceMap,
-  OnlineExperienceIdToOfflineEntriesMap,
-} from "../../utils/sync-to-server.types";
-import { WithSubscriptionContextProps } from "../../utils/app-context";
-import { readEntryFragment } from "../../apollo/get-detailed-experience-query";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { deleteObjectKey } from "../../utils";
 import { subscribeToGraphqlEvents } from "./with-subscriptions.injectables";
-import { getUser } from "../../utils/manage-user-auth";
 
 export enum ActionType {
   CONNECTION_CHANGED = "@with-subscription/connection-changed",
@@ -150,7 +151,9 @@ const connectionChangedEffect: DefConnectionChangedEffect["func"] = (
           }
         }
       },
-      function onError() {},
+      function onError() {
+        //
+      },
     );
 
     dispatch({
@@ -233,7 +236,7 @@ export interface EffectArgs {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = {}
+  OwnArgs = Any
 > = GenericEffectDefinition<EffectArgs, CallerProps, Key, OwnArgs>;
 
 export type EffectType = DefConnectionChangedEffect;

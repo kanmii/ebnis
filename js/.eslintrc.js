@@ -10,7 +10,7 @@ module.exports = {
     ecmaVersion: 12,
     sourceType: "module",
   },
-  plugins: ["@typescript-eslint", "jest"],
+  plugins: ["@typescript-eslint", "jest", "react-hooks"],
   rules: {},
   overrides: [
     {

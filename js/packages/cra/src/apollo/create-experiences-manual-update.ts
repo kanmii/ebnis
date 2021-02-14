@@ -1,28 +1,28 @@
 import { DataProxy } from "@apollo/client";
-import { CreateExperiencesMutationResult } from "../utils/experience.gql.types";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { upsertExperiencesInGetExperiencesMiniQuery } from "./update-get-experiences-list-view-query";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
 import { EntryConnectionFragment_edges } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { toGetEntriesSuccessQuery } from "@eb/cm/src/graphql/utils.gql";
 import { entryToEdge } from "../components/UpsertEntry/entry-to-edge";
+import { CreateExperiencesMutationResult } from "../utils/experience.gql.types";
+import {
+  OfflineIdToOnlineExperienceMap,
+  SyncError,
+  SyncErrors,
+} from "../utils/sync-to-server.types";
 import {
   getCachedEntriesDetailViewSuccess,
   readExperienceCompleteFragment,
   writeCachedEntriesDetailView,
   writeGetExperienceDetailViewQueryToCache,
 } from "./get-detailed-experience-query";
-import { toGetEntriesSuccessQuery } from "@eb/cm/src/graphql/utils.gql";
-import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
 import {
   removeUnsyncedExperiences,
   writeUnsyncedExperience,
 } from "./unsynced-ledger";
-import {
-  OfflineIdToOnlineExperienceMap,
-  SyncErrors,
-  SyncError,
-} from "../utils/sync-to-server.types";
+import { upsertExperiencesInGetExperiencesMiniQuery } from "./update-get-experiences-list-view-query";
 
 export function createExperiencesManualUpdate(
   _dataProxy: DataProxy,
@@ -130,7 +130,7 @@ export function createExperiencesManualUpdate(
 
           if (clientIdToEntryErrorsMap[beforeSyncEntryNode.id]) {
             const dataObjects = (beforeSyncEntryNode.dataObjects as DataObjectFragment[]).map(
-              (dataObject, _dataObjectIndex) => {
+              (dataObject) => {
                 return {
                   ...dataObject,
                   definitionId:

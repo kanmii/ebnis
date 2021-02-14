@@ -1,40 +1,37 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { LoginMutationVariables } from "@eb/cm/src/graphql/apollo-types/LoginMutation";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import React, { ComponentType } from "react";
-import { render, cleanup, waitFor } from "@testing-library/react";
 import { Login } from "../components/Login/login.component";
 import {
-  emailInputId,
-  passwordInputId,
-  passwordErrorId,
   emailErrorId,
-  submitId,
+  emailInputId,
   notificationId,
+  passwordErrorId,
+  passwordInputId,
   resetId,
+  submitId,
 } from "../components/Login/login.dom";
 import {
-  Props, //
-  initState,
-  reducer,
-  ActionType,
-  StateMachine,
-  EffectState,
-  effectFunctions,
-  EffectArgs,
   Action,
+  ActionType,
+  EffectArgs,
+  effectFunctions,
+  EffectState, //
+  initState,
+  Props,
+  reducer,
+  StateMachine,
   SubmissionCommonErrors,
 } from "../components/Login/login.utils";
 import { fillField } from "../tests.utils";
-import {
-  warningClassName,
-  errorClassName, //
-} from "../utils/utils.dom";
-import { scrollIntoView } from "../utils/scroll-into-view";
-import { getIsConnected } from "../utils/connections";
-import { LoginMutationVariables } from "@eb/cm/src/graphql/apollo-types/LoginMutation";
-import { LoginMutationResult } from "../utils/user.gql.types";
 import { AppPersistor } from "../utils/app-context";
+import { getIsConnected } from "../utils/connections";
 import { windowChangeUrl } from "../utils/global-window";
 import { manageUserAuthentication } from "../utils/manage-user-auth";
+import { scrollIntoView } from "../utils/scroll-into-view";
+import { LoginMutationResult } from "../utils/user.gql.types";
+import { errorClassName, warningClassName } from "../utils/utils.dom";
 
 jest.mock("../components/Header/header.component", () => () => null);
 
@@ -252,7 +249,7 @@ function mockDispatch(action: Action) {
 
 const LoginP = Login as ComponentType<Partial<Props>>;
 
-function makeComp({ props = {} }: { props?: Partial<{}> } = {}) {
+function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   return {
     ui: <LoginP {...props} login={mockLoginFn} persistor={persistor} />,
   };

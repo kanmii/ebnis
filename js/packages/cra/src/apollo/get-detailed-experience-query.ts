@@ -1,29 +1,29 @@
 /* istanbul ignore file */
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import {
-  EXPERIENCE_COMPLETE_FRAGMENT,
-  FRAGMENT_NAME_experienceCompleteFragment,
-} from "@eb/cm/src/graphql/experience.gql";
-import { makeApolloCacheRef } from "./resolvers";
-import {
-  GetExperienceDetailView,
-  GetExperienceDetailViewVariables,
-} from "@eb/cm/src/graphql/apollo-types/GetExperienceDetailView";
-import { GET_EXPERIENCE_DETAIL_VIEW_QUERY } from "@eb/cm/src/graphql/experience.gql";
-import { GetExperienceAndEntriesDetailViewQueryResult } from "../utils/experience.gql.types";
-import { GET_ENTRIES_DETAIL_VIEW_QUERY } from "@eb/cm/src/graphql/experience.gql";
-import {
-  GetEntriesDetailView,
-  GetEntriesDetailViewVariables,
-} from "@eb/cm/src/graphql/apollo-types/GetEntriesDetailView";
 import {
   EntryConnectionFragment,
   EntryConnectionFragment_edges,
 } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import { emptyPageInfo } from "@eb/cm/src/graphql/utils.gql";
-import { GetEntriesUnionFragment } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
+import {
+  GetEntriesDetailView,
+  GetEntriesDetailViewVariables,
+} from "@eb/cm/src/graphql/apollo-types/GetEntriesDetailView";
+import { GetEntriesUnionFragment } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
+import {
+  GetExperienceDetailView,
+  GetExperienceDetailViewVariables,
+} from "@eb/cm/src/graphql/apollo-types/GetExperienceDetailView";
 import { ENTRY_FRAGMENT } from "@eb/cm/src/graphql/entry.gql";
+import {
+  EXPERIENCE_COMPLETE_FRAGMENT,
+  FRAGMENT_NAME_experienceCompleteFragment,
+  GET_ENTRIES_DETAIL_VIEW_QUERY,
+  GET_EXPERIENCE_DETAIL_VIEW_QUERY,
+} from "@eb/cm/src/graphql/experience.gql";
+import { emptyPageInfo } from "@eb/cm/src/graphql/utils.gql";
+import { GetExperienceAndEntriesDetailViewQueryResult } from "../utils/experience.gql.types";
+import { makeApolloCacheRef } from "./resolvers";
 
 export function writeCachedExperienceCompleteFragment(
   experience: ExperienceCompleteFragment,
@@ -103,7 +103,9 @@ export function getCachedEntriesDetailView(experienceId: string) {
     });
 
     return (data && data.getEntries) || undefined;
-  } catch (error) {}
+  } catch (error) {
+    //
+  }
 
   return undefined;
 }
@@ -156,7 +158,9 @@ export function getCachedExperienceDetailView(erfahrungId: string) {
     });
 
     return (daten && daten.getExperience) || undefined;
-  } catch (error) {}
+  } catch (error) {
+    //
+  }
 
   return undefined;
 }

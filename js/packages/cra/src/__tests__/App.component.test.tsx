@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { cleanup, render, waitFor } from "@testing-library/react";
 import React, { ComponentType } from "react";
-import { render, cleanup, waitFor } from "@testing-library/react";
-import { App } from "../components/App/app.component";
 import { buildClientCache, restoreCacheOrPurgeStorage } from "../apollo/setup";
+import { App } from "../components/App/app.component";
 
 const mockLoadingId = "a";
 jest.mock("../components/Loading/loading.component", () => {
@@ -70,14 +70,14 @@ it("did not restore cache and renders main app", async () => {
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
-const AppP = App as ComponentType<Partial<{}>>;
+const AppP = App as ComponentType;
 
-function makeComp({ props = {} }: { props?: Partial<{}> } = {}) {
+function makeComp() {
   mockBuildClientCache.mockReturnValue({
     cache: {},
   });
 
   return {
-    ui: <AppP {...props}></AppP>,
+    ui: <AppP />,
   };
 }

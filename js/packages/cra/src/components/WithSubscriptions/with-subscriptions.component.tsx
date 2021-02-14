@@ -1,34 +1,34 @@
 import React, { useEffect, useReducer } from "react";
+import { cleanCachedMutations } from "../../apollo/clean-cached-mutations";
+import {
+  ChangeUrlType,
+  getLocation,
+  windowChangeUrl,
+} from "../../utils/global-window";
+import { OnSyncedData } from "../../utils/sync-to-server.types";
+import {
+  BroadcastMessage,
+  BroadcastMessageConnectionChangedPayload,
+  BroadcastMessageSelf,
+  BroadcastMessageType,
+  StateValue,
+} from "../../utils/types";
+import { MY_URL } from "../../utils/urls";
+import { useRunEffects } from "../../utils/use-run-effects";
 import {
   cleanupWithSubscriptions,
   WithSubscriptionProvider,
   WithSubscriptionsDispatchProvider,
 } from "./with-subscriptions.injectables";
 import {
-  BroadcastMessageConnectionChangedPayload,
-  StateValue,
-  BroadcastMessageType,
-  BroadcastMessage,
-  BroadcastMessageSelf,
-} from "../../utils/types";
-import { cleanCachedMutations } from "../../apollo/clean-cached-mutations";
-import {
-  CallerProps,
   ActionType,
-  reducer,
-  initState,
-  effectFunctions,
-  Props,
+  CallerProps,
   cleanUpSyncedOfflineEntries,
+  effectFunctions,
+  initState,
+  Props,
+  reducer,
 } from "./with-subscriptions.utils";
-import { useRunEffects } from "../../utils/use-run-effects";
-import {
-  windowChangeUrl,
-  ChangeUrlType,
-  getLocation,
-} from "../../utils/global-window";
-import { MY_URL } from "../../utils/urls";
-import { OnSyncedData } from "../../utils/sync-to-server.types";
 
 export function WithSubscriptions(props: Props) {
   const { children, bc } = props;
@@ -90,20 +90,25 @@ export function WithSubscriptions(props: Props) {
         break;
 
       case BroadcastMessageType.syncDone:
-        const data = payload as OnSyncedData;
-        const { pathname } = getLocation();
+        {
+          const data = payload as OnSyncedData;
+          const { pathname } = getLocation();
 
-        // istanbul ignore else:
-        if (data.onlineExperienceIdToOfflineEntriesMap && pathname === MY_URL) {
-          cleanUpSyncedOfflineEntries(
-            data.onlineExperienceIdToOfflineEntriesMap,
-          );
+          // istanbul ignore else:
+          if (
+            data.onlineExperienceIdToOfflineEntriesMap &&
+            pathname === MY_URL
+          ) {
+            cleanUpSyncedOfflineEntries(
+              data.onlineExperienceIdToOfflineEntriesMap,
+            );
+          }
+
+          dispatch({
+            type: ActionType.ON_SYNC,
+            data,
+          });
         }
-
-        dispatch({
-          type: ActionType.ON_SYNC,
-          data,
-        });
         break;
     }
   }

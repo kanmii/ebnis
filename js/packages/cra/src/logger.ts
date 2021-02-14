@@ -1,7 +1,8 @@
 /* istanbul ignore file */
 /* eslint-disable @typescript-eslint/no-explicit-any*/
-import { Reducer, useEffect } from "react";
+import { Any } from "@eb/cm/src/utils/types";
 import lodashIsEqual from "lodash/isEqual";
+import { Reducer, useEffect } from "react";
 
 const isDevEnv = process.env.NODE_ENV === "development";
 const isTestEnv = process.env.NODE_ENV === "test";
@@ -83,7 +84,7 @@ function deepObjectDifference(
   return differences(compareObject, baseObject);
 }
 
-function isPlainObject(obj: object) {
+function isPlainObject(obj: Any) {
   return Object.prototype.toString.call(obj).includes("Object");
 }
 

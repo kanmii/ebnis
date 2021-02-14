@@ -1,31 +1,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars*/
+import { cleanup, render, waitFor } from "@testing-library/react";
 import React, { ComponentType } from "react";
-import { render, cleanup, waitFor } from "@testing-library/react";
 import { SignUp } from "../components/SignUp/sign-up.component";
-import { Props } from "../components/SignUp/sign-up.utils";
 import {
-  nameInputId,
-  passwordInputId,
-  passwordConfirmationInputId,
   emailInputId,
-  submitId,
+  nameInputId,
   notificationId,
+  passwordConfirmationInputId,
+  passwordInputId,
   resetId,
+  submitId,
 } from "../components/SignUp/sign-up.dom";
+import { Props } from "../components/SignUp/sign-up.utils";
+import { fillField } from "../tests.utils";
+import { AppPersistor } from "../utils/app-context";
+import { windowChangeUrl } from "../utils/global-window";
+import { manageUserAuthentication } from "../utils/manage-user-auth";
+import { scrollIntoView } from "../utils/scroll-into-view";
+import { RegisterUserMutationResult } from "../utils/user.gql.types";
 import {
-  warningClassName,
   errorClassName,
+  formCtrlErrorClassName,
   formFieldErrorClass,
   outerFieldClassName,
-  formCtrlErrorClassName,
+  warningClassName,
 } from "../utils/utils.dom";
-import { AppPersistor } from "../utils/app-context";
-import { fillField } from "../tests.utils";
-import { RegisterUserMutationResult } from "../utils/user.gql.types";
-import { manageUserAuthentication } from "../utils/manage-user-auth";
-import { windowChangeUrl } from "../utils/global-window";
-import { scrollIntoView } from "../utils/scroll-into-view";
 
 jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
@@ -234,7 +233,7 @@ it("reset/form errors", async () => {
 
 const SignUpP = SignUp as ComponentType<Partial<Props>>;
 
-function makeComp({ props = {} }: { props?: Partial<{}> } = {}) {
+function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   return {
     ui: (
       <SignUpP

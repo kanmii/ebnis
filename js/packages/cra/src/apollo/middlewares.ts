@@ -1,8 +1,8 @@
 /* istanbul ignore file */
 import { ApolloLink } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
-import { getToken } from "../utils/manage-user-auth";
 import { doNotLog } from "../logger";
+import { getToken } from "../utils/manage-user-auth";
 
 export type MakeSocketLinkFn = (arg: {
   token: string | null;
@@ -87,6 +87,7 @@ export function middlewareErrorLink(link: ApolloLink) {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/ban-types
     const logError = (errorName: string, obj: object) => {
       const operationName = `Response [${errorName} error] from Apollo operation: ${operation.operationName}`;
 

@@ -1,11 +1,11 @@
-import React, { useContext } from "react";
-import "./header.styles.css";
 import logo from "@eb/cm/src/media/logo.png";
-import { MY_URL } from "../../utils/urls";
-import { Link, useLocation } from "react-router-dom";
 import makeClassNames from "classnames";
+import React, { useContext } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { WithSubscriptionContext } from "../../utils/app-context";
+import { MY_URL } from "../../utils/urls";
 import { domPrefix } from "./header.dom";
+import "./header.styles.css";
 
 export function Header(props: Props) {
   const { connected } = props;
@@ -39,6 +39,6 @@ export default () => {
   return <Header connected={connected} />;
 };
 
-interface Props {
+export interface Props {
   connected: boolean | null;
 }

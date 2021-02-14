@@ -1,23 +1,24 @@
-import { Reducer, Dispatch } from "react";
-import { wrapReducer } from "../../logger";
+import { Any } from "@eb/cm/src/utils/types";
 import immer, { Draft } from "immer";
+import { Dispatch, Reducer } from "react";
+import { wrapReducer } from "../../logger";
+import { deleteObjectKey } from "../../utils";
+import { EbnisContextProps } from "../../utils/app-context";
 import {
+  FieldError,
+  FORM_CONTAINS_ERRORS_MESSAGE,
+  GENERIC_SERVER_ERROR,
+  NOTHING_TO_SAVE_WARNING_MESSAGE,
+  NO_CONNECTION_ERROR,
   parseStringError,
   StringyErrorPayload,
-  NOTHING_TO_SAVE_WARNING_MESSAGE,
-  FORM_CONTAINS_ERRORS_MESSAGE,
-  NO_CONNECTION_ERROR,
-  GENERIC_SERVER_ERROR,
-  FieldError,
 } from "../../utils/common-errors";
-import { scrollIntoView } from "../../utils/scroll-into-view";
-import { LoginMutationComponentProps } from "../../utils/user.gql.types";
 import { getIsConnected } from "../../utils/connections";
-import { EbnisContextProps } from "../../utils/app-context";
-import { windowChangeUrl, ChangeUrlType } from "../../utils/global-window";
-import { MY_URL } from "../../utils/urls";
+import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
 import { manageUserAuthentication } from "../../utils/manage-user-auth";
-import { deleteObjectKey } from "../../utils";
+import { scrollIntoView } from "../../utils/scroll-into-view";
+import { MY_URL } from "../../utils/urls";
+import { LoginMutationComponentProps } from "../../utils/user.gql.types";
 
 export enum ActionType {
   SUBMISSION = "@login/submission",
@@ -106,7 +107,7 @@ const scrollToTopEffect: DefScrollToTopEffect["func"] = () => {
   scrollIntoView("");
 };
 
-type DefScrollToTopEffect = EffectDefinition<"scrollToTopEffect", {}>;
+type DefScrollToTopEffect = EffectDefinition<"scrollToTopEffect", Any>;
 
 const loginEffect: DefLoginEffect["func"] = async (
   ownArgs,
@@ -562,7 +563,7 @@ export interface EffectArgs {
 
 interface EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = {}
+  OwnArgs = Any
 > {
   key: Key;
   ownArgs: OwnArgs;

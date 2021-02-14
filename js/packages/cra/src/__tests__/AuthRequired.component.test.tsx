@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { cleanup, render } from "@testing-library/react";
 import React, { ComponentType } from "react";
-import { render, cleanup } from "@testing-library/react";
 import {
   AuthenticationRequired,
   Props,
@@ -67,7 +67,7 @@ const AuthenticationRequiredP = AuthenticationRequired as ComponentType<
   Partial<Props>
 >;
 
-function makeComp({ props = {} }: { props?: Partial<{}> } = {}) {
+function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   return {
     ui: (
       <AuthenticationRequiredP

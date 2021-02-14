@@ -1,47 +1,48 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Any } from "@eb/cm/src/utils/types";
+import { cleanup, render } from "@testing-library/react";
+import { clearNodeFolder } from "broadcast-channel";
 import React, { ComponentType } from "react";
-import { render, cleanup } from "@testing-library/react";
+import { act } from "react-dom/test-utils";
+import { readEntryFragment } from "../apollo/get-detailed-experience-query";
+import { syncToServer } from "../apollo/sync-to-server";
 import {
-  E2EWindowObject,
-  BroadcastMessageType,
-  BroadcastMessageExperienceDeleted,
-  BroadcastMessageOnSyncData,
-} from "../utils/types";
+  purgeEntry,
+  purgeExperiencesFromCache1,
+} from "../apollo/update-get-experiences-list-view-query";
+import { WithSubscriptions } from "../components/WithSubscriptions/with-subscriptions.component";
 import {
   cleanupWithSubscriptions,
   subscribeToGraphqlEvents,
 } from "../components/WithSubscriptions/with-subscriptions.injectables";
-import { WithSubscriptions } from "../components/WithSubscriptions/with-subscriptions.component";
 import {
-  makeBChannel,
-  broadcastMessage,
-} from "../utils/broadcast-channel-manager";
-import { act } from "react-dom/test-utils";
-import {
-  windowChangeUrl,
-  getLocation,
-  ChangeUrlType,
-} from "../utils/global-window";
-import { MY_URL } from "../utils/urls";
-import { syncToServer } from "../apollo/sync-to-server";
-import { MAX_TIMEOUT_MS } from "../utils/timers";
-import {
-  purgeExperiencesFromCache1,
-  purgeEntry,
-} from "../apollo/update-get-experiences-list-view-query";
-import { clearNodeFolder } from "broadcast-channel";
-import { readEntryFragment } from "../apollo/get-detailed-experience-query";
-import { cleanUpOfflineExperiences } from "../components/WithSubscriptions/with-subscriptions.utils";
-import { deleteObjectKey } from "../utils";
-import { getUser } from "../utils/manage-user-auth";
-import {
+  ActionType,
+  cleanUpOfflineExperiences,
+  effectFunctions,
+  EffectType,
   initState,
   reducer,
-  effectFunctions,
-  ActionType,
-  EffectType,
 } from "../components/WithSubscriptions/with-subscriptions.utils";
+import { deleteObjectKey } from "../utils";
+import {
+  broadcastMessage,
+  makeBChannel,
+} from "../utils/broadcast-channel-manager";
 import { GenericHasEffect } from "../utils/effects";
+import {
+  ChangeUrlType,
+  getLocation,
+  windowChangeUrl,
+} from "../utils/global-window";
+import { getUser } from "../utils/manage-user-auth";
+import { MAX_TIMEOUT_MS } from "../utils/timers";
+import {
+  BroadcastMessageExperienceDeleted,
+  BroadcastMessageOnSyncData,
+  BroadcastMessageType,
+  E2EWindowObject,
+} from "../utils/types";
+import { MY_URL } from "../utils/urls";
 
 jest.mock("../utils/manage-user-auth");
 const mockGetUser = getUser as jest.Mock;
@@ -350,10 +351,10 @@ describe("reducer", () => {
     });
 
     // We should subscribe to graphql events
-    let effect = (state.effects.general as GenericHasEffect<EffectType>)
+    const effect = (state.effects.general as GenericHasEffect<EffectType>)
       .hasEffects.context.effects[0];
 
-    let connectionChangedEffect = effectFunctions[effect.key];
+    const connectionChangedEffect = effectFunctions[effect.key];
 
     connectionChangedEffect(effect.ownArgs, props, effectArgs);
     expect(mockSubscribeToGraphqlEventsSubscribe).not.toHaveBeenCalled();
@@ -372,10 +373,10 @@ describe("reducer", () => {
     });
 
     // We should subscribe to graphql events
-    let effect = (state.effects.general as GenericHasEffect<EffectType>)
+    const effect = (state.effects.general as GenericHasEffect<EffectType>)
       .hasEffects.context.effects[0];
 
-    let connectionChangedEffect = effectFunctions[effect.key];
+    const connectionChangedEffect = effectFunctions[effect.key];
 
     connectionChangedEffect(effect.ownArgs, props, effectArgs);
     const onError = mockSubscribeToGraphqlEventsSubscribe.mock.calls[0][1];
@@ -385,7 +386,7 @@ describe("reducer", () => {
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
-const WithSubscriptionsP = WithSubscriptions as ComponentType<Partial<{}>>;
+const WithSubscriptionsP = WithSubscriptions as ComponentType<Partial<Any>>;
 
 function makeComp() {
   return {

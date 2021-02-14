@@ -1,18 +1,15 @@
-import React, { PropsWithChildren, useRef, useState, useEffect } from "react";
-import "./loading.styles.css";
 import makeClassNames from "classnames";
+import { PropsWithChildren, useEffect, useRef, useState } from "react";
 import { domPrefix } from "./loading-dom";
 import { onUnmount } from "./loading.injectables";
+import "./loading.styles.css";
 
 export function Loading({
   className,
   children,
   loading = true,
   ...props
-}: PropsWithChildren<{
-  className?: string;
-  loading?: boolean;
-}>) {
+}: Props) {
   const loadingRef = useRef<NodeJS.Timeout | null>(null);
   const [shouldShow, setShouldShow] = useState(false);
 
@@ -52,3 +49,8 @@ export function Loading({
 
 // istanbul ignore next:
 export default Loading;
+
+export type Props = PropsWithChildren<{
+  className?: string;
+  loading?: boolean;
+}>;

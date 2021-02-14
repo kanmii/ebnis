@@ -1,70 +1,72 @@
-import { getUnsyncedLedger } from "./unsynced-ledger";
 import {
-  getSyncFlag,
-  putSyncFlag,
-  writeSyncErrors,
-  getSyncErrors,
-} from "./sync-to-server-cache";
-import {
-  SyncFlag,
-  OfflineIdToOnlineExperienceMap,
-  SyncErrors,
-  UpdateSyncReturnVal,
-  OnlineExperienceIdToOfflineEntriesMap,
-  SyncCreateReturnVal,
-  OnlineExperienceUpdatedMap,
-} from "../utils/sync-to-server.types";
-import {
-  UpdateExperienceInput,
-  CreateExperienceInput,
-  UpdateDefinitionInput,
-  CreateEntryInput,
-  UpdateEntryInput,
-  CreateDataObject,
-  CreateDataDefinition,
-  UpdateExperienceOwnFieldsInput,
-} from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { isOfflineId } from "../utils/offlines";
-import {
-  readExperienceCompleteFragment,
-  getCachedEntriesDetailViewSuccess,
-} from "./get-detailed-experience-query";
+  CreateExperiences,
+  CreateExperiencesVariables,
+  CreateExperiences_createExperiences,
+} from "@eb/cm/src/graphql/apollo-types/CreateExperiences";
 import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
+import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
 import {
-  EntryConnectionFragment_edges,
   EntryConnectionFragment,
+  EntryConnectionFragment_edges,
 } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
+import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
+import {
+  CreateDataDefinition,
+  CreateDataObject,
+  CreateEntryInput,
+  CreateExperienceInput,
+  UpdateDefinitionInput,
+  UpdateEntryInput,
+  UpdateExperienceInput,
+  UpdateExperienceOwnFieldsInput,
+} from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import {
   SyncToServer,
   SyncToServerVariables,
 } from "@eb/cm/src/graphql/apollo-types/SyncToServer";
-import {
-  SYNC_TO_SERVER_MUTATION,
-  UPDATE_EXPERIENCES_ONLINE_MUTATION,
-  CREATE_EXPERIENCES_MUTATION,
-} from "@eb/cm/src/graphql/experience.gql";
 import {
   UpdateExperiencesOnline,
   UpdateExperiencesOnlineVariables,
   UpdateExperiencesOnline_updateExperiences,
 } from "@eb/cm/src/graphql/apollo-types/UpdateExperiencesOnline";
 import {
-  CreateExperiences,
-  CreateExperiencesVariables,
-  CreateExperiences_createExperiences,
-} from "@eb/cm/src/graphql/apollo-types/CreateExperiences";
-import { createExperiencesManualUpdate } from "./create-experiences-manual-update";
-import { updateExperiencesManualCacheUpdate } from "./update-experiences-manual-cache-update";
+  CREATE_EXPERIENCES_MUTATION,
+  SYNC_TO_SERVER_MUTATION,
+  UPDATE_EXPERIENCES_ONLINE_MUTATION,
+} from "@eb/cm/src/graphql/experience.gql";
 import { broadcastMessage } from "../utils/broadcast-channel-manager";
+import { isOfflineId } from "../utils/offlines";
+import {
+  OfflineIdToOnlineExperienceMap,
+  OnlineExperienceIdToOfflineEntriesMap,
+  OnlineExperienceUpdatedMap,
+  SyncCreateReturnVal,
+  SyncErrors,
+  SyncFlag,
+  UpdateSyncReturnVal,
+} from "../utils/sync-to-server.types";
 import { BroadcastMessageType } from "../utils/types";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { createExperiencesManualUpdate } from "./create-experiences-manual-update";
+import {
+  getCachedEntriesDetailViewSuccess,
+  readExperienceCompleteFragment,
+} from "./get-detailed-experience-query";
+import {
+  getSyncErrors,
+  getSyncFlag,
+  putSyncFlag,
+  writeSyncErrors,
+} from "./sync-to-server-cache";
+import { getUnsyncedLedger } from "./unsynced-ledger";
+import { updateExperiencesManualCacheUpdate } from "./update-experiences-manual-cache-update";
 
 const WAIT_INTERVAL = 1 * 1000 * 60; // 1 minute
 
 export async function syncToServer() {
-  let { canSync, isSyncing } = getSyncFlag();
+  const result = getSyncFlag();
+  let canSync = result.canSync;
+  const isSyncing = result.isSyncing;
 
   if (!canSync) {
     putSyncFlag({
@@ -91,7 +93,7 @@ export async function syncToServer() {
     return;
   }
 
-  let oldSyncErrors = getSyncErrors();
+  const oldSyncErrors = getSyncErrors();
 
   const [updateInput, createInput] = Object.entries(unsyncedLedger).reduce(
     (acc, [experienceId, ledger]) => {
@@ -289,7 +291,9 @@ export async function syncToServer() {
         result.data &&
         result.data.createExperiences) as CreateExperiences_createExperiences[];
     }
-  } catch (error) {}
+  } catch (error) {
+    //
+  }
 
   let onlineExperienceIdToOfflineEntriesMap:
     | OnlineExperienceIdToOfflineEntriesMap

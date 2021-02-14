@@ -1,65 +1,68 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
+import {
+  GetExperiencesConnectionListView_getExperiences,
+  GetExperiencesConnectionListView_getExperiences_edges,
+} from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import React, { ComponentType } from "react";
-import { render, cleanup, waitFor } from "@testing-library/react";
+import { act } from "react-dom/test-utils";
+import { getCachedExperiencesConnectionListView } from "../apollo/cached-experiences-list-view";
+import {
+  DeletedExperienceLedger,
+  getDeleteExperienceLedger,
+  putOrRemoveDeleteExperienceLedger,
+} from "../apollo/delete-experience-cache";
+import { useWithSubscriptionContext } from "../apollo/injectables";
+import { getOnlineStatus } from "../apollo/unsynced-ledger";
+import { purgeExperiencesFromCache1 } from "../apollo/update-get-experiences-list-view-query";
 import { My } from "../components/My/my.component";
 import {
-  Props,
-  initState,
-  EffectType,
-  effectFunctions,
-  reducer,
-  ActionType,
-  DataState,
-} from "../components/My/my.utils";
-import {
-  noExperiencesActivateNewDomId,
-  domPrefix,
-  searchInputDomId,
-  isPartOfflineClassName,
-  isOfflineClassName,
-  descriptionSummaryClassName,
-  descriptionFullClassName,
+  activateInsertExperienceDomId,
   descriptionControlClassName,
-  dropdownTriggerClassName,
+  descriptionFullClassName,
+  descriptionSummaryClassName,
+  domPrefix,
   dropdownIsActiveClassName,
+  dropdownTriggerClassName,
   fetchErrorRetryDomId,
-  onDeleteExperienceSuccessNotificationId,
+  isOfflineClassName,
+  isPartOfflineClassName,
+  noExperiencesActivateNewDomId,
   onDeleteExperienceCancelledNotificationId,
+  onDeleteExperienceSuccessNotificationId,
+  searchInputDomId,
   updateExperienceMenuItemSelector,
   updateExperienceSuccessNotificationCloseClassName,
-  activateInsertExperienceDomId,
 } from "../components/My/my.dom";
-import { makeOfflineId } from "../utils/offlines";
+import { handlePreFetchExperiences } from "../components/My/my.injectables";
+import {
+  ActionType,
+  DataState,
+  effectFunctions,
+  EffectType,
+  initState,
+  Props,
+  reducer,
+} from "../components/My/my.utils";
+import { cleanUpOfflineExperiences } from "../components/WithSubscriptions/with-subscriptions.utils";
 import { fillField } from "../tests.utils";
-import { StateValue, BroadcastMessageType } from "../utils/types";
+import { deleteObjectKey } from "../utils";
+import { AppPersistor } from "../utils/app-context";
+import { getIsConnected } from "../utils/connections";
 import { GenericHasEffect } from "../utils/effects";
 import {
   getExperienceConnectionListView,
   GetExperiencesConnectionListViewQueryResult,
 } from "../utils/experience.gql.types";
-import { getCachedExperiencesConnectionListView } from "../apollo/cached-experiences-list-view";
-import { getIsConnected } from "../utils/connections";
-import {
-  getDeleteExperienceLedger,
-  putOrRemoveDeleteExperienceLedger,
-  DeletedExperienceLedger,
-} from "../apollo/delete-experience-cache";
-import {
-  GetExperiencesConnectionListView_getExperiences_edges,
-  GetExperiencesConnectionListView_getExperiences,
-} from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
-import { useWithSubscriptionContext } from "../apollo/injectables";
-import { purgeExperiencesFromCache1 } from "../apollo/update-get-experiences-list-view-query";
-import { AppPersistor } from "../utils/app-context";
-import { E2EWindowObject } from "../utils/types";
-import { handlePreFetchExperiences } from "../components/My/my.injectables";
-import { act } from "react-dom/test-utils";
-import { getOnlineStatus } from "../apollo/unsynced-ledger";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { cleanUpOfflineExperiences } from "../components/WithSubscriptions/with-subscriptions.utils";
-import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
+import { makeOfflineId } from "../utils/offlines";
 import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
-import { deleteObjectKey } from "../utils";
+import {
+  BroadcastMessageType,
+  E2EWindowObject,
+  StateValue,
+} from "../utils/types";
 
 jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
 const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
@@ -211,7 +214,7 @@ describe("component", () => {
     expect(getFetchErrorRetry()).toBeNull();
 
     await waitFor(() => true);
-    let reFetchEl = getFetchErrorRetry();
+    const reFetchEl = getFetchErrorRetry();
 
     mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
       data: {
@@ -257,7 +260,7 @@ describe("component", () => {
     expect(getFetchErrorRetry()).toBeNull();
 
     await waitFor(() => true);
-    let reFetchEl = getFetchErrorRetry();
+    const reFetchEl = getFetchErrorRetry();
 
     mockManuallyFetchExperienceConnectionMini.mockResolvedValueOnce({
       data: {
@@ -734,7 +737,7 @@ describe("reducer", () => {
   const props = {} as any;
 
   it("fetches experiences when no network", async () => {
-    let state = initState();
+    const state = initState();
 
     const effect = (state.effects.general as GenericHasEffect<EffectType>)
       .hasEffects.context.effects[0];
@@ -751,7 +754,7 @@ describe("reducer", () => {
   });
 
   it("fetches experiences: first no network, then later there is network", async () => {
-    let state = initState();
+    const state = initState();
 
     const effect = (state.effects.general as GenericHasEffect<EffectType>)
       .hasEffects.context.effects[0];
@@ -845,7 +848,7 @@ function getMockCloseUpsertExperienceUi() {
   return document.getElementById(mockCloseUpsertExperienceUiId) as HTMLElement;
 }
 
-function getFetchNextExperience(index: number = 0) {
+function getFetchNextExperience(index = 0) {
   return document
     .getElementsByClassName("my-experiences__next")
     .item(index) as HTMLElement;
@@ -855,11 +858,11 @@ function getExperienceEl(id: string = mockOnlineId) {
   return document.getElementById(id) as HTMLElement;
 }
 
-function getDropdownMenu(parentEl: HTMLElement, index: number = 0) {
+function getDropdownMenu(parentEl: HTMLElement, index = 0) {
   return parentEl.getElementsByClassName("dropdown").item(index) as HTMLElement;
 }
 
-function getDeleteExperienceMenu(index: number = 0) {
+function getDeleteExperienceMenu(index = 0) {
   return document
     .getElementsByClassName("delete-experience-menu-item")
     .item(index) as HTMLElement;
@@ -892,7 +895,7 @@ function getDeleteExperienceCancelledNotification() {
   ) as HTMLElement;
 }
 
-function getUpdateExperienceMenuItem(index: number = 0) {
+function getUpdateExperienceMenuItem(index = 0) {
   return document
     .getElementsByClassName(updateExperienceMenuItemSelector)
     .item(index) as HTMLElement;
@@ -904,7 +907,7 @@ function getMockOnUpsertExperienceSuccessUi() {
   ) as HTMLElement;
 }
 
-function getUpdateExperienceSuccessNotificationCloseEl(index: number = 0) {
+function getUpdateExperienceSuccessNotificationCloseEl(index = 0) {
   return document
     .getElementsByClassName(updateExperienceSuccessNotificationCloseClassName)
     .item(index) as HTMLElement;

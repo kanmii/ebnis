@@ -1,18 +1,19 @@
 /* istanbul ignore file */
-import { InMemoryCache, ApolloClient } from "@apollo/client";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
+import { Any } from "@eb/cm/src/utils/types";
 import { CachePersistor } from "apollo-cache-persist-dev";
-import { SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY } from "./schema-keys";
 import {
-  PersistentStorage,
   PersistedData,
+  PersistentStorage,
 } from "apollo-cache-persist-dev/types";
+import { makeBChannel } from "../utils/broadcast-channel-manager";
 import {
   makeConnectionObject,
   resetConnectionObject,
 } from "../utils/connections";
-import { makeBChannel } from "../utils/broadcast-channel-manager";
 import { E2EWindowObject } from "../utils/types";
 import { makeApolloClient } from "./client";
+import { SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY } from "./schema-keys";
 
 export function buildClientCache(
   {
@@ -51,22 +52,22 @@ export function buildClientCache(
 
 function makePersistor(
   appCache: InMemoryCache,
-  persistor?: CachePersistor<{}>,
+  persistor?: CachePersistor<Any>,
 ) {
   persistor = persistor
     ? persistor
     : (new CachePersistor({
         cache: appCache,
-        storage: localStorage as PersistentStorage<PersistedData<{}>>,
+        storage: localStorage as PersistentStorage<PersistedData<Any>>,
         key: SCHEMA_KEY,
         maxSize: false,
-      }) as CachePersistor<{}>);
+      }) as CachePersistor<Any>);
 
   return persistor;
 }
 
 export async function restoreCacheOrPurgeStorage(
-  persistor: CachePersistor<{}>,
+  persistor: CachePersistor<Any>,
 ) {
   if (persistor === getGlobalsFromCypress().persistor) {
     return persistor;
@@ -89,8 +90,8 @@ export async function restoreCacheOrPurgeStorage(
 }
 
 export const resetClientAndPersistor = async (
-  appClient: ApolloClient<{}>,
-  appPersistor: CachePersistor<{}>,
+  appClient: ApolloClient<Any>,
+  appPersistor: CachePersistor<Any>,
 ) => {
   await appPersistor.pause(); // Pause automatic persistence.
   await appPersistor.purge(); // Delete everything in the storage provider.
@@ -146,9 +147,9 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
 }
 
 function addToGlobals(args: {
-  client: ApolloClient<{}>;
+  client: ApolloClient<Any>;
   cache: InMemoryCache;
-  persistor: CachePersistor<{}>;
+  persistor: CachePersistor<Any>;
 }) {
   const keys: (keyof typeof args)[] = ["client", "cache", "persistor"];
   const globals = window.Cypress ? getGlobalsFromCypress() : window.____ebnis;

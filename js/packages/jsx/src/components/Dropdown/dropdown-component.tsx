@@ -1,8 +1,8 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
 import makeClassNames from "classnames";
-import { StateMachine, Option, Props } from "./dropdown.utils";
-import "./dropdown.styles.scss";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { dropdownDomSelectorClass } from "./dropdown.dom";
+import "./dropdown.styles.scss";
+import { Option, Props, StateMachine } from "./dropdown.utils";
 
 export function Dropdown<Value = string | number>(props: Props<Value>) {
   const {
@@ -221,7 +221,6 @@ export function Dropdown<Value = string | number>(props: Props<Value>) {
 }
 
 // istanbul ignore next:
-/* eslint-disable-next-line react/display-name*/
 export default function <V>(props: Props<V>) {
   return <Dropdown<V> {...props} />;
 }
