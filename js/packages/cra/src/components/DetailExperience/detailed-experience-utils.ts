@@ -155,6 +155,7 @@ export enum ActionType {
   DELETE_ENTRY = "@detailed-experience/delete-entry",
   ON_COMMENTS_FETCHED = "@detailed-experience/on-comments-fetched",
   COMMENT_ACTION = "@detailed-experience/comment-action",
+  ON_UPSERT_COMMENT = "@detailed-experience/on-upsert-comment",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
