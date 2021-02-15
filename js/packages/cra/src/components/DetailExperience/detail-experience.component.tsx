@@ -732,7 +732,10 @@ function CommentsComponent(props: { state: CommentState }) {
                       whitespace-pre-line
                       max-h-80
                       overflow-y-auto
-                      p-5
+                      pb-4
+                      pl-4
+                      pr-12
+                      pt-6
                       mt-5
                       border-t
                       break-words
@@ -742,9 +745,9 @@ function CommentsComponent(props: { state: CommentState }) {
                   </p>
 
                   <div
-                    className={makeClassNames({
-                      absolute: true,
-                    })}
+                    className={`
+                      absolute
+                    `}
                     style={{
                       right: "1.5rem",
                       top: "10px",
@@ -754,7 +757,6 @@ function CommentsComponent(props: { state: CommentState }) {
                       className={`
                         eb-dropdown-menu
                         is-active
-                      })}
                       `}
                       role="menu"
                     >
@@ -763,7 +765,13 @@ function CommentsComponent(props: { state: CommentState }) {
                       <div className="eb-content">Delete</div>
                     </div>
 
-                    <div className="dropdown-trigger">
+                    <div
+                      id={commentItemOptionsToggleId}
+                      className={`
+                        dropdown-trigger
+                        text-blue-600
+                      `}
+                    >
                       <DotsVerticalSvg />
                     </div>
                   </div>
