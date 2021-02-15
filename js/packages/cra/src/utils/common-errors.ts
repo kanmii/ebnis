@@ -45,3 +45,4 @@ export type CommonErrorsState = Readonly<{
 type ErrorField = string;
 type ErrorText = string;
 export type FieldError = [ErrorField, ErrorText][];
+export type ErrorType = [string, string][];

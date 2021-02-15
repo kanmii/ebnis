@@ -363,8 +363,17 @@ export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_ex
 
 export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors_meta {
   __typename: "CommentErrorsMeta";
+  /**
+   * The index of the comment in the list of comments sent for processing
+   */
   index: number;
-  id: string | null;
+  /**
+   * For a comment deleted, this will be a non empty ID
+   * For an offline comment created, this will be a non empty ID
+   * For all other cases, e.g. online comment create, the ID can be null or
+   *   empty
+   */
+  id: string;
 }
 
 export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors_errors {
@@ -376,7 +385,7 @@ export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_ex
 
 export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors {
   __typename: "CommentErrors";
-  meta: UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors_meta | null;
+  meta: UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors_meta;
   errors: UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_updates_CommentUnionErrors_errors_errors;
 }
 
@@ -402,8 +411,17 @@ export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_ex
 
 export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors_meta {
   __typename: "CommentErrorsMeta";
+  /**
+   * The index of the comment in the list of comments sent for processing
+   */
   index: number;
-  id: string | null;
+  /**
+   * For a comment deleted, this will be a non empty ID
+   * For an offline comment created, this will be a non empty ID
+   * For all other cases, e.g. online comment create, the ID can be null or
+   *   empty
+   */
+  id: string;
 }
 
 export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors_errors {
@@ -415,7 +433,7 @@ export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_ex
 
 export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors {
   __typename: "CommentErrors";
-  meta: UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors_meta | null;
+  meta: UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors_meta;
   errors: UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_inserts_CommentUnionErrors_errors_errors;
 }
 
@@ -441,8 +459,17 @@ export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_ex
 
 export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors_meta {
   __typename: "CommentErrorsMeta";
+  /**
+   * The index of the comment in the list of comments sent for processing
+   */
   index: number;
-  id: string | null;
+  /**
+   * For a comment deleted, this will be a non empty ID
+   * For an offline comment created, this will be a non empty ID
+   * For all other cases, e.g. online comment create, the ID can be null or
+   *   empty
+   */
+  id: string;
 }
 
 export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors_errors {
@@ -454,7 +481,7 @@ export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_ex
 
 export interface UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors {
   __typename: "CommentErrors";
-  meta: UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors_meta | null;
+  meta: UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors_meta;
   errors: UpdateExperiencesOnlineFragment_UpdateExperiencesSomeSuccess_experiences_UpdateExperienceSomeSuccess_comments_deletes_CommentUnionErrors_errors_errors;
 }
 

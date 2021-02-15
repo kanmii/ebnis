@@ -1055,7 +1055,7 @@ describe("sync", () => {
 });
 
 describe("reducers", () => {
-  const mockHistoryPushFn = jest.fn();
+  const mockHistoryPushFn = jest.fn()
   const props = {
     history: {
       push: mockHistoryPushFn as any,
@@ -1063,6 +1063,7 @@ describe("reducers", () => {
     match: {
       params: {},
     },
+    updateExperiencesMutation: updateExperiencesMutation
   } as Props;
 
   const mockDispatchFn = jest.fn();
@@ -2314,6 +2315,7 @@ function makeComp({
         {...props}
         deleteExperiences={mockDeleteExperiences}
         componentTimeoutsMs={{ fetchRetries: [0], closeNotification: 0 }}
+        updateExperiencesMutation={updateExperiencesMutation}
       />
     ),
   };

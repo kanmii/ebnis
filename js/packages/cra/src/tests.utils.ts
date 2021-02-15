@@ -19,6 +19,10 @@ export function getById<T extends HTMLElement = HTMLElement>(domId: string) {
   return document.getElementById(domId) as T;
 }
 
+export function getByClass(className: string) {
+  return document.getElementsByClassName(className);
+}
+
 export const defaultExperience = {
   id: "1",
   dataDefinitions: [
@@ -119,6 +123,14 @@ export const mockComment2Id = "comment-2";
 export const mockComment2: CommentFragment = {
   id: mockComment2Id,
   text: "comment-2",
+  __typename: "Comment",
+};
+
+export const mockComment3Id = "comment-3";
+
+export const mockComment3: CommentFragment = {
+  id: mockComment3Id,
+  text: "comment-3",
   __typename: "Comment",
 };
 

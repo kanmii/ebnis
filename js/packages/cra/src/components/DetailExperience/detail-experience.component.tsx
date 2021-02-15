@@ -2,6 +2,8 @@ import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import { ReactComponent as DotsVerticalSvg } from "@eb/cm/src/styles/dots-vertical.svg";
 import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+import Button from "@eb/jsx/src/components/Button/button.component";
+import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import Notification from "@eb/jsx/src/components/Notification/notification.component";
 import makeClassNames from "classnames";
 import React, {
@@ -18,6 +20,7 @@ import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { getExperienceComments } from "../../utils/experience.gql.types";
 import { setUpRoutePage } from "../../utils/global-window";
 import { OnlineStatus, StateValue } from "../../utils/types";
+import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { activeClassName } from "../../utils/utils.dom";
 import Entry from "../Entry/entry.component";
@@ -30,12 +33,21 @@ import {
   closeSyncErrorsMsgBtnId,
   closeSyncErrorsMsgId,
   closeUpsertEntryNotificationId,
+  commentItemContainerSelector,
+  commentItemOptionsSelector,
+  commentItemOptionsToggleSelector,
   commentNotificationCloseId,
   commentsErrorContainerId,
   commentsHeaderNewId,
-  commentSuccessSelector,
   createCommentsLabelText,
   createCommentsMenuId,
+  deleteCommentMenuSelector,
+  deleteCommentPromptFooterCloseId,
+  deleteCommentPromptHeaderCloseId,
+  deleteCommentPromptOkId,
+  deletedCommentsFailure,
+  deletedCommentsFailureSelector,
+  deletedCommentsSuccess,
   deleteExperienceMenuItemSelector,
   deleteExperienceOkSelector,
   editExperienceMenuItemSelector,
@@ -68,7 +80,7 @@ import {
   ActionType,
   CallerProps,
   CommentAction,
-  CommentState,
+  CommentListState,
   componentTimeoutsMs,
   DataState,
   DispatchType,
@@ -77,6 +89,7 @@ import {
   ExperienceSyncError,
   initState,
   OldEntryData,
+  OnCommentsDeletedSomeSuccessPayload,
   Props,
   reducer,
 } from "./detailed-experience-utils";
@@ -334,6 +347,7 @@ export default (props: CallerProps) => {
       deleteExperiences={deleteExperiences}
       componentTimeoutsMs={componentTimeoutsMs}
       getExperienceComments={getExperienceComments}
+      updateExperiencesMutation={updateExperiencesMutation}
     />
   );
 };
@@ -355,13 +369,13 @@ function ExperienceComponent() {
     states: {
       deleteExperience: deleteExperienceState,
       upsertEntryActive,
-      upsertComment,
+      upsertingComment,
       entryNotification: newEntryCreated,
       entries: entriesState,
       updateExperienceUiActive,
       syncErrorsMsg,
       entriesOptions,
-      comment: commentsState,
+      commentList: commentListState,
     },
   } = useContext(DataStateContext);
 
@@ -426,7 +440,7 @@ function ExperienceComponent() {
         <DeleteEntryConfirmationComponent />
       )}
 
-      {upsertComment.value === StateValue.active && (
+      {upsertingComment.value === StateValue.active && (
         <Suspense fallback={<Loading />}>
           <UpsertComment
             association={{
@@ -519,7 +533,7 @@ function ExperienceComponent() {
           />
         )}
 
-        <CommentsComponent state={commentsState} />
+        <CommentsComponent state={commentListState} />
 
         {entriesState.value === StateValue.success && (
           <EntriesComponent state={entriesState.success} />
@@ -558,7 +572,7 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
 
   const {
     context: { dataDefinitionIdToNameMap },
-    states: { entriesOptions, comment: commentsState },
+    states: { entriesOptions, commentList: commentListState },
   } = useContext(DataStateContext);
 
   const {
@@ -589,7 +603,7 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
       ) : (
         <>
           <div id={entriesContainerId}>
-            {commentsState.value !== StateValue.initial && (
+            {commentListState.value !== StateValue.initial && (
               <p
                 className={makeClassNames({
                   "font-black": true,
@@ -651,135 +665,273 @@ function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
   );
 }
 
-function CommentsComponent(props: { state: CommentState }) {
+function CommentsComponent(props: { state: CommentListState }) {
   const { state } = props;
 
-  const { commentCb } = useContext(DispatchContext);
+  const { commentCb, dispatch } = useContext(DispatchContext);
   const {
-    states: { commentNotification },
+    states: {
+      commentNotification,
+      commentMenu,
+      deleteCommentPrompt,
+      deletingComments,
+      deletedComments,
+    },
   } = useContext(DataStateContext);
 
   switch (state.value) {
     case StateValue.success: {
       const { comments } = state.success.context;
+      let failures = {} as OnCommentsDeletedSomeSuccessPayload["data"]["failures"];
+      let failureCount = 0;
+      let successCount = 0;
+
+      if (deletedComments.value === StateValue.active) {
+        const context = deletedComments.active.context;
+        failures = context.failures;
+        failureCount = context.failureCount;
+        successCount = context.successCount;
+      }
 
       return (
-        <div
-          className={makeClassNames({
-            "mb-5": true,
-          })}
-        >
-          <div>
-            <div
+        <>
+          {successCount && <div id="0000" />}
+
+          {deletingComments.value === StateValue.active && <Loading />}
+
+          {deleteCommentPrompt.value === StateValue.active && (
+            <Modal
               className={`
-                font-black
-                text-2xl
-                mb-2
-                shadow
-                pl-3
-                flex
-                justify-between
+                ${noTriggerDocumentEventClassName}
               `}
+              onClose={() => {
+                dispatch({
+                  type: ActionType.DELETE_COMMENTS_PROMPT,
+                });
+              }}
             >
-              <div>Comments</div>
-              <span
-                id={commentsHeaderNewId}
-                className={`
-                  bg-blue-300
-                  cursor-pointer
-                  pl-5
-                  pr-5
-                  rounded-br
-                  rounded-tr
-                  text-white
-                `}
-                onClick={(e) => {
-                  commentCb(e, CommentAction.CREATE);
-                }}
-              >
-                +
-              </span>
-            </div>
-
-            {commentNotification.value === StateValue.active && (
-              <Notification
-                id={commentNotificationCloseId}
-                type="success"
-                onClose={(e) => {
-                  commentCb(e, CommentAction.CLOSE_NOTIFICATION);
-                }}
-              >
-                {commentNotification.active.context.message}
-              </Notification>
-            )}
-
-            {comments.map((comment) => {
-              const { id, text } = comment;
-
-              return (
-                <div
-                  key={id}
-                  id={id}
-                  className={`
-                    ${commentSuccessSelector}
-                    shadow-lg
-                    relative
-                 `}
+              <Modal.Card>
+                <Modal.Header
+                  id={deleteCommentPromptHeaderCloseId}
+                  onClose={() => {
+                    dispatch({
+                      type: ActionType.DELETE_COMMENTS_PROMPT,
+                    });
+                  }}
                 >
-                  <p
-                    className={`
-                      eb-tiny-scroll
-                      whitespace-pre-line
-                      max-h-80
-                      overflow-y-auto
-                      pb-4
-                      pl-4
-                      pr-12
-                      pt-6
-                      mt-5
-                      border-t
-                      break-words
-                    `}
-                  >
-                    {text}
-                  </p>
+                  <span>Delete </span>
+                  <span>
+                    {deleteCommentPrompt.active.context.ids.length === 1
+                      ? "comment"
+                      : "comments"}
+                  </span>
+                  ?
+                </Modal.Header>
 
-                  <div
+                <Modal.Footer>
+                  <Button
+                    id={deleteCommentPromptOkId}
                     className={`
-                      absolute
+                      is-danger
+                      mr-4
                     `}
-                    style={{
-                      right: "1.5rem",
-                      top: "10px",
+                    onClick={() => {
+                      dispatch({
+                        type: ActionType.DELETE_COMMENTS_YES,
+                      });
                     }}
                   >
-                    <div
-                      className={`
-                        eb-dropdown-menu
-                        is-active
-                      `}
-                      role="menu"
-                    >
-                      <div className="eb-content">Edit</div>
+                    Ok
+                  </Button>
 
-                      <div className="eb-content">Delete</div>
-                    </div>
+                  <Button
+                    id={deleteCommentPromptFooterCloseId}
+                    onClick={() => {
+                      dispatch({
+                        type: ActionType.DELETE_COMMENTS_PROMPT,
+                      });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </Modal.Footer>
+              </Modal.Card>
+            </Modal>
+          )}
 
-                    <div
-                      id={commentItemOptionsToggleId}
-                      className={`
-                        dropdown-trigger
-                        text-blue-600
-                      `}
-                    >
-                      <DotsVerticalSvg />
+          <div
+            className={`
+              mb-5
+            `}
+          >
+            <div>
+              <div
+                className={`
+                  font-black
+                  text-2xl
+                  mb-2
+                  shadow
+                  pl-3
+                  flex
+                  justify-between
+                `}
+              >
+                <div>Comments</div>
+                <span
+                  id={commentsHeaderNewId}
+                  className={`
+                    bg-blue-300
+                    cursor-pointer
+                    pl-5
+                    pr-5
+                    rounded-br
+                    rounded-tr
+                    text-white
+                  `}
+                  onClick={(e) => {
+                    commentCb(e, CommentAction.CREATE);
+                  }}
+                >
+                  +
+                </span>
+              </div>
+
+              {successCount && failureCount && (
+                <div>
+                  {successCount && (
+                    <div id={deletedCommentsSuccess}>
+                      {successCount} deleted
                     </div>
-                  </div>
+                  )}
+
+                  {failureCount && (
+                    <div id={deletedCommentsFailure}>
+                      {failureCount} not deleted
+                    </div>
+                  )}
                 </div>
-              );
-            })}
+              )}
+
+              {commentNotification.value === StateValue.active && (
+                <Notification
+                  id={commentNotificationCloseId}
+                  type="success"
+                  onClose={(e) => {
+                    commentCb(e, CommentAction.CLOSE_NOTIFICATION);
+                  }}
+                >
+                  {commentNotification.active.context.message}
+                </Notification>
+              )}
+
+              {comments.map((comment) => {
+                const { id, text } = comment;
+
+                return (
+                  <Fragment key={id}>
+                    {failures[id] && (
+                      <div
+                        className={`
+                          ${deletedCommentsFailureSelector}
+                        `}
+                      >
+                        {failures[id].map(([k, v]) => {
+                          return <div key={k}>{v}</div>;
+                        })}
+                      </div>
+                    )}
+
+                    <div
+                      id={id}
+                      className={`
+                      ${commentItemContainerSelector}
+                      shadow-lg
+                      relative
+                      mt-5
+                    `}
+                    >
+                      <p
+                        className={`
+                        eb-tiny-scroll
+                        whitespace-pre-line
+                        max-h-80
+                        overflow-y-auto
+                        pb-4
+                        pl-4
+                        pr-12
+                        pt-6
+                        border-t
+                        break-words
+                      `}
+                      >
+                        {text}
+                      </p>
+
+                      <div
+                        className={`
+                        absolute
+                      `}
+                        style={{
+                          right: "1.5rem",
+                          top: "10px",
+                        }}
+                      >
+                        <div
+                          className={`
+                          eb-dropdown-menu
+                          ${commentItemOptionsSelector}
+                          ${noTriggerDocumentEventClassName}
+                          ${
+                            commentMenu.value === StateValue.active &&
+                            commentMenu.active.context.id === id
+                              ? activeClassName
+                              : ""
+                          }
+                       `}
+                          role="menu"
+                        >
+                          <div className="eb-content">Edit</div>
+
+                          <div
+                            className={`
+                            eb-content
+                            ${deleteCommentMenuSelector}
+                          `}
+                            onClick={() => {
+                              dispatch({
+                                type: ActionType.DELETE_COMMENTS_PROMPT,
+                                ids: [id],
+                              });
+                            }}
+                          >
+                            Delete
+                          </div>
+                        </div>
+
+                        <div
+                          className={`
+                          dropdown-trigger
+                          text-blue-600
+                          ${noTriggerDocumentEventClassName}
+                          ${commentItemOptionsToggleSelector}
+                        `}
+                          onClick={() => {
+                            dispatch({
+                              type: ActionType.TOGGLE_COMMENT_MENU,
+                              id,
+                            });
+                          }}
+                        >
+                          <DotsVerticalSvg />
+                        </div>
+                      </div>
+                    </div>
+                  </Fragment>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </>
       );
     }
 
@@ -991,8 +1143,8 @@ function MenuComponent() {
   const {
     states: {
       showingOptionsMenu: state,
-      comment: commentsState,
-      upsertComment: upsertCommentState,
+      commentList: commentListState,
+      upsertingComment: upsertingCommentState,
     },
   } = useContext(DataStateContext);
 
@@ -1008,7 +1160,7 @@ function MenuComponent() {
   let showCommentLabel = "";
   let hideCommentLabel = "";
 
-  if (commentsState.value === StateValue.initial) {
+  if (commentListState.value === StateValue.initial) {
     showCommentLabel = showCommentsLabelText;
   } else {
     hideCommentLabel = hideCommentsLabelText;
@@ -1050,14 +1202,14 @@ function MenuComponent() {
           Delete
         </div>
 
-        {upsertCommentState.value === StateValue.inactive && (
+        {upsertingCommentState.value === StateValue.inactive && (
           <>
             {hideCommentLabel && (
               <div
                 id={hideCommentsMenuId}
                 className={`content`}
                 onClick={(e) => {
-                  commentCb(e, CommentAction.HIDE);
+                  commentCb(e, CommentAction.UN_LIST);
                 }}
               >
                 {hideCommentLabel}
@@ -1069,7 +1221,7 @@ function MenuComponent() {
                 id={showCommentsMenuId}
                 className={`content`}
                 onClick={(e) => {
-                  commentCb(e, CommentAction.SHOW);
+                  commentCb(e, CommentAction.LIST);
                 }}
               >
                 {showCommentLabel}

@@ -4,6 +4,7 @@ import { CommentFragment } from "@eb/cm/src/graphql/apollo-types/CommentFragment
 import {
   getMswExperienceCommentsGql,
   getMswListExperiencesGql,
+  updateMswExperiencesGql,
 } from "@eb/cm/src/__tests__/msw-handlers";
 import { mswServer, mswServerListen } from "@eb/cm/src/__tests__/msw-server";
 import { cleanup, render, waitFor } from "@testing-library/react";
@@ -19,11 +20,20 @@ import {
 import { useWithSubscriptionContext } from "../apollo/injectables";
 import { DetailExperience } from "../components/DetailExperience/detail-experience.component";
 import {
+  commentItemContainerSelector,
+  commentItemOptionsSelector,
+  commentItemOptionsToggleSelector,
   commentNotificationCloseId,
   commentsErrorContainerId,
   commentsHeaderNewId,
-  commentSuccessSelector,
   createCommentsMenuId,
+  deleteCommentMenuSelector,
+  deleteCommentPromptFooterCloseId,
+  deleteCommentPromptHeaderCloseId,
+  deleteCommentPromptOkId,
+  deletedCommentsFailure,
+  deletedCommentsFailureSelector,
+  deletedCommentsSuccess,
   emptyCommentsContainerId,
   hideCommentsMenuId,
   showCommentsMenuId,
@@ -43,12 +53,15 @@ import {
 } from "../components/DetailExperience/detailed-experience-utils";
 import { Props as UpsertCommentProps } from "../components/UpsertComment/upsert-comment.utils";
 import {
+  getByClass,
   getById,
   getEffects,
   mockComment1,
   mockComment1Id,
   mockComment2,
   mockComment2Id,
+  mockComment3,
+  mockComment3Id,
   mockOnlineExperience1,
   mockOnlineExperienceId1,
   onlineEntrySuccess,
@@ -57,6 +70,11 @@ import { deleteObjectKey } from "../utils";
 import { getIsConnected } from "../utils/connections";
 import { getExperienceComments } from "../utils/experience.gql.types";
 import { E2EWindowObject } from "../utils/types";
+import { updateExperiencesMutation } from "../utils/update-experiences.gql";
+import { activeClassName } from "../utils/utils.dom";
+
+jest.mock("../apollo/update-experiences-manual-cache-update");
+jest.mock("../apollo/update-get-experiences-list-view-query");
 
 jest.mock("../apollo/sync-to-server-cache");
 
@@ -96,8 +114,9 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
   };
 });
 
+const mockLoadingId = "@x/l";
 jest.mock("../components/Loading/loading.component", () => {
-  return () => null;
+  return () => <span id={mockLoadingId} />;
 });
 
 jest.mock("../apollo/get-detailed-experience-query");
@@ -115,6 +134,12 @@ const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
 jest.mock("../components/Header/header.component", () => () => null);
 
 const mockPersistFunc = jest.fn();
+const mockUpdateExperiencesMutation = jest.fn();
+
+const mockOnlineExperience1WithComment2 = {
+  ...mockOnlineExperience1,
+  comments: [mockComment2],
+};
 
 const ebnisObject = {
   persistor: {
@@ -483,13 +508,8 @@ describe("components", () => {
       },
     });
 
-    const mockOnlineExperience1WithComment = {
-      ...mockOnlineExperience1,
-      comments: [mockComment2],
-    };
-
     mockReadExperienceCompleteFragment.mockReturnValue(
-      mockOnlineExperience1WithComment,
+      mockOnlineExperience1WithComment2,
     );
 
     const { ui } = makeComp();
@@ -535,7 +555,7 @@ describe("components", () => {
       expect(getById(mockUpsertCommentSuccessId)).toBeNull();
 
       // There should be only one comment displayed
-      const el = document.getElementsByClassName(commentSuccessSelector);
+      const el = document.getElementsByClassName(commentItemContainerSelector);
       expect(el.length).toBe(1);
       expect(el.item(0)).toBe(getById(mockComment2Id));
 
@@ -564,6 +584,203 @@ describe("components", () => {
       expect(getById(commentNotificationCloseId)).toBeNull();
     });
   });
+
+  it("deletes comment/toggle comment menu", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
+      data: {
+        getExperience: mockOnlineExperience1,
+      },
+    });
+
+    const e = {
+      ...mockOnlineExperience1,
+      comments: [mockComment1, mockComment2, mockComment3],
+    };
+
+    mockReadExperienceCompleteFragment.mockReturnValue(e);
+
+    mswServer.use(
+      updateMswExperiencesGql({
+        updateExperiences: {
+          __typename: "UpdateExperiencesSomeSuccess",
+          experiences: [
+            {
+              __typename: "UpdateExperienceSomeSuccess",
+              experience: {
+                __typename: "UpdateExperience",
+                experienceId: "a",
+                updatedAt: "",
+                ownFields: null,
+                updatedDefinitions: null,
+              },
+              entries: null,
+              comments: {
+                __typename: "CommentCrud",
+                deletes: [
+                  {
+                    __typename: "CommentSuccess",
+                    comment: {
+                      ...mockComment1,
+                    },
+                  },
+
+                  {
+                    __typename: "CommentUnionErrors",
+                    errors: {
+                      __typename: "CommentErrors",
+                      meta: {
+                        __typename: "CommentErrorsMeta",
+                        id: mockComment3Id,
+                        index: 1,
+                      },
+                      errors: {
+                        __typename: "CommentErrorsErrors",
+                        error: "a",
+                        id: null,
+                        association: null,
+                      },
+                    },
+                  },
+                ],
+                updates: null,
+                inserts: null,
+              },
+            },
+          ],
+        },
+      }),
+    );
+
+    const { ui } = makeComp({});
+    await act(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { debug } = render(ui);
+
+      // When show comments menu item is clicked
+      const showCommentMenuItem = await waitFor(() => {
+        const commentMenuItem = getById(showCommentsMenuId);
+        expect(commentMenuItem).not.toBeNull();
+        return commentMenuItem;
+      });
+
+      showCommentMenuItem.click();
+
+      // Comments options should not be visible
+      expect(getByClass(commentItemOptionsSelector).length).toBe(0);
+
+      // Comments options should be visible
+      const options = await waitFor(() => {
+        const options = getByClass(commentItemOptionsSelector);
+        expect(options.length).not.toBe(0);
+        return options;
+      });
+
+      const option0 = options.item(0) as HTMLElement;
+      const option1 = options.item(1) as HTMLElement;
+
+      // Options should not be visible
+      expect(option0.classList).not.toContain(activeClassName);
+
+      // When comment option 0 is toggled on
+      const toggle = getByClass(commentItemOptionsToggleSelector);
+      const toggle0 = toggle.item(0) as HTMLElement;
+      const toggle1 = toggle.item(1) as HTMLElement;
+
+      toggle0.click();
+
+      // Option 0 should be active
+      expect(option0.classList).toContain(activeClassName);
+
+      // Option 1 should not be active
+      expect(option1.classList).not.toContain(activeClassName);
+
+      // When comment option 1 is toggled on
+      toggle1.click();
+
+      // Option 1 should be active
+      expect(option1.classList).toContain(activeClassName);
+
+      // Option 0 should not be active
+      expect(option0.classList).not.toContain(activeClassName);
+
+      // When comment option 1 is toggled on
+      toggle1.click();
+
+      // Option 1 should not be active
+      expect(option1.classList).not.toContain(activeClassName);
+
+      // Delete comment prompt should not be visible
+      expect(getById(deleteCommentPromptHeaderCloseId)).toBeNull();
+
+      const deleteMenus = getByClass(deleteCommentMenuSelector);
+      const deleteMenu0 = deleteMenus.item(0) as HTMLElement;
+
+      // When comment menu is clicked
+      deleteMenu0.click();
+
+      // When delete comment prompt is closed (header)
+      const headerClosePrompt = getById(deleteCommentPromptHeaderCloseId);
+      headerClosePrompt.click();
+
+      // Delete comment prompt should not be visible
+      expect(getById(deleteCommentPromptHeaderCloseId)).toBeNull();
+      expect(getById(deleteCommentPromptFooterCloseId)).toBeNull();
+
+      // When menu is clicked
+      deleteMenu0.click();
+
+      // When delete comment prompt is clicked (footer)
+      const footerClosePrompt = getById(deleteCommentPromptFooterCloseId);
+      footerClosePrompt.click();
+
+      // Delete comment prompt should not be visible
+      expect(getById(deleteCommentPromptFooterCloseId)).toBeNull();
+
+      // When menu is clicked
+      deleteMenu0.click();
+
+      // Loading UI should not be visible
+      expect(getById(mockLoadingId)).toBeNull();
+
+      // When Ok to delete comment is clicked
+      getById(deleteCommentPromptOkId).click();
+
+      // Delete comment prompt should not be visible
+      expect(getById(deleteCommentPromptOkId)).toBeNull();
+
+      // Deleted comment should still be visible
+      expect(getById(mockComment1Id)).not.toBeNull();
+
+      // AfterCommentsDeleted UI should not be visible
+      expect(getById(deletedCommentsFailure)).toBeNull();
+      expect(getById(deletedCommentsSuccess)).toBeNull();
+      expect(getByClass(deletedCommentsFailureSelector).length).toBe(0);
+
+      // WaitingForTask UI should be visible after a short while
+      await waitFor(() => {
+        expect(getById(mockLoadingId)).not.toBeNull();
+      });
+
+      // AfterCommentsDeleted UI should be visible after a while
+      await waitFor(() => {
+        expect(getById(deletedCommentsFailure)).not.toBeNull();
+      });
+      expect(getById(deletedCommentsSuccess)).not.toBeNull();
+      expect(getByClass(deletedCommentsFailureSelector).length).not.toBe(0);
+
+      // WaitingForTask UI should not be visible
+      expect(getById(mockLoadingId)).toBeNull();
+
+      // Deleted comment should not be visible
+      expect(getById(mockComment1Id)).toBeNull();
+
+      // Comments not deleted should be visible
+      expect(getById(mockComment2Id)).not.toBeNull();
+      expect(getById(mockComment3Id)).not.toBeNull();
+    });
+  });
 });
 
 describe("reducers", () => {
@@ -589,6 +806,7 @@ describe("reducers", () => {
       },
     },
     getExperienceComments: mockGetExperienceComments as any,
+    updateExperiencesMutation: mockUpdateExperiencesMutation as any,
   } as Props;
 
   const mockDispatchFn = jest.fn();
@@ -619,7 +837,7 @@ describe("reducers", () => {
 
     const fetchEntriesState = reducer(experienceFetchedState, {
       type: ActionType.COMMENT_ACTION,
-      action: CommentAction.SHOW,
+      action: CommentAction.LIST,
     });
 
     mockDispatchFn.mockClear();
@@ -658,6 +876,78 @@ describe("reducers", () => {
       "string",
     );
   });
+
+  it("delete comments: empty result/errors", async () => {
+    mockGetIsConnected.mockReturnValue(true);
+
+    mockReadExperienceCompleteFragment.mockReturnValue({
+      ...mockOnlineExperience1,
+      comments: [mockComment1],
+    });
+
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
+      data: {
+        getExperience: mockOnlineExperience1,
+      },
+    });
+
+    const state0 = initState();
+    const fetchExperienceEffect = getEffects<E, S>(state0)[0];
+
+    await effectFunctions[fetchExperienceEffect.key](
+      fetchExperienceEffect.ownArgs as any,
+      props,
+      effectArgs,
+    );
+
+    const experienceFetchedState = reducer(
+      state0,
+      mockDispatchFn.mock.calls[0][0],
+    );
+
+    const fetchCommentsState = reducer(experienceFetchedState, {
+      type: ActionType.COMMENT_ACTION,
+      action: CommentAction.LIST,
+    });
+
+    mockDispatchFn.mockClear();
+    const fetchCommentsEffect = getEffects<E, S>(fetchCommentsState)[0];
+
+    await effectFunctions[fetchCommentsEffect.key](
+      fetchCommentsEffect.ownArgs as any,
+      props,
+      effectArgs,
+    );
+
+    const commentsFetchedState = reducer(
+      fetchCommentsState,
+      mockDispatchFn.mock.calls[0][0],
+    );
+
+    const deleteCommentPromptState = reducer(commentsFetchedState, {
+      type: ActionType.DELETE_COMMENTS_PROMPT,
+      ids: [mockComment1Id],
+    });
+
+    const deletingCommentsState = reducer(deleteCommentPromptState, {
+      type: ActionType.DELETE_COMMENTS_YES,
+    });
+
+    const deleteCommentsEffect = getEffects<E, S>(deletingCommentsState)[0];
+
+    await effectFunctions[deleteCommentsEffect.key](
+      deleteCommentsEffect.ownArgs as any,
+      props,
+      effectArgs,
+    );
+
+    mockDispatchFn.mockClear();
+
+    const { onUpdateSuccess } = mockUpdateExperiencesMutation.mock.calls[0][0];
+    onUpdateSuccess();
+
+    expect(typeof mockDispatchFn.mock.calls[0][0].error).toEqual("string");
+  });
 });
 
 // ====================================================
@@ -685,6 +975,7 @@ function makeComp({
           closeNotification: 0,
         }}
         getExperienceComments={getExperienceComments}
+        updateExperiencesMutation={updateExperiencesMutation}
         {...props}
       />
     ),

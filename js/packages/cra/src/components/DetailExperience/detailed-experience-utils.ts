@@ -21,7 +21,7 @@ import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragme
 import { toGetEntriesSuccessQuery } from "@eb/cm/src/graphql/utils.gql";
 import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
-import immer from "immer";
+import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
 import { match, RouteChildrenProps } from "react-router-dom";
 import {
@@ -55,6 +55,7 @@ import {
   FieldError,
   GENERIC_SERVER_ERROR,
   parseStringError,
+  ErrorType,
 } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";
 import {
@@ -108,7 +109,7 @@ import {
   SuccessVal,
   Timeouts,
 } from "../../utils/types";
-import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
+import { UpdateExperiencesMutationProps } from "../../utils/update-experiences.gql";
 import {
   DetailExperienceRouteMatch,
   makeDetailedExperienceRoute,
@@ -126,12 +127,11 @@ import { scrollDocumentToTop } from "./detail-experience.injectables";
 
 export enum CommentAction {
   CREATE = "@detailed-experience/comment/create",
-  SHOW = "@detailed-experience/comment/show",
-  HIDE = "@detailed-experience/comment/hide",
+  LIST = "@detailed-experience/comment/list",
+  UN_LIST = "@detailed-experience/comment/un-list",
   DELETE = "@detailed-experience/comment/delete",
   CLOSE_NOTIFICATION = "@detailed-experience/comment/close-notification",
   CLOSE_UPSERT_UI = "@detailed-experience/comment/close-upsert-ui",
-  TOGGLE_MENU = "@detailed-experience/comment/toggle-menu",
 }
 
 export enum ActionType {
@@ -156,6 +156,10 @@ export enum ActionType {
   ON_COMMENTS_FETCHED = "@detailed-experience/on-comments-fetched",
   COMMENT_ACTION = "@detailed-experience/comment-action",
   ON_UPSERT_COMMENT = "@detailed-experience/on-upsert-comment",
+  TOGGLE_COMMENT_MENU = "@detailed-experience/comment/toggle-menu",
+  DELETE_COMMENTS_PROMPT = "@detailed-experience/comment/delete-comments-prompt",
+  DELETE_COMMENTS_YES = "@detailed-experience/comment/delete-comments-yes",
+  ON_COMMENTS_DELETED = "@detailed-experience/on-delete-comments-success",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -268,6 +272,28 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           handleOnUpsertCommentAction(
             proxy,
             payload as OnCommentCreatedPayload,
+          );
+          break;
+
+        case ActionType.TOGGLE_COMMENT_MENU:
+          handleToggleCommentMenuAction(proxy, payload as WithOneIdPayload);
+          break;
+
+        case ActionType.DELETE_COMMENTS_PROMPT:
+          handleDeleteCommentsPromptAction(
+            proxy,
+            payload as WithManyIdsPayload,
+          );
+          break;
+
+        case ActionType.DELETE_COMMENTS_YES:
+          handleDeleteCommentsOkAction(proxy);
+          break;
+
+        case ActionType.ON_COMMENTS_DELETED:
+          handleOnCommentsDeletedAction(
+            proxy,
+            payload as OnCommentsDeletedPayload,
           );
           break;
       }
@@ -457,10 +483,10 @@ function handleToggleExperienceMenuAction(
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const {
-      states: { showingOptionsMenu, entriesOptions },
+      states: { showingOptionsMenu },
     } = globalStates.data;
 
-    entriesOptions.value = StateValue.inactive;
+    inactivateDeps(globalStates, showingOptionsMenu);
 
     if (payload.key) {
       // istanbul ignore else:
@@ -527,6 +553,7 @@ function handleOnDataReceivedAction(
           },
           showingOptionsMenu: {
             value: StateValue.inactive,
+            deps: ["commentMenu", "entriesOptions"],
           },
           entries:
             entriesData.key === StateValue.success
@@ -550,16 +577,39 @@ function handleOnDataReceivedAction(
           entriesOptions: {
             value: StateValue.inactive,
           },
-          comment: {
+          commentList: {
+            deps: ["showingOptionsMenu"],
             value: StateValue.initial,
           },
 
-          upsertComment: {
+          upsertingComment: {
             value: StateValue.inactive,
+            deps: ["commentNotification", "commentMenu", "showingOptionsMenu"],
           },
 
           commentNotification: {
             value: StateValue.inactive,
+            deps: ["upsertingComment"],
+          },
+
+          commentMenu: {
+            value: StateValue.inactive,
+            deps: ["upsertingComment", "entriesOptions"],
+          },
+
+          deleteCommentPrompt: {
+            value: StateValue.inactive,
+            deps: ["commentMenu"],
+          },
+
+          deletingComments: {
+            value: StateValue.inactive,
+            deps: ["deleteCommentPrompt"],
+          },
+
+          deletedComments: {
+            value: StateValue.inactive,
+            deps: ["deletingComments"],
           },
         };
 
@@ -1383,21 +1433,21 @@ function handleOnCommentsFetchedAction(
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const {
-      states: { comment: commentsState },
+      states: { commentList: commentListState },
     } = globalStates.data;
 
     switch (payload.value) {
       case StateValue.success:
         {
-          const dataState = commentsState as CommentDataSate;
-          const emptyState = commentsState as CommentEmptyState;
+          const dataState = commentListState as CommentListDataSate;
+          const emptyState = commentListState as CommentListEmptyState;
 
           const { comments } = payload;
 
           if (comments.length === 0) {
             emptyState.value = StateValue.empty;
           } else {
-            commentsState.value = StateValue.success;
+            commentListState.value = StateValue.success;
 
             const success =
               dataState.success ||
@@ -1408,7 +1458,7 @@ function handleOnCommentsFetchedAction(
                     value: StateValue.inactive,
                   },
                 },
-              } as CommentDataSate["success"]);
+              } as CommentListDataSate["success"]);
 
             dataState.success = success;
 
@@ -1421,7 +1471,7 @@ function handleOnCommentsFetchedAction(
 
       case StateValue.errors:
         {
-          const errorState = commentsState as CommentErrorState;
+          const errorState = commentListState as CommentListErrorState;
           errorState.value = StateValue.errors;
           const { errors } = payload;
 
@@ -1447,18 +1497,15 @@ function handleCommentAction(
   if (globalStates.value === StateValue.data) {
     const {
       states: {
-        comment: commentsState,
-        showingOptionsMenu,
-        upsertComment,
+        commentList: commentListState,
+        upsertingComment,
         commentNotification,
       },
     } = globalStates.data;
 
-    commentNotification.value = StateValue.inactive;
-    showingOptionsMenu.value = StateValue.inactive;
-
     switch (action) {
-      case CommentAction.SHOW: {
+      case CommentAction.LIST: {
+        inactivateDeps(globalStates, commentListState);
         const effects = getGeneralEffects(proxy);
 
         effects.push({
@@ -1469,15 +1516,17 @@ function handleCommentAction(
         return;
       }
 
-      case CommentAction.HIDE: {
-        const c = (commentsState as unknown) as CommentInitialState;
+      case CommentAction.UN_LIST: {
+        const c = (commentListState as unknown) as CommentListInitialState;
         c.value = StateValue.initial;
+        inactivateDeps(globalStates, commentListState);
 
         return;
       }
 
       case CommentAction.CREATE: {
-        upsertComment.value = StateValue.active;
+        upsertingComment.value = StateValue.active;
+        inactivateDeps(globalStates, upsertingComment);
 
         return;
       }
@@ -1488,7 +1537,7 @@ function handleCommentAction(
       }
 
       case CommentAction.CLOSE_UPSERT_UI: {
-        upsertComment.value = StateValue.inactive;
+        upsertingComment.value = StateValue.inactive;
         return;
       }
     }
@@ -1505,16 +1554,16 @@ function handleOnUpsertCommentAction(
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
     const {
-      states: { comment: commentsState, upsertComment },
+      states: { commentList: commentListList, upsertingComment },
     } = globalStates.data;
 
-    const dataState = commentsState as CommentDataSate;
-    upsertComment.value = StateValue.inactive;
+    const dataState = commentListList as CommentListDataSate;
+    upsertingComment.value = StateValue.inactive;
 
-    switch (commentsState.value) {
+    switch (commentListList.value) {
       case StateValue.success:
         {
-          commentsState.success.context.comments.unshift(comment);
+          commentListList.success.context.comments.unshift(comment);
           commentCreated(proxy);
         }
         break;
@@ -1533,7 +1582,7 @@ function handleOnUpsertCommentAction(
                   value: StateValue.inactive,
                 },
               },
-            } as CommentDataSate["success"]);
+            } as CommentListDataSate["success"]);
 
           dataState.success = success;
 
@@ -1544,6 +1593,162 @@ function handleOnUpsertCommentAction(
           commentCreated(proxy);
         }
         break;
+    }
+  }
+}
+
+function handleToggleCommentMenuAction(
+  proxy: Draft<StateMachine>,
+  payload: WithOneIdPayload,
+) {
+  const { states: globalStates } = proxy;
+
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const {
+      states: { commentMenu },
+    } = globalStates.data;
+
+    const { id } = payload;
+
+    const active = commentMenu;
+    const inactive = commentMenu;
+
+    if (active.value === StateValue.active) {
+      const context = active.active.context;
+      if (context.id !== id) {
+        context.id = id;
+        return;
+      }
+
+      inactive.value = StateValue.inactive;
+      return;
+    }
+
+    inactive.value = StateValue.active;
+
+    (inactive as CommentMenuState).active = {
+      context: {
+        id,
+      },
+    };
+
+    inactivateDeps(globalStates, commentMenu);
+  }
+}
+
+function handleDeleteCommentsPromptAction(
+  proxy: Draft<StateMachine>,
+  payload: WithManyIdsPayload,
+) {
+  const { states: globalStates } = proxy;
+
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const {
+      states: { deleteCommentPrompt },
+    } = globalStates.data;
+
+    const { ids } = payload;
+
+    const active = deleteCommentPrompt;
+    const inactive = deleteCommentPrompt;
+
+    if (ids) {
+      active.value = StateValue.active;
+      (active as DeleteCommentPromptActiveState).active = {
+        context: {
+          ids,
+        },
+      };
+    } else {
+      inactive.value = StateValue.inactive;
+    }
+
+    inactivateDeps(globalStates, deleteCommentPrompt);
+  }
+}
+
+function handleDeleteCommentsOkAction(proxy: Draft<StateMachine>) {
+  const { states: globalStates } = proxy;
+
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const {
+      states: { deleteCommentPrompt, deletingComments },
+    } = globalStates.data;
+
+    // istanbul ignore else:
+    if (deleteCommentPrompt.value === StateValue.active) {
+      deletingComments.value = StateValue.active;
+
+      const effects = getGeneralEffects(proxy);
+      effects.push({
+        key: "deleteCommentsEffect",
+        ownArgs: {
+          ids: deleteCommentPrompt.active.context.ids,
+        },
+      });
+    }
+
+    inactivateDeps(globalStates, deletingComments);
+  }
+}
+
+function handleOnCommentsDeletedAction(
+  proxy: Draft<StateMachine>,
+  payload: OnCommentsDeletedPayload,
+) {
+  const { states: globalStates } = proxy;
+
+  // istanbul ignore else:
+  if (globalStates.value === StateValue.data) {
+    const { commentList, deletedComments } = globalStates.data.states;
+    inactivateDeps(globalStates, deletedComments);
+
+    // istanbul ignore else:
+    if (commentList.value === StateValue.success) {
+      switch (payload.value) {
+        case StateValue.data:
+          {
+            const {
+              data: { successes, failures },
+            } = payload;
+
+            const context = commentList.success.context;
+            const comments = context.comments;
+            const remainingComments: typeof comments = [];
+            context.comments = remainingComments;
+
+            let successCount = 0;
+            let failureCount = 0;
+
+            comments.forEach((comment) => {
+              const { id } = comment;
+
+              if (successes[id]) {
+                ++successCount;
+              } else {
+                remainingComments.push(comment);
+              }
+
+              if (failures[id]) {
+                ++failureCount;
+              }
+            });
+
+            const s = deletedComments as DeletedCommentsActiveState;
+            s.value = StateValue.active;
+            s.active = {
+              context: {
+                successCount,
+                failureCount,
+                failures,
+              },
+            };
+          }
+          break;
+      }
     }
   }
 }
@@ -1569,6 +1774,8 @@ function commentCreated(proxy: StateMachine) {
     },
   };
 
+  inactivateDeps(globalStates, commentNotification);
+
   const effects = getGeneralEffects(proxy);
 
   effects.push(
@@ -1584,6 +1791,17 @@ function commentCreated(proxy: StateMachine) {
       },
     },
   );
+}
+
+function inactivateDeps<
+  S extends {
+    deps: string[];
+  }
+>(globalStates: DataState, state: S) {
+  state.deps.forEach((k) => {
+    const key = k as keyof DataState["data"]["states"];
+    globalStates.data.states[key].value = StateValue.inactive;
+  });
 }
 
 // ====================================================
@@ -2067,6 +2285,7 @@ const deleteEntryEffect: DefDeleteEntryEffect["func"] = (
 ) => {
   const { id } = entry;
   const { dispatch } = effectArgs;
+  const { updateExperiencesMutation } = props;
 
   const input = {
     experienceId,
@@ -2255,6 +2474,97 @@ const fetchCommentsEffect: DefFetchCommentsEffect["func"] = async (
 
 type DefFetchCommentsEffect = EffectDefinition<"fetchCommentsEffect">;
 
+const deleteCommentsEffect: DefDeleteCommentsEffect["func"] = async (
+  { ids },
+  props,
+  effectArgs,
+) => {
+  const experienceId = getExperienceId(props);
+  const { dispatch } = effectArgs;
+  const { updateExperiencesMutation } = props;
+  const lens = ids.length;
+
+  await updateExperiencesMutation({
+    input: [
+      {
+        deletedComments: ids,
+        experienceId,
+      },
+    ],
+    onUpdateSuccess: (result) => {
+      const deletes = result && result.comments && result.comments.deletes;
+
+      if (deletes) {
+        const successes: OnCommentsDeletedSomeSuccessPayload["data"]["successes"] = {};
+        const failures: OnCommentsDeletedSomeSuccessPayload["data"]["failures"] = {};
+
+        deletes.forEach((d) => {
+          switch (d.__typename) {
+            case "CommentSuccess":
+              successes[d.comment.id] = true;
+              break;
+
+            // :TODO: test
+            case "CommentUnionErrors":
+              {
+                const {
+                  errors: { meta, errors },
+                } = d;
+
+                failures[meta.id] = Object.entries(errors).reduce(
+                  (acc, [k, v]) => {
+                    const errors = acc[0];
+                    let index = acc[1];
+
+                    if (v && k !== "__typename") {
+                      errors.push(["" + index++, v]);
+                    }
+
+                    acc = [errors, index];
+
+                    return acc;
+                  },
+
+                  [[], 1] as [ErrorType, number],
+                )[0];
+              }
+              break;
+          }
+        });
+
+        dispatch({
+          type: ActionType.ON_COMMENTS_DELETED,
+          value: StateValue.data,
+          data: {
+            successes,
+            failures,
+          },
+        });
+      } else {
+        dispatch({
+          type: ActionType.ON_COMMENTS_DELETED,
+          value: StateValue.errors,
+          error: `Unable to delete ${lens} comment(s)`,
+        });
+      }
+    },
+    onError: () => {
+      dispatch({
+        type: ActionType.ON_COMMENTS_DELETED,
+        value: StateValue.errors,
+        error: `Unable to delete ${lens} comment(s)`,
+      });
+    },
+  });
+};
+
+type DefDeleteCommentsEffect = EffectDefinition<
+  "deleteCommentsEffect",
+  {
+    ids: string[];
+  }
+>;
+
 export const effectFunctions = {
   scrollDocToTopEffect,
   timeoutsEffect,
@@ -2268,6 +2578,7 @@ export const effectFunctions = {
   deleteCreateEntrySyncErrorEffect,
   deleteEntryEffect,
   fetchCommentsEffect,
+  deleteCommentsEffect,
 };
 
 function processGetExperienceQuery(
@@ -2676,7 +2987,9 @@ export type DataState = {
 
       deleteExperience: DeleteExperienceState;
 
-      showingOptionsMenu: ShowingOptionsMenuState;
+      showingOptionsMenu: {
+        deps: ["commentMenu", "entriesOptions"];
+      } & ShowingOptionsMenuState;
 
       entries: EntriesData;
 
@@ -2706,19 +3019,94 @@ export type DataState = {
         | EntryDeletedSuccess
         | EntryDeleteFail;
 
-      comment: CommentState;
+      commentList: {
+        deps: ["showingOptionsMenu"];
+      } & CommentListState;
 
-      upsertComment:
+      upsertingComment: {
+        deps: ["commentNotification", "commentMenu", "showingOptionsMenu"];
+      } & (
         | {
             value: InActiveVal;
           }
-        | UpsertCommentActive;
+        | UpsertCommentActive
+      );
 
-      commentNotification:
+      commentNotification: {
+        deps: ["upsertingComment"];
+      } & (
         | {
             value: InActiveVal;
           }
-        | CommentNotificationState;
+        | CommentNotificationState
+      );
+
+      commentMenu: {
+        deps: ["upsertingComment", "entriesOptions"];
+      } & (
+        | {
+            value: InActiveVal;
+          }
+        | CommentMenuState
+      );
+
+      deleteCommentPrompt: {
+        deps: ["commentMenu"];
+      } & (
+        | {
+            value: InActiveVal;
+          }
+        | DeleteCommentPromptActiveState
+      );
+
+      deletingComments: {
+        deps: ["deleteCommentPrompt"];
+      } & (
+        | {
+            value: InActiveVal;
+          }
+        | {
+            value: ActiveVal;
+          }
+      );
+
+      deletedComments: {
+        deps: ["deletingComments"];
+      } & (
+        | {
+            value: InActiveVal;
+          }
+        | DeletedCommentsActiveState
+      );
+    };
+  };
+};
+
+type DeletedCommentsActiveState = {
+  value: ActiveVal;
+  active: {
+    context: {
+      successCount: number;
+      failureCount: number;
+      failures: OnCommentsDeletedSomeSuccessPayload["data"]["failures"];
+    };
+  };
+};
+
+type DeleteCommentPromptActiveState = {
+  value: ActiveVal;
+  active: {
+    context: {
+      ids: string[];
+    };
+  };
+};
+
+type CommentMenuState = {
+  value: ActiveVal;
+  active: {
+    context: {
+      id: string;
     };
   };
 };
@@ -2739,21 +3127,21 @@ type UpsertCommentActive = {
   // }
 };
 
-export type CommentState =
-  | CommentDataSate
-  | CommentErrorState
-  | CommentInitialState
-  | CommentEmptyState;
+export type CommentListState =
+  | CommentListDataSate
+  | CommentListErrorState
+  | CommentListInitialState
+  | CommentListEmptyState;
 
-type CommentEmptyState = {
+type CommentListEmptyState = {
   value: EmptyVal;
 };
 
-type CommentInitialState = {
+type CommentListInitialState = {
   value: InitialVal;
 };
 
-type CommentDataSate = {
+type CommentListDataSate = {
   value: SuccessVal;
   success: {
     context: {
@@ -2771,7 +3159,7 @@ type CommentDataSate = {
   };
 };
 
-type CommentErrorState = {
+type CommentListErrorState = {
   value: ErrorsVal;
   errors: {
     context: {
@@ -2878,7 +3266,8 @@ export type CallerProps = RouteChildrenProps<
 >;
 
 export type Props = DeleteExperiencesComponentProps &
-  CallerProps & {
+  CallerProps &
+  UpdateExperiencesMutationProps & {
     componentTimeoutsMs: ComponentTimeoutsMs;
     getExperienceComments: GetExperienceCommentsFn;
   };
@@ -2948,7 +3337,44 @@ type Action =
     } & CommentActionPayload)
   | ({
       type: ActionType.ON_UPSERT_COMMENT;
-    } & OnCommentCreatedPayload);
+    } & OnCommentCreatedPayload)
+  | ({
+      type: ActionType.TOGGLE_COMMENT_MENU;
+    } & WithOneIdPayload)
+  | ({
+      type: ActionType.DELETE_COMMENTS_PROMPT;
+    } & Partial<WithManyIdsPayload>)
+  | {
+      type: ActionType.DELETE_COMMENTS_YES;
+    }
+  | ({
+      type: ActionType.ON_COMMENTS_DELETED;
+    } & OnCommentsDeletedPayload);
+
+type OnCommentsDeletedPayload =
+  | OnCommentsDeletedSomeSuccessPayload
+  | OnCommentsDeletedAllFailPayload;
+
+type OnCommentsDeletedAllFailPayload = {
+  value: ErrorsVal;
+  error: string;
+};
+
+export type OnCommentsDeletedSomeSuccessPayload = {
+  value: DataVal;
+  data: {
+    successes: Record<string, true>;
+    failures: Record<string, ErrorType>;
+  };
+};
+
+type WithManyIdsPayload = {
+  ids: string[];
+};
+
+type WithOneIdPayload = {
+  id: string;
+};
 
 type OnCommentCreatedPayload = {
   data: CommentFragment;
@@ -3088,7 +3514,8 @@ export type EffectType =
   | DefPostOfflineEntriesSyncEffect
   | DefDeleteCreateEntrySyncErrorEffect
   | DefDeleteEntryEffect
-  | DefFetchCommentsEffect;
+  | DefFetchCommentsEffect
+  | DefDeleteCommentsEffect;
 
 type DataObjectErrorsList = [string | number, [string, string][]][];
 

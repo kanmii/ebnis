@@ -17,7 +17,6 @@ export async function updateExperiencesMutation({
   onError,
 }: UpdateExperiencesMutationArgs) {
   const { client } = window.____ebnis;
-
   try {
     const response = await client.mutate<
       UpdateExperiencesOnline,
@@ -73,3 +72,7 @@ type UpdateExperiencesMutationArgs = {
 };
 
 export type UpdateExperiencesMutation = typeof updateExperiencesMutation;
+
+export type UpdateExperiencesMutationProps = {
+  updateExperiencesMutation: UpdateExperiencesMutation;
+};

@@ -238,7 +238,7 @@ describe("UpsertComment", () => {
                         meta: {
                           __typename: "CommentErrorsMeta",
                           index: 1,
-                          id: null,
+                          id: "",
                         },
                         errors: {
                           __typename: "CommentErrorsErrors",
