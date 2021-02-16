@@ -19,31 +19,6 @@
 }
 
 %button {
-  @apply border
-    bg-white
-    cursor-pointer
-    justify-center
-    pb-2
-    pl-4
-    pr-4
-    pt-2
-    text-center
-    text-gray-800
-    border-gray-200
-    whitespace-nowrap;
-
-  &:hover {
-    @apply border-gray-400;
-  }
-
-  &:active {
-    @apply border-gray-400;
-  }
-
-  &:focus {
-    @apply border-gray-400;
-  }
-
   &.is-success {
     @apply bg-green-400
       border-transparent
@@ -59,6 +34,24 @@
 
     &:focus {
       @apply bg-green-500;
+    }
+  }
+
+  &.is-danger {
+    @apply bg-red-400
+      border-transparent
+      text-white;
+
+    &:hover {
+      @apply bg-red-500;
+    }
+
+    &:active {
+      @apply bg-red-500;
+    }
+
+    &:focus {
+      @apply bg-red-500;
     }
   }
 }

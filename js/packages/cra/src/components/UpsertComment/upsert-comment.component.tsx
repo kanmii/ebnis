@@ -1,3 +1,4 @@
+import Button from "@eb/jsx/src/components/Button/button.component";
 import { ReactComponent as ExclamationErrorSvg } from "@eb/cm/src/styles/exclamation-error.svg";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import { ChangeEvent, useCallback, useReducer } from "react";
@@ -134,10 +135,11 @@ export function UpsertComment(props: Props) {
 
         <Modal.Footer>
           <>
-            <button
+            <Button
               className={`
-              eb-btn is-success mr-4
-            `}
+                is-success
+                mr-4
+              `}
               type="submit"
               id={submitId}
               onClick={(e) => {
@@ -148,12 +150,11 @@ export function UpsertComment(props: Props) {
               }}
             >
               Save changes
-            </button>
+            </Button>
 
-            <button
+            <Button
               id={resetId}
               className={`
-                eb-btn
                 mr-4
               `}
               onClick={(e) => {
@@ -164,7 +165,7 @@ export function UpsertComment(props: Props) {
               }}
             >
               Reset
-            </button>
+            </Button>
           </>
         </Modal.Footer>
       </Modal.Card>
