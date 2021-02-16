@@ -177,82 +177,12 @@ button:active {
 
   /* MODAL */
   &-modal {
-    @apply items-center
-      flex-col
-      justify-center
-      overflow-hidden
-      fixed
-      z-40
-      bottom-0
-      left-0
-      right-0
-      top-0
-      flex;
-
-    &-background {
-      @apply bg-gray-300
-        opacity-70
-        absolute
-        bottom-0
-        left-0
-        right-0
-        top-0;
-    }
-
     &-card {
       max-height: min(80vh, 40rem);
       margin: 0 auto;
 
-      @apply flex
-        flex-col
-        overflow-hidden
-        relative
-        border
-        border-gray-200
-        rounded
-        w-11/12;
-
       @media (min-width: 580px) {
         width: 540px;
-      }
-
-      &-head {
-        @apply border
-          bg-gray-100
-          flex
-          flex-shrink-0
-          justify-start
-          relative
-          p-4;
-      }
-
-      &-title {
-        @apply text-black
-          flex-grow
-          flex-shrink-0
-          text-base;
-      }
-
-      &-body {
-        @apply bg-white
-          flex-grow
-          flex-shrink
-          overflow-auto
-          p-4;
-      }
-
-      &-foot {
-        @apply border-t
-          rounded-b
-          border-gray-100
-          border-solid
-          items-center
-          bg-gray-100
-          flex
-          flex-shrink-0
-          justify-start
-          p-5
-          relative;
       }
     }
   }

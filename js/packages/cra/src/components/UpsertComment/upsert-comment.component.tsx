@@ -1,4 +1,5 @@
 import { ReactComponent as ExclamationErrorSvg } from "@eb/cm/src/styles/exclamation-error.svg";
+import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import { ChangeEvent, useCallback, useReducer } from "react";
 import { StateValue } from "../../utils/types";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
@@ -57,145 +58,117 @@ export function UpsertComment(props: Props) {
   }
 
   return (
-    <div
+    <Modal
       id={upsertCommentComponentId}
-      className={`
-        ${propClassName}
-        eb-modal
-      `}
+      className={propClassName}
+      onClose={onClose}
     >
-      <div
-        className={`
-            eb-modal-background
-          `}
-      ></div>
-      <div
-        className={`
-            eb-modal-card
-          `}
-      >
-        <header
-          className={`
-              eb-modal-card-head
-            `}
-        >
-          <p className="eb-modal-card-title">Leave a comment</p>
-          <button
-            id={closeId}
-            className="eb-delete"
-            aria-label="close"
-            onClick={onClose}
-          >
-            x
-          </button>
-        </header>
-
-        <section
-          className={`
-              eb-modal-card-body
-              eb-tiny-scroll
-            `}
-        >
-          {errors !== undefined && (
-            <div
-              id={errorsId}
-              className={`
+      <Modal.Card>
+        <Modal.Header onClose={onClose} id={closeId}>
+          Leave a comment
+        </Modal.Header>
+        <Modal.Body>
+          <>
+            {errors !== undefined && (
+              <div
+                id={errorsId}
+                className={`
                 flex
                 mb-2
                 pl-1
                 pr-2
                 text-red-500
             `}
-            >
-              <div
-                className={`
+              >
+                <div
+                  className={`
                   flex-shrink-0
               `}
-                style={{
-                  width: "24px",
-                }}
-              >
-                <ExclamationErrorSvg />
-              </div>
+                  style={{
+                    width: "24px",
+                  }}
+                >
+                  <ExclamationErrorSvg />
+                </div>
 
-              <div
-                className={`
+                <div
+                  className={`
                   flex-grow
                   ml-2
                 `}
-              >
-                <p
-                  className={`
+                >
+                  <p
+                    className={`
                     font-semibold
                   `}
-                >
-                  There are errors!
-                </p>
-                <ul
-                  className={`
+                  >
+                    There are errors!
+                  </p>
+                  <ul
+                    className={`
                       ml-4
                       mt-2
                   `}
-                >
-                  {errors.map(([key, error]) => {
-                    return (
-                      <li
-                        key={key}
-                        className={`
+                  >
+                    {errors.map(([key, error]) => {
+                      return (
+                        <li
+                          key={key}
+                          className={`
                         list-disc
                          mb-2
                       `}
-                      >
-                        {error}
-                      </li>
-                    );
-                  })}
-                </ul>
+                        >
+                          {error}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <TextComponent state={textState} onTextChanged={onTextChanged} />
-        </section>
-        <footer
-          className={`
-              eb-modal-card-foot
-            `}
-        >
-          <button
-            className={`
+            <TextComponent state={textState} onTextChanged={onTextChanged} />
+          </>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <>
+            <button
+              className={`
               eb-btn is-success mr-4
             `}
-            type="submit"
-            id={submitId}
-            onClick={(e) => {
-              e.preventDefault();
-              dispatch({
-                type: ActionType.SUBMISSION,
-              });
-            }}
-          >
-            Save changes
-          </button>
+              type="submit"
+              id={submitId}
+              onClick={(e) => {
+                e.preventDefault();
+                dispatch({
+                  type: ActionType.SUBMISSION,
+                });
+              }}
+            >
+              Save changes
+            </button>
 
-          <button
-            id={resetId}
-            className={`
+            <button
+              id={resetId}
+              className={`
                 eb-btn
                 mr-4
               `}
-            onClick={(e) => {
-              e.preventDefault();
-              dispatch({
-                type: ActionType.RESET,
-              });
-            }}
-          >
-            Reset
-          </button>
-        </footer>
-      </div>
-    </div>
+              onClick={(e) => {
+                e.preventDefault();
+                dispatch({
+                  type: ActionType.RESET,
+                });
+              }}
+            >
+              Reset
+            </button>
+          </>
+        </Modal.Footer>
+      </Modal.Card>
+    </Modal>
   );
 }
 
