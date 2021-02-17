@@ -4,8 +4,10 @@ import ReactDOM from "react-dom";
 import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 import reportWebVitals from "./reportWebVitals";
 import "@fortawesome/fontawesome-free/css/all.css";
+import "./styles/tailwind-before.css";
 import "./styles/globals.scss";
 import "./styles/globals.css";
+import "./styles/tailwind-after.css";
 import App from "./components/App/app.component";
 import { regServiceWorkerReactEnv } from "./utils/env-variables";
 
