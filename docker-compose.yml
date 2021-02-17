@@ -26,14 +26,14 @@ services:
     image: "ebnis-ex-${MIX_ENV}"
     depends_on:
       - "db"
-    healthcheck:
-      test:
-        - "CMD-SHELL"
-        - "curl --silent --head --fail http://${BACKEND_SERVER_HOST}:${PORT}${BACKEND_HEALTH_CHECK_URL}"
-      interval: "600s"
-      timeout: "5s"
-      retries: 5
-      start_period: "10s"
+    # healthcheck:
+    #   test:
+    #     - "CMD-SHELL"
+    #     - "curl --silent --head --fail http://${BACKEND_SERVER_HOST}:${PORT}${BACKEND_HEALTH_CHECK_URL}"
+    #   interval: "600s"
+    #   timeout: "5s"
+    #   retries: 5
+    #   start_period: "10s"
     entrypoint:
       - "/usr/local/bin/entrypoint.sh"
     user: "ebnis"
