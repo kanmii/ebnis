@@ -389,6 +389,7 @@ defmodule EbnisData.Resolver.ExperienceResolver do
     %{
       errors: %{
         meta: %{
+          id: "",
           index: index
         },
         errors:

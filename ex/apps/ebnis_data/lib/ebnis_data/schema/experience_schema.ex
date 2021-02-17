@@ -942,7 +942,17 @@ defmodule EbnisData.Schema.Experience do
   end
 
   object :comment_errors_meta do
-    field(:id, :id)
+    @desc ~S"""
+      For a comment deleted, this will be a non empty ID
+      For an offline comment created, this will be a non empty ID
+      For all other cases, e.g. online comment create, the ID can be null or
+        empty
+    """
+    field(:id, non_null(:id))
+
+    @desc ~S"""
+      The index of the comment in the list of comments sent for processing
+    """
     field(:index, non_null(:integer))
   end
 
@@ -953,7 +963,7 @@ defmodule EbnisData.Schema.Experience do
   end
 
   object :comment_errors do
-    field(:meta, :comment_errors_meta)
+    field(:meta, non_null(:comment_errors_meta))
     field(:errors, non_null(:comment_errors_errors))
   end
 
