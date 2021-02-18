@@ -45,7 +45,7 @@ module.exports = {
       description: `Serve the app that has been built for production from
         ${webUrl}`,
     },
-    test: {
+    t: {
       default: {
         script: test,
         description: "Test and watch create react app",
