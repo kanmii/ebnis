@@ -7,8 +7,25 @@ import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import { GetEntriesUnionFragment_GetEntriesSuccess } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { makeOfflineId } from "@eb/cm/src/utils/offlines";
+import {
+  EbnisGlobals,
+  OfflineIdToCreateEntrySyncErrorMap,
+  OnlineStatus,
+  OnSyncedData,
+  StateValue,
+  UpdateEntrySyncErrors,
+} from "@eb/cm/src/utils/types";
+import {
+  mockOfflineEntry1,
+  mockOfflineEntry1Id,
+  offlineEntrySuccess,
+  mockOnlineEntry1,
+  mockOnlineEntry1Id,
+  mockOnlineEntry1Success,
+} from "@eb/cm/src/__tests__/mock-data";
 import { cleanup, render, waitFor } from "@testing-library/react";
-import React, { ComponentType } from "react";
+import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
 import {
   getDeleteExperienceLedger,
@@ -81,14 +98,6 @@ import {
   cleanUpOfflineExperiences,
   cleanUpSyncedOfflineEntries,
 } from "../components/WithSubscriptions/with-subscriptions.utils";
-import {
-  offlineEntry,
-  offlineEntryId,
-  offlineEntrySuccess,
-  onlineEntry,
-  onlineEntryId,
-  onlineEntrySuccess,
-} from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { WithSubscriptionContextProps } from "../utils/app-context";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
@@ -101,17 +110,10 @@ import {
   getExperienceAndEntriesDetailView,
   GetExperienceAndEntriesDetailViewQueryResult,
 } from "../utils/experience.gql.types";
-import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { ChangeUrlType, windowChangeUrl } from "../utils/global-window";
-import { makeOfflineId } from "../utils/offlines";
 import { scrollIntoView } from "../utils/scroll-into-view";
-import {
-  OfflineIdToCreateEntrySyncErrorMap,
-  OnSyncedData,
-  UpdateEntrySyncErrors,
-} from "../utils/sync-to-server.types";
 import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
-import { E2EWindowObject, OnlineStatus, StateValue } from "../utils/types";
+import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { activeClassName, nonsenseId } from "../utils/utils.dom";
 
 jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
@@ -239,7 +241,7 @@ const ebnisObject = {
   },
   // logApolloQueries: true,
   // logReducers: true,
-} as E2EWindowObject;
+} as EbnisGlobals;
 
 beforeAll(() => {
   window.____ebnis = ebnisObject;
@@ -280,10 +282,10 @@ const onlineOfflineEntriesSuccess = {
   entries: {
     edges: [
       {
-        node: onlineEntry,
+        node: mockOnlineEntry1,
       },
       {
-        node: offlineEntry,
+        node: mockOfflineEntry1,
       },
     ],
     pageInfo: {},
@@ -345,7 +347,7 @@ describe("components", () => {
     mockManuallyFetchEntries.mockResolvedValueOnce({
       data: {
         getEntries: {
-          ...onlineEntrySuccess,
+          ...mockOnlineEntry1Success,
           entries: {
             edges: [] as any,
             pageInfo: {},
@@ -409,7 +411,7 @@ describe("components", () => {
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
-        getEntries: onlineEntrySuccess,
+        getEntries: mockOnlineEntry1Success,
       },
     } as GetExperienceAndEntriesDetailViewQueryResult);
 
@@ -489,7 +491,7 @@ describe("components", () => {
           entries: {
             edges: [
               {
-                node: onlineEntry,
+                node: mockOnlineEntry1,
               },
             ],
             pageInfo: {
@@ -522,12 +524,12 @@ describe("components", () => {
     mockManuallyFetchEntries.mockResolvedValueOnce({
       data: {
         getEntries: {
-          ...onlineEntrySuccess,
+          ...mockOnlineEntry1Success,
           entries: {
             edges: [
               {
                 node: {
-                  ...onlineEntry,
+                  ...mockOnlineEntry1,
                   id: "b",
                 },
               },
@@ -560,7 +562,7 @@ describe("components", () => {
 
     mockGetSyncError.mockReturnValue({
       createEntries: {
-        [onlineEntry.id]: {
+        [mockOnlineEntry1.id]: {
           error: "a",
         },
       } as OfflineIdToCreateEntrySyncErrorMap,
@@ -574,7 +576,7 @@ describe("components", () => {
           entries: {
             edges: [
               {
-                node: onlineEntry,
+                node: mockOnlineEntry1,
               },
             ],
             pageInfo: {
@@ -621,7 +623,7 @@ describe("first fetch of experience: display sync errors", () => {
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
-        getEntries: onlineEntrySuccess,
+        getEntries: mockOnlineEntry1Success,
       },
     } as GetExperienceAndEntriesDetailViewQueryResult);
 
@@ -695,7 +697,7 @@ describe("first fetch of experience: display sync errors", () => {
     // Given an experience has definition sync errors
     mockGetSyncError.mockReturnValue({
       createEntries: {
-        [offlineEntryId]: {
+        [mockOfflineEntry1Id]: {
           __typename: "CreateEntryError",
           meta: {
             index: 0,
@@ -807,8 +809,8 @@ describe("first fetch of experience: display sync errors", () => {
     // Given an experience has update entries sync errors
     mockGetSyncError.mockReturnValue({
       updateEntries: {
-        [onlineEntryId]: "a" as UpdateEntrySyncErrors,
-        [offlineEntryId]: {
+        [mockOnlineEntry1Id]: "a" as UpdateEntrySyncErrors,
+        [mockOfflineEntry1Id]: {
           a: {
             meta: {
               index: 1,
@@ -878,7 +880,7 @@ describe("first fetch of experience: display sync errors", () => {
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValueOnce({
       data: {
         getExperience: onlineExperience,
-        getEntries: onlineEntrySuccess,
+        getEntries: mockOnlineEntry1Success,
       },
     } as GetExperienceAndEntriesDetailViewQueryResult);
 
@@ -1010,7 +1012,7 @@ describe("sync", () => {
   it("syncs part online experience success, but with update errors", async () => {
     const onlineExperienceIdToOfflineEntriesMap = {
       [onlineId]: {
-        [offlineEntryId]: offlineEntry,
+        [mockOfflineEntry1Id]: mockOfflineEntry1,
       },
     };
 
@@ -1021,7 +1023,7 @@ describe("sync", () => {
         syncErrors: {
           [onlineId]: {
             updateEntries: {
-              [offlineEntryId]: "a",
+              [mockOfflineEntry1Id]: "a",
             },
           },
         },
@@ -1055,7 +1057,7 @@ describe("sync", () => {
 });
 
 describe("reducers", () => {
-  const mockHistoryPushFn = jest.fn()
+  const mockHistoryPushFn = jest.fn();
   const props = {
     history: {
       push: mockHistoryPushFn as any,
@@ -1063,7 +1065,7 @@ describe("reducers", () => {
     match: {
       params: {},
     },
-    updateExperiencesMutation: updateExperiencesMutation
+    updateExperiencesMutation: updateExperiencesMutation,
   } as Props;
 
   const mockDispatchFn = jest.fn();
@@ -1111,7 +1113,7 @@ describe("reducers", () => {
     state = reducer(state, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       newData: {
-        entry: offlineEntry,
+        entry: mockOfflineEntry1,
         onlineStatus: StateValue.online,
       },
     });
@@ -1128,11 +1130,11 @@ describe("reducers", () => {
     state = reducer(state, {
       type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
       oldData: {
-        entry: offlineEntry,
+        entry: mockOfflineEntry1,
         index: 0,
       },
       newData: {
-        entry: onlineEntry,
+        entry: mockOnlineEntry1,
         onlineStatus: StateValue.online,
       },
     });
@@ -1145,7 +1147,7 @@ describe("reducers", () => {
     expect(entries.length).toBe(1);
     const entry = entries[0];
 
-    expect(entry.entryData).toEqual(onlineEntry);
+    expect(entry.entryData).toEqual(mockOnlineEntry1);
 
     const [effect] = (state.effects
       .general as GenericHasEffect<EffectType>).hasEffects.context.effects.filter(
@@ -1464,7 +1466,7 @@ describe("reducers", () => {
     mockManuallyFetchEntries.mockResolvedValueOnce({
       data: {
         getEntries: {
-          ...onlineEntrySuccess,
+          ...mockOnlineEntry1Success,
           entries: {
             edges: [
               {
@@ -1486,7 +1488,7 @@ describe("reducers", () => {
     mockManuallyFetchEntries.mockResolvedValueOnce({
       data: {
         getEntries: {
-          ...onlineEntrySuccess,
+          ...mockOnlineEntry1Success,
           entries: {
             edges: [] as any,
             pageInfo: {},
@@ -1533,7 +1535,7 @@ describe("reducers", () => {
 
     mockGetSyncError.mockReturnValue({
       createEntries: {
-        [offlineEntryId]: {
+        [mockOfflineEntry1Id]: {
           meta: {
             index: 0,
           },
@@ -1542,8 +1544,8 @@ describe("reducers", () => {
         } as CreateEntryErrorFragment,
       },
       updateEntries: {
-        [onlineEntryId]: "a" as UpdateEntrySyncErrors,
-        [offlineEntryId]: {
+        [mockOnlineEntry1Id]: "a" as UpdateEntrySyncErrors,
+        [mockOfflineEntry1Id]: {
           a: {
             meta: {
               index: 1,
@@ -1626,7 +1628,7 @@ describe("reducers", () => {
       type: ActionType.ON_SYNC,
       onlineExperienceIdToOfflineEntriesMap: {
         [onlineId]: {
-          [offlineEntryId]: offlineEntry,
+          [mockOfflineEntry1Id]: mockOfflineEntry1,
         },
       },
     });
@@ -1640,7 +1642,7 @@ describe("reducers", () => {
     expect(fetchEntriesErrorState.fetchEntriesError.context).toEqual({
       entries: [
         {
-          entryData: offlineEntry,
+          entryData: mockOfflineEntry1,
         },
       ],
       fetchError: entriesErrorState.error,
@@ -1666,7 +1668,7 @@ describe("reducers", () => {
           key: StateValue.success,
           entries: [
             {
-              entryData: onlineEntry,
+              entryData: mockOnlineEntry1,
             },
           ],
           pageInfo: {} as any,
@@ -1691,7 +1693,7 @@ describe("reducers", () => {
     const clientId = new Date().toString();
 
     const updatedEntry = {
-      ...onlineEntry,
+      ...mockOnlineEntry1,
       clientId,
     };
 
@@ -1747,7 +1749,7 @@ describe("reducers", () => {
       entries: {
         edges: [
           {
-            node: offlineEntry,
+            node: mockOfflineEntry1,
           },
         ],
         pageInfo: {},
@@ -1762,7 +1764,7 @@ describe("reducers", () => {
     expect(fetchEntriesErrorState.fetchEntriesError.context).toEqual({
       entries: [
         {
-          entryData: offlineEntry,
+          entryData: mockOfflineEntry1,
         },
       ],
       fetchError: "a",
@@ -1788,7 +1790,7 @@ describe("reducers", () => {
           key: StateValue.success,
           entries: [
             {
-              entryData: onlineEntry,
+              entryData: mockOnlineEntry1,
             },
           ],
           pageInfo: {} as any,
@@ -1806,7 +1808,7 @@ describe("reducers", () => {
       syncErrors: {
         [offlineExperienceId]: {
           updateEntries: {
-            [offlineEntryId]: "a",
+            [mockOfflineEntry1Id]: "a",
           },
         },
       },
@@ -1853,7 +1855,7 @@ describe("reducers", () => {
           key: StateValue.success,
           entries: [
             {
-              entryData: onlineEntry,
+              entryData: mockOnlineEntry1,
             },
           ],
           pageInfo: {} as any,
@@ -1870,7 +1872,7 @@ describe("reducers", () => {
       syncErrors: {
         [onlineId]: {
           createEntries: {
-            [onlineEntryId]: {
+            [mockOnlineEntry1Id]: {
               __typename: "CreateEntryError",
             } as CreateEntryErrorFragment,
           },
@@ -1895,7 +1897,7 @@ describe("reducers", () => {
           key: StateValue.success,
           entries: [
             {
-              entryData: onlineEntry,
+              entryData: mockOnlineEntry1,
             },
           ],
           pageInfo: {} as any,
@@ -1922,7 +1924,7 @@ describe("reducers", () => {
     state = reducer(state, {
       type: ActionType.DELETE_ENTRY,
       key: StateValue.requested,
-      entry: onlineEntry,
+      entry: mockOnlineEntry1,
     });
 
     // Entry menu should be in requested state
@@ -2047,10 +2049,10 @@ describe("Entry component", () => {
           entries: {
             edges: [
               {
-                node: onlineEntry,
+                node: mockOnlineEntry1,
               },
               {
-                node: offlineEntry,
+                node: mockOfflineEntry1,
               },
             ],
             pageInfo: {},
@@ -2067,8 +2069,8 @@ describe("Entry component", () => {
     expect(entryMenuOnline.classList).not.toContain(activeClassName);
 
     // online and offline entries should be visible
-    expect(document.getElementById(onlineEntry.id)).not.toBeNull();
-    expect(document.getElementById(offlineEntry.id)).not.toBeNull();
+    expect(document.getElementById(mockOnlineEntry1.id)).not.toBeNull();
+    expect(document.getElementById(mockOfflineEntry1.id)).not.toBeNull();
 
     // When online entry menu trigger is clicked
     const entryMenuTriggerOnline = getEntryDropdownTrigger();
@@ -2173,7 +2175,7 @@ describe("Entry component", () => {
     const errorNotification = getEntryDeleteFailNotification();
 
     // Online entry should be in the document
-    expect(document.getElementById(onlineEntry.id)).not.toBeNull();
+    expect(document.getElementById(mockOnlineEntry1.id)).not.toBeNull();
 
     // document should be scrolled to show error notification
     expect(mockScrollDocumentToTop).toHaveBeenCalled();
@@ -2207,7 +2209,7 @@ describe("Entry component", () => {
           deletedEntries: [
             {
               __typename: "DeleteEntrySuccess",
-              entry: onlineEntry,
+              entry: mockOnlineEntry1,
             },
           ],
         },
@@ -2215,7 +2217,7 @@ describe("Entry component", () => {
     });
 
     // Online entry should not be in the document
-    expect(document.getElementById(onlineEntry.id)).toBeNull();
+    expect(document.getElementById(mockOnlineEntry1.id)).toBeNull();
 
     // Notification that entry deleted should be visible
     // When entry deleted notification is closed
@@ -2261,7 +2263,7 @@ describe("Entry component", () => {
           entries: {
             edges: [
               {
-                node: onlineEntry,
+                node: mockOnlineEntry1,
               },
             ],
             pageInfo: {},

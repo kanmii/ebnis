@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks*/
+import { StateValue } from "@eb/cm/src/utils/types";
 import { useEffect } from "react";
-import { StateValue } from "./types";
 import { GenericGeneralEffect } from "./effects";
 
 export function useRunEffects<E, EffectFunctionType, Props, EffectArgs>(

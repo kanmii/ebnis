@@ -1,5 +1,15 @@
 import { CommentFragment } from "@eb/cm/src/graphql/apollo-types/CommentFragment";
 import { CommentInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import {
+  ChangedVal,
+  ErrorsVal,
+  InActiveVal,
+  InsertVal,
+  StateValue,
+  SubmissionVal,
+  UnChangedVal,
+  UpdateVal,
+} from "@eb/cm/src/utils/types";
 import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
@@ -14,16 +24,6 @@ import {
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import {
-  ChangedVal,
-  ErrorsVal,
-  InActiveVal,
-  InsertVal,
-  StateValue,
-  SubmissionVal,
-  UnChangedVal,
-  UpdateVal,
-} from "../../utils/types";
 import { UpdateExperiencesMutation } from "../../utils/update-experiences.gql";
 
 export enum ActionType {

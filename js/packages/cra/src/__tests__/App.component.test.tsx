@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { cleanup, render, waitFor } from "@testing-library/react";
-import React, { ComponentType } from "react";
+import { ComponentType } from "react";
 import { buildClientCache, restoreCacheOrPurgeStorage } from "../apollo/setup";
 import { App } from "../components/App/app.component";
 

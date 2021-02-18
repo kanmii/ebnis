@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { cleanup, render } from "@testing-library/react";
-import React, { ComponentType } from "react";
+import { ComponentType } from "react";
 import { useLocation } from "react-router-dom";
 import { Header, Props } from "../components/Header/header.component";
 import { domPrefix } from "../components/Header/header.dom";

@@ -1,6 +1,10 @@
-import { Any } from "@eb/cm/src/utils/types";
+import {
+  Any,
+  HasEffectsVal,
+  NoEffectVal,
+  StateValue,
+} from "@eb/cm/src/utils/types";
 import { Draft } from "immer";
-import { HasEffectsVal, NoEffectVal, StateValue } from "./types";
 
 export function getGeneralEffects<
   EffectType,

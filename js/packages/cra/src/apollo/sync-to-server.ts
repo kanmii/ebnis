@@ -35,9 +35,8 @@ import {
   SYNC_TO_SERVER_MUTATION,
   UPDATE_EXPERIENCES_ONLINE_MUTATION,
 } from "@eb/cm/src/graphql/experience.gql";
-import { broadcastMessage } from "../utils/broadcast-channel-manager";
-import { isOfflineId } from "../utils/offlines";
 import {
+  BroadcastMessageType,
   OfflineIdToOnlineExperienceMap,
   OnlineExperienceIdToOfflineEntriesMap,
   OnlineExperienceUpdatedMap,
@@ -45,8 +44,9 @@ import {
   SyncErrors,
   SyncFlag,
   UpdateSyncReturnVal,
-} from "../utils/sync-to-server.types";
-import { BroadcastMessageType } from "../utils/types";
+} from "@eb/cm/src/utils/types";
+import { broadcastMessage } from "../utils/broadcast-channel-manager";
+import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import { createExperiencesManualUpdate } from "./create-experiences-manual-update";
 import {
   getCachedEntriesDetailViewSuccess,

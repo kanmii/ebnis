@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from "react";
+import { EbnisGlobals } from "@eb/cm/src/utils/types";
+import React, { useEffect, useState } from "react";
 import {
   buildClientCache,
   restoreCacheOrPurgeStorage,
 } from "../../apollo/setup";
-import { E2EWindowObject } from "../../utils/types";
-import AppInner from "./app-inner.component";
 import Loading from "../Loading/loading.component";
+import AppInner from "./app-inner.component";
 
 export function App() {
   const obj = buildClientCache({
     appHydrated: true,
-  }) as E2EWindowObject;
+  }) as EbnisGlobals;
 
   const [state, setState] = useState<State>({
     renderChildren: false,

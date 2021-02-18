@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Any } from "@eb/cm/src/utils/types";
+import {
+  Any,
+  BroadcastMessageExperienceDeleted,
+  BroadcastMessageOnSyncData,
+  BroadcastMessageType,
+  EbnisGlobals,
+} from "@eb/cm/src/utils/types";
 import { cleanup, render } from "@testing-library/react";
 import { clearNodeFolder } from "broadcast-channel";
 import React, { ComponentType } from "react";
@@ -36,12 +42,6 @@ import {
 } from "../utils/global-window";
 import { getUser } from "../utils/manage-user-auth";
 import { MAX_TIMEOUT_MS } from "../utils/timers";
-import {
-  BroadcastMessageExperienceDeleted,
-  BroadcastMessageOnSyncData,
-  BroadcastMessageType,
-  E2EWindowObject,
-} from "../utils/types";
 import { MY_URL } from "../utils/urls";
 
 jest.mock("../utils/manage-user-auth");
@@ -91,7 +91,7 @@ const persistor = {
 
 const globals = {
   persistor,
-} as E2EWindowObject;
+} as EbnisGlobals;
 
 const mockDispatch = jest.fn();
 

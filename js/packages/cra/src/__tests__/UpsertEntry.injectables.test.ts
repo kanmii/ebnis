@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { upsertNewEntry } from "../components/UpsertEntry/upsert-entry.injectables";
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
 import {
   getCachedEntriesDetailViewSuccess,
   writeCachedEntriesDetailView,
 } from "../apollo/get-detailed-experience-query";
+import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
+import { upsertNewEntry } from "../components/UpsertEntry/upsert-entry.injectables";
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockGetEntriesQuerySuccess = getCachedEntriesDetailViewSuccess as jest.Mock;

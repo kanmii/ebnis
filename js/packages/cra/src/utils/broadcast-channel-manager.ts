@@ -1,13 +1,13 @@
 import {
-  E2EWindowObject,
   BChannel,
   BroadcastMessage,
   BroadcastMessageSelf,
+  EbnisGlobals,
   StateValue,
-} from "./types";
+} from "@eb/cm/src/utils/types";
 import { BroadcastChannel } from "broadcast-channel";
 
-export function makeBChannel(globals: E2EWindowObject) {
+export function makeBChannel(globals: EbnisGlobals) {
   const bc: BChannel = new BroadcastChannel("ebnis-broadcast-channel");
   globals.bc = bc;
   return globals;

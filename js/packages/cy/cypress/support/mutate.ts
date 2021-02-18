@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="cypress" />
 import { ApolloClient, MutationOptions } from "@apollo/client";
-import { CYPRESS_APOLLO_KEY } from "@eb/cra/src/apollo/setup";
+import { CYPRESS_APOLLO_KEY } from "@eb/cm/src/utils/types";
 
 export function mutate<TData, TVariables>(
   options: MutationOptions<TData, TVariables>,

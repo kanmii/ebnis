@@ -1,13 +1,13 @@
 /* istanbul ignore file */
-import gql from "graphql-tag";
+import { makeVar } from "@apollo/client";
 import { FieldPolicy } from "@apollo/client/cache/inmemory/policies";
 import {
-  SyncFlag,
   SyncError,
   SyncErrors,
   SyncErrorsQueryResult,
-} from "../utils/sync-to-server.types";
-import { makeVar } from "@apollo/client";
+  SyncFlag,
+} from "@eb/cm/src/utils/types";
+import gql from "graphql-tag";
 
 ////////////////////////// START SYNC FLAG ////////////////////////////
 

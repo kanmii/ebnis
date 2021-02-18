@@ -1,17 +1,17 @@
-import { mutate } from "./mutate";
-import { CreateExperienceInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { CREATE_EXPERIENCES_MUTATION } from "@eb/cm/src/graphql/experience.gql";
 import {
   CreateExperiences,
   CreateExperiencesVariables,
   CreateExperiences_createExperiences_ExperienceSuccess,
 } from "@eb/cm/src/graphql/apollo-types/CreateExperiences";
-import { CYPRESS_APOLLO_KEY } from "@eb/cra/src/apollo/setup";
-import { ExperienceFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceFragment";
+import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { CreateExperienceInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { CREATE_EXPERIENCES_MUTATION } from "@eb/cm/src/graphql/experience.gql";
+import { CYPRESS_APOLLO_KEY } from "@eb/cm/src/utils/types";
+import { mutate } from "./mutate";
 
 export function createOnlineExperience(
   input: CreateExperienceInput,
-): Promise<ExperienceFragment> {
+): Promise<ExperienceCompleteFragment> {
   return mutate<CreateExperiences, CreateExperiencesVariables>({
     mutation: CREATE_EXPERIENCES_MUTATION,
     variables: {

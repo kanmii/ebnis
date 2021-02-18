@@ -1,6 +1,7 @@
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import { ReactComponent as DotsVerticalSvg } from "@eb/cm/src/styles/dots-vertical.svg";
+import { OnlineStatus, StateValue } from "@eb/cm/src/utils/types";
 import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
 import Button from "@eb/jsx/src/components/Button/button.component";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
@@ -19,7 +20,6 @@ import React, {
 import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { getExperienceComments } from "../../utils/experience.gql.types";
 import { setUpRoutePage } from "../../utils/global-window";
-import { OnlineStatus, StateValue } from "../../utils/types";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { activeClassName } from "../../utils/utils.dom";

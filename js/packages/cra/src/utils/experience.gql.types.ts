@@ -61,10 +61,9 @@ import {
   ON_EXPERIENCES_DELETED_SUBSCRIPTION,
   PRE_FETCH_EXPERIENCES_QUERY,
 } from "@eb/cm/src/graphql/experience.gql";
+import { OnlineStatus, SyncError } from "@eb/cm/src/utils/types";
 import { ExecutionResult } from "graphql/execution/execute";
-import { OnlineStatus } from "../utils/types";
 import { getSessionId } from "./session-manager";
-import { SyncError } from "./sync-to-server.types";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 

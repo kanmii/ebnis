@@ -1,5 +1,5 @@
 import { ApolloError } from "@apollo/client";
-import { CommonError, CommonErrorsVal } from "./types";
+import { CommonError, CommonErrorsVal } from "@eb/cm/src/utils/types";
 
 export function parseStringError(error: string | Error): string {
   if (error instanceof ApolloError) {

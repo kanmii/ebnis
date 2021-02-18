@@ -5,8 +5,13 @@ import {
   GetExperiencesConnectionListView_getExperiences,
   GetExperiencesConnectionListView_getExperiences_edges,
 } from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
+import {
+  BroadcastMessageType,
+  EbnisGlobals,
+  StateValue,
+} from "@eb/cm/src/utils/types";
 import { cleanup, render, waitFor } from "@testing-library/react";
-import React, { ComponentType } from "react";
+import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
 import { getCachedExperiencesConnectionListView } from "../apollo/cached-experiences-list-view";
 import {
@@ -56,13 +61,8 @@ import {
   getExperienceConnectionListView,
   GetExperiencesConnectionListViewQueryResult,
 } from "../utils/experience.gql.types";
-import { makeOfflineId } from "../utils/offlines";
+import { makeOfflineId } from "@eb/cm/src/utils/offlines";
 import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
-import {
-  BroadcastMessageType,
-  E2EWindowObject,
-  StateValue,
-} from "../utils/types";
 
 jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
 const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
@@ -176,7 +176,7 @@ const globals = {
   persistor,
   cache: { evict: mockEvictFn } as any,
   bc: { postMessage: mockPostMsg } as any,
-} as E2EWindowObject;
+} as EbnisGlobals;
 
 beforeAll(() => {
   window.____ebnis = globals;

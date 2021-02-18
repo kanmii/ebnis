@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { cleanup, render, waitFor } from "@testing-library/react";
-import React, { ComponentType } from "react";
+import { ComponentType } from "react";
 import { SignUp } from "../components/SignUp/sign-up.component";
 import {
   emailInputId,

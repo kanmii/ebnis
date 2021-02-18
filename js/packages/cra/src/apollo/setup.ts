@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 import { ApolloClient, InMemoryCache } from "@apollo/client";
-import { Any } from "@eb/cm/src/utils/types";
+import { Any, EbnisGlobals, CYPRESS_APOLLO_KEY } from "@eb/cm/src/utils/types";
 import { CachePersistor } from "apollo-cache-persist-dev";
 import {
   PersistedData,
@@ -11,7 +11,6 @@ import {
   makeConnectionObject,
   resetConnectionObject,
 } from "../utils/connections";
-import { E2EWindowObject } from "../utils/types";
 import { makeApolloClient } from "./client";
 import { SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY } from "./schema-keys";
 
@@ -110,11 +109,9 @@ interface BuildClientCache {
 
 ///////////////////// END TO END TESTS THINGS ///////////////////////
 
-export const CYPRESS_APOLLO_KEY = "ebnis-cypress-apollo";
-
 function getOrMakeGlobals(newE2eTest?: boolean) {
   if (!window.____ebnis) {
-    window.____ebnis = {} as E2EWindowObject;
+    window.____ebnis = {} as EbnisGlobals;
   }
 
   if (!window.Cypress) {
@@ -133,7 +130,7 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
     localStorage.setItem(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
 
     // reset globals
-    cypressApollo = {} as E2EWindowObject;
+    cypressApollo = {} as EbnisGlobals;
     makeBChannel(cypressApollo);
 
     // reset connections
@@ -168,22 +165,11 @@ function addToGlobals(args: {
 }
 
 function getGlobalsFromCypress() {
-  let globalVars = {} as E2EWindowObject;
+  let globalVars = {} as EbnisGlobals;
 
   if (window.Cypress) {
-    globalVars = (window.Cypress.env(CYPRESS_APOLLO_KEY) ||
-      {}) as E2EWindowObject;
+    globalVars = (window.Cypress.env(CYPRESS_APOLLO_KEY) || {}) as EbnisGlobals;
   }
 
   return globalVars;
-}
-
-declare global {
-  interface Window {
-    Cypress: {
-      env: <T>(k?: string, v?: T) => void | T;
-    };
-
-    ____ebnis: E2EWindowObject;
-  }
 }

@@ -1,3 +1,5 @@
+import { EbnisGlobals } from "@eb/cm/src/utils/types";
+import { mockComment1 } from "@eb/cm/src/__tests__/mock-data";
 import { updateMswExperiencesGql } from "@eb/cm/src/__tests__/msw-handlers";
 import { mswServer, mswServerListen } from "@eb/cm/src/__tests__/msw-server";
 import { waitForCount } from "@eb/cm/src/__tests__/wait-for-count";
@@ -23,9 +25,8 @@ import {
   reducer,
   StateMachine as S,
 } from "../components/UpsertComment/upsert-comment.utils";
-import { fillField, getById, getEffects, mockComment1 } from "../tests.utils";
+import { fillField, getById, getEffects } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
-import { E2EWindowObject } from "../utils/types";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 
 jest.mock("../apollo/update-get-experiences-list-view-query");
@@ -42,7 +43,7 @@ const ebnisObject = {
   },
   // logApolloQueries: true,
   // logReducers: true,
-} as E2EWindowObject;
+} as EbnisGlobals;
 
 describe("UpsertComment", () => {
   beforeAll(() => {

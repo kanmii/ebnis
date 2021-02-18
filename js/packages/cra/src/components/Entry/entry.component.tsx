@@ -1,7 +1,7 @@
 import React from "react";
 import { Props } from "./entry.utils";
 import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
-import { isOfflineId } from "../../utils/offlines";
+import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import makeClassNames from "classnames";
 import { formatDatetime } from "../DetailExperience/detailed-experience-utils";
 import {

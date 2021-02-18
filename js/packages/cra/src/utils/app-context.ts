@@ -1,17 +1,20 @@
+import {
+  EbnisGlobals,
+  OnSyncedData,
+  RestoreCacheOrPurgeStorageFn,
+} from "@eb/cm/src/utils/types";
 import { createContext } from "react";
 import { DispatchType } from "../components/WithSubscriptions/with-subscriptions.utils";
-import { OnSyncedData } from "./sync-to-server.types";
-import { E2EWindowObject, RestoreCacheOrPurgeStorageFn } from "./types";
 
 export const EbnisAppContext = createContext<EbnisContextProps>(
   {} as EbnisContextProps,
 );
 
-export interface EbnisContextProps extends E2EWindowObject {
+export interface EbnisContextProps extends EbnisGlobals {
   restoreCacheOrPurgeStorage?: RestoreCacheOrPurgeStorageFn;
 }
 
-export type AppPersistor = E2EWindowObject["persistor"];
+export type AppPersistor = EbnisGlobals["persistor"];
 
 export const WithSubscriptionContext = createContext<WithSubscriptionContextProps>(
   {

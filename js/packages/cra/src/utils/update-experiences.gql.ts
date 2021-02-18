@@ -6,10 +6,10 @@ import {
   UpdateExperiencesOnlineVariables,
 } from "@eb/cm/src/graphql/apollo-types/UpdateExperiencesOnline";
 import { UPDATE_EXPERIENCES_ONLINE_MUTATION } from "@eb/cm/src/graphql/experience.gql";
+import { CommonError } from "@eb/cm/src/utils/types";
 import { getCachedExperienceDetailView } from "../apollo/get-detailed-experience-query";
 import { updateExperiencesManualCacheUpdate } from "../apollo/update-experiences-manual-cache-update";
 import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
-import { CommonError } from "../utils/types";
 
 export async function updateExperiencesMutation({
   input,

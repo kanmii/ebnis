@@ -1,28 +1,28 @@
+import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { CYPRESS_APOLLO_KEY } from "@eb/cm/src/utils/types";
 import {
-  MY_TITLE,
   activateInsertExperienceDomId,
   dropdownTriggerClassName,
   experienceContainerSelector,
+  MY_TITLE,
   updateExperienceMenuItemSelector,
   updateExperienceSuccessNotificationCloseClassName,
 } from "@eb/cra/src/components/My/my.dom";
 import {
-  domPrefix as upsertExperienceDomId,
-  submitDomId,
-  titleInputDomId,
-  descriptionInputDomId,
-  definitionNameFormControlSelector,
-  definitionTypeFormControlSelector,
-  notificationCloseId,
   addDefinitionSelector,
   definitionContainerDomSelector,
+  definitionNameFormControlSelector,
+  definitionTypeFormControlSelector,
+  descriptionInputDomId,
+  domPrefix as upsertExperienceDomId,
+  notificationCloseId,
+  submitDomId,
+  titleInputDomId,
 } from "@eb/cra/src/components/UpsertExperience/upsert-experience.dom";
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { createOnlineExperience } from "../support/create-experiences";
 import { createOfflineExperience } from "@eb/cra/src/components/UpsertExperience/upsert-experience.resolvers";
-import { CYPRESS_APOLLO_KEY } from "@eb/cra/src/apollo/setup";
 import { MY_URL } from "@eb/cra/src/utils/urls";
-import { ExperienceFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceFragment";
+import { createOnlineExperience } from "../support/create-experiences";
 
 context("My page", () => {
   beforeEach(() => {
@@ -235,8 +235,8 @@ context("My page", () => {
 
       cy.wrap(promises).then((experiences) => {
         const [experience1, experience2] = experiences as [
-          ExperienceFragment,
-          ExperienceFragment,
+          ExperienceCompleteFragment,
+          ExperienceCompleteFragment,
         ];
 
         const { id: experience1Id } = experience1;
@@ -335,8 +335,8 @@ context("My page", () => {
 
       cy.wrap(promises).then((experiences) => {
         const [experience1, experience2] = experiences as [
-          ExperienceFragment,
-          ExperienceFragment,
+          ExperienceCompleteFragment,
+          ExperienceCompleteFragment,
         ];
 
         const { id: experience1Id } = experience1;

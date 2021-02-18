@@ -1,3 +1,11 @@
+import {
+  BroadcastMessage,
+  BroadcastMessageConnectionChangedPayload,
+  BroadcastMessageSelf,
+  BroadcastMessageType,
+  OnSyncedData,
+  StateValue,
+} from "@eb/cm/src/utils/types";
 import React, { useEffect, useReducer } from "react";
 import { cleanCachedMutations } from "../../apollo/clean-cached-mutations";
 import {
@@ -5,14 +13,6 @@ import {
   getLocation,
   windowChangeUrl,
 } from "../../utils/global-window";
-import { OnSyncedData } from "../../utils/sync-to-server.types";
-import {
-  BroadcastMessage,
-  BroadcastMessageConnectionChangedPayload,
-  BroadcastMessageSelf,
-  BroadcastMessageType,
-  StateValue,
-} from "../../utils/types";
 import { MY_URL } from "../../utils/urls";
 import { useRunEffects } from "../../utils/use-run-effects";
 import {

@@ -1,6 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ApolloError } from "@apollo/client";
 import { CommentFragment } from "@eb/cm/src/graphql/apollo-types/CommentFragment";
+import { EbnisGlobals } from "@eb/cm/src/utils/types";
+import {
+  mockComment1,
+  mockComment1Id,
+  mockComment2,
+  mockComment2Id,
+  mockComment3,
+  mockComment3Id,
+  mockOnlineExperience1,
+  mockOnlineExperienceId1,
+  mockOnlineEntry1Success,
+} from "@eb/cm/src/__tests__/mock-data";
 import {
   getMswExperienceCommentsGql,
   getMswListExperiencesGql,
@@ -52,24 +64,10 @@ import {
   StateMachine as S,
 } from "../components/DetailExperience/detailed-experience-utils";
 import { Props as UpsertCommentProps } from "../components/UpsertComment/upsert-comment.utils";
-import {
-  getByClass,
-  getById,
-  getEffects,
-  mockComment1,
-  mockComment1Id,
-  mockComment2,
-  mockComment2Id,
-  mockComment3,
-  mockComment3Id,
-  mockOnlineExperience1,
-  mockOnlineExperienceId1,
-  onlineEntrySuccess,
-} from "../tests.utils";
+import { getByClass, getById, getEffects } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { getIsConnected } from "../utils/connections";
 import { getExperienceComments } from "../utils/experience.gql.types";
-import { E2EWindowObject } from "../utils/types";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { activeClassName } from "../utils/utils.dom";
 
@@ -147,7 +145,7 @@ const ebnisObject = {
   },
   // logApolloQueries: true,
   // logReducers: true,
-} as E2EWindowObject;
+} as EbnisGlobals;
 
 beforeAll(() => {
   window.____ebnis = ebnisObject;
@@ -403,7 +401,7 @@ describe("components", () => {
     mswServer.use(
       getMswListExperiencesGql({
         getExperience: mockOnlineExperience1,
-        getEntries: onlineEntrySuccess,
+        getEntries: mockOnlineEntry1Success,
       }),
 
       getMswExperienceCommentsGql({

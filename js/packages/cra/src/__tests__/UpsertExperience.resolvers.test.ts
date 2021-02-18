@@ -1,30 +1,30 @@
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { GetExperiencesConnectionListView_getExperiences } from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
+import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { EbnisGlobals } from "@eb/cm/src/utils/types";
+import { getCachedExperiencesConnectionListView } from "../apollo/cached-experiences-list-view";
+import {
+  getCachedEntriesDetailViewSuccess,
+  readExperienceCompleteFragment,
+  writeCachedEntriesDetailView,
+  writeCachedExperienceCompleteFragment,
+} from "../apollo/get-detailed-experience-query";
+import {
+  getUnsyncedExperience,
+  writeUnsyncedExperience,
+} from "../apollo/unsynced-ledger";
+import {
+  floatExperienceToTheTopInGetExperiencesMiniQuery,
+  upsertExperiencesInGetExperiencesMiniQuery,
+} from "../apollo/update-get-experiences-list-view-query";
 import {
   createOfflineExperience,
   updateExperienceOfflineFn,
 } from "../components/UpsertExperience/upsert-experience.resolvers";
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import {
-  upsertExperiencesInGetExperiencesMiniQuery,
-  floatExperienceToTheTopInGetExperiencesMiniQuery,
-} from "../apollo/update-get-experiences-list-view-query";
-import {
-  writeUnsyncedExperience,
-  getUnsyncedExperience,
-} from "../apollo/unsynced-ledger";
-import { isOfflineId, makeOfflineId } from "../utils/offlines";
-import { getCachedExperiencesConnectionListView } from "../apollo/cached-experiences-list-view";
-import { GetExperiencesConnectionListView_getExperiences } from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { E2EWindowObject } from "../utils/types";
-import {
-  readExperienceCompleteFragment,
-  getCachedEntriesDetailViewSuccess,
-  writeCachedEntriesDetailView,
-  writeCachedExperienceCompleteFragment,
-} from "../apollo/get-detailed-experience-query";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { AppPersistor } from "../utils/app-context";
 import { deleteObjectKey } from "../utils";
+import { AppPersistor } from "../utils/app-context";
+import { isOfflineId, makeOfflineId } from "@eb/cm/src/utils/offlines";
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockReadExperienceFragment = readExperienceCompleteFragment as jest.Mock;
@@ -63,7 +63,7 @@ const persistor = {
 const globals = {
   cache,
   persistor,
-} as E2EWindowObject;
+} as EbnisGlobals;
 
 beforeAll(() => {
   window.____ebnis = globals;

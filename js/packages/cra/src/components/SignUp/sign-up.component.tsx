@@ -1,43 +1,44 @@
-import React, { useContext, useReducer, useCallback, MouseEvent } from "react";
-import Header from "../Header/header.component";
-import "./styles.scss";
-import {
-  Props,
-  effectFunctions,
-  reducer,
-  initState,
-  ActionType,
-  CallerProps,
-  FormField,
-} from "./sign-up.utils";
+import { StateValue } from "@eb/cm/src/utils/types";
+import makeClassNames from "classnames";
+import React, { MouseEvent, useCallback, useContext, useReducer } from "react";
+import { EbnisAppContext } from "../../utils/app-context";
 import { FieldError } from "../../utils/common-errors";
-import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
+import { InputChangeEvent } from "../../utils/types";
+import { LOGIN_URL } from "../../utils/urls";
+import { useRunEffects } from "../../utils/use-run-effects";
+import { registerUserMutation } from "../../utils/user.gql.types";
 import {
-  nameInputId,
-  nameFieldId,
-  submitId,
-  notificationId,
-  emailInputId,
+  errorClassName,
+  formFieldErrorClass,
+  outerFieldClassName,
+  warningClassName,
+} from "../../utils/utils.dom";
+import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
+import Header from "../Header/header.component";
+import {
   emailFieldId,
-  passwordInputId,
-  passwordFieldId,
-  passwordConfirmationInputId,
+  emailInputId,
+  nameFieldId,
+  nameInputId,
+  notificationId,
   passwordConfirmationFieldId,
+  passwordConfirmationInputId,
+  passwordFieldId,
+  passwordInputId,
   resetId,
   scrollIntoViewDomId,
+  submitId,
 } from "./sign-up.dom";
-import makeClassNames from "classnames";
 import {
-  warningClassName,
-  errorClassName,
-  outerFieldClassName,
-} from "../../utils/utils.dom";
-import { StateValue, InputChangeEvent } from "../../utils/types";
-import { useRunEffects } from "../../utils/use-run-effects";
-import { formFieldErrorClass } from "../../utils/utils.dom";
-import { registerUserMutation } from "../../utils/user.gql.types";
-import { EbnisAppContext } from "../../utils/app-context";
-import { LOGIN_URL } from "../../utils/urls";
+  ActionType,
+  CallerProps,
+  effectFunctions,
+  FormField,
+  initState,
+  Props,
+  reducer,
+} from "./sign-up.utils";
+import "./styles.scss";
 
 export function SignUp(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);

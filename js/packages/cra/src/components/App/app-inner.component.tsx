@@ -1,20 +1,20 @@
 /* istanbul ignore file */
-import React, { lazy, Suspense } from "react";
 import { ApolloProvider } from "@apollo/client";
-import { EbnisAppProvider } from "./app.injectables";
+import { EbnisGlobals } from "@eb/cm/src/utils/types";
+import React, { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
-import { E2EWindowObject } from "../../utils/types";
 import { restoreCacheOrPurgeStorage } from "../../apollo/setup";
-import Loading from "../Loading/loading.component";
-import WithSubscriptions from "../WithSubscriptions/with-subscriptions.component";
 import {
-  ROOT_URL,
+  EXPERIENCE_DETAIL_URL,
   LOGIN_URL,
   MY_URL,
-  EXPERIENCE_DETAIL_URL,
+  ROOT_URL,
   SIGN_UP_URL,
 } from "../../utils/urls";
 import AuthenticationRequired from "../AuthenticationRequired/authentication-required.component";
+import Loading from "../Loading/loading.component";
+import WithSubscriptions from "../WithSubscriptions/with-subscriptions.component";
+import { EbnisAppProvider } from "./app.injectables";
 
 const Login = lazy(() => import("../Login/login.component"));
 const My = lazy(() => import("../My/my.component"));
@@ -70,5 +70,5 @@ export function AppInner({ obj }: Props) {
 export default AppInner;
 
 interface Props {
-  obj: E2EWindowObject;
+  obj: EbnisGlobals;
 }

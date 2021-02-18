@@ -5,9 +5,10 @@ import {
   CreateExperienceInput,
   DataTypes,
 } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { Any } from "@eb/cm/src/utils/types";
+import { makeOfflineId } from "@eb/cm/src/utils/offlines";
+import { Any, EbnisGlobals, StateValue } from "@eb/cm/src/utils/types";
 import { cleanup, render, waitFor } from "@testing-library/react";
-import React, { ComponentType } from "react";
+import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
 import {
   getCachedEntriesDetailViewSuccess,
@@ -60,9 +61,7 @@ import {
   getGetDataObjects,
 } from "../utils/experience.gql.types";
 import { windowChangeUrl } from "../utils/global-window";
-import { makeOfflineId } from "../utils/offlines";
 import { scrollIntoView } from "../utils/scroll-into-view";
-import { E2EWindowObject, StateValue } from "../utils/types";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { errorClassName, warningClassName } from "../utils/utils.dom";
 
@@ -103,7 +102,7 @@ const persistor = {
 const globals = {
   persistor,
   client: {} as any,
-} as E2EWindowObject;
+} as EbnisGlobals;
 
 beforeAll(() => {
   window.____ebnis = globals;

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { cleanup, render } from "@testing-library/react";
-import React, { ComponentType } from "react";
+import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
 import { defaultLoadingDomId } from "../components/Loading/loading-dom";
 import { Loading, Props } from "../components/Loading/loading.component";

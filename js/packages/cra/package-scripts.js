@@ -10,14 +10,17 @@ const distAbsPath = path.resolve(__dirname, `./${distFolderName}`);
 const reactScript = "craco ";
 // const reactScript = "react-scripts";
 
-const apiUrl = process.env.API_URL_ALTERNATE || process.env.API_URL;
-const webUrl = process.env.WEB_URL || "";
+const env = process.env;
+const apiUrl = env.API_URL_ALTERNATE || env.API_URL;
+const webUrl = env.WEB_URL || "";
+const useMsw = env.USE_MOCK_SERVICE_WORK;
 
 const devEnvs = `
   FAST_REFRESH=false \
   BROWSER=none \
   TSC_COMPILE_ON_ERROR=true \
   REACT_APP_API_URL=${apiUrl} \
+  REACT_APP_USE_MOCK_SERVICE_WORKER=${useMsw} \
   `;
 
 const test_envs = `REACT_APP_API_URL=http://localhost:2222 IS_UNIT_TEST=true NODE_ENV=test`;

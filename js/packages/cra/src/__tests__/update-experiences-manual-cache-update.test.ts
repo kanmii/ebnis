@@ -1,27 +1,24 @@
 import { DataProxy } from "@apollo/client";
-import { UpdateExperiencesOnlineMutationResult } from "../utils/experience.gql.types";
-import {
-  updateExperiencesManualCacheUpdate,
-  // StateValue,
-} from "../apollo/update-experiences-manual-cache-update";
-import {
-  writeCachedExperienceCompleteFragment,
-  readExperienceCompleteFragment,
-  getCachedEntriesDetailViewSuccess,
-  writeCachedEntriesDetailView,
-} from "../apollo/get-detailed-experience-query";
+import { EntryConnectionFragment } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
+import { UpdateExperienceSomeSuccessFragment } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
+import {
+  getCachedEntriesDetailViewSuccess,
+  readExperienceCompleteFragment,
+  writeCachedEntriesDetailView,
+  writeCachedExperienceCompleteFragment,
+} from "../apollo/get-detailed-experience-query";
 import {
   getUnsyncedExperience,
   removeUnsyncedExperiences,
   writeUnsyncedExperience,
 } from "../apollo/unsynced-ledger";
-import { UnsyncedModifiedExperience } from "../utils/unsynced-ledger.types";
+import { updateExperiencesManualCacheUpdate } from "../apollo/update-experiences-manual-cache-update";
 import { entryToEdge } from "../components/UpsertEntry/entry-to-edge";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
-import { UpdateExperienceSomeSuccessFragment } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
-import { EntryConnectionFragment } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
+import { UpdateExperiencesOnlineMutationResult } from "../utils/experience.gql.types";
+import { UnsyncedModifiedExperience } from "../utils/unsynced-ledger.types";
 
 const mockWriteGetEntriesQuery = writeCachedEntriesDetailView as jest.Mock;
 

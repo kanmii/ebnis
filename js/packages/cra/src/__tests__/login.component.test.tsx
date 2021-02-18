@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { LoginMutationVariables } from "@eb/cm/src/graphql/apollo-types/LoginMutation";
 import { cleanup, render, waitFor } from "@testing-library/react";
-import React, { ComponentType } from "react";
+import { ComponentType } from "react";
 import { Login } from "../components/Login/login.component";
 import {
   emailErrorId,
@@ -17,7 +17,7 @@ import {
   ActionType,
   EffectArgs,
   effectFunctions,
-  EffectState, //
+  EffectState,
   initState,
   Props,
   reducer,

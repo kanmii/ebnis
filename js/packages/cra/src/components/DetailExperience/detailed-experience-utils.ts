@@ -19,6 +19,35 @@ import { GetExperienceCommentsErrorsFragment_errors } from "@eb/cm/src/graphql/a
 import { PaginationInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragment";
 import { toGetEntriesSuccessQuery } from "@eb/cm/src/graphql/utils.gql";
+import {
+  ActiveVal,
+  CancelledVal,
+  CommonError,
+  DataVal,
+  DeletedVal,
+  DeleteSuccess,
+  EmptyVal,
+  ErrorsVal,
+  FailVal,
+  FetchEntriesErrorVal,
+  IdToUpdateEntrySyncErrorMap,
+  InActiveVal,
+  InitialVal,
+  KeyOfTimeouts,
+  LoadingState,
+  OfflineIdToCreateEntrySyncErrorMap,
+  OfflineIdToOnlineExperienceMap,
+  OnlineExperienceIdToOfflineEntriesMap,
+  OnlineStatus,
+  OnSyncedData,
+  ReFetchOnly as ReFetchOnlyVal,
+  RequestedVal,
+  StateValue,
+  SuccessVal,
+  SyncError,
+  Timeouts,
+  UpdateEntrySyncErrors,
+} from "@eb/cm/src/utils/types";
 import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
 import immer, { Draft } from "immer";
@@ -51,11 +80,11 @@ import { wrapReducer, wrapState } from "../../logger";
 import { deleteObjectKey } from "../../utils";
 import {
   DATA_FETCHING_FAILED,
+  ErrorType,
   FETCH_ENTRIES_FAIL_ERROR_MSG,
   FieldError,
   GENERIC_SERVER_ERROR,
   parseStringError,
-  ErrorType,
 } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";
 import {
@@ -72,43 +101,12 @@ import {
   GetExperienceCommentsQueryResult,
 } from "../../utils/experience.gql.types";
 import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
-import { isOfflineId } from "../../utils/offlines";
+import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import { scrollIntoView } from "../../utils/scroll-into-view";
-import {
-  IdToUpdateEntrySyncErrorMap,
-  OfflineIdToCreateEntrySyncErrorMap,
-  OfflineIdToOnlineExperienceMap,
-  OnlineExperienceIdToOfflineEntriesMap,
-  OnSyncedData,
-  SyncError,
-  UpdateEntrySyncErrors,
-} from "../../utils/sync-to-server.types";
 import {
   CLOSE_NOTIFICATION_TIMEOUT_MS,
   FETCH_EXPERIENCES_TIMEOUTS,
 } from "../../utils/timers";
-import {
-  ActiveVal,
-  CancelledVal,
-  CommonError,
-  DataVal,
-  DeletedVal,
-  DeleteSuccess,
-  EmptyVal,
-  ErrorsVal,
-  FailVal,
-  FetchEntriesErrorVal,
-  InActiveVal,
-  InitialVal,
-  KeyOfTimeouts,
-  LoadingState,
-  OnlineStatus,
-  ReFetchOnly as ReFetchOnlyVal,
-  RequestedVal,
-  StateValue,
-  SuccessVal,
-  Timeouts,
-} from "../../utils/types";
 import { UpdateExperiencesMutationProps } from "../../utils/update-experiences.gql";
 import {
   DetailExperienceRouteMatch,

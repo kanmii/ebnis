@@ -4,7 +4,24 @@ import {
   GetExperiencesConnectionListView_getExperiences,
   GetExperiencesConnectionListView_getExperiences_edges,
 } from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
-import { Any } from "@eb/cm/src/utils/types";
+import {
+  ActiveVal,
+  Any,
+  BroadcastMessageType,
+  CancelledVal,
+  DataVal,
+  DeletedVal,
+  ErrorsVal,
+  InActiveVal,
+  KeyOfTimeouts,
+  LoadingState,
+  LoadingVal,
+  OfflineIdToOnlineExperienceMap,
+  OnlineStatus,
+  OnSyncedData,
+  StateValue,
+  Timeouts,
+} from "@eb/cm/src/utils/types";
 import fuzzysort from "fuzzysort";
 import immer from "immer";
 import { Dispatch, Reducer } from "react";
@@ -44,26 +61,7 @@ import {
   getExperienceConnectionListView,
 } from "../../utils/experience.gql.types";
 import { scrollIntoView } from "../../utils/scroll-into-view";
-import {
-  OfflineIdToOnlineExperienceMap,
-  OnSyncedData,
-} from "../../utils/sync-to-server.types";
 import { FETCH_EXPERIENCES_TIMEOUTS } from "../../utils/timers";
-import {
-  ActiveVal,
-  BroadcastMessageType,
-  CancelledVal,
-  DataVal,
-  DeletedVal,
-  ErrorsVal,
-  InActiveVal,
-  KeyOfTimeouts,
-  LoadingState,
-  LoadingVal,
-  OnlineStatus,
-  StateValue,
-  Timeouts,
-} from "../../utils/types";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { nonsenseId } from "../../utils/utils.dom";
 import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";

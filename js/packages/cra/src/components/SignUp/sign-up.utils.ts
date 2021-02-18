@@ -1,6 +1,17 @@
 import { RegisterUserInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import { RegisterUserErrorFragment } from "@eb/cm/src/graphql/apollo-types/RegisterUserErrorFragment";
-import { Any } from "@eb/cm/src/utils/types";
+import {
+  Any,
+  ChangedVal,
+  InActiveVal,
+  InitialVal,
+  InvalidVal,
+  StateValue,
+  SubmissionVal,
+  UnChangedVal,
+  ValidVal,
+  WarningVal,
+} from "@eb/cm/src/utils/types";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
 import { wrapReducer } from "../../logger";
@@ -24,17 +35,6 @@ import {
 import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
 import { manageUserAuthentication } from "../../utils/manage-user-auth";
 import { scrollIntoView } from "../../utils/scroll-into-view";
-import {
-  ChangedVal,
-  InActiveVal,
-  InitialVal,
-  InvalidVal,
-  StateValue,
-  SubmissionVal,
-  UnChangedVal,
-  ValidVal,
-  WarningVal,
-} from "../../utils/types";
 import { MY_URL } from "../../utils/urls";
 import { RegisterUserMutationComponentProps } from "../../utils/user.gql.types";
 import { scrollIntoViewDomId } from "./sign-up.dom";

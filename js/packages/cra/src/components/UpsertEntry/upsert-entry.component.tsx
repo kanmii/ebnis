@@ -1,8 +1,8 @@
 import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { StateValue } from "@eb/cm/src/utils/types";
 import makeClassNames from "classnames";
 import React, { ChangeEvent, FormEvent, useCallback, useReducer } from "react";
-import { StateValue } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { errorClassName } from "../../utils/utils.dom";
 import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";

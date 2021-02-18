@@ -8,13 +8,10 @@ import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/Expe
 import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { UpdateExperienceFragment } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceFragment";
 import {
-  UpdateExperienceSomeSuccessFragment_entries,
   UpdateExperienceSomeSuccessFragment_comments,
+  UpdateExperienceSomeSuccessFragment_entries,
 } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
 import { toGetEntriesSuccessQuery } from "@eb/cm/src/graphql/utils.gql";
-import immer, { Draft } from "immer";
-import { entryToEdge } from "../components/UpsertEntry/entry-to-edge";
-import { UpdateExperiencesOnlineMutationResult } from "../utils/experience.gql.types";
 import {
   IdToDefinitionUpdateSyncErrorMap,
   IdToUpdateDataObjectSyncErrorMap,
@@ -25,7 +22,10 @@ import {
   OnlineExperienceUpdatedMap,
   SyncError,
   SyncErrors,
-} from "../utils/sync-to-server.types";
+} from "@eb/cm/src/utils/types";
+import immer, { Draft } from "immer";
+import { entryToEdge } from "../components/UpsertEntry/entry-to-edge";
+import { UpdateExperiencesOnlineMutationResult } from "../utils/experience.gql.types";
 import { UnsyncedModifiedExperience } from "../utils/unsynced-ledger.types";
 import {
   getCachedEntriesDetailViewSuccess,

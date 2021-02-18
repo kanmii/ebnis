@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars*/
 import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { makeOfflineId } from "@eb/cm/src/utils/offlines";
+import { EbnisGlobals, StateValue } from "@eb/cm/src/utils/types";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import React, { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
@@ -28,13 +29,11 @@ import {
 } from "../components/UpsertEntry/upsert-entry.utils";
 import { defaultExperience, fillField } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
-import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { AppPersistor } from "../utils/app-context";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { getIsConnected } from "../utils/connections";
-import { makeOfflineId } from "../utils/offlines";
 import { scrollIntoView } from "../utils/scroll-into-view";
-import { E2EWindowObject, StateValue } from "../utils/types";
+import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 
 jest.mock("../utils/update-experiences.gql");
 const mockUpdateExperiencesMutation = updateExperiencesMutation as jest.Mock;
@@ -104,7 +103,7 @@ const globals = {
   // client: null as any,
   // logApolloQueries: true,
   // logReducers: true,
-} as E2EWindowObject;
+} as EbnisGlobals;
 
 beforeAll(() => {
   window.____ebnis = globals;

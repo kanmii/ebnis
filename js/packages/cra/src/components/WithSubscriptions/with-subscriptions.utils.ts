@@ -1,6 +1,14 @@
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences } from "@eb/cm/src/graphql/apollo-types/OnExperiencesDeletedSubscription";
-import { Any } from "@eb/cm/src/utils/types";
+import {
+  Any,
+  BChannel,
+  BroadcastMessageConnectionChangedPayload,
+  OfflineIdToOnlineExperienceMap,
+  OnlineExperienceIdToOfflineEntriesMap,
+  OnSyncedData,
+  StateValue,
+} from "@eb/cm/src/utils/types";
 import immer, { Draft } from "immer";
 import { Dispatch, PropsWithChildren, Reducer } from "react";
 import { readEntryFragment } from "../../apollo/get-detailed-experience-query";
@@ -23,16 +31,6 @@ import {
   windowChangeUrl,
 } from "../../utils/global-window";
 import { getUser } from "../../utils/manage-user-auth";
-import {
-  OfflineIdToOnlineExperienceMap,
-  OnlineExperienceIdToOfflineEntriesMap,
-  OnSyncedData,
-} from "../../utils/sync-to-server.types";
-import {
-  BChannel,
-  BroadcastMessageConnectionChangedPayload,
-  StateValue,
-} from "../../utils/types";
 import { MY_URL } from "../../utils/urls";
 import { subscribeToGraphqlEvents } from "./with-subscriptions.injectables";
 

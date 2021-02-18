@@ -1,5 +1,6 @@
 import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
 import errorImage from "@eb/cm/src/media/error-96.png";
+import { OnlineStatus, StateValue } from "@eb/cm/src/utils/types";
 import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
 import makeClassNames from "classnames";
 import React, {
@@ -17,7 +18,7 @@ import { Link } from "react-router-dom";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { ExperienceData } from "../../utils/experience.gql.types";
 import { setUpRoutePage } from "../../utils/global-window";
-import { InputChangeEvent, OnlineStatus, StateValue } from "../../utils/types";
+import { InputChangeEvent } from "../../utils/types";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { useRunEffects } from "../../utils/use-run-effects";
 import Header from "../Header/header.component";

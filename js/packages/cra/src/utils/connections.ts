@@ -1,12 +1,12 @@
 /* istanbul ignore file */
-import { broadcastMessage } from "./broadcast-channel-manager";
 import {
-  ConnectionStatus,
-  BroadcastMessageType,
   BroadcastMessageConnectionChanged,
-} from "./types";
+  BroadcastMessageType,
+  ConnectionStatus,
+} from "@eb/cm/src/utils/types";
 import { setTimeout } from "timers";
 import { deleteObjectKey } from ".";
+import { broadcastMessage } from "./broadcast-channel-manager";
 
 export function makeConnectionObject() {
   let connectionStatus = window.____ebnis.connectionStatus;

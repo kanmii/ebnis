@@ -1,55 +1,52 @@
-import React, { useReducer, useCallback, FormEvent, ChangeEvent } from "react";
+import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { StateValue } from "@eb/cm/src/utils/types";
 import makeClassNames from "classnames";
-import "./upsert-experience.styles.scss";
+import React, { ChangeEvent, FormEvent, useCallback, useReducer } from "react";
+import { FieldError } from "../../utils/common-errors";
+import { useCreateExperiencesMutation } from "../../utils/experience.gql.types";
+import { InputChangeEvent } from "../../utils/types";
+import { useRunEffects } from "../../utils/use-run-effects";
+import { errorClassName, warningClassName } from "../../utils/utils.dom";
+import { FormCtrlError } from "../FormCtrlError/form-ctrl-error.component";
+import Loading from "../Loading/loading.component";
 import {
-  Props,
-  initState,
-  reducer,
-  effectFunctions,
-  ActionType,
-  fieldTypeKeys,
-  Submission,
-  FormValidity,
-  DescriptionFormField,
-  FormField,
-  DataDefinitionFieldsMap,
-  DispatchType,
-  CallerProps,
-} from "./upsert-experience.utils";
-import {
-  scrollIntoViewDomId,
-  titleInputDomId,
-  commentInputDomId,
-  descriptionInputDomId,
-  definitionNameInputDomId,
-  definitionTypeInputDomId,
-  makeDefinitionTypeOptionDomId,
-  submitDomId,
-  resetDomId,
-  notificationCloseId,
-  moveDownDefinitionSelector,
-  moveUpDefinitionSelector,
-  removeDefinitionSelector,
   addDefinitionSelector,
-  definitionNameFormControlSelector,
-  fieldErrorSelector,
-  definitionTypeFormControlSelector,
+  commentInputDomId,
   definitionContainerDomSelector,
+  definitionNameFormControlSelector,
+  definitionNameInputDomId,
+  definitionTypeFormControlSelector,
+  definitionTypeInputDomId,
+  descriptionInputDomId,
   disposeComponentDomId,
   domPrefix,
+  fieldErrorSelector,
+  makeDefinitionTypeOptionDomId,
+  moveDownDefinitionSelector,
+  moveUpDefinitionSelector,
+  notificationCloseId,
+  removeDefinitionSelector,
+  resetDomId,
+  scrollIntoViewDomId,
+  submitDomId,
+  titleInputDomId,
 } from "./upsert-experience.dom";
-import { useCreateExperiencesMutation } from "../../utils/experience.gql.types";
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import Loading from "../Loading/loading.component";
-import { FormCtrlError } from "../FormCtrlError/form-ctrl-error.component";
-import { FieldError } from "../../utils/common-errors";
+import "./upsert-experience.styles.scss";
 import {
-  warningClassName,
-  errorClassName, //
-} from "../../utils/utils.dom";
-import { InputChangeEvent } from "../../utils/types";
-import { StateValue } from "../../utils/types";
-import { useRunEffects } from "../../utils/use-run-effects";
+  ActionType,
+  CallerProps,
+  DataDefinitionFieldsMap,
+  DescriptionFormField,
+  DispatchType,
+  effectFunctions,
+  fieldTypeKeys,
+  FormField,
+  FormValidity,
+  initState,
+  Props,
+  reducer,
+  Submission,
+} from "./upsert-experience.utils";
 
 export function UpsertExperience(props: Props) {
   const { onClose, className = "" } = props;

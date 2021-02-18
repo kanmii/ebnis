@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 import { makeVar } from "@apollo/client";
-import { DeletedVal, CancelledVal, RequestedVal } from "../utils/types";
+import { CancelledVal, DeletedVal, RequestedVal } from "@eb/cm/src/utils/types";
 
 export function putOrRemoveDeleteExperienceLedger(
   payload?: DeletedExperienceLedgerAction & {

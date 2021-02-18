@@ -1,12 +1,12 @@
 /* istanbul ignore file */
-import gql from "graphql-tag";
 import { FieldPolicy } from "@apollo/client/cache/inmemory/policies";
+import { OnlineStatus, StateValue } from "@eb/cm/src/utils/types";
+import gql from "graphql-tag";
+import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import {
   UnsyncedLedger,
   UnsyncedModifiedExperience,
 } from "../utils/unsynced-ledger.types";
-import { isOfflineId } from "../utils/offlines";
-import { StateValue, OnlineStatus } from "../utils/types";
 
 const UNSYNCED_LEDGER_QUERY = gql`
   query {

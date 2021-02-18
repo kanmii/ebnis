@@ -1,19 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  CreateOfflineEntryMutationVariables,
-  CreateOfflineEntryMutationValid,
-  createOfflineEntryMutation,
-} from "../components/UpsertEntry/upsert-entry.resolvers";
-import { upsertNewEntry } from "../components/UpsertEntry/upsert-entry.injectables";
-import { isOfflineId, makeOfflineId } from "../utils/offlines";
+  getCachedEntriesDetailViewSuccess,
+  readExperienceCompleteFragment,
+} from "../apollo/get-detailed-experience-query";
 import {
   getUnsyncedExperience,
   writeUnsyncedExperience,
 } from "../apollo/unsynced-ledger";
+import { upsertNewEntry } from "../components/UpsertEntry/upsert-entry.injectables";
 import {
-  readExperienceCompleteFragment,
-  getCachedEntriesDetailViewSuccess,
-} from "../apollo/get-detailed-experience-query";
+  createOfflineEntryMutation,
+  CreateOfflineEntryMutationValid,
+  CreateOfflineEntryMutationVariables,
+} from "../components/UpsertEntry/upsert-entry.resolvers";
+import { isOfflineId, makeOfflineId } from "@eb/cm/src/utils/offlines";
 
 jest.mock("../components/UpsertEntry/upsert-entry.injectables");
 const mockUpsertWithEntry = upsertNewEntry as jest.Mock;
