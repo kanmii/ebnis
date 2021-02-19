@@ -41,38 +41,35 @@ export enum ActionType {
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
-  wrapReducer(
-    state,
-    action,
-    (prevState, { type, ...payload }) => {
-      return immer(prevState, (proxy) => {
-        proxy.effects.general.value = StateValue.noEffect;
-        deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
+  wrapReducer(state, action, (prevState, { type, ...payload }) => {
+    return immer(prevState, (proxy) => {
+      proxy.effects.general.value = StateValue.noEffect;
+      deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
 
-        switch (type) {
-          case ActionType.CONNECTION_CHANGED:
-            handleConnectionChangedAction(
-              proxy,
-              payload as BroadcastMessageConnectionChangedPayload,
-            );
-            break;
+      switch (type) {
+        case ActionType.CONNECTION_CHANGED:
+          handleConnectionChangedAction(
+            proxy,
+            payload as BroadcastMessageConnectionChangedPayload,
+          );
+          break;
 
-          case ActionType.ON_SUBSCRIBED_TO_GRAPHQL_EVENTS:
-            handleOnSubscribeToGraphqlEvents(proxy);
-            break;
+        case ActionType.ON_SUBSCRIBED_TO_GRAPHQL_EVENTS:
+          handleOnSubscribeToGraphqlEvents(proxy);
+          break;
 
-          case ActionType.ON_SYNC:
-            handleOnSyncAction(proxy, payload as OnSycPayload);
-            break;
-        }
-      });
-    },
-    // true,
-  );
+        case ActionType.ON_SYNC:
+          handleOnSyncAction(proxy, payload as OnSycPayload);
+          break;
+      }
+    });
+  });
 
 ////////////////////////// STATE UPDATE SECTION ////////////////////////////
 
-export function initState(): StateMachine {
+export function initState(props: Props): StateMachine {
+  const { useMsw } = props;
+
   return {
     effects: {
       general: {
@@ -80,7 +77,7 @@ export function initState(): StateMachine {
       },
     },
     context: {
-      connected: null,
+      connected: useMsw || null,
     },
   };
 }
@@ -222,6 +219,7 @@ export type OnSycPayload = {
 
 export type CallerProps = PropsWithChildren<{
   bc: BChannel;
+  useMsw?: boolean | null;
 }>;
 
 export type Props = CallerProps;

@@ -6,15 +6,18 @@ import {
 } from "../../apollo/setup";
 import Loading from "../Loading/loading.component";
 import AppInner from "./app-inner.component";
+import { useMsw } from "../../utils/env-variables";
+
+const connected = useMsw ? true : undefined;
 
 export function App() {
   const obj = buildClientCache({
     appHydrated: true,
+    useMsw: connected,
   }) as EbnisGlobals;
 
   const [state, setState] = useState<State>({
     renderChildren: false,
-    connected: false,
   });
 
   useEffect(() => {
@@ -47,5 +50,4 @@ export default App;
 
 interface State {
   readonly renderChildren: boolean;
-  readonly connected: boolean;
 }

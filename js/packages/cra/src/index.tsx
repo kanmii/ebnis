@@ -10,6 +10,11 @@ import "./styles/globals.css";
 import "./styles/tailwind-after.css";
 import App from "./components/App/app.component";
 import { regServiceWorkerReactEnv } from "./utils/env-variables";
+import { useMsw } from "./utils/env-variables";
+
+if (useMsw) {
+  require("@eb/cm/src/__tests__/use-msw");
+}
 
 ReactDOM.render(
   <React.StrictMode>
@@ -21,7 +26,7 @@ ReactDOM.render(
 // If you want your app to work offline and load faster, you can change
 // unregister() to register() below. Note this comes with some pitfalls.
 // Learn more about service workers: https://cra.link/PWA
-if (process.env[regServiceWorkerReactEnv]) {
+if (regServiceWorkerReactEnv) {
   serviceWorkerRegistration.register();
 }
 

@@ -32,7 +32,7 @@ import {
 
 export function WithSubscriptions(props: Props) {
   const { children, bc } = props;
-  const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
+  const [stateMachine, dispatch] = useReducer(reducer, props, initState);
   const {
     effects: { general: generalEffects },
     context: { connected: connectionStatus, onSyncData },

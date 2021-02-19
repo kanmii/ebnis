@@ -15,6 +15,7 @@ import AuthenticationRequired from "../AuthenticationRequired/authentication-req
 import Loading from "../Loading/loading.component";
 import WithSubscriptions from "../WithSubscriptions/with-subscriptions.component";
 import { EbnisAppProvider } from "./app.injectables";
+import { useMsw } from "../../utils/env-variables";
 
 const Login = lazy(() => import("../Login/login.component"));
 const My = lazy(() => import("../My/my.component"));
@@ -36,7 +37,7 @@ export function AppInner({ obj }: Props) {
           }}
         >
           <Suspense fallback={<Loading />}>
-            <WithSubscriptions bc={bc}>
+            <WithSubscriptions bc={bc} useMsw={!!useMsw}>
               <Switch>
                 <AuthenticationRequired
                   exact={true}

@@ -2,7 +2,7 @@
 import { apiUrlReactEnv } from "./env-variables";
 
 export function getBackendUrls(uri?: string) {
-  const apiUrl = uri || process.env[apiUrlReactEnv];
+  const apiUrl = uri || apiUrlReactEnv;
 
   if (!apiUrl) {
     throw new Error(

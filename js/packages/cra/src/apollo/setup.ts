@@ -10,6 +10,7 @@ import { makeBChannel } from "../utils/broadcast-channel-manager";
 import {
   makeConnectionObject,
   resetConnectionObject,
+  storeConnectionStatus,
 } from "../utils/connections";
 import { makeApolloClient } from "./client";
 import { SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY } from "./schema-keys";
@@ -20,6 +21,7 @@ export function buildClientCache(
     resolvers,
     newE2eTest,
     appHydrated,
+    useMsw,
   }: BuildClientCache = {} as BuildClientCache,
 ) {
   // use cypress version of cache if it has been set by cypress
@@ -35,7 +37,11 @@ export function buildClientCache(
     return globalVars;
   }
 
-  const { client, ...others } = makeApolloClient({ uri });
+  if (useMsw) {
+    storeConnectionStatus(true);
+  }
+
+  const { client, ...others } = makeApolloClient({ uri, testing: useMsw });
   cache = others.cache;
 
   persistor = makePersistor(cache, persistor);
@@ -105,6 +111,8 @@ interface BuildClientCache {
   newE2eTest?: boolean;
   // this will be set in react app to show we are not in e2e test
   appHydrated?: boolean;
+  // use mock service worker package for graphql backend?
+  useMsw?: true;
 }
 
 ///////////////////// END TO END TESTS THINGS ///////////////////////

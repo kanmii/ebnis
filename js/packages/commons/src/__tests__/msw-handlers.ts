@@ -4,6 +4,9 @@ import { ApolloError } from "@apollo/client/core";
 import { graphql } from "msw";
 import { GetExperienceAndEntriesDetailView } from "../graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import { GetExperienceComments } from "../graphql/apollo-types/GetExperienceComments";
+import { GetExperiencesConnectionListView } from "../graphql/apollo-types/GetExperiencesConnectionListView";
+import { LoginMutation } from "../graphql/apollo-types/LoginMutation";
+import { PreFetchExperiences } from "../graphql/apollo-types/PreFetchExperiences";
 import { UpdateExperiencesOnline } from "../graphql/apollo-types/UpdateExperiencesOnline";
 
 const { query, mutation } = graphql;
@@ -24,6 +27,22 @@ export function updateMswExperiencesGql(
   data: Partial<UpdateExperiencesOnline> | ApolloError,
 ) {
   return execGraphqlOperation(mutation, "UpdateExperiencesOnline", data);
+}
+
+export function loginMsw(data: Partial<LoginMutation> | ApolloError) {
+  return execGraphqlOperation(mutation, "LoginMutation", data);
+}
+
+export function getMswPreFetchExperiences(
+  data: Partial<PreFetchExperiences> | ApolloError,
+) {
+  return execGraphqlOperation(query, "PreFetchExperiences", data);
+}
+
+export function getMswExperienceConnectionListView(
+  data: Partial<GetExperiencesConnectionListView> | ApolloError,
+) {
+  return execGraphqlOperation(query, "GetExperiencesConnectionListView", data);
 }
 
 function execGraphqlOperation<TData>(

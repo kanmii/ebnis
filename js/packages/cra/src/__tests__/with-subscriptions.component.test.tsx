@@ -302,7 +302,7 @@ describe("reducer", () => {
     // Giver user is logged
     mockGetUser.mockReturnValue({});
 
-    let state = initState();
+    let state = initState(props);
 
     // When there is connection
     state = reducer(state, {
@@ -342,7 +342,10 @@ describe("reducer", () => {
     // Giver user is logged
     mockGetUser.mockReturnValue(undefined);
 
-    let state = initState();
+    let state = initState({
+      ...props,
+      useMsw: true,
+    });
 
     // When there is connection
     state = reducer(state, {
@@ -364,7 +367,7 @@ describe("reducer", () => {
     // Giver user is logged
     mockGetUser.mockReturnValue({});
 
-    let state = initState();
+    let state = initState(props);
 
     // When there is connection
     state = reducer(state, {
