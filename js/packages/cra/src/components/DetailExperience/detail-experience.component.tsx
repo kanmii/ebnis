@@ -815,7 +815,7 @@ function CommentsComponent(props: { state: CommentListState }) {
               {commentNotification.value === StateValue.active && (
                 <Notification
                   id={commentNotificationCloseId}
-                  type="success"
+                  type="is-success"
                   onClose={(e) => {
                     commentCb(e, CommentAction.CLOSE_NOTIFICATION);
                   }}
