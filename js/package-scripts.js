@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const { resolve: resolvePath, join: joinPath } = require("path");
 const { includePackage } = require("nps-utils");
-const { readdirSync, existsSync } = require("fs");
+const {  existsSync } = require("fs");
 
 const { CLIENT_APP, API_APP, WEB_URL, IS_E2E } = process.env;
 

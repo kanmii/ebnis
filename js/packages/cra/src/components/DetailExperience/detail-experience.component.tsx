@@ -695,8 +695,6 @@ function CommentsComponent(props: { state: CommentListState }) {
 
       return (
         <>
-          {successCount && <div id="0000" />}
-
           {deletingComments.value === StateValue.active && <Loading />}
 
           {deleteCommentPrompt.value === StateValue.active && (
@@ -796,8 +794,17 @@ function CommentsComponent(props: { state: CommentListState }) {
                 </span>
               </div>
 
-              {successCount && failureCount && (
-                <div>
+              {successCount || failureCount ? (
+                <Notification
+                  className={`
+                    ${noTriggerDocumentEventClassName}
+                    mt-5
+                  `}
+                  type={successCount ? "is-light-success" : "is-light-danger"}
+                  onClose={() => {
+                    //
+                  }}
+                >
                   {successCount && (
                     <div id={deletedCommentsSuccess}>
                       {successCount} deleted
@@ -805,12 +812,18 @@ function CommentsComponent(props: { state: CommentListState }) {
                   )}
 
                   {failureCount && (
-                    <div id={deletedCommentsFailure}>
-                      {failureCount} not deleted
+                    <div
+                      id={deletedCommentsFailure}
+                      className={`
+                        pt-3
+                        text-red-800
+                      `}
+                    >
+                      {failureCount} not deleted. See below.
                     </div>
                   )}
-                </div>
-              )}
+                </Notification>
+              ) : null}
 
               {commentNotification.value === StateValue.active && (
                 <Notification
@@ -830,15 +843,23 @@ function CommentsComponent(props: { state: CommentListState }) {
                 return (
                   <Fragment key={id}>
                     {failures[id] && (
-                      <div
-                        className={`
-                          ${deletedCommentsFailureSelector}
-                        `}
-                      >
-                        {failures[id].map(([k, v]) => {
-                          return <div key={k}>{v}</div>;
-                        })}
-                      </div>
+                      <>
+                        <Notification
+                          className={`
+                            ${deletedCommentsFailureSelector}
+                            ${noTriggerDocumentEventClassName}
+                            mt-5
+                          `}
+                          type="is-light-danger"
+                          onClose={() => {
+                            //
+                          }}
+                        >
+                          {failures[id].map(([k, v]) => {
+                            return <div key={k}>{v}</div>;
+                          })}
+                        </Notification>
+                      </>
                     )}
 
                     <div

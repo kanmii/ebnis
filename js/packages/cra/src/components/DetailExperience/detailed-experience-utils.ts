@@ -1654,7 +1654,7 @@ function handleDeleteCommentsPromptAction(
 
     if (ids) {
       active.value = StateValue.active;
-      (active as DeleteCommentPromptActiveState).active = {
+      (active as DeleteCommentPromptState).active = {
         context: {
           ids,
         },
@@ -1735,7 +1735,7 @@ function handleOnCommentsDeletedAction(
               }
             });
 
-            const s = deletedComments as DeletedCommentsActiveState;
+            const s = deletedComments as DeletedCommentsState;
             s.value = StateValue.active;
             s.active = {
               context: {
@@ -3054,7 +3054,7 @@ export type DataState = {
         | {
             value: InActiveVal;
           }
-        | DeleteCommentPromptActiveState
+        | DeleteCommentPromptState
       );
 
       deletingComments: {
@@ -3074,13 +3074,22 @@ export type DataState = {
         | {
             value: InActiveVal;
           }
-        | DeletedCommentsActiveState
+        | DeletedCommentsState
       );
     };
   };
 };
 
-type DeletedCommentsActiveState = {
+type DeleteCommentsState =
+  | DeleteCommentPromptState
+  | DeletedCommentsState
+  | DeletingCommentsState;
+
+type DeletingCommentsState = {
+  value: ActiveVal;
+};
+
+type DeletedCommentsState = {
   value: ActiveVal;
   active: {
     context: {
@@ -3091,7 +3100,7 @@ type DeletedCommentsActiveState = {
   };
 };
 
-type DeleteCommentPromptActiveState = {
+type DeleteCommentPromptState = {
   value: ActiveVal;
   active: {
     context: {

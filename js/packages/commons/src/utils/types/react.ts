@@ -25,6 +25,10 @@ export type ReactTextarea = DetailedHTMLProps<
 >;
 
 export type ReactMouseEvent = React.MouseEvent<
-  HTMLAnchorElement | HTMLButtonElement | HTMLDivElement | HTMLSpanElement,
+  | HTMLAnchorElement
+  | HTMLButtonElement
+  | HTMLDivElement
+  | HTMLSpanElement
+  | SVGElement,
   MouseEvent
 >;
