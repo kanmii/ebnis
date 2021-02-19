@@ -23,7 +23,7 @@ export function cleanCachedMutations() {
 
     const rootMutation = data.ROOT_MUTATION;
 
-    if (rootMutation) {
+    if (!rootMutation) {
       return;
     }
 
