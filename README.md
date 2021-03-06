@@ -2,13 +2,13 @@
 
 # How to develop
 
-**change .env-dev to .env-test/prod as the case may be**
+**change .env-e2e to .env-test/prod as the case may be**
 
 ```
-cp .env.example .env-dev
+cp .env.example .env-e2e
 ```
 
-Edit `.env-dev` to set up the environment variables to appropriate values
+Edit `.env-e2e` to set up the environment variables to appropriate values
 
 ## Start the containers with docker-compose
 
@@ -21,9 +21,11 @@ there can be only one `.env` file in the root of our project.
 ## Start docker
 
 ```
-set -a; . .env-dev; set +a;
+set -a; . .env-e2e; set +a;
 
-docker-compose up
+docker-compose build js-base js-cra ex
+
+docker-compose up js-cra ex
 ```
 
 ## Attach to running iex session in another shell
@@ -38,12 +40,10 @@ Inside the container:
 
 See the file `ex/entrypoint.sh`
 
----
-
 3. Attach to the running container
 
 ```
-set -a; . .env-dev; set +a; docker-compose exec api bash
+set -a; . .env-e2e; set +a; docker-compose exec ex bash
 ```
 
 4. Inside the container:
@@ -63,13 +63,13 @@ See the file `ex/entrypoint.sh`
 
 # Testing elixir app
 
-In a new shell, `docker-compose exec` into a running `api` docker-compose
+In a new shell, `docker-compose exec` into a running `ex` docker-compose
 service container running in development mode:
 
 ```
-set -a; . .env-dev; set +a;
+set -a; . .env-e2e; set +a;
 
-docker-compose exec api bash
+docker-compose exec ex bash
 ```
 
 Once inside the container,
@@ -179,11 +179,11 @@ run `yarn start` to discover available commands
 ### Watch files and run tests
 
 ```
-yarn start test.w
+yarn start cra.t
 ```
 
 ### test coverage
 
 ```
-yarn start test.c
+yarn start cra.tc
 ```
