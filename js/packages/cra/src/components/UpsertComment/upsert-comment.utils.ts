@@ -63,6 +63,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 // ====================================================
 export function initState(): StateMachine {
   const machine = {
+    id: "@upsert-comment",
     effects: {
       general: {
         value: StateValue.noEffect,

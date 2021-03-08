@@ -92,6 +92,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
 export function initState(): StateMachine {
   return {
+    id: "@sign-up",
     effects: {
       general: {
         value: StateValue.noEffect,

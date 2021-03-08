@@ -33,6 +33,7 @@ export function getGeneralEffects<
 }
 
 export interface GenericGeneralEffect<E> {
+  id: string;
   effects: {
     general: GeneralEffectProperty<E>;
   };

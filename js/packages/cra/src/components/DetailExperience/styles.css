@@ -13,16 +13,10 @@
       box-shadow: var(--media-shadow-1) var(--danger-color),
         var(--media-shadow-2) var(--danger-color);
     }
-
-    &__updated-at {
-      margin-top: 10px;
-      text-align: right;
-    }
   }
 
   .entry__unsynced-error {
     color: var(--danger-color);
-    font-weight: bold;
   }
 
   .top-options-menu {
@@ -45,7 +39,6 @@
 }
 
 .delete-experience-component,
-.delete-entry-modal,
 .upsert-experience-notification-modal {
   .modal-card {
     max-width: 350px;

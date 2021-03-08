@@ -136,10 +136,8 @@ export function UpsertComment(props: Props) {
         <Modal.Footer>
           <>
             <Button
-              className={`
-                is-success
-                mr-4
-              `}
+              className="mr-4"
+              btnType="is-success"
               type="submit"
               id={submitId}
               onClick={(e) => {
@@ -154,9 +152,7 @@ export function UpsertComment(props: Props) {
 
             <Button
               id={resetId}
-              className={`
-                mr-4
-              `}
+              btnType="is-danger"
               onClick={(e) => {
                 e.preventDefault();
                 dispatch({

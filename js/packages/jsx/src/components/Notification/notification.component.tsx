@@ -1,5 +1,6 @@
 import { ReactComponent as XCircleFilledSvg } from "@eb/cm/src/styles/x-circle-filled.svg";
 import { ComponentProps, ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+import { trimClass } from "@eb/cm/src/utils";
 
 const notificationClasses: Record<Props["type"], string> = {
   "is-success": `
@@ -45,41 +46,45 @@ export function Notification(props: Props) {
 
   return (
     <div
-      className={`
-        eb-notification
-        ${className}
-        ${notificationClasses[type] || ""}
-        rounded
-        relative
-        pb-5
-        pt-6
-        pl-5
-        pr-12
-        font-semibold
-      `}
+      className={trimClass(
+        `
+          eb-notification
+          ${className}
+          ${notificationClasses[type] || ""}
+          rounded
+          relative
+          pb-5
+          pt-6
+          pl-5
+          pr-12
+          font-semibold
+        `,
+      )}
     >
-      <span
+      <a
         onClick={onClose}
         id={id}
-        className={`
-          absolute
-          h-7
-          w-7
-          cursor-pointer
-          box-content
-          pl-4
-          pr-2
-          pb-4
-          pt-1
-          ${closeClasses[type] || ""}
-        `}
+        className={trimClass(
+          `
+            absolute
+            h-7
+            w-7
+            cursor-pointer
+            box-content
+            pl-4
+            pr-2
+            pb-4
+            pt-1
+            ${closeClasses[type] || ""}
+          `,
+        )}
         style={{
           right: ".5rem",
           top: ".5rem",
         }}
       >
         <XCircleFilledSvg />
-      </span>
+      </a>
       {children}
     </div>
   );

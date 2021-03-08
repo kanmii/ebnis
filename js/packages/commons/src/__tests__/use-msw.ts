@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { UpdateExperiencesOnline } from "../graphql/apollo-types/UpdateExperiencesOnline";
+import { DeleteExperiences } from "../graphql/apollo-types/DeleteExperiences";
 import { GetExperienceComments } from "../graphql/apollo-types/GetExperienceComments";
+import { UpdateExperiencesOnline } from "../graphql/apollo-types/UpdateExperiencesOnline";
 import {
   CYPRESS_APOLLO_KEY,
   EbnisGlobals,
@@ -16,16 +17,19 @@ import {
   mockOnlineEntry1,
   mockOnlineEntry1Success,
   mockOnlineExperience1,
+  mockOnlineExperience2,
+  mockOnlineExperience3,
   mockOnlineExperienceId1,
   mockUser1,
 } from "./mock-data";
 import {
-  getMswExperienceCommentsGql,
-  getMswExperienceConnectionListView,
-  getMswListExperiencesGql,
-  getMswPreFetchExperiences,
-  loginMsw,
-  updateMswExperiencesGql,
+  getExperienceAndEntriesDetailViewGqlMsw,
+  getExperienceCommentsGqlMsw,
+  getExperiencesConnectionListViewMswGql,
+  getPreFetchExperiencesMswGql,
+  loginMswGql,
+  updateExperiencesMswGql,
+  deleteExperiencesMswGql,
 } from "./msw-handlers";
 
 let ebnis: EbnisGlobals;
@@ -138,15 +142,41 @@ const updateMswExperiencesGql1: UpdateExperiencesOnline = {
 // END updateMswExperiencesGql
 // ====================================================
 
+// ====================================================
+// START deleteExperiencesMswGql
+// ====================================================
+
+// deleting online experience succeeds
+const deleteOnlineExperience1Data1: DeleteExperiences = {
+  deleteExperiences: {
+    __typename: "DeleteExperiencesSomeSuccess",
+    experiences: [
+      {
+        __typename: "DeleteExperienceSuccess",
+        experience: {
+          __typename: "Experience",
+          id: mockOnlineExperienceId1,
+          title: "aa",
+        },
+      },
+    ],
+    clientSession: "",
+    clientToken: "",
+  },
+};
+// ====================================================
+// END deleteExperiencesMswGql
+// ====================================================
+
 mswBrowserWorker.use(
-  loginMsw({
+  loginMswGql({
     login: {
       __typename: "UserSuccess",
       user: mockUser1,
     },
   }),
 
-  getMswPreFetchExperiences({
+  getPreFetchExperiencesMswGql({
     preFetchExperiences: [
       {
         __typename: "Experience",
@@ -174,7 +204,7 @@ mswBrowserWorker.use(
     ],
   }),
 
-  getMswExperienceConnectionListView({
+  getExperiencesConnectionListViewMswGql({
     getExperiences: {
       __typename: "ExperienceConnection",
       edges: [
@@ -182,6 +212,16 @@ mswBrowserWorker.use(
           __typename: "ExperienceEdge",
           cursor: "",
           node: mockOnlineExperience1,
+        },
+        {
+          __typename: "ExperienceEdge",
+          cursor: "",
+          node: mockOnlineExperience2,
+        },
+        {
+          __typename: "ExperienceEdge",
+          cursor: "",
+          node: mockOnlineExperience3,
         },
       ],
       pageInfo: {
@@ -194,11 +234,14 @@ mswBrowserWorker.use(
     },
   }),
 
-  getMswListExperiencesGql({
+  getExperienceAndEntriesDetailViewGqlMsw({
     getExperience: mockOnlineExperience1,
     getEntries: mockOnlineEntry1Success,
   }),
 
-  getMswExperienceCommentsGql(getMswExperienceCommentsGqlSuccess3),
-  updateMswExperiencesGql(updateMswExperiencesGql1),
+  getExperienceCommentsGqlMsw(getMswExperienceCommentsGqlSuccess3),
+
+  updateExperiencesMswGql(updateMswExperiencesGql1),
+
+  deleteExperiencesMswGql(deleteOnlineExperience1Data1),
 );

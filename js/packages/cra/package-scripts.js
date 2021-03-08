@@ -16,6 +16,7 @@ const webUrl = env.WEB_URL || "";
 const useMsw = env.USE_MSW || "";
 
 const devEnvs = `
+  SKIP_PREFLIGHT_CHECK=true \
   FAST_REFRESH=false \
   BROWSER=none \
   TSC_COMPILE_ON_ERROR=true \

@@ -33,24 +33,23 @@ export function wrapReducer<State, Action>(
   }
 
   if (shouldWrap) {
-    console.log(
-      "\n\n=====PREVIOUS STATE======= \n\n",
-      objectForEnv(prevState),
+    const nextState = reducer(prevState, action);
+    const diff = deepObjectDifference(nextState, prevState);
 
-      "\n\n\n======UPDATE WITH======= \n\n",
+    console.log(
+      "\n\n\n======UPDATE WITH UPDATE WITH======= \n\n",
       objectForEnv(action),
       "\n\n",
-    );
 
-    const nextState = reducer(prevState, action);
+      "\n\n\n=====DIFFERENCES===== \n\n",
+      objectForEnv(diff),
+      "\n\n",
 
-    console.log(
       "\n\n=====NEXT STATE====== \n\n",
       objectForEnv(nextState),
 
-      "\n\n\n=====DIFFERENCES===== \n\n",
-      objectForEnv(deepObjectDifference(nextState, prevState)),
-      "\n\n",
+      "\n\n=====PREVIOUS STATE======= \n\n",
+      objectForEnv(prevState),
     );
 
     return nextState;
@@ -78,10 +77,15 @@ function deepObjectDifference(
       }
 
       return acc;
-    }, {} as { [k: string]: any });
+    }, {} as Record<string, any>);
   }
 
-  return differences(compareObject, baseObject);
+  const diff = {
+    "__state__id__@ebnis": baseObject.id,
+    ...differences(compareObject, baseObject),
+  };
+
+  return diff;
 }
 
 function isPlainObject(obj: Any) {
@@ -122,7 +126,7 @@ export function doNotLog() {
   return false;
 }
 
-export function wrapState(state: any) {
+export function wrapState<S>(state: S) {
   const shouldWrap = (window.____ebnis || {}).logReducers;
   if (shouldWrap) {
     console.log("\n\n=====INITIAL STATE======= \n\n", objectForEnv(state));

@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 import { ApolloError } from "@apollo/client/core";
 import { graphql } from "msw";
+import { DeleteExperiences } from "../graphql/apollo-types/DeleteExperiences";
 import { GetExperienceAndEntriesDetailView } from "../graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import { GetExperienceComments } from "../graphql/apollo-types/GetExperienceComments";
 import { GetExperiencesConnectionListView } from "../graphql/apollo-types/GetExperiencesConnectionListView";
@@ -11,38 +12,44 @@ import { UpdateExperiencesOnline } from "../graphql/apollo-types/UpdateExperienc
 
 const { query, mutation } = graphql;
 
-export function getMswListExperiencesGql(
+export function getExperienceAndEntriesDetailViewGqlMsw(
   data: Partial<GetExperienceAndEntriesDetailView> | ApolloError,
 ) {
   return execGraphqlOperation(query, "GetExperienceAndEntriesDetailView", data);
 }
 
-export function getMswExperienceCommentsGql(
+export function getExperienceCommentsGqlMsw(
   data: Partial<GetExperienceComments> | ApolloError,
 ) {
   return execGraphqlOperation(query, "GetExperienceComments", data);
 }
 
-export function updateMswExperiencesGql(
+export function updateExperiencesMswGql(
   data: Partial<UpdateExperiencesOnline> | ApolloError,
 ) {
   return execGraphqlOperation(mutation, "UpdateExperiencesOnline", data);
 }
 
-export function loginMsw(data: Partial<LoginMutation> | ApolloError) {
+export function loginMswGql(data: Partial<LoginMutation> | ApolloError) {
   return execGraphqlOperation(mutation, "LoginMutation", data);
 }
 
-export function getMswPreFetchExperiences(
+export function getPreFetchExperiencesMswGql(
   data: Partial<PreFetchExperiences> | ApolloError,
 ) {
   return execGraphqlOperation(query, "PreFetchExperiences", data);
 }
 
-export function getMswExperienceConnectionListView(
+export function getExperiencesConnectionListViewMswGql(
   data: Partial<GetExperiencesConnectionListView> | ApolloError,
 ) {
   return execGraphqlOperation(query, "GetExperiencesConnectionListView", data);
+}
+
+export function deleteExperiencesMswGql(
+  data: Partial<DeleteExperiences> | ApolloError,
+) {
+  return execGraphqlOperation(mutation, "DeleteExperiences", data);
 }
 
 function execGraphqlOperation<TData>(

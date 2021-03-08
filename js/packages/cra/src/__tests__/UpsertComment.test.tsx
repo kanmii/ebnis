@@ -1,6 +1,6 @@
 import { EbnisGlobals } from "@eb/cm/src/utils/types";
 import { mockComment1 } from "@eb/cm/src/__tests__/mock-data";
-import { updateMswExperiencesGql } from "@eb/cm/src/__tests__/msw-handlers";
+import { updateExperiencesMswGql } from "@eb/cm/src/__tests__/msw-handlers";
 import { mswServer, mswServerListen } from "@eb/cm/src/__tests__/msw-server";
 import { waitForCount } from "@eb/cm/src/__tests__/wait-for-count";
 import { cleanup, render, waitFor } from "@testing-library/react";
@@ -72,7 +72,7 @@ describe("UpsertComment", () => {
   describe("component", () => {
     it("creates successfully", async () => {
       mswServer.use(
-        updateMswExperiencesGql({
+        updateExperiencesMswGql({
           updateExperiences: {
             __typename: "UpdateExperiencesSomeSuccess",
             experiences: [
@@ -130,7 +130,7 @@ describe("UpsertComment", () => {
 
     it("errors while creating", async () => {
       mswServer.use(
-        updateMswExperiencesGql({
+        updateExperiencesMswGql({
           updateExperiences: {
             __typename: "UpdateExperiencesAllFail",
             error: "a",
@@ -215,7 +215,7 @@ describe("UpsertComment", () => {
 
     it("errors on create", async () => {
       mswServer.use(
-        updateMswExperiencesGql({
+        updateExperiencesMswGql({
           updateExperiences: {
             __typename: "UpdateExperiencesSomeSuccess",
             experiences: [

@@ -13,8 +13,14 @@ import { makeOfflineId } from "../utils/offlines";
 // ====================================================
 export const mockUser1Id = "aaa";
 
-export const mockOnlineExperienceId1 = "onlineId";
-const mockOnlineDefinitionId1 = "1";
+export const mockOnlineExperienceId1 = "onlineId1";
+const mockOnlineDataDefinitionId1 = "1";
+
+export const mockOnlineExperienceId2 = "onlineId2";
+const mockOnlineExperience2DefinitionId1 = "1";
+
+export const mockOnlineExperienceId3 = "onlineId3";
+const mockOnlineExperience3DefinitionId1 = "1";
 
 const mockOnlineEntry1ClientId = "on-ent-cl-1";
 export const mockOnlineEntry1Id = "on-ent-1";
@@ -42,7 +48,7 @@ export const mockOnlineEntry1: EntryFragment = {
   dataObjects: [
     {
       id: mockDataObject1id,
-      definitionId: mockOnlineDefinitionId1,
+      definitionId: mockOnlineDataDefinitionId1,
       data: `{"integer":1}`,
       __typename: "DataObject",
       clientId: "",
@@ -123,7 +129,7 @@ export const mockComment3: CommentFragment = {
 
 export const mockDataDefinition1: DataDefinitionFragment = {
   __typename: "DataDefinition",
-  id: mockOnlineDefinitionId1,
+  id: mockOnlineDataDefinitionId1,
   clientId: "",
   name: "aa",
   type: DataTypes.INTEGER,
@@ -137,6 +143,44 @@ export const mockOnlineExperience1 = {
   updatedAt: "2021-02-19T00:40:39.388Z",
   id: mockOnlineExperienceId1,
   dataDefinitions: [mockDataDefinition1],
+  __typename: "Experience",
+} as ExperienceCompleteFragment;
+
+export const mockOnlineExperience2DataDefinition1: DataDefinitionFragment = {
+  __typename: "DataDefinition",
+  id: mockOnlineExperience2DefinitionId1,
+  clientId: "",
+  name: "aa",
+  type: DataTypes.INTEGER,
+};
+
+export const mockOnlineExperience2 = {
+  title: "online experience 2",
+  description: "",
+  clientId: "",
+  insertedAt: "2021-02-19T00:40:39.388Z",
+  updatedAt: "2021-02-19T00:40:39.388Z",
+  id: mockOnlineExperienceId2,
+  dataDefinitions: [mockOnlineExperience2DataDefinition1],
+  __typename: "Experience",
+} as ExperienceCompleteFragment;
+
+export const mockOnlineExperience3DataDefinition1: DataDefinitionFragment = {
+  __typename: "DataDefinition",
+  id: mockOnlineExperience3DefinitionId1,
+  clientId: "",
+  name: "aa",
+  type: DataTypes.INTEGER,
+};
+
+export const mockOnlineExperience3 = {
+  title: "online experience 3",
+  description: "",
+  clientId: "",
+  insertedAt: "2021-02-19T00:40:39.388Z",
+  updatedAt: "2021-02-19T00:40:39.388Z",
+  id: mockOnlineExperienceId3,
+  dataDefinitions: [mockOnlineExperience3DataDefinition1],
   __typename: "Experience",
 } as ExperienceCompleteFragment;
 

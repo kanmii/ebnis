@@ -1,11 +1,8 @@
-import {
-  DataStateContextEntry,
-  DataDefinitionIdToNameMap,
-} from "../DetailExperience/detailed-experience-utils";
-import { UpdatingEntryPayload } from "../UpsertEntry/upsert-entry.utils";
+import { DataStateContextEntry } from "../DetailExperience/detailed-experience-utils";
+import { UpdatingPayload } from "../UpsertEntry/upsert-entry.utils";
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 
-type UpdateEntryPayload = UpdatingEntryPayload & {
+type UpdateEntryPayload = UpdatingPayload & {
   index: number;
 };
 
@@ -14,7 +11,6 @@ export type ActivateUpdateEntryCb = (data: UpdateEntryPayload) => void;
 export type CallerProps = {
   state: DataStateContextEntry;
   index: number;
-  dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
   activateUpdateEntryCb: ActivateUpdateEntryCb;
   entriesOptionsCb: (entry: EntryFragment) => void;
   menuActive: boolean;

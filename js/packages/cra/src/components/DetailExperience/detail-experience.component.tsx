@@ -1,14 +1,11 @@
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { ReactComponent as DotsVerticalSvg } from "@eb/cm/src/styles/dots-vertical.svg";
-import { OnlineStatus, StateValue } from "@eb/cm/src/utils/types";
-import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+import { deleteExperiences } from "../../utils/delete-experiences.gql";
+import { trimClass } from "@eb/cm/src/utils";
+import { componentTimeoutsMs } from "@eb/cm/src/utils/timers";
+import { StateValue } from "@eb/cm/src/utils/types";
 import Button from "@eb/jsx/src/components/Button/button.component";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import Notification from "@eb/jsx/src/components/Notification/notification.component";
-import makeClassNames from "classnames";
 import React, {
-  createContext,
   Fragment,
   Suspense,
   useContext,
@@ -23,113 +20,58 @@ import { setUpRoutePage } from "../../utils/global-window";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { activeClassName } from "../../utils/utils.dom";
-import Entry from "../Entry/entry.component";
-import { ActivateUpdateEntryCb } from "../Entry/entry.utils";
+import Entries from "../entries/entries.component";
+import { EntriesRemoteActionType } from "../entries/entries.utils";
+import {
+  createCommentsLabelText,
+  createCommentsMenuId,
+  hideCommentsLabelText,
+  hideCommentsMenuId,
+  showCommentsLabelText,
+  showCommentsMenuId,
+} from "../experience-comments/experience-comments.dom";
+import { CommentRemoteActionType } from "../experience-comments/experience-comments.utils";
 import Header from "../Header/header.component";
 import Loading from "../Loading/loading.component";
 import { UpsertExperience } from "../My/my.lazy";
 import {
-  closeDeleteEntryConfirmationId,
+  DataStateContext,
+  DataStateProvider,
+  DispatchContext,
+  DispatchContextValue,
+  DispatchProvider,
+} from "./detail-experience.context";
+import {
   closeSyncErrorsMsgBtnId,
   closeSyncErrorsMsgId,
-  closeUpsertEntryNotificationId,
-  commentItemContainerSelector,
-  commentItemOptionsSelector,
-  commentItemOptionsToggleSelector,
-  commentNotificationCloseId,
-  commentsErrorContainerId,
-  commentsHeaderNewId,
-  createCommentsLabelText,
-  createCommentsMenuId,
-  deleteCommentMenuSelector,
-  deleteCommentPromptFooterCloseId,
-  deleteCommentPromptHeaderCloseId,
-  deleteCommentPromptOkId,
-  deletedCommentsFailure,
-  deletedCommentsFailureSelector,
-  deletedCommentsSuccess,
-  deleteExperienceMenuItemSelector,
-  deleteExperienceOkSelector,
-  editExperienceMenuItemSelector,
-  emptyCommentsContainerId,
-  entriesContainerId,
-  entryDeleteFailNotificationId,
-  entryDeleteSuccessNotificationId,
+  deleteFooterCloseId,
+  deleteHeaderCloseId,
+  deleteMenuItemId,
+  domPrefix,
   experienceMenuSelector,
   experienceMenuTriggerSelector,
-  fetchNextEntriesId,
   fixSyncErrorsId,
-  hideCommentsLabelText,
-  hideCommentsMenuId,
   newEntryMenuItemSelector,
-  noEntryTriggerId,
   noTriggerDocumentEventClassName,
-  okDeleteEntryId,
-  refetchEntriesId,
-  refetchExperienceId,
-  showCommentsLabelText,
-  showCommentsMenuId,
+  refetchId,
   syncEntriesErrorsMsgId,
   syncErrorsNotificationId,
   syncExperienceErrorsMsgId,
-  updateExperienceSuccessNotificationId,
+  updateSuccessNotificationId,
+  updateMenuItemId,
+  deleteOkId,
 } from "./detail-experience.dom";
-import { useDeleteExperiencesMutation } from "./detail-experience.injectables";
-import { UpsertComment, UpsertEntry } from "./detail-experience.lazy";
+import { Comments } from "./detail-experience.lazy";
 import {
   ActionType,
   CallerProps,
-  CommentAction,
-  CommentListState,
-  componentTimeoutsMs,
-  DataState,
-  DispatchType,
   effectFunctions,
-  EntriesDataSuccessSate,
   ExperienceSyncError,
   initState,
-  OldEntryData,
-  OnCommentsDeletedSomeSuccessPayload,
   Props,
   reducer,
 } from "./detailed-experience-utils";
 import "./styles.css";
-
-type DispatchContextValue = Readonly<{
-  onOpenNewEntry: (e: ReactMouseEvent) => void;
-  onCloseNewEntryCreatedNotification: (e: ReactMouseEvent) => void;
-  onDeclineDeleteExperience: (e: ReactMouseEvent) => void;
-  onConfirmDeleteExperience: (e: ReactMouseEvent) => void;
-  onDeleteExperienceRequest: (e: ReactMouseEvent) => void;
-  requestUpdateExperienceUi: (e: ReactMouseEvent) => void;
-  cancelEditExperienceUiRequestCb: (e: ReactMouseEvent) => void;
-  onExperienceUpdatedSuccess: (
-    e: ExperienceDetailViewFragment,
-    onlineStatus: OnlineStatus,
-  ) => void;
-  toggleExperienceMenu: (e: ReactMouseEvent) => void;
-  refetchEntries: (e: ReactMouseEvent) => void;
-  fetchNextEntries: (e: ReactMouseEvent) => void;
-  dispatch: DispatchType;
-  onUpdateExperienceError: (error: string) => void;
-  closeSyncErrorsMsg: (e: ReactMouseEvent) => void;
-  refetchExperience: (e: ReactMouseEvent) => void;
-  activateUpdateEntryCb: ActivateUpdateEntryCb;
-  entriesOptionsCb: (entry: EntryFragment) => void;
-  deleteEntryRequest: (entry: EntryFragment) => void;
-  deleteEntry: (e: ReactMouseEvent) => void;
-  cancelDeleteEntry: (e: ReactMouseEvent) => void;
-  commentCb: (e: ReactMouseEvent, commentAction: CommentAction) => void;
-}>;
-const DispatchContext = createContext<DispatchContextValue>(
-  {} as DispatchContextValue,
-);
-const DispatchProvider = DispatchContext.Provider;
-
-const DataStateContext = createContext<DataState["data"]>(
-  {} as DataState["data"],
-);
-const DataStateProvider = DataStateContext.Provider;
 
 export function DetailExperience(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
@@ -168,73 +110,51 @@ export function DetailExperience(props: Props) {
   const contextVal: DispatchContextValue = useMemo(() => {
     return {
       dispatch,
-      onOpenNewEntry(e) {
-        e.preventDefault();
-
-        dispatch({
-          type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE,
-        });
-      },
-      onCloseNewEntryCreatedNotification() {
-        dispatch({
-          type: ActionType.ON_CLOSE_NEW_ENTRY_CREATED_NOTIFICATION,
-        });
-      },
-      onDeclineDeleteExperience() {
+      onDeleteDeclined() {
         dispatch({
           type: ActionType.DELETE_EXPERIENCE_CANCELLED,
         });
       },
-      onConfirmDeleteExperience() {
+      onDeleteConfirmed() {
         dispatch({
           type: ActionType.DELETE_EXPERIENCE_CONFIRMED,
         });
       },
-      onDeleteExperienceRequest(e) {
+      onDeleteRequested(e) {
         e.preventDefault();
 
         dispatch({
           type: ActionType.DELETE_EXPERIENCE_REQUEST,
         });
       },
-      toggleExperienceMenu() {
+      toggleMenuCb() {
         dispatch({
           type: ActionType.TOGGLE_EXPERIENCE_MENU,
         });
       },
-      refetchEntries() {
-        dispatch({
-          type: ActionType.RE_FETCH_ENTRIES,
-        });
-      },
-      fetchNextEntries() {
-        dispatch({
-          type: ActionType.FETCH_NEXT_ENTRIES,
-        });
-      },
-      requestUpdateExperienceUi(e) {
+      requestUpdateUiCb(e) {
         e.preventDefault();
 
         dispatch({
-          type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI,
+          type: ActionType.request_update_ui,
         });
       },
-      cancelEditExperienceUiRequestCb(e) {
+      cancelUpdateUiRequestCb(e) {
         e.preventDefault();
 
         dispatch({
-          type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI,
+          type: ActionType.request_update_ui,
         });
       },
-      onExperienceUpdatedSuccess(experience, onlineStatus) {
+      onUpdateSuccess(experience, onlineStatus) {
         dispatch({
-          type: ActionType.REQUEST_UPDATE_EXPERIENCE_UI,
+          type: ActionType.request_update_ui,
           experience,
           onlineStatus,
         });
       },
       // istanbul ignore next:
-      onUpdateExperienceError() {
+      onUpdateError() {
         //
       },
       closeSyncErrorsMsg(e) {
@@ -244,44 +164,11 @@ export function DetailExperience(props: Props) {
           type: ActionType.CLOSE_SYNC_ERRORS_MSG,
         });
       },
-      refetchExperience(e) {
+      refetchCb(e) {
         e.preventDefault();
 
         dispatch({
-          type: ActionType.RE_FETCH_EXPERIENCE,
-        });
-      },
-      activateUpdateEntryCb(data) {
-        dispatch({
-          type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE,
-          updatingEntry: data,
-        });
-      },
-      entriesOptionsCb(entry) {
-        dispatch({
-          type: ActionType.ENTRIES_OPTIONS,
-          entry,
-        });
-      },
-      deleteEntryRequest(entry) {
-        dispatch({
-          type: ActionType.DELETE_ENTRY,
-          key: StateValue.requested,
-          entry,
-        });
-      },
-      deleteEntry(e) {
-        e.preventDefault();
-        dispatch({
-          type: ActionType.DELETE_ENTRY,
-          key: StateValue.deleted,
-        });
-      },
-      cancelDeleteEntry(e) {
-        e.preventDefault();
-        dispatch({
-          type: ActionType.DELETE_ENTRY,
-          key: StateValue.cancelled,
+          type: ActionType.RE_FETCH,
         });
       },
       commentCb(e, action) {
@@ -304,9 +191,9 @@ export function DetailExperience(props: Props) {
             {states.errors.context.error}
 
             <button
-              id={refetchExperienceId}
+              id={refetchId}
               className="button is-link refetch-btn"
-              onClick={contextVal.refetchExperience}
+              onClick={contextVal.refetchCb}
             >
               Refetch
             </button>
@@ -339,8 +226,6 @@ export function DetailExperience(props: Props) {
 
 // istanbul ignore next:
 export default (props: CallerProps) => {
-  const [deleteExperiences] = useDeleteExperiencesMutation();
-
   return (
     <DetailExperience
       {...props}
@@ -355,27 +240,22 @@ export default (props: CallerProps) => {
 function ExperienceComponent() {
   const {
     dispatch,
-    refetchEntries,
-    cancelEditExperienceUiRequestCb,
-    onExperienceUpdatedSuccess,
-    onUpdateExperienceError,
-    requestUpdateExperienceUi,
-    cancelDeleteEntry,
-    commentCb,
+    cancelUpdateUiRequestCb,
+    onUpdateSuccess,
+    onUpdateError,
+    requestUpdateUiCb,
+    onDeleteDeclined: onDeleteDeclined,
+    onDeleteConfirmed: onDeleteConfirmed,
   } = useContext(DispatchContext);
 
   const {
     context,
     states: {
       deleteExperience: deleteExperienceState,
-      upsertEntryActive,
-      upsertingComment,
-      entryNotification: newEntryCreated,
       entries: entriesState,
-      updateExperienceUiActive,
+      updateUiActive,
       syncErrorsMsg,
-      entriesOptions,
-      commentList: commentListState,
+      comments: commentsState,
     },
   } = useContext(DataStateContext);
 
@@ -409,592 +289,86 @@ function ExperienceComponent() {
     };
   }, [experience]);
 
-  const oldEditedEntryProps =
-    upsertEntryActive.value === StateValue.active
-      ? upsertEntryActive.active.context.updatingEntry
-      : undefined;
-
   return (
     <>
-      {updateExperienceUiActive.value === StateValue.active && (
+      {updateUiActive.value === StateValue.active && (
         <Suspense fallback={<Loading />}>
           <UpsertExperience
             experience={experience}
-            onClose={cancelEditExperienceUiRequestCb}
-            onSuccess={onExperienceUpdatedSuccess}
-            onError={onUpdateExperienceError}
+            onClose={cancelUpdateUiRequestCb}
+            onSuccess={onUpdateSuccess}
+            onError={onUpdateError}
             className={noTriggerDocumentEventClassName}
           />
         </Suspense>
       )}
 
       {deleteExperienceState.value === StateValue.active && (
-        <DeleteExperienceModal />
+        <Modal
+          className={noTriggerDocumentEventClassName}
+          onClose={onDeleteDeclined}
+        >
+          <Modal.Card>
+            <Modal.Header id={deleteHeaderCloseId}>
+              <strong>Delete Experience</strong>
+              <div>{experience.title}</div>
+            </Modal.Header>
+            <Modal.Footer>
+              <Button
+                id={deleteOkId}
+                type="button"
+                btnType="is-danger"
+                onClick={onDeleteConfirmed}
+              >
+                Ok
+              </Button>
+              <Button
+                id={deleteFooterCloseId}
+                type="button"
+                onClick={onDeleteDeclined}
+                btnType="is-success"
+                className="ml-5"
+              >
+                Cancel
+              </Button>
+            </Modal.Footer>
+          </Modal.Card>
+        </Modal>
       )}
 
       {syncErrorsMsg.value === StateValue.active && (
         <SyncErrorsMessageNotificationComponent />
       )}
 
-      {entriesOptions.value === StateValue.requested && (
-        <DeleteEntryConfirmationComponent />
-      )}
-
-      {upsertingComment.value === StateValue.active && (
-        <Suspense fallback={<Loading />}>
-          <UpsertComment
-            association={{
-              id: experience.id,
-            }}
-            className={noTriggerDocumentEventClassName}
-            onSuccess={(data) => {
-              dispatch({
-                type: ActionType.ON_UPSERT_COMMENT,
-                data,
-              });
-            }}
-            onClose={(e) => {
-              commentCb(e, CommentAction.CLOSE_UPSERT_UI);
-            }}
-          />
-        </Suspense>
-      )}
-
-      {(oldEditedEntryProps ||
-        (!syncErrors && upsertEntryActive.value === StateValue.active)) && (
-        <Suspense fallback={<Loading />}>
-          <UpsertEntry
-            experience={experience}
-            updatingEntry={oldEditedEntryProps}
-            onSuccess={(entry, onlineStatus) => {
-              let oldData: undefined | OldEntryData = undefined;
-
-              if (oldEditedEntryProps) {
-                const { entry, index } = oldEditedEntryProps;
-
-                oldData = {
-                  entry,
-                  index,
-                };
-              }
-
-              dispatch({
-                type: ActionType.ON_UPSERT_ENTRY_SUCCESS,
-                newData: {
-                  entry,
-                  onlineStatus,
-                },
-                oldData,
-              });
-            }}
-            onClose={() => {
-              dispatch({
-                type: ActionType.TOGGLE_UPSERT_ENTRY_ACTIVE,
-              });
-            }}
-          />
-        </Suspense>
-      )}
-
-      <div className="container detailed-experience-component">
+      <div id={domPrefix} className="container detailed-experience-component">
         {syncErrors && <SyncErrorsNotificationComponent state={syncErrors} />}
 
-        <UpsertEntryNotification state={newEntryCreated} />
+        {updateUiActive.value === StateValue.success && (
+          <Notification
+            onClose={requestUpdateUiCb}
+            id={updateSuccessNotificationId}
+            type="is-success"
+          >
+            Update was successful
+          </Notification>
+        )}
 
-        {updateExperienceUiActive.value === StateValue.success && (
-          <SuccessNotificationComponent
-            onClose={requestUpdateExperienceUi}
-            message="Update was successful"
-            domId={updateExperienceSuccessNotificationId}
-            type="success"
+        {commentsState.value === StateValue.active && (
+          <Comments
+            postActions={commentsState.active.context.postActions}
+            experience={experience}
           />
         )}
 
-        {entriesOptions.value === StateValue.deleteSuccess && (
-          <SuccessNotificationComponent
-            domId={entryDeleteSuccessNotificationId}
-            message="Entry deleted successfully"
-            onClose={cancelDeleteEntry}
-            type="success"
-          />
-        )}
-
-        {entriesOptions.value === StateValue.errors && (
-          <SuccessNotificationComponent
-            domId={entryDeleteFailNotificationId}
-            message={
-              <div>
-                Entry delete failed with error:
-                <p>{entriesOptions.errors.error}</p>
-              </div>
-            }
-            onClose={cancelDeleteEntry}
-            type="error"
-          />
-        )}
-
-        <CommentsComponent state={commentListState} />
-
-        {entriesState.value === StateValue.success && (
-          <EntriesComponent state={entriesState.success} />
-        )}
-
-        {entriesState.value === StateValue.fail && (
-          <>
-            <div className={noTriggerDocumentEventClassName}>
-              {entriesState.error}
-
-              <button
-                id={refetchEntriesId}
-                className="button is-link"
-                onClick={refetchEntries}
-              >
-                Retry
-              </button>
-            </div>
-          </>
-        )}
+        <Entries
+          {...entriesState}
+          experience={experience}
+          syncErrors={syncErrors}
+          parentDispatch={dispatch}
+        />
       </div>
     </>
   );
-}
-
-function EntriesComponent(props: { state: EntriesDataSuccessSate["success"] }) {
-  const { connected } = useWithSubscriptionContext();
-
-  const {
-    onOpenNewEntry,
-    fetchNextEntries,
-    activateUpdateEntryCb,
-    entriesOptionsCb,
-    deleteEntryRequest,
-  } = useContext(DispatchContext);
-
-  const {
-    context: { dataDefinitionIdToNameMap },
-    states: { entriesOptions, commentList: commentListState },
-  } = useContext(DataStateContext);
-
-  const {
-    context: {
-      entries,
-      pageInfo: { hasNextPage },
-      pagingError,
-    },
-  } = props.state;
-
-  return (
-    <>
-      {entries.length === 0 ? (
-        <div
-          id={noEntryTriggerId}
-          className={makeClassNames({
-            [noTriggerDocumentEventClassName]: true,
-            "cursor-pointer": true,
-            "font-semibold": true,
-            "text-blue-400": true,
-            "hover:text-blue-500": true,
-            "pt-3": true,
-          })}
-          onClick={onOpenNewEntry}
-        >
-          Click here to create your first entry
-        </div>
-      ) : (
-        <>
-          <div id={entriesContainerId}>
-            {commentListState.value !== StateValue.initial && (
-              <p
-                className={makeClassNames({
-                  "font-black": true,
-                  "text-2xl": true,
-                  "mb-2": true,
-                  "mt-10": true,
-                  shadow: true,
-                  "pl-3": true,
-                })}
-              >
-                Entries
-              </p>
-            )}
-
-            {entries.map((daten, index) => {
-              const {
-                entryData: { id },
-              } = daten;
-
-              return (
-                <Entry
-                  key={id}
-                  state={daten}
-                  index={index}
-                  activateUpdateEntryCb={activateUpdateEntryCb}
-                  dataDefinitionIdToNameMap={dataDefinitionIdToNameMap}
-                  entriesOptionsCb={entriesOptionsCb}
-                  menuActive={
-                    entriesOptions.value === StateValue.active &&
-                    entriesOptions.active.id === id
-                  }
-                  deleteEntryRequest={deleteEntryRequest}
-                />
-              );
-            })}
-          </div>
-
-          {connected && hasNextPage && (
-            <div className="detailed-experience__next-entries">
-              {pagingError && (
-                <div className="detailed-experience__paginierung-error">
-                  Unable to fetch more entries
-                  {pagingError}
-                </div>
-              )}
-
-              <button
-                id={fetchNextEntriesId}
-                className="button is-primary"
-                onClick={fetchNextEntries}
-              >
-                More
-              </button>
-            </div>
-          )}
-        </>
-      )}
-    </>
-  );
-}
-
-function CommentsComponent(props: { state: CommentListState }) {
-  const { state } = props;
-
-  const { commentCb, dispatch } = useContext(DispatchContext);
-  const {
-    states: {
-      commentNotification,
-      commentMenu,
-      deleteCommentPrompt,
-      deletingComments,
-      deletedComments,
-    },
-  } = useContext(DataStateContext);
-
-  switch (state.value) {
-    case StateValue.success: {
-      const { comments } = state.success.context;
-      let failures = {} as OnCommentsDeletedSomeSuccessPayload["data"]["failures"];
-      let failureCount = 0;
-      let successCount = 0;
-
-      if (deletedComments.value === StateValue.active) {
-        const context = deletedComments.active.context;
-        failures = context.failures;
-        failureCount = context.failureCount;
-        successCount = context.successCount;
-      }
-
-      return (
-        <>
-          {deletingComments.value === StateValue.active && <Loading />}
-
-          {deleteCommentPrompt.value === StateValue.active && (
-            <Modal
-              className={`
-                ${noTriggerDocumentEventClassName}
-              `}
-              onClose={() => {
-                dispatch({
-                  type: ActionType.DELETE_COMMENTS_PROMPT,
-                });
-              }}
-            >
-              <Modal.Card>
-                <Modal.Header
-                  id={deleteCommentPromptHeaderCloseId}
-                  onClose={() => {
-                    dispatch({
-                      type: ActionType.DELETE_COMMENTS_PROMPT,
-                    });
-                  }}
-                >
-                  <span>Delete </span>
-                  <span>
-                    {deleteCommentPrompt.active.context.ids.length === 1
-                      ? "comment"
-                      : "comments"}
-                  </span>
-                  ?
-                </Modal.Header>
-
-                <Modal.Footer>
-                  <Button
-                    id={deleteCommentPromptOkId}
-                    className={`
-                      is-danger
-                      mr-4
-                    `}
-                    onClick={() => {
-                      dispatch({
-                        type: ActionType.DELETE_COMMENTS_YES,
-                      });
-                    }}
-                  >
-                    Ok
-                  </Button>
-
-                  <Button
-                    id={deleteCommentPromptFooterCloseId}
-                    onClick={() => {
-                      dispatch({
-                        type: ActionType.DELETE_COMMENTS_PROMPT,
-                      });
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </Modal.Footer>
-              </Modal.Card>
-            </Modal>
-          )}
-
-          <div
-            className={`
-              mb-5
-            `}
-          >
-            <div>
-              <div
-                className={`
-                  font-black
-                  text-2xl
-                  mb-2
-                  shadow
-                  pl-3
-                  flex
-                  justify-between
-                `}
-              >
-                <div>Comments</div>
-                <span
-                  id={commentsHeaderNewId}
-                  className={`
-                    bg-blue-300
-                    cursor-pointer
-                    pl-5
-                    pr-5
-                    rounded-br
-                    rounded-tr
-                    text-white
-                  `}
-                  onClick={(e) => {
-                    commentCb(e, CommentAction.CREATE);
-                  }}
-                >
-                  +
-                </span>
-              </div>
-
-              {successCount || failureCount ? (
-                <Notification
-                  className={`
-                    ${noTriggerDocumentEventClassName}
-                    mt-5
-                  `}
-                  type={successCount ? "is-light-success" : "is-light-danger"}
-                  onClose={() => {
-                    //
-                  }}
-                >
-                  {successCount && (
-                    <div id={deletedCommentsSuccess}>
-                      {successCount} deleted
-                    </div>
-                  )}
-
-                  {failureCount && (
-                    <div
-                      id={deletedCommentsFailure}
-                      className={`
-                        pt-3
-                        text-red-800
-                      `}
-                    >
-                      {failureCount} not deleted. See below.
-                    </div>
-                  )}
-                </Notification>
-              ) : null}
-
-              {commentNotification.value === StateValue.active && (
-                <Notification
-                  id={commentNotificationCloseId}
-                  type="is-success"
-                  onClose={(e) => {
-                    commentCb(e, CommentAction.CLOSE_NOTIFICATION);
-                  }}
-                >
-                  {commentNotification.active.context.message}
-                </Notification>
-              )}
-
-              {comments.map((comment) => {
-                const { id, text } = comment;
-
-                return (
-                  <Fragment key={id}>
-                    {failures[id] && (
-                      <>
-                        <Notification
-                          className={`
-                            ${deletedCommentsFailureSelector}
-                            ${noTriggerDocumentEventClassName}
-                            mt-5
-                          `}
-                          type="is-light-danger"
-                          onClose={() => {
-                            //
-                          }}
-                        >
-                          {failures[id].map(([k, v]) => {
-                            return <div key={k}>{v}</div>;
-                          })}
-                        </Notification>
-                      </>
-                    )}
-
-                    <div
-                      id={id}
-                      className={`
-                      ${commentItemContainerSelector}
-                      shadow-lg
-                      relative
-                      mt-5
-                    `}
-                    >
-                      <p
-                        className={`
-                        eb-tiny-scroll
-                        whitespace-pre-line
-                        max-h-80
-                        overflow-y-auto
-                        pb-4
-                        pl-4
-                        pr-12
-                        pt-6
-                        border-t
-                        break-words
-                      `}
-                      >
-                        {text}
-                      </p>
-
-                      <div
-                        className={`
-                        absolute
-                      `}
-                        style={{
-                          right: "1.5rem",
-                          top: "10px",
-                        }}
-                      >
-                        <div
-                          className={`
-                          eb-dropdown-menu
-                          ${commentItemOptionsSelector}
-                          ${noTriggerDocumentEventClassName}
-                          ${
-                            commentMenu.value === StateValue.active &&
-                            commentMenu.active.context.id === id
-                              ? activeClassName
-                              : ""
-                          }
-                       `}
-                          role="menu"
-                        >
-                          <div className="eb-content">Edit</div>
-
-                          <div
-                            className={`
-                            eb-content
-                            ${deleteCommentMenuSelector}
-                          `}
-                            onClick={() => {
-                              dispatch({
-                                type: ActionType.DELETE_COMMENTS_PROMPT,
-                                ids: [id],
-                              });
-                            }}
-                          >
-                            Delete
-                          </div>
-                        </div>
-
-                        <div
-                          className={`
-                          dropdown-trigger
-                          text-blue-600
-                          ${noTriggerDocumentEventClassName}
-                          ${commentItemOptionsToggleSelector}
-                        `}
-                          onClick={() => {
-                            dispatch({
-                              type: ActionType.TOGGLE_COMMENT_MENU,
-                              id,
-                            });
-                          }}
-                        >
-                          <DotsVerticalSvg />
-                        </div>
-                      </div>
-                    </div>
-                  </Fragment>
-                );
-              })}
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    case StateValue.empty:
-      return (
-        <div
-          id={emptyCommentsContainerId}
-          className={makeClassNames({
-            [noTriggerDocumentEventClassName]: true,
-            "cursor-pointer": true,
-            "font-semibold": true,
-            "text-blue-400": true,
-            "hover:text-blue-500": true,
-            "mb-3": true,
-            "pt-3": true,
-          })}
-          onClick={(e) => {
-            commentCb(e, CommentAction.CREATE);
-          }}
-        >
-          No comments. Click here to create one.
-        </div>
-      );
-
-    case StateValue.errors: {
-      const { error } = state.errors.context;
-      return (
-        <div id={commentsErrorContainerId}>
-          <div>
-            <p>Error occurred while fetching comments:</p>
-
-            <p>{error}</p>
-          </div>
-
-          <p>Click here to retry.</p>
-        </div>
-      );
-    }
-
-    default:
-      return null;
-  }
 }
 
 function SyncErrorsNotificationComponent(props: {
@@ -1076,112 +450,28 @@ function SyncErrorsNotificationComponent(props: {
   );
 }
 
-function UpsertEntryNotification(props: {
-  state: DataState["data"]["states"]["entryNotification"];
-}) {
-  const { state } = props;
-  const { onCloseNewEntryCreatedNotification } = useContext(DispatchContext);
-
-  if (state.value === StateValue.inactive) {
-    return null;
-  }
-
-  return (
-    <div className="notification is-success">
-      <button
-        id={closeUpsertEntryNotificationId}
-        className="delete"
-        onClick={onCloseNewEntryCreatedNotification}
-      />
-      {state.active.context.message}
-    </div>
-  );
-}
-
-function DeleteExperienceModal() {
-  const { onDeclineDeleteExperience, onConfirmDeleteExperience } = useContext(
-    DispatchContext,
-  );
-
-  const {
-    context: {
-      experience: { title },
-    },
-  } = useContext(DataStateContext);
-
-  return (
-    <div
-      className={makeClassNames({
-        "modal is-active delete-experience-component": true,
-        [noTriggerDocumentEventClassName]: true,
-      })}
-    >
-      <div className="modal-background"></div>
-
-      <div className="modal-card">
-        <header className="modal-card-head">
-          <div className="modal-card-title">
-            <strong>Delete Experience</strong>
-            <div className="experience-title">{title}</div>
-          </div>
-
-          <button
-            className="delete upsert-entry__delete"
-            aria-label="close"
-            type="button"
-            onClick={onDeclineDeleteExperience}
-          ></button>
-        </header>
-
-        <footer className="modal-card-foot">
-          <button
-            className={makeClassNames({
-              "button is-success": true,
-              [deleteExperienceOkSelector]: true,
-            })}
-            id={""}
-            type="button"
-            onClick={onConfirmDeleteExperience}
-          >
-            Ok
-          </button>
-
-          <button
-            className="button is-danger delete-experience__cancel-button"
-            id={""}
-            type="button"
-            onClick={onDeclineDeleteExperience}
-          >
-            Cancel
-          </button>
-        </footer>
-      </div>
-    </div>
-  );
-}
-
 function MenuComponent() {
   const {
     states: {
       showingOptionsMenu: state,
-      commentList: commentListState,
+      comments: commentsState,
       upsertingComment: upsertingCommentState,
     },
   } = useContext(DataStateContext);
 
   const {
-    toggleExperienceMenu,
-    onDeleteExperienceRequest,
-    requestUpdateExperienceUi,
+    toggleMenuCb,
+    onDeleteRequested,
+    requestUpdateUiCb,
     commentCb,
-    onOpenNewEntry,
+    dispatch,
   } = useContext(DispatchContext);
 
   const createCommentLabel = createCommentsLabelText;
   let showCommentLabel = "";
   let hideCommentLabel = "";
 
-  if (commentListState.value === StateValue.initial) {
+  if (commentsState.value === StateValue.inactive) {
     showCommentLabel = showCommentsLabelText;
   } else {
     hideCommentLabel = hideCommentsLabelText;
@@ -1189,130 +479,122 @@ function MenuComponent() {
 
   return (
     <div
-      className={makeClassNames({
-        "floating-circular": true,
-        [noTriggerDocumentEventClassName]: true,
-      })}
+      className={trimClass(`
+        floating-circular
+        ${noTriggerDocumentEventClassName}
+      `)}
     >
       <div
-        className={makeClassNames({
-          "ebnis-drop-up": true,
-          animation: true,
-          "drop-up-animate-up": true,
-          [activeClassName]: state.value === StateValue.active,
-          [experienceMenuSelector]: true,
-        })}
+        className={trimClass(`
+          ebnis-drop-up
+          animation
+          drop-up-animate-up
+          ${state.value === StateValue.active ? activeClassName : ""}
+          ${experienceMenuSelector}
+        `)}
       >
-        <div
-          className={makeClassNames({
-            content: true,
-            [editExperienceMenuItemSelector]: true,
-          })}
-          onClick={requestUpdateExperienceUi}
+        <a
+          id={updateMenuItemId}
+          className="content"
+          onClick={requestUpdateUiCb}
         >
           Edit
-        </div>
+        </a>
 
-        <div
-          className={makeClassNames({
-            content: true,
-            [deleteExperienceMenuItemSelector]: true,
-          })}
-          onClick={onDeleteExperienceRequest}
+        <a
+          id={deleteMenuItemId}
+          className="content"
+          onClick={onDeleteRequested}
         >
           Delete
-        </div>
+        </a>
 
         {upsertingCommentState.value === StateValue.inactive && (
           <>
             {hideCommentLabel && (
-              <div
+              <a
                 id={hideCommentsMenuId}
-                className={`content`}
+                className={trimClass(`
+                  content
+                  ${noTriggerDocumentEventClassName}
+                `)}
                 onClick={(e) => {
-                  commentCb(e, CommentAction.UN_LIST);
+                  commentCb(e, {
+                    type: CommentRemoteActionType.hide,
+                  });
                 }}
               >
                 {hideCommentLabel}
-              </div>
+              </a>
             )}
 
             {showCommentLabel && (
-              <div
+              <a
                 id={showCommentsMenuId}
-                className={`content`}
+                className={trimClass(`
+                  content
+                  ${noTriggerDocumentEventClassName}
+                `)}
                 onClick={(e) => {
-                  commentCb(e, CommentAction.LIST);
+                  commentCb(e, {
+                    type: CommentRemoteActionType.show,
+                  });
                 }}
               >
                 {showCommentLabel}
-              </div>
+              </a>
             )}
 
             {createCommentLabel && (
-              <div
+              <a
                 id={createCommentsMenuId}
-                className={`content`}
+                className={trimClass(`
+                  content
+                  ${noTriggerDocumentEventClassName}
+                `)}
                 onClick={(e) => {
-                  commentCb(e, CommentAction.CREATE);
+                  commentCb(e, {
+                    type: CommentRemoteActionType.upsert,
+                  });
                 }}
               >
                 {createCommentLabel}
-              </div>
+              </a>
             )}
           </>
         )}
 
-        <div
-          className={makeClassNames({
-            content: true,
-            [newEntryMenuItemSelector]: true,
-          })}
-          onClick={onOpenNewEntry}
+        <a
+          className={trimClass(`
+            content
+            ${newEntryMenuItemSelector}
+          `)}
+          onClick={() => {
+            dispatch({
+              type: ActionType.entries_actions,
+              action: EntriesRemoteActionType.upsert,
+            });
+          }}
         >
           New entry
-        </div>
+        </a>
       </div>
 
       <div
-        className={makeClassNames({
-          circular: true,
-          [experienceMenuTriggerSelector]: true,
-        })}
-        onClick={toggleExperienceMenu}
+        className={trimClass(`
+          circular
+          ${experienceMenuTriggerSelector}
+        `)}
+        onClick={toggleMenuCb}
       >
-        <span>+</span>
+        <a className="text-white">+</a>
       </div>
-    </div>
-  );
-}
-
-function SuccessNotificationComponent(props: {
-  onClose: (e: ReactMouseEvent) => void;
-  message: React.ReactNode;
-  domId: string;
-  type: "success" | "error";
-}) {
-  const { onClose, message, domId, type } = props;
-
-  return (
-    <div
-      className={makeClassNames({
-        notification: true,
-        "is-success": type === "success",
-        "is-danger": type === "error",
-      })}
-    >
-      <button id={domId} className="delete" onClick={onClose} />
-      {message}
     </div>
   );
 }
 
 function SyncErrorsMessageNotificationComponent() {
-  const { closeSyncErrorsMsg, requestUpdateExperienceUi } = useContext(
-    DispatchContext,
-  );
+  const { closeSyncErrorsMsg, requestUpdateUiCb } = useContext(DispatchContext);
 
   const {
     context: { syncErrors },
@@ -1325,7 +607,13 @@ function SyncErrorsMessageNotificationComponent() {
   } = syncErrors as ExperienceSyncError;
 
   return (
-    <div className="modal is-active upsert-experience-notification-modal">
+    <div
+      className={trimClass(`
+        modal
+        is-active
+        upsert-experience-notification-modal
+    `)}
+    >
       <div className="modal-background"></div>
 
       <div className="modal-card">
@@ -1362,7 +650,7 @@ function SyncErrorsMessageNotificationComponent() {
               className="button is-success"
               id={fixSyncErrorsId}
               type="button"
-              onClick={requestUpdateExperienceUi}
+              onClick={requestUpdateUiCb}
             >
               Fix errors
             </button>
@@ -1373,53 +661,6 @@ function SyncErrorsMessageNotificationComponent() {
             id={closeSyncErrorsMsgId}
             type="button"
             onClick={closeSyncErrorsMsg}
-          >
-            Cancel
-          </button>
-        </footer>
-      </div>
-    </div>
-  );
-}
-
-function DeleteEntryConfirmationComponent() {
-  const { cancelDeleteEntry, deleteEntry } = useContext(DispatchContext);
-
-  return (
-    <div
-      className={`modal is-active delete-entry-modal ${noTriggerDocumentEventClassName}`}
-    >
-      <div className="modal-background"></div>
-
-      <div className="modal-card">
-        <header className="modal-card-head">
-          <div className="modal-card-title">
-            <strong>Delete Entry</strong>
-          </div>
-
-          <button
-            className="delete upsert-entry__delete"
-            aria-label="close"
-            type="button"
-            onClick={cancelDeleteEntry}
-          ></button>
-        </header>
-
-        <footer className="modal-card-foot">
-          <button
-            className="button is-success"
-            id={okDeleteEntryId}
-            type="button"
-            onClick={deleteEntry}
-          >
-            Ok
-          </button>
-
-          <button
-            className="button is-danger delete-experience__cancel-button"
-            id={closeDeleteEntryConfirmationId}
-            type="button"
-            onClick={cancelDeleteEntry}
           >
             Cancel
           </button>

@@ -17,6 +17,7 @@ export async function updateExperiencesMutation({
   onError,
 }: UpdateExperiencesMutationArgs) {
   const { client } = window.____ebnis;
+
   try {
     const response = await client.mutate<
       UpdateExperiencesOnline,

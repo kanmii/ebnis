@@ -1,9 +1,17 @@
+import { trimClass } from "@eb/cm/src/utils";
 import { Any } from "@eb/cm/src/utils/types";
 import { ComponentProps, ReactMouseEvent } from "@eb/cm/src/utils/types/react";
-import { PropsWithChildren } from "react";
+import { createContext, PropsWithChildren, useContext } from "react";
+
+type ContextValue = {
+  onClose: (e: ReactMouseEvent) => void;
+};
+
+const Context = createContext<ContextValue>({} as ContextValue);
+const Provider = Context.Provider;
 
 export function Modal(props: Props) {
-  const { children } = props;
+  const { children, onClose } = props;
 
   // istanbul ignore next:
   const id = props.id || "";
@@ -14,36 +22,40 @@ export function Modal(props: Props) {
   return (
     <div
       id={id}
-      className={`
-        ${propClassName}
-        eb-modal
-        items-center
-        flex-col
-        justify-center
-        overflow-hidden
-        fixed
-        z-40
-        bottom-0
-        left-0
-        right-0
-        top-0
-        flex
-      `}
-    >
-      <div
-        className={`
-          eb-modal-background
-          bg-gray-300
-          opacity-70
-          absolute
+      className={trimClass(
+        `
+          ${propClassName}
+          eb-modal
+          items-center
+          flex-col
+          justify-center
+          overflow-hidden
+          fixed
+          z-40
           bottom-0
           left-0
           right-0
           top-0
-        `}
+          flex
+        `,
+      )}
+    >
+      <div
+        className={trimClass(
+          `
+            eb-modal-background
+            bg-gray-900
+            opacity-70
+            absolute
+            bottom-0
+            left-0
+            right-0
+            top-0
+          `,
+        )}
       />
 
-      {children}
+      <Provider value={{ onClose }}>{children}</Provider>
     </div>
   );
 }
@@ -51,17 +63,19 @@ export function Modal(props: Props) {
 function Card({ children }: PropsWithChildren<Any>) {
   return (
     <div
-      className={`
-        eb-modal-card
-        flex
-        flex-col
-        overflow-hidden
-        relative
-        border
-        border-gray-200
-        rounded
-        w-11/12
-      `}
+      className={trimClass(
+        `
+          eb-modal-card
+          flex
+          flex-col
+          overflow-hidden
+          relative
+          border
+          border-gray-200
+          rounded
+          w-11/12
+        `,
+      )}
     >
       {children}
     </div>
@@ -71,15 +85,17 @@ function Card({ children }: PropsWithChildren<Any>) {
 function Body({ children }: PropsWithChildren<Any>) {
   return (
     <section
-      className={`
-        eb-modal-card-body
-        eb-tiny-scroll
-        bg-white
-        flex-grow
-        flex-shrink
-        overflow-auto
-        p-4
-      `}
+      className={trimClass(
+        `
+          eb-modal-card-body
+          eb-tiny-scroll
+          bg-white
+          flex-grow
+          flex-shrink
+          overflow-auto
+          p-4
+        `,
+      )}
     >
       {children}
     </section>
@@ -89,20 +105,22 @@ function Body({ children }: PropsWithChildren<Any>) {
 function Footer({ children }: PropsWithChildren<Any>) {
   return (
     <footer
-      className={`
-        eb-modal-card-footer
-        border-t
-        rounded-b
-        border-gray-100
-        border-solid
-        items-center
-        bg-gray-100
-        flex
-        flex-shrink-0
-        justify-start
-        p-5
-        relative
-      `}
+      className={trimClass(
+        `
+          eb-modal-card-footer
+          border-t
+          rounded-b
+          border-gray-100
+          border-solid
+          items-center
+          bg-gray-100
+          flex
+          flex-shrink-0
+          justify-start
+          p-5
+          relative
+        `,
+      )}
     >
       {children}
     </footer>
@@ -111,40 +129,43 @@ function Footer({ children }: PropsWithChildren<Any>) {
 
 function Header({
   id: closeId,
-  onClose,
   content,
   children,
 }: PropsWithChildren<
   ComponentProps & {
-    onClose: (e: ReactMouseEvent) => void;
     content?: string | JSX.Element;
   }
 >) {
   const id = closeId || "";
   const x = content || children;
+  const { onClose } = useContext(Context);
 
   return (
     <header
-      className={`
-        border
-        bg-gray-100
-        flex
-        flex-shrink-0
-        justify-start
-        relative
-        p-4
-      `}
-    >
-      <p
-        className={`
-          text-black
-          flex-grow
+      className={trimClass(
+        `
+          border
+          bg-gray-100
+          flex
           flex-shrink-0
-          text-base
-        `}
+          justify-start
+          relative
+          p-4
+        `,
+      )}
+    >
+      <div
+        className={trimClass(
+          `
+            text-black
+            flex-grow
+            flex-shrink-0
+            text-base
+          `,
+        )}
       >
         {x}
-      </p>
+      </div>
       <button
         id={id}
         className="eb-delete"

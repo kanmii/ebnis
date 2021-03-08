@@ -11,7 +11,8 @@ import { ExperienceCompleteFragment } from "../../graphql/apollo-types/Experienc
 import { UpdateExperienceOwnFieldsErrorFragment } from "../../graphql/apollo-types/UpdateExperienceOwnFieldsErrorFragment";
 import { graphql, SetupWorkerApi } from "msw";
 
-export type Any = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Any = Record<string, any>;
 
 export const CYPRESS_APOLLO_KEY = "ebnis-cypress-apollo";
 
@@ -201,7 +202,6 @@ export type DeletedVal = "deleted";
 export type RequestedVal = "requested";
 export type SuccessVal = "success";
 export type FailVal = "fail";
-export type FetchEntriesErrorVal = "fetchEntriesError";
 export type UpdateVal = "update";
 export type InsertVal = "insert";
 export type ReFetchOnly = "re-fetch-only";
@@ -233,7 +233,6 @@ export const StateValue = {
   requested: "requested" as RequestedVal,
   success: "success" as SuccessVal,
   fail: "fail" as FailVal,
-  fetchEntriesError: "fetchEntriesError" as FetchEntriesErrorVal,
   update: "update" as UpdateVal,
   insert: "insert" as InsertVal,
   reFetchOnly: "re-fecht-only" as ReFetchOnly,

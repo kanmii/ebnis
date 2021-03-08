@@ -38,37 +38,6 @@ button:active {
   animation-name: drop-up-animate-up;
 }
 
-.eb-dropdown-menu {
-  @apply bg-white hidden;
-
-  .eb-content {
-    @apply bg-white
-      rounded
-      cursor-pointer
-      pl-4
-      pr-3
-      pt-3
-      pb-3
-      z-20
-      whitespace-nowrap;
-    border-top-width: 0.5px;
-  }
-
-  &.is-active {
-    @apply flex
-      flex-col
-      absolute
-      top-0
-      shadow-md;
-    right: 24px;
-    min-width: 10rem;
-  }
-}
-
-.dropdown-trigger {
-  @apply cursor-pointer;
-}
-
 .ebnis-drop-up {
   @apply hidden;
 

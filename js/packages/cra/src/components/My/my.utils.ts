@@ -181,6 +181,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
 export function initState(): StateMachine {
   return {
+    id: "@my",
     timeouts: {},
     effects: {
       general: {

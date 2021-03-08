@@ -1,0 +1,22 @@
+const domPrefix = "experience-comments";
+
+export const commentItemContainerSelector = `js-${domPrefix}-comment-item-container`;
+export const commentItemOptionsSelector = `js-${domPrefix}-comment-item-options`;
+export const commentItemOptionsToggleSelector = `js-${domPrefix}-comment-item-options-toggle`;
+export const commentNotificationCloseId = `${domPrefix}-comment-notification-close`;
+export const commentsErrorContainerId = `${domPrefix}-comments-error-container-id`;
+export const commentsHeaderNewId = `${domPrefix}-comments-header-new-comment`;
+export const deleteCommentMenuSelector = `js-${domPrefix}-delete-comment-menu`;
+export const deleteCommentPromptFooterCloseId = `${domPrefix}-delete-comment-prompt-footer-close`;
+export const deleteCommentPromptHeaderCloseId = `${domPrefix}-delete-comment-prompt-header-close`;
+export const deleteCommentPromptOkId = `${domPrefix}-delete-comment-prompt-ok`;
+export const deletedCommentsFailure = `${domPrefix}-deleted-comments-failure`;
+export const deletedCommentsFailureSelector = `js-${domPrefix}-deleted-comments-failure`;
+export const deletedCommentsSuccess = `${domPrefix}-deleted-comments-success`;
+export const emptyCommentsContainerId = `${domPrefix}-empty-comments-container-id`;
+export const showCommentsMenuId = `${domPrefix}-show-comments-menu-item`;
+export const hideCommentsMenuId = `${domPrefix}-hide-comments-menu-item`;
+export const createCommentsMenuId = `${domPrefix}-create-comments-menu-item`;
+export const showCommentsLabelText = `Show comments`;
+export const hideCommentsLabelText = `Hide comments`;
+export const createCommentsLabelText = `Create comment`;

@@ -1,10 +1,11 @@
 import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { trimClass } from "@eb/cm/src/utils";
 import { StateValue } from "@eb/cm/src/utils/types";
-import makeClassNames from "classnames";
 import React, { ChangeEvent, FormEvent, useCallback, useReducer } from "react";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { errorClassName } from "../../utils/utils.dom";
+import { noTriggerDocumentEventClassName } from "../DetailExperience/detail-experience.dom";
 import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
 import Loading from "../Loading/loading.component";
 import { componentFromDataType } from "./component-from-data-type";
@@ -57,11 +58,14 @@ export function UpsertEntry(props: Props) {
   return (
     <>
       <form
-        className={makeClassNames({
-          "modal is-active component-upsert-entry": true,
-          submitting: submissionState.value === StateValue.active,
-          [className]: true,
-        })}
+        className={trimClass(`
+          modal
+          is-active
+          component-upsert-entry
+          ${submissionState.value === StateValue.active ? "submitting" : ""},
+          ${className}
+          ${noTriggerDocumentEventClassName}
+        `)}
         onSubmit={onSubmit}
       >
         <div className="modal-background"></div>
@@ -156,10 +160,10 @@ const DataComponent = React.memo(
 
     return (
       <div
-        className={makeClassNames({
-          error: !!errors,
-          field: true,
-        })}
+        className={trimClass(`
+          ${(!!errors && "error") || ""}
+          field
+        `)}
       >
         <label
           className="label form__label"
@@ -212,10 +216,10 @@ function NotificationComponent({
 
   return (
     <div
-      className={makeClassNames({
-        notification: true,
-        [errorClassName]: true,
-      })}
+      className={trimClass(`
+        notification
+        ${errorClassName}
+      `)}
     >
       <button
         id={notificationCloseId}

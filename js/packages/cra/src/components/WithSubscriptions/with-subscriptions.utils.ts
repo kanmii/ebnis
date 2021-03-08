@@ -71,6 +71,7 @@ export function initState(props: Props): StateMachine {
   const { useMsw } = props;
 
   return {
+    id: "@with-subscription",
     effects: {
       general: {
         value: StateValue.noEffect,

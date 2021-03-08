@@ -303,7 +303,7 @@ export const effectFunctions = {
 
 export function initState(props: Props): StateMachine {
   const { experience, updatingEntry } = props;
-  const { entry, errors } = updatingEntry || ({} as UpdatingEntryPayload);
+  const { entry, errors } = updatingEntry || ({} as UpdatingPayload);
 
   const definitionIdToDataMap = mapDefinitionIdToDataHelper(entry);
 
@@ -330,6 +330,7 @@ export function initState(props: Props): StateMachine {
   );
 
   const stateMachine = {
+    id: "@upsert-entry",
     states: {
       submission: {
         value: StateValue.inactive,
@@ -532,7 +533,7 @@ export function stringifyDataObjectData(type: DataTypes, parsedData: any) {
 
 export interface CallerProps {
   experience: ExperienceDetailViewFragment;
-  updatingEntry?: UpdatingEntryPayload;
+  updatingEntry?: UpdatingPayload;
   onSuccess: (entry: EntryFragment, onlineStatus: OnlineStatus) => void;
   onClose: () => void;
   className?: string;
@@ -540,7 +541,7 @@ export interface CallerProps {
 
 export type Props = CallerProps;
 
-export type UpdatingEntryPayload = {
+export type UpdatingPayload = {
   entry: EntryFragment;
   errors?: CreateEntryErrorFragment;
 };
@@ -591,7 +592,7 @@ type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
 
 type GlobalContext = Readonly<{
   experience: Readonly<ExperienceDetailViewFragment>;
-  updatingEntry?: UpdatingEntryPayload;
+  updatingEntry?: UpdatingPayload;
 }>;
 
 export type Submission = Readonly<

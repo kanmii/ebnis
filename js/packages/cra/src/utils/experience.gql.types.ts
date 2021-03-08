@@ -10,10 +10,6 @@ import {
   CreateExperiences,
   CreateExperiencesVariables,
 } from "@eb/cm/src/graphql/apollo-types/CreateExperiences";
-import {
-  DeleteExperiences,
-  DeleteExperiencesVariables,
-} from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
 import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
 import {
   GetDataObjects,
@@ -51,7 +47,6 @@ import {
 } from "@eb/cm/src/graphql/apollo-types/UpdateExperiencesOnline";
 import {
   CREATE_EXPERIENCES_MUTATION,
-  DELETE_EXPERIENCES_MUTATION,
   GET_DATA_OBJECTS_QUERY,
   GET_ENTRIES_DETAIL_VIEW_QUERY,
   GET_EXPERIENCES_CONNECTION_LIST_VIEW_QUERY,
@@ -118,36 +113,6 @@ export interface CreateExperiencesOnlineComponentProps {
 }
 
 ////////////////////////// END CREATE EXPERIENCES SECTION ///////////////
-
-////////////////////////// DELETE EXPERIENCES SECTION ///////////////
-
-export function useDeleteExperiencesMutation(): UseDeleteExperiencesMutation {
-  return useMutation(DELETE_EXPERIENCES_MUTATION);
-}
-
-export type DeleteExperiencesMutationFn = MutationFunction<
-  DeleteExperiences,
-  DeleteExperiencesVariables
->;
-
-// used to type check test fake mutation function return value e.g. {data: {result: {}}}
-export type DeleteExperiencesMutationResult = ExecutionResult<DeleteExperiences>;
-
-// used to type check test fake function calls arguments
-export type DeleteExperiencesMutationFnOptions = MutationFunctionOptions<
-  DeleteExperiences,
-  DeleteExperiencesVariables
->;
-
-export type UseDeleteExperiencesMutation = [
-  DeleteExperiencesMutationFn,
-  MutationResult<DeleteExperiences>,
-];
-
-// component's props should extend this
-export interface DeleteExperiencesComponentProps {
-  deleteExperiences: DeleteExperiencesMutationFn;
-}
 
 export function subscribeToGraphqlEvents() {
   const { client } = window.____ebnis;
