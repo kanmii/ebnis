@@ -12,7 +12,7 @@ context("Sync", () => {
     //
   });
 
-  describe("create experience", () => {
+  describe("My page", () => {
     const title1 = "tt";
 
     it("sync complete offline experience succeeds", () => {
