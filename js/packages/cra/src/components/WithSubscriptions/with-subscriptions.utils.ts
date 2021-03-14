@@ -2,8 +2,8 @@ import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences } from "@eb/cm/src/graphql/apollo-types/OnExperiencesDeletedSubscription";
 import {
   Any,
-  BChannel,
-  BroadcastMessageConnectionChangedPayload,
+  EbnisGlobals,
+  EmitActionConnectionChangedPayload,
   OfflineIdToOnlineExperienceMap,
   OnlineExperienceIdToOfflineEntriesMap,
   OnSyncedData,
@@ -17,7 +17,7 @@ import {
   purgeEntry,
   purgeExperiencesFromCache1,
 } from "../../apollo/update-get-experiences-list-view-query";
-import { wrapReducer } from "../../logger";
+import { wrapReducer } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import { WithSubscriptionContextProps } from "../../utils/app-context";
 import {
@@ -50,7 +50,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
         case ActionType.CONNECTION_CHANGED:
           handleConnectionChangedAction(
             proxy,
-            payload as BroadcastMessageConnectionChangedPayload,
+            payload as EmitActionConnectionChangedPayload,
           );
           break;
 
@@ -89,7 +89,7 @@ function handleOnSubscribeToGraphqlEvents(proxy: DraftState) {
 
 function handleConnectionChangedAction(
   proxy: DraftState,
-  payload: BroadcastMessageConnectionChangedPayload,
+  payload: EmitActionConnectionChangedPayload,
 ) {
   const { connected } = payload;
   const { context } = proxy;
@@ -206,7 +206,7 @@ export type StateMachine = GenericGeneralEffect<EffectType> & {
 type Action =
   | ({
       type: ActionType.CONNECTION_CHANGED;
-    } & BroadcastMessageConnectionChangedPayload)
+    } & EmitActionConnectionChangedPayload)
   | {
       type: ActionType.ON_SUBSCRIBED_TO_GRAPHQL_EVENTS;
     }
@@ -219,8 +219,9 @@ export type OnSycPayload = {
 };
 
 export type CallerProps = PropsWithChildren<{
-  bc: BChannel;
+  bcBroadcaster: EbnisGlobals["bcBroadcaster"];
   useMsw?: boolean | null;
+  observable: EbnisGlobals["observable"];
 }>;
 
 export type Props = CallerProps;

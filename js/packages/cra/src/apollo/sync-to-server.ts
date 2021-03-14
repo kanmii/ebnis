@@ -1,3 +1,4 @@
+import { broadcastMessage } from "@eb/cm/src/broadcast-channel-manager";
 import {
   CreateExperiences,
   CreateExperiencesVariables,
@@ -35,6 +36,7 @@ import {
   SYNC_TO_SERVER_MUTATION,
   UPDATE_EXPERIENCES_ONLINE_MUTATION,
 } from "@eb/cm/src/graphql/experience.gql";
+import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import {
   BroadcastMessageType,
   OfflineIdToOnlineExperienceMap,
@@ -45,8 +47,6 @@ import {
   SyncFlag,
   UpdateSyncReturnVal,
 } from "@eb/cm/src/utils/types";
-import { broadcastMessage } from "../utils/broadcast-channel-manager";
-import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import { createExperiencesManualUpdate } from "./create-experiences-manual-update";
 import {
   getCachedEntriesDetailViewSuccess,
@@ -352,18 +352,18 @@ export async function syncToServer() {
     broadcastMessage(
       {
         type: BroadcastMessageType.syncDone,
-        payload: {
-          offlineIdToOnlineExperienceMap,
-          syncErrors,
-          onlineExperienceIdToOfflineEntriesMap,
-          onlineExperienceUpdatedMap,
-        },
+        offlineIdToOnlineExperienceMap,
+        syncErrors,
+        onlineExperienceIdToOfflineEntriesMap,
+        onlineExperienceUpdatedMap,
       },
       {
         plusSelf: true,
       },
     );
   }
+
+  return { updateResult, createResult };
 }
 
 function experienceToCreateInput(experience: ExperienceCompleteFragment) {

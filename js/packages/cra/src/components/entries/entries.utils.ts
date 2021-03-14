@@ -52,7 +52,7 @@ import {
   putOrRemoveSyncError,
 } from "../../apollo/sync-to-server-cache";
 import { purgeEntry } from "../../apollo/update-get-experiences-list-view-query";
-import { wrapReducer, wrapState } from "../../logger";
+import { wrapReducer, wrapState } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import {
   FETCH_ENTRIES_FAIL_ERROR_MSG,

@@ -21,7 +21,7 @@ import {
   readExperienceCompleteFragment,
   writeCachedExperienceCompleteFragment,
 } from "../../apollo/get-detailed-experience-query";
-import { wrapReducer, wrapState } from "../../logger";
+import { wrapReducer, wrapState } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import { DATA_FETCHING_FAILED, ErrorType } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";

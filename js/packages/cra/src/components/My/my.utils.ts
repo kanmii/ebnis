@@ -41,9 +41,9 @@ import {
   purgeExperiencesFromCache1,
   writeGetExperiencesMiniQuery,
 } from "../../apollo/update-get-experiences-list-view-query";
-import { wrapReducer } from "../../logger";
+import { wrapReducer } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
-import { broadcastMessage } from "../../utils/broadcast-channel-manager";
+import { broadcastMessage } from "@eb/cm/src/broadcast-channel-manager";
 import {
   DATA_FETCHING_FAILED,
   parseStringError,
@@ -954,10 +954,8 @@ async function deleteExperienceProcessedEffectHelper() {
 
     broadcastMessage({
       type: BroadcastMessageType.experienceDeleted,
-      payload: {
-        id,
-        title: deletedExperience.title,
-      },
+      id,
+      title: deletedExperience.title,
     });
   }
 

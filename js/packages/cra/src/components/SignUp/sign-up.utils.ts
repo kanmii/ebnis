@@ -14,7 +14,7 @@ import {
 } from "@eb/cm/src/utils/types";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
-import { wrapReducer } from "../../logger";
+import { wrapReducer } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import { EbnisContextProps } from "../../utils/app-context";
 import {

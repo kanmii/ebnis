@@ -104,7 +104,7 @@ export async function createOfflineExperience(
     },
   );
 
-  const experience = {
+  const experience: ExperienceCompleteFragment = {
     __typename: "Experience",
     id: experienceId,
     clientId: experienceId,
@@ -113,7 +113,10 @@ export async function createOfflineExperience(
     description: description as string,
     title,
     dataDefinitions,
-  } as ExperienceCompleteFragment;
+    comments: [],
+  };
+
+  writeCachedExperienceCompleteFragment(experience);
 
   const { cache, persistor } = globals || window.____ebnis;
 

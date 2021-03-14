@@ -14,7 +14,7 @@ import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
 import { DeepReadonly } from "utility-types";
-import { wrapReducer } from "../../logger";
+import { wrapReducer } from "@eb/cm/src/logger";
 import {
   GENERIC_SERVER_ERROR,
   parseStringError,

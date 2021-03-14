@@ -2,6 +2,8 @@
 import { ApolloClient, InMemoryCache } from "@apollo/client";
 import { CachePersistor } from "apollo-cache-persist-dev";
 import { BroadcastChannel } from "broadcast-channel";
+import { graphql, SetupWorkerApi } from "msw";
+import { Observable } from "zen-observable-ts";
 import { CreateEntryErrorFragment } from "../../graphql/apollo-types/CreateEntryErrorFragment";
 import { CreateExperienceErrorsFragment_errors } from "../../graphql/apollo-types/CreateExperienceErrorsFragment";
 import { DataObjectErrorFragment } from "../../graphql/apollo-types/DataObjectErrorFragment";
@@ -9,7 +11,6 @@ import { DefinitionErrorFragment } from "../../graphql/apollo-types/DefinitionEr
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
 import { ExperienceCompleteFragment } from "../../graphql/apollo-types/ExperienceCompleteFragment";
 import { UpdateExperienceOwnFieldsErrorFragment } from "../../graphql/apollo-types/UpdateExperienceOwnFieldsErrorFragment";
-import { graphql, SetupWorkerApi } from "msw";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Any = Record<string, any>;
@@ -23,9 +24,12 @@ export interface EbnisGlobals {
   connectionStatus: ConnectionStatus;
   logApolloQueries?: boolean;
   logReducers?: boolean;
-  bc: BChannel;
+  bcBroadcaster: BChannel;
   mswBrowserWorker?: MswSetupWorkerApi;
   mswGraphql?: MswGraphql;
+  emitter: ZenObservable.SubscriptionObserver<EmitAction>;
+  emitData: EmitData;
+  observable: Observable<EmitAction>;
 }
 
 declare global {
@@ -45,43 +49,25 @@ export interface ConnectionStatus {
   mode: "auto" | "manual";
 }
 
-export type BChannel = BroadcastChannel<BroadcastMessage>;
+export type BChannel = BroadcastChannel<BroadcastAction>;
 
-export type BroadcastMessage =
+export type BroadcastAction =
   | BroadcastMessageExperienceDeleted
-  | BroadcastMessageOnSyncData
-  | BroadcastMessageConnectionChanged;
+  | BroadcastMessageOnSyncData;
 
 export enum BroadcastMessageType {
   experienceDeleted = "@broadcast/experience-deleted",
   syncDone = "@broadcast/sync-done",
-  connectionChanged = "@broadcast/connection-changed",
 }
 
-export type BroadcastMessageOnSyncData = {
+export type BroadcastMessageOnSyncData = OnSyncedData & {
   type: BroadcastMessageType.syncDone;
-  payload: OnSyncedData;
 };
 
 export type BroadcastMessageExperienceDeleted = {
   type: BroadcastMessageType.experienceDeleted;
-  payload: {
-    id: string;
-    title: string;
-  };
-};
-
-export type BroadcastMessageSelf = {
-  detail: BroadcastMessage;
-};
-
-export interface BroadcastMessageConnectionChangedPayload {
-  connected: boolean;
-}
-
-export type BroadcastMessageConnectionChanged = {
-  type: BroadcastMessageType.connectionChanged;
-  payload: BroadcastMessageConnectionChangedPayload;
+  id: string;
+  title: string;
 };
 
 export type OnSyncedData = {
@@ -164,6 +150,28 @@ export type SyncCreateReturnVal = [SyncErrors, OfflineIdToOnlineExperienceMap];
 
 export interface SyncErrorsQueryResult {
   syncErrors: SyncErrors;
+}
+
+export enum EmitActionType {
+  connectionChanged = "@emit-action/connection-changed",
+  random = "@emit-action/nothing",
+  syncDone = "@emit-action/sync-done",
+}
+
+export type EmitData = (params: EmitAction) => void;
+
+export type EmitAction =
+  | ({
+      type: EmitActionType.connectionChanged;
+    } & EmitActionConnectionChangedPayload)
+  | {
+      type: EmitActionType.random;
+    }
+  | BroadcastMessageExperienceDeleted
+  | BroadcastMessageOnSyncData;
+
+export interface EmitActionConnectionChangedPayload {
+  connected: boolean;
 }
 
 export type CommonError = Error | string;

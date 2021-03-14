@@ -1,12 +1,13 @@
 /* istanbul ignore file */
 import { ApolloClient, InMemoryCache } from "@apollo/client";
-import { Any, EbnisGlobals, CYPRESS_APOLLO_KEY } from "@eb/cm/src/utils/types";
+import { makeBChannel } from "@eb/cm/src/broadcast-channel-manager";
+import { makeObservable } from "@eb/cm/src/observable-manager";
+import { Any, CYPRESS_APOLLO_KEY, EbnisGlobals } from "@eb/cm/src/utils/types";
 import { CachePersistor } from "apollo-cache-persist-dev";
 import {
   PersistedData,
   PersistentStorage,
 } from "apollo-cache-persist-dev/types";
-import { makeBChannel } from "../utils/broadcast-channel-manager";
 import {
   makeConnectionObject,
   resetConnectionObject,
@@ -50,9 +51,9 @@ export function buildClientCache(
     client.addResolvers(resolvers);
   }
 
-  const { bc } = addToGlobals({ client, cache, persistor });
+  const { bcBroadcaster } = addToGlobals({ client, cache, persistor });
 
-  return { client, cache, persistor, bc };
+  return { client, cache, persistor, bcBroadcaster };
 }
 
 function makePersistor(
@@ -124,6 +125,7 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
 
   if (!window.Cypress) {
     makeBChannel(window.____ebnis);
+    makeObservable(window.____ebnis);
     makeConnectionObject();
     return window.____ebnis;
   }
@@ -140,6 +142,7 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
     // reset globals
     cypressApollo = {} as EbnisGlobals;
     makeBChannel(cypressApollo);
+    makeObservable(cypressApollo);
 
     // reset connections
     cypressApollo.connectionStatus = resetConnectionObject();

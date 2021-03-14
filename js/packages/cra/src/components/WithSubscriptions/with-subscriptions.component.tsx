@@ -1,8 +1,8 @@
 import {
-  BroadcastMessage,
-  BroadcastMessageConnectionChangedPayload,
-  BroadcastMessageSelf,
   BroadcastMessageType,
+  EmitAction,
+  EmitActionConnectionChangedPayload,
+  EmitActionType,
   OnSyncedData,
   StateValue,
 } from "@eb/cm/src/utils/types";
@@ -31,7 +31,7 @@ import {
 } from "./with-subscriptions.utils";
 
 export function WithSubscriptions(props: Props) {
-  const { children, bc } = props;
+  const { children, bcBroadcaster, observable } = props;
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
   const {
     effects: { general: generalEffects },
@@ -43,13 +43,18 @@ export function WithSubscriptions(props: Props) {
   });
 
   useEffect(() => {
-    bc.addEventListener(StateValue.bcMessageKey, onBcMessage);
-    window.addEventListener(StateValue.selfBcMessageKey, onBcMessage);
+    const subscription = observable.subscribe({
+      next(data) {
+        onBcMessage(data);
+      },
+    });
+
+    bcBroadcaster.addEventListener(StateValue.bcMessageKey, onBcMessage);
 
     return () => {
       cleanupWithSubscriptions(() => {
-        bc.removeEventListener(StateValue.bcMessageKey, onBcMessage);
-        window.removeEventListener(StateValue.selfBcMessageKey, onBcMessage);
+        bcBroadcaster.removeEventListener(StateValue.bcMessageKey, onBcMessage);
+        subscription.unsubscribe();
       });
     };
     /* eslint-disable react-hooks/exhaustive-deps*/
@@ -59,33 +64,25 @@ export function WithSubscriptions(props: Props) {
     cleanCachedMutations();
   });
 
-  function onBcMessage(message: BroadcastMessage | BroadcastMessageSelf) {
-    const selfMessage = message as BroadcastMessageSelf;
+  function onBcMessage(message: EmitAction) {
+    const { type, ...payload } = message;
 
-    // istanbul ignore else:
-    if (selfMessage.detail) {
-      message = selfMessage.detail;
-    }
-
-    const { type, payload } = message as BroadcastMessage;
     switch (type) {
-      case BroadcastMessageType.experienceDeleted:
-        // istanbul ignore else:
-        if (getLocation().pathname.includes(MY_URL)) {
-          windowChangeUrl(MY_URL, ChangeUrlType.replace);
-        }
-        break;
-
-      case BroadcastMessageType.connectionChanged:
+      case EmitActionType.connectionChanged:
         {
-          const {
-            connected,
-          } = payload as BroadcastMessageConnectionChangedPayload;
+          const { connected } = payload as EmitActionConnectionChangedPayload;
 
           dispatch({
             type: ActionType.CONNECTION_CHANGED,
             connected,
           });
+        }
+        break;
+
+      case BroadcastMessageType.experienceDeleted:
+        // istanbul ignore else:
+        if (getLocation().pathname.includes(MY_URL)) {
+          windowChangeUrl(MY_URL, ChangeUrlType.replace);
         }
         break;
 
@@ -99,6 +96,9 @@ export function WithSubscriptions(props: Props) {
             data.onlineExperienceIdToOfflineEntriesMap &&
             pathname === MY_URL
           ) {
+            // in MY_URL view, we are not showing entries.
+            // :TODO: what if we decide to show entries on MY_URL view?
+            // what if we add additional routes where sync could have occurred
             cleanUpSyncedOfflineEntries(
               data.onlineExperienceIdToOfflineEntriesMap,
             );

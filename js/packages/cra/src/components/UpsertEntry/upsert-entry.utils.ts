@@ -24,7 +24,7 @@ import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
-import { wrapReducer } from "../../logger";
+import { wrapReducer } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import {
   FORM_CONTAINS_ERRORS_MESSAGE,

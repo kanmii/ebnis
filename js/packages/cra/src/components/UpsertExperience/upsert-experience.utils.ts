@@ -42,7 +42,7 @@ import { Dispatch, Reducer } from "react";
 import { v4 } from "uuid";
 import { createExperiencesManualUpdate } from "../../apollo/create-experiences-manual-update";
 import { getCachedEntriesDetailViewSuccess } from "../../apollo/get-detailed-experience-query";
-import { wrapReducer } from "../../logger";
+import { wrapReducer } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import {
   FieldError,

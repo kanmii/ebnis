@@ -1,13 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  broadcastMessage,
+  makeBChannel,
+} from "@eb/cm/src/broadcast-channel-manager";
+import { makeObservable } from "@eb/cm/src/observable-manager";
+import {
   Any,
   BroadcastMessageExperienceDeleted,
   BroadcastMessageOnSyncData,
   BroadcastMessageType,
   EbnisGlobals,
+  EmitActionType,
 } from "@eb/cm/src/utils/types";
 import { cleanup, render } from "@testing-library/react";
-import { clearNodeFolder } from "broadcast-channel";
+// import { clearNodeFolder } from "broadcast-channel";
 import React, { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
 import { readEntryFragment } from "../apollo/get-detailed-experience-query";
@@ -30,10 +36,6 @@ import {
   reducer,
 } from "../components/WithSubscriptions/with-subscriptions.utils";
 import { deleteObjectKey } from "../utils";
-import {
-  broadcastMessage,
-  makeBChannel,
-} from "../utils/broadcast-channel-manager";
 import { GenericHasEffect } from "../utils/effects";
 import {
   ChangeUrlType,
@@ -89,206 +91,203 @@ const persistor = {
   persist: mockPersistFn as any,
 } as any;
 
-const globals = {
+const ebnisObject = {
   persistor,
+  // logApolloQueries: true,
+  // logReducers: true,
 } as EbnisGlobals;
 
 const mockDispatch = jest.fn();
 
-beforeAll(() => {
-  clearNodeFolder();
-  makeBChannel(globals);
-  window.____ebnis = globals;
-});
-
 beforeEach(() => {
-  jest.useFakeTimers();
-
   mockSubscribeToGraphqlEvents.mockReturnValue({
     subscribe: mockSubscribeToGraphqlEventsSubscribe,
   });
 });
 
-afterAll(() => {
-  const { bc } = globals;
-  bc.close();
-  deleteObjectKey(globals, "bc");
-  deleteObjectKey(window, "____ebnis");
-});
-
 afterEach(() => {
-  cleanup();
-  jest.clearAllTimers();
-  jest.resetAllMocks();
+  jest.clearAllMocks();
 });
 
-it("renders/ does not subscribe when no network", async () => {
-  mockGetUser.mockReturnValue({});
-
-  mockGetLocation.mockReturnValue({
-    pathname: MY_URL,
+describe("component", () => {
+  beforeAll(() => {
+    makeBChannel(ebnisObject);
+    makeObservable(ebnisObject);
+    window.____ebnis = ebnisObject;
   });
 
-  expect(mockPersistFn).not.toHaveBeenCalled();
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
 
-  const { ui } = makeComp();
-  const { unmount } = render(ui);
+  afterAll(() => {
+    // clearNodeFolder();
 
-  // There should be no network connection
-  expect(mockWithEmitterProviderValue.connected).toBe(null);
+    const { bcBroadcaster } = ebnisObject;
+    bcBroadcaster.close();
+    deleteObjectKey(ebnisObject, "bcBroadcaster");
+    deleteObjectKey(ebnisObject, "emitter");
+    deleteObjectKey(ebnisObject, "observable");
+    deleteObjectKey(window, "____ebnis");
+  });
 
-  // And we should not be syncing data to backend (of course there is no network)
-  expect(mockSyncToServer).not.toHaveBeenCalled();
+  afterEach(() => {
+    cleanup();
+    jest.runOnlyPendingTimers();
+    jest.clearAllTimers();
+  });
 
-  // We should not be subscribed to graphql events
-  expect(mockSubscribeToGraphqlEventsSubscribe).not.toHaveBeenCalled();
+  it("renders/ does not subscribe when no network", async () => {
+    mockGetUser.mockReturnValue({});
 
-  // When app is connected to network
-  await act(async () => {
-    broadcastMessage(
-      {
-        type: BroadcastMessageType.connectionChanged,
-        payload: {
-          connected: true,
+    mockGetLocation.mockReturnValue({
+      pathname: MY_URL,
+    });
+
+    expect(mockPersistFn).not.toHaveBeenCalled();
+
+    const { ui } = makeComp();
+
+    const { unmount } = render(ui);
+
+    // There should be no network connection
+    expect(mockWithEmitterProviderValue.connected).toBe(null);
+
+    // And we should not be syncing data to backend (of course there is no network)
+    expect(mockSyncToServer).not.toHaveBeenCalled();
+
+    // We should not be subscribed to graphql events
+    expect(mockSubscribeToGraphqlEventsSubscribe).not.toHaveBeenCalled();
+
+    // When app is connected to network
+    act(() => {
+      ebnisObject.emitData({
+        type: EmitActionType.connectionChanged,
+        connected: true,
+      });
+    });
+
+    // App should indicate network connection
+    expect(mockWithEmitterProviderValue.connected).toBe(true);
+
+    // We should be subscribed to graphql events
+    const subscribeToGraphqlEventsCb =
+      mockSubscribeToGraphqlEventsSubscribe.mock.calls[0][0];
+
+    await subscribeToGraphqlEventsCb({
+      data: {
+        onExperiencesDeleted: {
+          experiences: [
+            {
+              id: "a",
+            },
+          ],
         },
       },
-      {
-        selfOnly: true,
-      },
-    );
-  });
+    });
 
-  // App should indicate network connection
-  expect(mockWithEmitterProviderValue.connected).toBe(true);
+    // Deleted experiences should be purged from cache
+    // (from mockSubscribeToGraphqlEventsSubscribe)
+    expect(mockPurgeExperiencesFromCache1).toHaveBeenCalledWith(["a"]);
 
-  // We should be subscribed to graphql events
-  const subscribeToGraphqlEventsCb =
-    mockSubscribeToGraphqlEventsSubscribe.mock.calls[0][0];
+    // Cached data should be persisted
+    expect(mockPersistFn).toHaveBeenCalled();
 
-  await subscribeToGraphqlEventsCb({
-    data: {
-      onExperiencesDeleted: {
-        experiences: [
-          {
-            id: "a",
-          },
-        ],
-      },
-    },
-  });
+    // And app should navigate to 'my_url' (after successful purge)
+    expect(mockWindowChangeUrl.mock.calls[0]).toEqual([
+      MY_URL,
+      ChangeUrlType.replace,
+    ]);
 
-  // Deleted experiences should be purged from cache
-  // (from mockSubscribeToGraphqlEventsSubscribe)
-  expect(mockPurgeExperiencesFromCache1).toHaveBeenCalledWith(["a"]);
+    // After a while that app is connected to network
+    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-  // Cached data should be persisted
-  expect(mockPersistFn).toHaveBeenCalled();
+    // App should start syncing data to backend
+    expect(mockSyncToServer.mock.calls.length).toBe(1);
 
-  // And app should navigate to 'my_url' (after successful purge)
-  expect(mockWindowChangeUrl.mock.calls[0]).toEqual([
-    MY_URL,
-    ChangeUrlType.replace,
-  ]);
+    // When connection is lost
+    act(() => {
+      ebnisObject.emitData({
+        type: EmitActionType.connectionChanged,
+        connected: false,
+      });
+    });
 
-  // After a while that app is connected to network
-  jest.runTimersToTime(MAX_TIMEOUT_MS);
+    // App should indicate no network connection
+    expect(mockWithEmitterProviderValue.connected).toBe(false);
 
-  // App should start syncing data to backend
-  expect(mockSyncToServer.mock.calls.length).toBe(1);
+    // App should not sync data
+    expect(mockSyncToServer.mock.calls.length).toBe(1);
 
-  // When connection is lost
-  await act(async () => {
-    broadcastMessage(
-      {
-        type: BroadcastMessageType.connectionChanged,
-        payload: {
-          connected: false,
-        },
-      },
-      {
-        selfOnly: true,
-      },
-    );
-  });
+    // App should not subscribe to graphql events again
+    expect(mockSubscribeToGraphqlEventsSubscribe.mock.calls.length).toBe(1);
 
-  // App should indicate no network connection
-  expect(mockWithEmitterProviderValue.connected).toBe(false);
-
-  // App should not sync data
-  expect(mockSyncToServer.mock.calls.length).toBe(1);
-
-  // App should not subscribe to graphql events again
-  expect(mockSubscribeToGraphqlEventsSubscribe.mock.calls.length).toBe(1);
-
-  // When app receives external broadcastMessage that experience deleted
-  const messageExperienceDeleted = {
-    type: BroadcastMessageType.experienceDeleted,
-    payload: {
+    // When app receives external broadcastMessage that experience deleted
+    const messageExperienceDeleted = {
+      type: BroadcastMessageType.experienceDeleted,
       id: "b",
       title: "c",
-    },
-  } as BroadcastMessageExperienceDeleted;
+    } as BroadcastMessageExperienceDeleted;
 
-  await act(async () => {
     broadcastMessage(messageExperienceDeleted, { plusSelf: true });
-  });
 
-  // App should change URL in response to delete experience message
-  expect(mockWindowChangeUrl.mock.calls[1]).toEqual([
-    MY_URL,
-    ChangeUrlType.replace,
-  ]);
+    // App should change URL in response to delete experience message
+    expect(mockWindowChangeUrl.mock.calls[1]).toEqual([
+      MY_URL,
+      ChangeUrlType.replace,
+    ]);
 
-  // App should not set `onSyncData` context
-  expect(mockWithEmitterProviderValue.onSyncData).toBeUndefined();
+    // App should not set `onSyncData` context
+    expect(mockWithEmitterProviderValue.onSyncData).toBeUndefined();
 
-  // App should not have purged entries
-  expect(mockPurgeEntry).not.toHaveBeenCalled();
+    // App should not have purged entries
+    expect(mockPurgeEntry).not.toHaveBeenCalled();
 
-  // When app receives broadcastMessage that data synced to backend
-  mockReadEntryFragment.mockReturnValue("a");
+    // When app receives broadcastMessage that data synced to backend
+    mockReadEntryFragment.mockReturnValue("a");
 
-  const synData = {
-    onlineExperienceIdToOfflineEntriesMap: {
-      a: {
-        a: 1,
-      },
-    } as any,
-  };
+    const synData = {
+      onlineExperienceIdToOfflineEntriesMap: {
+        a: {
+          a: 1,
+        },
+      } as any,
+    };
 
-  const messageSyncData = {
-    type: BroadcastMessageType.syncDone,
-    payload: synData,
-  } as BroadcastMessageOnSyncData;
+    const messageSyncData = {
+      type: BroadcastMessageType.syncDone,
+      ...synData,
+    } as BroadcastMessageOnSyncData;
 
-  await act(async () => {
-    broadcastMessage(messageSyncData, {
-      selfOnly: true,
+    act(() => {
+      broadcastMessage(messageSyncData, {
+        plusSelf: true,
+      });
     });
+
+    // App should purge offline entries
+    expect(mockPurgeEntry.mock.calls[0][0]).toBe("a");
+
+    // App should set `onSyncData` context
+    expect(mockWithEmitterProviderValue.onSyncData).toEqual(synData);
+
+    // not time to cleanup
+    expect(mockCleanupWithSubscription).not.toHaveBeenCalled();
+    unmount();
+
+    //cleanup
+    mockCleanupWithSubscription.mock.calls[0][0]();
   });
 
-  // App should purge offline entries
-  expect(mockPurgeEntry.mock.calls[0][0]).toBe("a");
+  it("cleans up offline experiences", async () => {
+    expect(mockPurgeExperiencesFromCache1).not.toHaveBeenCalled();
+    expect(mockPersistFn).not.toHaveBeenCalled();
 
-  // App should set `onSyncData` context
-  expect(mockWithEmitterProviderValue.onSyncData).toBe(synData);
+    await cleanUpOfflineExperiences({ a: 1 } as any);
 
-  // not time to cleanup
-  expect(mockCleanupWithSubscription).not.toHaveBeenCalled();
-  unmount();
-
-  //cleanup
-  mockCleanupWithSubscription.mock.calls[0][0]();
-});
-
-it("cleans up offline experiences", async () => {
-  expect(mockPurgeExperiencesFromCache1).not.toHaveBeenCalled();
-  expect(mockPersistFn).not.toHaveBeenCalled();
-
-  await cleanUpOfflineExperiences({ a: 1 } as any);
-
-  expect(mockPurgeExperiencesFromCache1.mock.calls[0][0]).toEqual(["a"]);
-  expect(mockPersistFn).toHaveBeenCalled();
+    expect(mockPurgeExperiencesFromCache1.mock.calls[0][0]).toEqual(["a"]);
+    expect(mockPersistFn).toHaveBeenCalled();
+  });
 });
 
 describe("reducer", () => {
@@ -394,7 +393,7 @@ const WithSubscriptionsP = WithSubscriptions as ComponentType<Partial<Any>>;
 function makeComp() {
   return {
     ui: (
-      <WithSubscriptionsP {...globals}>
+      <WithSubscriptionsP {...ebnisObject}>
         <div />
       </WithSubscriptionsP>
     ),

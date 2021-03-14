@@ -1,12 +1,6 @@
 /* istanbul ignore file */
-import {
-  BroadcastMessageConnectionChanged,
-  BroadcastMessageType,
-  ConnectionStatus,
-} from "@eb/cm/src/utils/types";
-import { setTimeout } from "timers";
+import { ConnectionStatus, EmitActionType } from "@eb/cm/src/utils/types";
 import { deleteObjectKey } from ".";
-import { broadcastMessage } from "./broadcast-channel-manager";
 
 export function makeConnectionObject() {
   let connectionStatus = window.____ebnis.connectionStatus;
@@ -46,33 +40,15 @@ export function storeConnectionStatus(
     return;
   }
 
-  const { connectionStatus } = window.____ebnis;
-  const previousIsConnected = connectionStatus.isConnected;
+  const { connectionStatus, emitData } = window.____ebnis;
 
   connectionStatus.mode = mode;
   connectionStatus.isConnected = isConnected;
 
-  const message = {
-    type: BroadcastMessageType.connectionChanged,
-    payload: {
-      connected: isConnected,
-    },
-  } as BroadcastMessageConnectionChanged;
-
-  // previousIsConnected === null means app just booted up and message
-  // recipient might not be ready. So we wait one tick of the clock, so
-  // that **hopefully** app will be ready to receive and deal with message
-  if (previousIsConnected === null) {
-    setTimeout(() => {
-      broadcastMessage(message, {
-        selfOnly: true,
-      });
-    }, 0);
-  } else {
-    broadcastMessage(message, {
-      selfOnly: true,
-    });
-  }
+  emitData({
+    type: EmitActionType.connectionChanged,
+    connected: isConnected,
+  });
 
   return connectionStatus;
 }

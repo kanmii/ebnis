@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 import { ApolloLink } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
-import { doNotLog } from "../logger";
+import { doNotLog } from "@eb/cm/src/logger";
 import { getToken } from "../utils/manage-user-auth";
 
 export type MakeSocketLinkFn = (arg: {

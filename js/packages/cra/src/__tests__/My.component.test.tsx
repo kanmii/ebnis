@@ -175,7 +175,7 @@ const persistor = {
 const globals = {
   persistor,
   cache: { evict: mockEvictFn } as any,
-  bc: { postMessage: mockPostMsg } as any,
+  bcBroadcaster: { postMessage: mockPostMsg } as any,
 } as EbnisGlobals;
 
 beforeAll(() => {
@@ -554,10 +554,8 @@ describe("component", () => {
     expect(mockPersistFn).toHaveBeenCalled();
     expect(mockPostMsg.mock.calls[0][0]).toMatchObject({
       type: BroadcastMessageType.experienceDeleted,
-      payload: {
-        id: mockOnlineId,
-        title: "aa",
-      },
+      id: mockOnlineId,
+      title: "aa",
     });
 
     deleteSuccessEl.click();

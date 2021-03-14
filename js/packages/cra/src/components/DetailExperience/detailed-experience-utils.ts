@@ -55,7 +55,7 @@ import {
   removeUnsyncedExperiences,
 } from "../../apollo/unsynced-ledger";
 import { purgeEntry } from "../../apollo/update-get-experiences-list-view-query";
-import { wrapReducer, wrapState } from "../../logger";
+import { wrapReducer, wrapState } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import {
   DATA_FETCHING_FAILED,

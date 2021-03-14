@@ -235,30 +235,38 @@ export function purgeExperiencesFromCache1(ids: string[]) {
     return accId;
   }, {} as { [key: string]: true });
 
-  const updatedExperienceConnection = immer(experiencesMini, (proxy) => {
-    const edges = (proxy.edges || []) as ExperienceConnectionFragment_edges[];
-    const newEdges: ExperienceConnectionFragment_edges[] = [];
+  // :TODO: immer not working in cypress
+  // const updatedExperienceConnection = immer(experiencesMini, (proxy) => {
+  const edges = (experiencesMini.edges ||
+    []) as ExperienceConnectionFragment_edges[];
+  // const edges = (proxy.edges || []) as ExperienceConnectionFragment_edges[];
+  const newEdges: ExperienceConnectionFragment_edges[] = [];
 
-    for (let edge of edges) {
-      edge = edge as ExperienceConnectionFragment_edges;
-      const node = edge.node as ExperienceConnectionFragment_edges_node;
+  for (let edge of edges) {
+    edge = edge as ExperienceConnectionFragment_edges;
+    const node = edge.node as ExperienceConnectionFragment_edges_node;
 
-      const id = node.id;
-      const idFound = idsMap[id];
+    const id = node.id;
+    const idFound = idsMap[id];
 
-      if (idFound) {
-        purgeExperience(id, data);
+    if (idFound) {
+      purgeExperience(id, data);
 
-        // we are deleting this experience from this list
-        continue;
-      }
-
-      // the rest of the experience mini will be rewritten to the cache
-      newEdges.push(edge);
+      // we are deleting this experience from this list
+      continue;
     }
 
-    proxy.edges = newEdges;
-  });
+    // the rest of the experience mini will be rewritten to the cache
+    newEdges.push(edge);
+  }
+
+  const updatedExperienceConnection = {
+    ...experiencesMini,
+    edges: newEdges,
+  };
+
+  // proxy.edges = newEdges;
+  // });
 
   cache.writeQuery<
     GetExperiencesConnectionListView,

@@ -1,5 +1,9 @@
 {
   "extends": "../../js-shared/_tsconfig.json",
   "isolatedModules": true,
-  "include": ["src", "../commons/src/definitions.d.ts"]
+  "include": [
+    "src",
+    "../commons/src/definitions.d.ts",
+    "../commons/src/logger.ts"
+  ]
 }
