@@ -21,6 +21,17 @@ export const logger = async (prefix: keyof Console, tag: any, ...data: any) => {
   }
 };
 
+export function headerWrap(text: string) {
+  text =
+    "%c" +
+    `---------------------------------------------------------
+                     ${text}
+---------------------------------------------------------
+`;
+
+  console.log(text, "color:green;font-weight:bold;font-size:14px;");
+}
+
 export function wrapReducer<State, Action>(
   prevState: State,
   action: Action,
@@ -36,21 +47,25 @@ export function wrapReducer<State, Action>(
     const nextState = reducer(prevState, action);
     const diff = deepObjectDifference(nextState, prevState);
 
-    console.log(
-      "\n\n\n======UPDATE WITH UPDATE WITH======= \n\n",
-      objectForEnv(action),
-      "\n\n",
+    console.log("\n\n{ LOG STARTS");
 
-      "\n\n\n=====DIFFERENCES===== \n\n",
-      objectForEnv(diff),
-      "\n\n",
+    headerWrap("UPDATE WITH");
 
-      "\n\n=====NEXT STATE====== \n\n",
-      objectForEnv(nextState),
+    console.log(objectForEnv(action), "\n\n");
 
-      "\n\n=====PREVIOUS STATE======= \n\n",
-      objectForEnv(prevState),
-    );
+    headerWrap("DIFFERENCES");
+
+    console.log(objectForEnv(diff), "\n\n");
+
+    headerWrap("NEXT STATE");
+
+    console.log(objectForEnv(nextState));
+
+    headerWrap("PREVIOUS STATE");
+
+    console.log(objectForEnv(prevState));
+
+    console.log("\nLOG ENDS }");
 
     return nextState;
   }
@@ -129,7 +144,8 @@ export function doNotLog() {
 export function wrapState<S>(state: S) {
   const shouldWrap = (window.____ebnis || {}).logReducers;
   if (shouldWrap) {
-    console.log("\n\n=====INITIAL STATE======= \n\n", objectForEnv(state));
+    headerWrap("INITIAL STATE");
+    console.log(objectForEnv(state));
   }
 
   return state;
