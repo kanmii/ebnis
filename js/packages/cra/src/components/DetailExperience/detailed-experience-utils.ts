@@ -232,6 +232,9 @@ function handleDeleteExperienceRequestAction(
       states: { deleteExperience },
     } = globalStates.data;
 
+    // clear all menus
+    handleHideMenusActions(proxy, ["mainCircular", "comments", "entries"]);
+
     deleteExperience.value = StateValue.active;
     const deleteExperienceActive = deleteExperience as DeleteExperienceActiveState;
 
