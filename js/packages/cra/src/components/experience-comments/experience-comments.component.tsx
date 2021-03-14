@@ -189,7 +189,7 @@ export function Comments(props: Props) {
                     )}
                     onClick={() => {
                       parentDispatch({
-                        type: ParentAction.TOGGLE_EXPERIENCE_MENU,
+                        type: ParentAction.toggle_menu,
                         key: "close",
                       });
 

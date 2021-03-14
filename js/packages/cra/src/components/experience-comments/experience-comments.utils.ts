@@ -448,7 +448,7 @@ function handleCloseUpsertUi(proxy: DraftState) {
   effects.push({
     key: "parentEffects",
     ownArgs: {
-      type: ParentActionType.COMMENT_ACTION,
+      type: ParentActionType.comment_action,
       action: {
         type: CommentRemoteActionType.upsert_closed,
       },

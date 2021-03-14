@@ -262,7 +262,7 @@ describe("components", () => {
 
       // UI menus should be cleared
       expect(mockParentDispatchFn).toBeCalledWith({
-        type: ParentActionType.TOGGLE_EXPERIENCE_MENU,
+        type: ParentActionType.toggle_menu,
         key: "close",
       });
 

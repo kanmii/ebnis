@@ -97,17 +97,17 @@ import {
 import { scrollDocumentToTop } from "./detail-experience.injectables";
 
 export enum ActionType {
-  RECORD_TIMEOUT = "@detailed-experience/record-timeout",
-  DELETE_EXPERIENCE_REQUEST = "@detailed-experience/delete-experience-request",
-  DELETE_EXPERIENCE_CANCELLED = "@detailed-experience/delete-experience-cancelled",
-  DELETE_EXPERIENCE_CONFIRMED = "@detailed-experience/delete-experience-confirmed",
-  TOGGLE_EXPERIENCE_MENU = "@detailed-experience/toggle-experience-menu",
-  ON_FETCHED = "@detailed-experience/on-data-received",
-  RE_FETCH = "@detailed-experience/re-fetch-experience",
+  record_timeout = "@detailed-experience/record-timeout",
+  delete_request = "@detailed-experience/delete-request",
+  delete_cancelled = "@detailed-experience/delete-cancelled",
+  delete_confirmed = "@detailed-experience/delete-confirmed",
+  toggle_menu = "@detailed-experience/toggle-menu",
+  on_fetched = "@detailed-experience/on-fetched",
+  re_fetch = "@detailed-experience/re-fetch",
   request_update_ui = "@detailed-experience/request-update-ui",
-  ON_SYNC = "@detailed-experience/on-sync",
-  CLOSE_SYNC_ERRORS_MSG = "@detailed-experience/close-sync-errors-message",
-  COMMENT_ACTION = "@detailed-experience/comment-action",
+  on_sync = "@detailed-experience/on-sync",
+  close_sync_errors_msg = "@detailed-experience/close-sync-errors-message",
+  comment_action = "@detailed-experience/comment-action",
   hide_menus = "@detailed-experience/hide-menus",
   entries_actions = "@detailed-experience/entries-actions",
 }
@@ -119,34 +119,34 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
       unsetStatesHelper(proxy);
 
       switch (type) {
-        case ActionType.RECORD_TIMEOUT:
+        case ActionType.record_timeout:
           handleRecordTimeoutAction(proxy, payload as SetTimeoutPayload);
           break;
 
-        case ActionType.DELETE_EXPERIENCE_REQUEST:
+        case ActionType.delete_request:
           handleDeleteExperienceRequestAction(
             proxy,
             payload as DeleteExperienceRequestPayload,
           );
           break;
 
-        case ActionType.DELETE_EXPERIENCE_CANCELLED:
+        case ActionType.delete_cancelled:
           handleDeleteExperienceCancelledAction(proxy);
           break;
 
-        case ActionType.DELETE_EXPERIENCE_CONFIRMED:
+        case ActionType.delete_confirmed:
           handleDeleteExperienceConfirmedAction(proxy);
           break;
 
-        case ActionType.TOGGLE_EXPERIENCE_MENU:
+        case ActionType.toggle_menu:
           handleToggleExperienceMenuAction(proxy, payload as ToggleMenuPayload);
           break;
 
-        case ActionType.ON_FETCHED:
+        case ActionType.on_fetched:
           handleOnFetchedAction(proxy, payload as OnDataReceivedPayload);
           break;
 
-        case ActionType.RE_FETCH:
+        case ActionType.re_fetch:
           handleRefetchAction(proxy);
           break;
 
@@ -157,15 +157,15 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           );
           break;
 
-        case ActionType.ON_SYNC:
+        case ActionType.on_sync:
           handleOnSyncAction(proxy, payload as OnSyncedData);
           break;
 
-        case ActionType.CLOSE_SYNC_ERRORS_MSG:
+        case ActionType.close_sync_errors_msg:
           handleCloseSyncErrorsMsgAction(proxy);
           break;
 
-        case ActionType.COMMENT_ACTION:
+        case ActionType.comment_action:
           handleCommentAction(proxy, payload as CommentActionPayload);
           break;
 
@@ -879,7 +879,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
     const timeoutId = setTimeout(timeoutCb, closeNotificationTimeout);
 
     dispatch({
-      type: ActionType.RECORD_TIMEOUT,
+      type: ActionType.record_timeout,
       genericTimeout: timeoutId,
     });
   }
@@ -911,7 +911,7 @@ const deleteRequestedEffect: DefDeleteRequestedEffect["func"] = (
     putOrRemoveDeleteExperienceLedger();
 
     dispatch({
-      type: ActionType.DELETE_EXPERIENCE_REQUEST,
+      type: ActionType.delete_request,
       key: deleteExperienceLedger.key,
     });
   }
@@ -1040,7 +1040,7 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
     );
 
     dispatch({
-      type: ActionType.ON_FETCHED,
+      type: ActionType.on_fetched,
       experienceData,
       syncErrors: newSyncErrors,
     });
@@ -1070,13 +1070,13 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
       );
 
       dispatch({
-        type: ActionType.ON_FETCHED,
+        type: ActionType.on_fetched,
         experienceData,
         syncErrors: newSyncErrors,
       });
     } catch (error) {
       dispatch({
-        type: ActionType.ON_FETCHED,
+        type: ActionType.on_fetched,
         experienceData: {
           key: StateValue.errors,
           error,
@@ -1099,7 +1099,7 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
     // we were never able to connect
     if (fetchAttemptsCount > timeoutsLen) {
       dispatch({
-        type: ActionType.ON_FETCHED,
+        type: ActionType.on_fetched,
         experienceData: {
           key: StateValue.errors,
           error: DATA_FETCHING_FAILED,
@@ -1598,37 +1598,37 @@ export type Match = match<DetailExperienceRouteMatch>;
 
 export type Action =
   | ({
-      type: ActionType.RECORD_TIMEOUT;
+      type: ActionType.record_timeout;
     } & SetTimeoutPayload)
   | ({
-      type: ActionType.DELETE_EXPERIENCE_REQUEST;
+      type: ActionType.delete_request;
     } & DeleteExperienceRequestPayload)
   | {
-      type: ActionType.DELETE_EXPERIENCE_CANCELLED;
+      type: ActionType.delete_cancelled;
     }
   | {
-      type: ActionType.DELETE_EXPERIENCE_CONFIRMED;
+      type: ActionType.delete_confirmed;
     }
   | ({
-      type: ActionType.TOGGLE_EXPERIENCE_MENU;
+      type: ActionType.toggle_menu;
     } & ToggleMenuPayload)
   | ({
-      type: ActionType.ON_FETCHED;
+      type: ActionType.on_fetched;
     } & OnDataReceivedPayload)
   | {
-      type: ActionType.RE_FETCH;
+      type: ActionType.re_fetch;
     }
   | ({
       type: ActionType.request_update_ui;
     } & UpdateExperiencePayload)
   | ({
-      type: ActionType.ON_SYNC;
+      type: ActionType.on_sync;
     } & OnSyncedData)
   | {
-      type: ActionType.CLOSE_SYNC_ERRORS_MSG;
+      type: ActionType.close_sync_errors_msg;
     }
   | ({
-      type: ActionType.COMMENT_ACTION;
+      type: ActionType.comment_action;
     } & CommentActionPayload)
   | ({
       type: ActionType.hide_menus;

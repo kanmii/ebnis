@@ -89,7 +89,7 @@ export function DetailExperience(props: Props) {
   useEffect(() => {
     if (onSyncData && stateValue === StateValue.data) {
       dispatch({
-        type: ActionType.ON_SYNC,
+        type: ActionType.on_sync,
         ...onSyncData,
       });
     }
@@ -112,24 +112,24 @@ export function DetailExperience(props: Props) {
       dispatch,
       onDeleteDeclined() {
         dispatch({
-          type: ActionType.DELETE_EXPERIENCE_CANCELLED,
+          type: ActionType.delete_cancelled,
         });
       },
       onDeleteConfirmed() {
         dispatch({
-          type: ActionType.DELETE_EXPERIENCE_CONFIRMED,
+          type: ActionType.delete_confirmed,
         });
       },
       onDeleteRequested(e) {
         e.preventDefault();
 
         dispatch({
-          type: ActionType.DELETE_EXPERIENCE_REQUEST,
+          type: ActionType.delete_request,
         });
       },
       toggleMenuCb() {
         dispatch({
-          type: ActionType.TOGGLE_EXPERIENCE_MENU,
+          type: ActionType.toggle_menu,
         });
       },
       requestUpdateUiCb(e) {
@@ -161,19 +161,19 @@ export function DetailExperience(props: Props) {
         e.preventDefault();
 
         dispatch({
-          type: ActionType.CLOSE_SYNC_ERRORS_MSG,
+          type: ActionType.close_sync_errors_msg,
         });
       },
       refetchCb(e) {
         e.preventDefault();
 
         dispatch({
-          type: ActionType.RE_FETCH,
+          type: ActionType.re_fetch,
         });
       },
       commentCb(e, action) {
         dispatch({
-          type: ActionType.COMMENT_ACTION,
+          type: ActionType.comment_action,
           action,
         });
       },
@@ -277,7 +277,7 @@ function ExperienceComponent() {
       }
 
       dispatch({
-        type: ActionType.TOGGLE_EXPERIENCE_MENU,
+        type: ActionType.toggle_menu,
         key: "close",
       });
     }
