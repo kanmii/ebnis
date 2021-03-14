@@ -1,7 +1,7 @@
 import { Observable } from "zen-observable-ts";
 import { EbnisGlobals, EmitAction } from "./utils/types";
 
-let timeoutId: null | number = null;
+let timeoutId: null | NodeJS.Timeout = null;
 
 export function makeObservable(globals: EbnisGlobals) {
   globals.observable = new Observable<EmitAction>((emitter) => {
@@ -40,7 +40,7 @@ export function makeObservable(globals: EbnisGlobals) {
         }
 
         retry();
-      });
+      }, 20);
     }
   };
 
