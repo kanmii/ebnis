@@ -337,7 +337,7 @@ function ExperienceComponent() {
       )}
 
       {syncErrorsMsg.value === StateValue.active && (
-        <SyncErrorsMessageNotificationComponent />
+        <PromptToFixSyncErrorNotificationComponent />
       )}
 
       <div id={domPrefix} className="container detailed-experience-component">
@@ -593,7 +593,7 @@ function MenuComponent() {
   );
 }
 
-function SyncErrorsMessageNotificationComponent() {
+function PromptToFixSyncErrorNotificationComponent() {
   const { closeSyncErrorsMsg, requestUpdateUiCb } = useContext(DispatchContext);
 
   const {
