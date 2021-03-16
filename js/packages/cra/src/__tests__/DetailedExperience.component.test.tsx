@@ -442,7 +442,7 @@ describe("components", () => {
     },
   } as GetExperienceAndEntriesDetailViewQueryResult;
 
-  it("sync offline experience", async () => {
+  it("sync offline experience - with createEntries errors", async () => {
     mockUseWithSubscriptionContext.mockReturnValue(withSubscriptionContext1);
 
     mockgetAndRemoveOfflineExperienceIdFromSyncFlag.mockReturnValue(
