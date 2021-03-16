@@ -11,6 +11,7 @@ import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/Ex
 import { GetEntriesUnionFragment } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { GetExperienceAndEntriesDetailView } from "@eb/cm/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragment";
+import { wrapReducer, wrapState } from "@eb/cm/src/logger";
 import {
   ActiveVal,
   DataVal,
@@ -55,7 +56,6 @@ import {
   removeUnsyncedExperiences,
 } from "../../apollo/unsynced-ledger";
 import { purgeEntry } from "../../apollo/update-get-experiences-list-view-query";
-import { wrapReducer, wrapState } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import {
   DATA_FETCHING_FAILED,
@@ -84,6 +84,7 @@ import {
 import {
   EntriesRemoteAction,
   EntriesRemoteActionType,
+  EntriesSyncErrors,
   ProcessedEntriesQueryReturnVal,
 } from "../entries/entries.utils";
 import {
@@ -489,7 +490,10 @@ function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
   if (globalStates.value === StateValue.data) {
     const effects = getGeneralEffects<EffectType, StateMachine>(proxy);
 
-    const { context } = globalStates.data;
+    const {
+      context,
+      // states: { entries: entriesState },
+    } = globalStates.data;
     const {
       offlineIdToOnlineExperienceMap,
       onlineExperienceIdToOfflineEntriesMap,
@@ -499,8 +503,10 @@ function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
 
     const {
       experience: { id },
-      syncErrors: contextSyncErrors,
+      syncErrors: maybeContextSyncErrors,
     } = context;
+
+    const contextSyncErrors = maybeContextSyncErrors || {};
 
     if (offlineIdToOnlineExperienceMap) {
       const data = {
@@ -551,23 +557,56 @@ function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
 
     const errors = syncErrors && syncErrors[id];
 
+    // istanbul ignore else:
     if (errors) {
       const { createEntries, updateEntries } = errors;
-      const entriesErrors: undefined | IndexToEntryErrorsList = undefined;
+      let entriesErrors = contextSyncErrors.entriesErrors || [];
 
+      // :TODO: update child entries
+      // istanbul ignore else:
       if (createEntries) {
-        // :TODO: update child entries
-        // entriesErrors = updateEntriesFn(proxy, entriesState, createEntries);
+        Object.entries(createEntries).forEach(
+          (
+            [
+              ,
+              // entryId
+              createError,
+            ],
+            index,
+          ) => {
+            entriesErrors = processCreateEntriesErrors(
+              entriesErrors,
+              createError,
+              index,
+            );
+          },
+        );
       }
+
+      // :TODO: update child entries
       // istanbul ignore else:
       if (updateEntries) {
-        // :TODO: update child entries
-        // entriesErrors = updateEntriesFn(proxy, entriesState, updateEntries);
+        Object.entries(updateEntries).forEach(
+          (
+            [
+              ,
+              // entryId
+              updateError,
+            ],
+            index,
+          ) => {
+            entriesErrors = processUpdateEntriesErrors(
+              entriesErrors,
+              updateError,
+              index,
+            );
+          },
+        );
       }
 
-      if (entriesErrors) {
+      if (entriesErrors.length) {
         context.syncErrors = {
-          ...(contextSyncErrors || {}),
+          ...contextSyncErrors,
           entriesErrors,
         };
       }
@@ -765,18 +804,30 @@ function handleEntriesAction(
 
   // istanbul ignore else:
   if (globalStates.value === StateValue.data) {
-    const { states } = globalStates.data;
+    const {
+      states,
+      context: { syncErrors },
+    } = globalStates.data;
     handleHideMenusActions(proxy, ["mainCircular", "comments"]);
 
     const { entries } = states;
 
     switch (action) {
       case EntriesRemoteActionType.upsert:
-        entries.postActions = [
-          {
-            type: EntriesRemoteActionType.upsert,
-          },
-        ];
+        {
+          // if an attempt to sync data has failed, then we must fix before
+          // an entry can be created
+          if (syncErrors) {
+            states.syncErrorsMsg.value = StateValue.active;
+            return;
+          }
+
+          entries.postActions = [
+            {
+              type: EntriesRemoteActionType.upsert,
+            },
+          ];
+        }
         break;
     }
   }
@@ -1395,6 +1446,8 @@ function processUpdateEntriesErrors(
       Object.values(data) as DataObjectErrorFragment[],
     );
   }
+
+  return entryErrors;
 }
 
 function processDataObjectsErrors(dataObjects: DataObjectErrorFragment[]) {
@@ -1476,6 +1529,7 @@ export type EntriesData = {
   value: ActiveVal | InActiveVal;
   postActions: EntriesRemoteAction[];
   entriesData: ProcessedEntriesQueryReturnVal;
+  syncErrors?: EntriesSyncErrors;
 };
 
 export type DataStateContext = {

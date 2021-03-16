@@ -1,4 +1,3 @@
-import { deleteExperiences } from "../../utils/delete-experiences.gql";
 import { trimClass } from "@eb/cm/src/utils";
 import { componentTimeoutsMs } from "@eb/cm/src/utils/timers";
 import { StateValue } from "@eb/cm/src/utils/types";
@@ -15,6 +14,7 @@ import React, {
   useReducer,
 } from "react";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
+import { deleteExperiences } from "../../utils/delete-experiences.gql";
 import { getExperienceComments } from "../../utils/experience.gql.types";
 import { setUpRoutePage } from "../../utils/global-window";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
@@ -47,6 +47,7 @@ import {
   deleteFooterCloseId,
   deleteHeaderCloseId,
   deleteMenuItemId,
+  deleteOkId,
   domPrefix,
   experienceMenuSelector,
   experienceMenuTriggerSelector,
@@ -57,9 +58,8 @@ import {
   syncEntriesErrorsMsgId,
   syncErrorsNotificationId,
   syncExperienceErrorsMsgId,
-  updateSuccessNotificationId,
   updateMenuItemId,
-  deleteOkId,
+  updateSuccessNotificationId,
 } from "./detail-experience.dom";
 import { Comments } from "./detail-experience.lazy";
 import {
@@ -406,7 +406,7 @@ function SyncErrorsNotificationComponent(props: {
           })}
 
         {entriesErrors &&
-          entriesErrors.map(([entryIndex, { others, dataObjects }]) => {
+          entriesErrors.map(([, { others, dataObjects }], entryIndex) => {
             return (
               <Fragment key={entryIndex}>
                 <strong>Entry #{entryIndex}</strong>

@@ -14,6 +14,7 @@ import {
 import { PaginationInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragment";
 import { toGetEntriesSuccessQuery } from "@eb/cm/src/graphql/utils.gql";
+import { wrapReducer, wrapState } from "@eb/cm/src/logger";
 import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import { ComponentTimeoutsMs } from "@eb/cm/src/utils/timers";
 import {
@@ -52,7 +53,6 @@ import {
   putOrRemoveSyncError,
 } from "../../apollo/sync-to-server-cache";
 import { purgeEntry } from "../../apollo/update-get-experiences-list-view-query";
-import { wrapReducer, wrapState } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import {
   FETCH_ENTRIES_FAIL_ERROR_MSG,
@@ -74,16 +74,16 @@ import { scrollIntoView } from "../../utils/scroll-into-view";
 import { UpdateExperiencesMutationProps } from "../../utils/update-experiences.gql";
 import { nonsenseId } from "../../utils/utils.dom";
 import { scrollDocumentToTop } from "../DetailExperience/detail-experience.injectables";
-import { ExperienceSyncError } from "../DetailExperience/detailed-experience-utils";
+import {
+  Action as ParentAction,
+  ActionType as ParentActionType,
+  DispatchType as ParentDispatchType,
+  ExperienceSyncError,
+} from "../DetailExperience/detailed-experience-utils";
 import { entryToEdge } from "../UpsertEntry/entry-to-edge";
 import { UpdatingPayload } from "../UpsertEntry/upsert-entry.utils";
 import { updateExperienceOfflineFn } from "../UpsertExperience/upsert-experience.resolvers";
 import { cleanUpSyncedOfflineEntries } from "../WithSubscriptions/with-subscriptions.utils";
-import {
-  ActionType as ParentActionType,
-  DispatchType as ParentDispatchType,
-  Action as ParentAction,
-} from "../DetailExperience/detailed-experience-utils";
 
 export enum EntriesRemoteActionType {
   upsert = "@entries/remote/upsert",
@@ -441,7 +441,11 @@ function handleOnUpsertEntrySuccessAction(
 
   const {
     oldData,
-    newData: { entry: newEntry, onlineStatus: newOnlineStatus },
+    newData: {
+      entry: upsertedEntry,
+      // :TODO: handle this?????
+      // onlineStatus: newOnlineStatus
+    },
     syncErrors,
   } = payload;
 
@@ -464,7 +468,9 @@ function handleOnUpsertEntrySuccessAction(
 
     newEntryState.active = {
       context: {
-        message: `New entry created on: ${formatDatetime(newEntry.updatedAt)}`,
+        message: `New entry created on: ${formatDatetime(
+          upsertedEntry.updatedAt,
+        )}`,
       },
     };
 
@@ -479,7 +485,7 @@ function handleOnUpsertEntrySuccessAction(
           const { context } = successState.success;
 
           context.entries.unshift({
-            entryData: newEntry,
+            entryData: upsertedEntry,
           });
         }
         break;
@@ -492,7 +498,7 @@ function handleOnUpsertEntrySuccessAction(
             context: {
               entries: [
                 {
-                  entryData: newEntry,
+                  entryData: upsertedEntry,
                 },
               ],
               pageInfo: {} as PageInfoFragment,
@@ -508,12 +514,13 @@ function handleOnUpsertEntrySuccessAction(
   } else {
     // updated entry: either offline entry synced / online entry updated
     const { entry, index } = oldData;
-    const { id } = entry;
+    const { id: oldEntryId } = entry;
 
     // istanbul ignore else:
     if (syncErrors && syncErrors.entriesErrors) {
       const index1 = index + 1;
 
+      // remove the syn errors for updated online entry / offline created entry
       const entriesErrors = syncErrors.entriesErrors.filter((d) => {
         return d[0] !== index1;
       });
@@ -525,14 +532,7 @@ function handleOnUpsertEntrySuccessAction(
       }
     }
 
-    updateEntriesFn(
-      proxy,
-      entriesState,
-      {
-        [id]: newEntry,
-      },
-      true,
-    );
+    updateEntriesFn(proxy, entriesState, upsertedEntry, oldEntryId);
 
     const cleanUpData: DefDeleteCreateEntrySyncErrorEffect["ownArgs"]["data"] = {
       experienceId,
@@ -540,7 +540,7 @@ function handleOnUpsertEntrySuccessAction(
 
     // offline entry synced
     // istanbul ignore else:
-    if (id !== newEntry.id) {
+    if (oldEntryId !== upsertedEntry.id) {
       cleanUpData.createErrors = [entry];
     }
 
@@ -748,46 +748,34 @@ export function formatDatetime(date: Date | string) {
 function updateEntriesFn(
   proxy: DraftState,
   state: EntriesData,
-  payload:
-    | {
-        [entryId: string]: EntryFragment | CreateEntryErrorFragment;
-      }
-    | IdToUpdateEntrySyncErrorMap,
-  update?: true,
+  upsertedEntry: EntryFragment,
+  oldEntryId: string,
 ) {
   const successState = state as EntriesDataSuccessSate;
 
   if (state.value === StateValue.fail) {
-    const [entry] = Object.values(
-      payload as {
-        [entryId: string]: EntryFragment;
-      },
-    );
+    successState.value = StateValue.success;
 
-    if (entry.__typename === "Entry") {
-      successState.value = StateValue.success;
-
-      successState.success = {
-        context: {
-          entries: [
-            {
-              entryData: entry,
-            },
-          ],
-          pageInfo: {} as PageInfoFragment,
-          error: {
-            value: "fetchError",
-            error: "initial fetch failed",
+    successState.success = {
+      context: {
+        entries: [
+          {
+            entryData: upsertedEntry,
           },
+        ],
+        pageInfo: {} as PageInfoFragment,
+        error: {
+          value: "fetchError",
+          error: "initial fetch failed",
         },
-      };
+      },
+    };
 
-      const effects = getEffects(proxy);
-      effects.push({
-        key: "fetchEntriesEffect",
-        ownArgs: {},
-      });
-    }
+    const effects = getEffects(proxy);
+    effects.push({
+      key: "fetchEntriesEffect",
+      ownArgs: {},
+    });
 
     return;
   }
@@ -796,40 +784,20 @@ function updateEntriesFn(
     context: { entries },
   } = successState.success;
 
-  const entryErrors: IndexToEntryErrorsList = [];
   const len = entries.length;
   let i = 0;
-  let hasErrors = false;
 
   for (; i < len; i++) {
-    const daten = entries[i];
-    const { id } = daten.entryData;
-    const updated = payload[id];
+    const existingEntry = entries[i];
+    const { id } = existingEntry.entryData;
 
-    if (!updated) {
+    if (oldEntryId !== id) {
       continue;
     }
 
-    const updatedEntry = updated as EntryFragment;
-    const createdErrors = updated as CreateEntryErrorFragment;
-    const updateErrors = updated as UpdateEntrySyncErrors;
-
-    if (updatedEntry.__typename === "Entry") {
-      daten.entryData = updatedEntry;
-
-      daten.entrySyncError = update ? undefined : daten.entrySyncError;
-    } else if (createdErrors.__typename === "CreateEntryError") {
-      daten.entrySyncError = createdErrors;
-      processCreateEntriesErrors(entryErrors, createdErrors, i);
-      hasErrors = true;
-    } else {
-      daten.entrySyncError = updateErrors;
-      processUpdateEntriesErrors(entryErrors, updateErrors, i);
-      hasErrors = true;
-    }
+    existingEntry.entryData = upsertedEntry;
+    existingEntry.entrySyncError = undefined;
   }
-
-  return hasErrors ? entryErrors : undefined;
 }
 
 // ====================================================
@@ -1616,9 +1584,14 @@ export type CallerProps = {
   experience: ExperienceDetailViewFragment;
   entriesData: ProcessedEntriesQueryReturnVal;
   postActions: EntriesRemoteAction[];
-  syncErrors?: ExperienceSyncError;
+  syncErrors?: EntriesSyncErrors;
   parentDispatch: ParentDispatchType;
 };
+
+export type EntriesSyncErrors = Pick<
+  SyncError,
+  "createEntries" | "updateEntries"
+>;
 
 export type Props = CallerProps &
   UpdateExperiencesMutationProps & {

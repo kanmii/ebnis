@@ -16,6 +16,8 @@ export const mockUser1Id = "aaa";
 export const mockOnlineExperienceId1 = "onlineId1";
 const mockOnlineDataDefinitionId1 = "1";
 
+export const mockOfflineExperienceId1 = makeOfflineId("onlineId1");
+
 export const mockOnlineExperienceId2 = "onlineId2";
 const mockOnlineExperience2DefinitionId1 = "1";
 
@@ -142,6 +144,17 @@ export const mockOnlineExperience1 = {
   insertedAt: "2021-02-19T00:40:39.388Z",
   updatedAt: "2021-02-19T00:40:39.388Z",
   id: mockOnlineExperienceId1,
+  dataDefinitions: [mockDataDefinition1],
+  __typename: "Experience",
+} as ExperienceCompleteFragment;
+
+export const mockOfflineExperience1 = {
+  title: "online experience 1",
+  description: "",
+  clientId: "",
+  insertedAt: "2021-02-19T00:40:39.388Z",
+  updatedAt: "2021-02-19T00:40:39.388Z",
+  id: mockOfflineExperienceId1,
   dataDefinitions: [mockDataDefinition1],
   __typename: "Experience",
 } as ExperienceCompleteFragment;
