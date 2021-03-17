@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { activeClassName } from "../utils/utils.dom";
 import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
 import { DeleteExperiences } from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
@@ -44,11 +45,13 @@ import {
   deleteMenuItemId,
   deleteOkId,
   domPrefix,
+  menuTriggerSelector,
   noTriggerDocumentEventClassName,
   refetchId,
   syncErrorsNotificationId,
   updateMenuItemId,
   updateSuccessNotificationId,
+  menuSelector,
 } from "../components/DetailExperience/detail-experience.dom";
 import {
   ActionType,
@@ -69,7 +72,7 @@ import {
   // cleanUpOfflineExperiences,
   cleanUpSyncedOfflineEntries,
 } from "../components/WithSubscriptions/with-subscriptions.utils";
-import { getById } from "../tests.utils";
+import { getById, getOneByClass } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { getIsConnected } from "../utils/connections";
 import { deleteExperiences } from "../utils/delete-experiences.gql";
@@ -646,6 +649,50 @@ describe("components", () => {
       // we test that Comments component did indeed receive this message
       mockHideCommentsEl.click();
       expect(getById(mockUpsertCommentsId)).toBeNull();
+    });
+  });
+
+  const mockGetCachedExperienceAndEntriesDetailView4 = {
+    data: {
+      getExperience: {
+        ...mockOnlineExperience1,
+      } as any,
+    },
+  } as GetExperienceAndEntriesDetailViewQueryResult;
+
+  it("menu", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
+      mockGetCachedExperienceAndEntriesDetailView4,
+    );
+
+    const { ui } = makeComp();
+
+    await act(async () => {
+      render(ui);
+
+      const menuTriggerEl = await waitFor(() => {
+        const el = getOneByClass(menuTriggerSelector);
+        expect(el).not.toBeNull();
+        return el;
+      });
+
+      const menuEl = getOneByClass(menuSelector);
+      expect(menuEl.classList).not.toContain(activeClassName);
+
+      menuTriggerEl.click();
+      expect(menuEl.classList).toContain(activeClassName);
+
+      // menu can be closed by clicking any where on the page
+      getById(mockHeaderId).click();
+      expect(menuEl.classList).not.toContain(activeClassName);
+
+      menuTriggerEl.click();
+      expect(menuEl.classList).toContain(activeClassName);
+      // menu can also be closed by toggling
+      menuTriggerEl.click();
+      expect(menuEl.classList).not.toContain(activeClassName);
     });
   });
 });

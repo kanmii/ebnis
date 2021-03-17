@@ -49,8 +49,8 @@ import {
   deleteMenuItemId,
   deleteOkId,
   domPrefix,
-  experienceMenuSelector,
-  experienceMenuTriggerSelector,
+  menuSelector,
+  menuTriggerSelector,
   fixSyncErrorsId,
   newEntryMenuItemSelector,
   noTriggerDocumentEventClassName,
@@ -491,7 +491,7 @@ function MenuComponent() {
           animation
           drop-up-animate-up
           ${state.value === StateValue.active ? activeClassName : ""}
-          ${experienceMenuSelector}
+          ${menuSelector}
         `)}
       >
         <a
@@ -583,8 +583,8 @@ function MenuComponent() {
 
       <div
         className={trimClass(`
-          circular
-          ${experienceMenuTriggerSelector}
+           circular
+           ${menuTriggerSelector}
         `)}
         onClick={toggleMenuCb}
       >
