@@ -27,10 +27,6 @@ import {
   readExperienceCompleteFragment,
   writeCachedExperienceCompleteFragment,
 } from "../apollo/get-detailed-experience-query";
-import {
-  DispatchContextValue,
-  DispatchProvider,
-} from "../components/DetailExperience/detail-experience.context";
 import { ActionType as ParentActionType } from "../components/DetailExperience/detailed-experience-utils";
 import { Comments } from "../components/experience-comments/experience-comments.component";
 import {
@@ -575,6 +571,7 @@ describe("reducers", () => {
     getExperienceComments: mockGetExperienceComments as any,
     updateExperiencesMutation: mockUpdateExperiencesMutation as any,
     postActions: [],
+    parentDispatch: mockParentDispatchFn as any,
   } as Props;
 
   const effectArgs = ({
@@ -694,21 +691,16 @@ function makeComp({
 }: {
   props?: Partial<Props>;
 } = {}) {
-  const parentDispatchValue = {
-    dispatch: mockParentDispatchFn as any,
-  } as DispatchContextValue;
-
   return {
     ui: (
-      <DispatchProvider value={parentDispatchValue}>
-        <ComponentP
-          componentTimeoutsMs={componentTimeoutsMs}
-          getExperienceComments={getExperienceComments}
-          updateExperiencesMutation={updateExperiencesMutation}
-          experience={mockOnlineExperience1}
-          {...props}
-        />
-      </DispatchProvider>
+      <ComponentP
+        componentTimeoutsMs={componentTimeoutsMs}
+        getExperienceComments={getExperienceComments}
+        updateExperiencesMutation={updateExperiencesMutation}
+        experience={mockOnlineExperience1}
+        parentDispatch={mockParentDispatchFn}
+        {...props}
+      />
     ),
   };
 }

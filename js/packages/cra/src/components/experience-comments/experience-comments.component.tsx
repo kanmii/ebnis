@@ -5,17 +5,10 @@ import Button from "@eb/jsx/src/components/Button/button.component";
 import DropdownMenu from "@eb/jsx/src/components/dropdown-menu/dropdown-menu.component";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import Notification from "@eb/jsx/src/components/Notification/notification.component";
-import React, {
-  Fragment,
-  Suspense,
-  useContext,
-  useEffect,
-  useReducer,
-} from "react";
+import React, { Fragment, Suspense, useEffect, useReducer } from "react";
 import { getExperienceComments } from "../../utils/experience.gql.types";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
-import { DispatchContext } from "../DetailExperience/detail-experience.context";
 import { noTriggerDocumentEventClassName } from "../DetailExperience/detail-experience.dom";
 import { ActionType as ParentAction } from "../DetailExperience/detailed-experience-utils";
 import Loading from "../Loading/loading.component";
@@ -48,8 +41,7 @@ import {
 
 export function Comments(props: Props) {
   const [state, dispatch] = useReducer(reducer, props, initState);
-  const { experience, postActions } = props;
-  const { dispatch: parentDispatch } = useContext(DispatchContext);
+  const { experience, postActions, parentDispatch } = props;
 
   const {
     effects: { general },
@@ -60,7 +52,6 @@ export function Comments(props: Props) {
 
   const effectArgs = {
     dispatch,
-    parentDispatch,
   };
 
   useRunEffects(general, effectFunctions, props, effectArgs);

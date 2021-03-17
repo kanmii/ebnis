@@ -799,8 +799,8 @@ type DefTimeoutsEffect = EffectDefinition<
   }
 >;
 
-const parentEffects: DefParentEffect["func"] = (ownArgs, props, effectArgs) => {
-  const { parentDispatch } = effectArgs;
+const parentEffects: DefParentEffect["func"] = (ownArgs, props) => {
+  const { parentDispatch } = props;
   parentDispatch(ownArgs);
 };
 
@@ -1022,6 +1022,7 @@ type OnUpsertPayload = {
 export type CallerProps = {
   experience: ExperienceDetailViewFragment;
   postActions: CommentRemoteAction[];
+  parentDispatch: ParentDispatchType;
 };
 
 export type Props = CallerProps &
@@ -1034,7 +1035,6 @@ export type DispatchType = Dispatch<Action>;
 
 export type EffectArgs = {
   dispatch: DispatchType;
-  parentDispatch: ParentDispatchType;
 };
 
 type EffectDefinition<

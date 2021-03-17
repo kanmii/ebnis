@@ -357,6 +357,7 @@ function ExperienceComponent() {
           <Comments
             postActions={commentsState.active.context.postActions}
             experience={experience}
+            parentDispatch={dispatch}
           />
         )}
 
