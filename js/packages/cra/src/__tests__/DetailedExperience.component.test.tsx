@@ -44,15 +44,26 @@ import {
   deleteMenuItemId,
   deleteOkId,
   domPrefix,
+  noTriggerDocumentEventClassName,
   refetchId,
   syncErrorsNotificationId,
   updateMenuItemId,
   updateSuccessNotificationId,
 } from "../components/DetailExperience/detail-experience.dom";
 import {
+  ActionType,
   Match,
   Props,
 } from "../components/DetailExperience/detailed-experience-utils";
+import {
+  createCommentsMenuId,
+  hideCommentsMenuId,
+  showCommentsMenuId,
+} from "../components/experience-comments/experience-comments.dom";
+import {
+  CallerProps as CommentsCallerProps,
+  CommentRemoteActionType,
+} from "../components/experience-comments/experience-comments.utils";
 import { Props as UpsertExperienceProps } from "../components/UpsertExperience/upsert-experience.utils";
 import {
   // cleanUpOfflineExperiences,
@@ -135,9 +146,52 @@ jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
 // const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
 const mockCleanUpSyncedOfflineEntries = cleanUpSyncedOfflineEntries as jest.Mock;
 
+const mockUpsertCommentsId = "@t/upsert-comments";
+const mockCloseUpsertCommentsId = "@t/close-comments";
+const mockCommentRemoteActionType = CommentRemoteActionType;
+const mockActionType = ActionType;
+const mockNoTriggerDocumentEventClassName = noTriggerDocumentEventClassName;
 jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
   return {
-    Comments: () => null,
+    Comments: (props: CommentsCallerProps) => {
+      const { postActions, parentDispatch } = props;
+
+      return (
+        <div className={mockNoTriggerDocumentEventClassName}>
+          <span
+            id={mockUpsertCommentsId}
+            onClick={() => {
+              const { type } = postActions[0];
+
+              switch (type) {
+                case mockCommentRemoteActionType.upsert:
+                  {
+                    parentDispatch({
+                      type: mockActionType.comment_action,
+                      action: {
+                        type: mockCommentRemoteActionType.upsert,
+                      },
+                    });
+                  }
+                  break;
+              }
+            }}
+          />
+
+          <span
+            id={mockCloseUpsertCommentsId}
+            onClick={() => {
+              parentDispatch({
+                type: mockActionType.comment_action,
+                action: {
+                  type: mockCommentRemoteActionType.upsert_closed,
+                },
+              });
+            }}
+          />
+        </div>
+      );
+    },
   };
 });
 
@@ -512,6 +566,54 @@ describe("components", () => {
       });
 
       expect(mockCleanUpSyncedOfflineEntries).toBeCalled();
+    });
+  });
+
+  const mockGetCachedExperienceAndEntriesDetailView3 = {
+    data: {
+      getExperience: {
+        ...mockOnlineExperience1,
+      } as any,
+    },
+  } as GetExperienceAndEntriesDetailViewQueryResult;
+
+  it("comments menu", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
+      mockGetCachedExperienceAndEntriesDetailView3,
+    );
+
+    const { ui } = makeComp();
+
+    await act(async () => {
+      render(ui);
+
+      const showCommentsMenuEl = await waitFor(() => {
+        const el = getById(showCommentsMenuId);
+        expect(el).not.toBeNull();
+        return el;
+      });
+
+      expect(getById(mockUpsertCommentsId)).toBeNull();
+      expect(getById(hideCommentsMenuId)).toBeNull();
+
+      showCommentsMenuEl.click();
+      expect(getById(mockUpsertCommentsId)).not.toBeNull();
+      expect(getById(showCommentsMenuId)).toBeNull();
+
+      getById(hideCommentsMenuId).click();
+      expect(getById(mockUpsertCommentsId)).toBeNull();
+      expect(getById(hideCommentsMenuId)).toBeNull();
+      expect(getById(showCommentsMenuId)).not.toBeNull();
+
+      getById(createCommentsMenuId).click();
+      getById(mockUpsertCommentsId).click();
+      expect(getById(hideCommentsMenuId)).toBeNull();
+      expect(getById(showCommentsMenuId)).toBeNull();
+
+      getById(mockCloseUpsertCommentsId).click();
+      expect(getById(hideCommentsMenuId)).not.toBeNull();
     });
   });
 });

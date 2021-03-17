@@ -762,6 +762,7 @@ function handleCommentAction(
 
       case CommentRemoteActionType.upsert:
         {
+          // istanbul ignore else:
           if ((commentsInactive.value = StateValue.inactive)) {
             commentActive.value = StateValue.active;
 
