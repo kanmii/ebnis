@@ -1,41 +1,44 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {DeleteExperiences} from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
-import {EntryFragment} from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import {ComponentTimeoutsMs} from "@eb/cm/src/utils/timers";
-import {EbnisGlobals, StateValue} from "@eb/cm/src/utils/types";
+import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
+import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
+import { DeleteExperiences } from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { ComponentTimeoutsMs } from "@eb/cm/src/utils/timers";
+import { EbnisGlobals, OnSyncedData, StateValue } from "@eb/cm/src/utils/types";
 import {
   mockOfflineExperience1,
   mockOfflineExperienceId1,
+  mockOnlineDataDefinitionId1,
   mockOnlineExperience1,
-  mockOnlineExperienceId1
+  mockOnlineExperienceId1,
 } from "@eb/cm/src/__tests__/mock-data";
 import {
   deleteExperiencesMswGql,
   // updateMswExperiencesGql,
-  getExperienceAndEntriesDetailViewGqlMsw
+  getExperienceAndEntriesDetailViewGqlMsw,
 } from "@eb/cm/src/__tests__/msw-handlers";
-import {mswServer, mswServerListen} from "@eb/cm/src/__tests__/msw-server";
-import {waitForCount} from "@eb/cm/src/__tests__/wait-for-count";
-import {cleanup, render, waitFor} from "@testing-library/react";
-import {ComponentType} from "react";
-import {act} from "react-dom/test-utils";
-import {makeApolloClient} from "../apollo/client";
+import { mswServer, mswServerListen } from "@eb/cm/src/__tests__/msw-server";
+import { waitForCount } from "@eb/cm/src/__tests__/wait-for-count";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import { ComponentType } from "react";
+import { act } from "react-dom/test-utils";
+import { makeApolloClient } from "../apollo/client";
 import {
   // getDeleteExperienceLedger,
-  putOrRemoveDeleteExperienceLedger
+  putOrRemoveDeleteExperienceLedger,
 } from "../apollo/delete-experience-cache";
 import {
   // getCachedEntriesDetailView,
-  getCachedExperienceAndEntriesDetailView
+  getCachedExperienceAndEntriesDetailView,
 } from "../apollo/get-detailed-experience-query";
-import {useWithSubscriptionContext} from "../apollo/injectables";
+import { useWithSubscriptionContext } from "../apollo/injectables";
 import {
   getAndRemoveOfflineExperienceIdFromSyncFlag,
   // getSyncError,
-  putOfflineExperienceIdInSyncFlag
+  putOfflineExperienceIdInSyncFlag,
 } from "../apollo/sync-to-server-cache";
-import {removeUnsyncedExperiences} from "../apollo/unsynced-ledger";
-import {DetailExperience} from "../components/DetailExperience/detail-experience.component";
+import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
+import { DetailExperience } from "../components/DetailExperience/detail-experience.component";
 import {
   deleteFooterCloseId,
   deleteHeaderCloseId,
@@ -43,30 +46,29 @@ import {
   deleteOkId,
   domPrefix,
   refetchId,
-
-
-  syncErrorsNotificationId, updateMenuItemId,
-  updateSuccessNotificationId
+  syncErrorsNotificationId,
+  updateMenuItemId,
+  updateSuccessNotificationId,
 } from "../components/DetailExperience/detail-experience.dom";
 import {
   Match,
-  Props
+  Props,
 } from "../components/DetailExperience/detailed-experience-utils";
-import {CallerProps as EntriesCallerProps} from "../components/entries/entries.utils";
-import {Props as NewEntryProps} from "../components/UpsertEntry/upsert-entry.utils";
-import {Props as UpsertExperienceProps} from "../components/UpsertExperience/upsert-experience.utils";
-import // cleanUpOfflineExperiences,
-
-  // cleanUpSyncedOfflineEntries,
-  "../components/WithSubscriptions/with-subscriptions.utils";
-import {getById} from "../tests.utils";
-import {deleteObjectKey} from "../utils";
-import {getIsConnected} from "../utils/connections";
-import {deleteExperiences} from "../utils/delete-experiences.gql";
-import {GetExperienceAndEntriesDetailViewQueryResult} from "../utils/experience.gql.types";
-import {ChangeUrlType, windowChangeUrl} from "../utils/global-window";
-import {updateExperiencesMutation} from "../utils/update-experiences.gql";
-import {MY_URL} from "../utils/urls";
+import { CallerProps as EntriesCallerProps } from "../components/entries/entries.utils";
+import { Props as NewEntryProps } from "../components/UpsertEntry/upsert-entry.utils";
+import { Props as UpsertExperienceProps } from "../components/UpsertExperience/upsert-experience.utils";
+import {
+  // cleanUpOfflineExperiences,
+  cleanUpSyncedOfflineEntries,
+} from "../components/WithSubscriptions/with-subscriptions.utils";
+import { getById } from "../tests.utils";
+import { deleteObjectKey } from "../utils";
+import { getIsConnected } from "../utils/connections";
+import { deleteExperiences } from "../utils/delete-experiences.gql";
+import { GetExperienceAndEntriesDetailViewQueryResult } from "../utils/experience.gql.types";
+import { ChangeUrlType, windowChangeUrl } from "../utils/global-window";
+import { updateExperiencesMutation } from "../utils/update-experiences.gql";
+import { MY_URL } from "../utils/urls";
 
 jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
@@ -140,7 +142,7 @@ const mockPutOfflineExperienceIdInSyncFlag = putOfflineExperienceIdInSyncFlag as
 
 jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
 // const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
-// const mockCleanUpSyncedOfflineEntries = cleanUpSyncedOfflineEntries as jest.Mock;
+const mockCleanUpSyncedOfflineEntries = cleanUpSyncedOfflineEntries as jest.Mock;
 
 const mockUpsertEntrySuccessId = "?a?";
 const mockDismissUpsertEntryUiId = "?b?";
@@ -427,11 +429,11 @@ describe("components", () => {
                   data: "1",
                 },
               ],
-            },
+            } as CreateEntryErrorFragment,
           },
         },
       },
-    },
+    } as OnSyncedData,
   };
 
   const mockGetCachedExperienceAndEntriesDetailView1 = {
@@ -474,6 +476,79 @@ describe("components", () => {
       const [path, type] = calls0;
       expect(path.includes(mockOnlineExperienceId1)).toBe(true);
       expect(type).toEqual(ChangeUrlType.replace);
+    });
+  });
+
+  const withSubscriptionContext2 = {
+    onSyncData: {
+      onlineExperienceUpdatedMap: {
+        [mockOnlineExperienceId1]: {} as any,
+      },
+      onlineExperienceIdToOfflineEntriesMap: {
+        [mockOnlineExperienceId1]: {} as any,
+      },
+      syncErrors: {
+        [mockOnlineExperienceId1]: {
+          ownFields: {
+            __typename: "UpdateExperienceOwnFieldsError",
+            title: "a",
+          },
+          definitions: {
+            [mockOnlineDataDefinitionId1]: {
+              __typename: "DefinitionError",
+              id: mockOnlineDataDefinitionId1,
+              name: "a",
+              type: null,
+              error: null,
+            },
+          },
+          updateEntries: {
+            1: {
+              1: {
+                meta: {
+                  index: 0,
+                  id: "1",
+                },
+                data: "a",
+                error: null,
+              } as DataObjectErrorFragment,
+            },
+          },
+        },
+      },
+    } as OnSyncedData,
+  };
+
+  const mockGetCachedExperienceAndEntriesDetailView2 = {
+    data: {
+      getExperience: {
+        ...mockOnlineExperience1,
+      } as any,
+    },
+  } as GetExperienceAndEntriesDetailViewQueryResult;
+
+  it("sync online experience - with updateEntries and own fields errors", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue(withSubscriptionContext2);
+
+    mockgetAndRemoveOfflineExperienceIdFromSyncFlag.mockReturnValue(
+      mockOfflineExperienceId1,
+    );
+
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
+      mockGetCachedExperienceAndEntriesDetailView2,
+    );
+
+    const { ui } = makeComp();
+
+    await act(async () => {
+      render(ui);
+      expect(getById(syncErrorsNotificationId)).toBeNull();
+
+      await waitFor(() => {
+        expect(getById(syncErrorsNotificationId)).not.toBeNull();
+      });
+
+      expect(mockCleanUpSyncedOfflineEntries).toBeCalled();
     });
   });
 });

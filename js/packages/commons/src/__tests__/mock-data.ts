@@ -14,7 +14,7 @@ import { makeOfflineId } from "../utils/offlines";
 export const mockUser1Id = "aaa";
 
 export const mockOnlineExperienceId1 = "onlineId1";
-const mockOnlineDataDefinitionId1 = "1";
+export const mockOnlineDataDefinitionId1 = "1";
 
 export const mockOfflineExperienceId1 = makeOfflineId("onlineId1");
 

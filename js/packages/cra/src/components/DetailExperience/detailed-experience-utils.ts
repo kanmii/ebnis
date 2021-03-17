@@ -506,7 +506,8 @@ function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
       syncErrors: maybeContextSyncErrors,
     } = context;
 
-    const contextSyncErrors = maybeContextSyncErrors || {};
+    const contextSyncErrors =
+      maybeContextSyncErrors || ({} as ExperienceSyncError);
 
     if (offlineIdToOnlineExperienceMap) {
       const data = {
@@ -518,6 +519,7 @@ function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
 
       const onlineExperience = offlineIdToOnlineExperienceMap[id];
 
+      // istanbul ignore else:
       if (onlineExperience) {
         // Offline experience now synced
 
@@ -555,11 +557,39 @@ function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
       });
     }
 
-    const errors = syncErrors && syncErrors[id];
+    const experienceSyncErrors = syncErrors && syncErrors[id];
 
     // istanbul ignore else:
-    if (errors) {
-      const { createEntries, updateEntries } = errors;
+    if (experienceSyncErrors) {
+      const {
+        createEntries,
+        updateEntries,
+        ownFields,
+        definitions,
+      } = experienceSyncErrors;
+
+      // istanbul ignore else:
+      if (ownFields) {
+        contextSyncErrors.ownFieldsErrors = [["0", ownFields.title]];
+        context.syncErrors = contextSyncErrors;
+      }
+
+      // istanbul ignore else:
+      if (definitions) {
+        const errors: FieldError = [];
+        contextSyncErrors.definitionsErrors = errors;
+        context.syncErrors = contextSyncErrors;
+
+        let index = 1;
+        Object.values(definitions).forEach((error) => {
+          Object.entries(error).forEach(([k, v]) => {
+            if (v && k !== "__typename") {
+              errors.push(["" + index++, v]);
+            }
+          });
+        });
+      }
+
       let entriesErrors = contextSyncErrors.entriesErrors || [];
 
       // :TODO: update child entries
@@ -604,6 +634,7 @@ function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
         );
       }
 
+      // istanbul ignore else:
       if (entriesErrors.length) {
         context.syncErrors = {
           ...contextSyncErrors,
@@ -1401,8 +1432,7 @@ function processEntriesQuery(
 
 function processCreateEntriesErrors(
   entryErrors: IndexToEntryErrorsList,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  { __typename, meta, dataObjects, ...errors }: CreateEntryErrorFragment,
+  { dataObjects, ...errors }: CreateEntryErrorFragment,
   index: number,
 ) {
   const processedErrors: EntryErrorsList = {};
@@ -1411,7 +1441,7 @@ function processCreateEntriesErrors(
   const others: [string, string][] = [];
 
   Object.entries(errors).forEach(([k, v]) => {
-    if (v) {
+    if (v && k !== "__typename" && k !== "meta") {
       others.push([k, v]);
     }
   });
@@ -1457,14 +1487,12 @@ function processDataObjectsErrors(dataObjects: DataObjectErrorFragment[]) {
     const list: [string, string][] = [];
 
     const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      __typename,
       meta: { index: dIndex },
       ...errors
     } = d as DataObjectErrorFragment;
 
     Object.entries(errors).forEach(([k, v]) => {
-      if (v) {
+      if (v && k !== "__typename") {
         list.push([k, v]);
       }
     });
