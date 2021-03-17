@@ -299,6 +299,14 @@ describe("components", () => {
     });
   });
 
+  const mockGetCachedExperienceAndEntriesDetailView2 = {
+    data: {
+      getExperience: {
+        ...mockOnlineExperience1,
+      } as any,
+    },
+  } as GetExperienceAndEntriesDetailViewQueryResult;
+
   it("first fetch of experience fails/succeeds on retry from cache", async () => {
     mockGetIsConnected.mockReturnValue(true);
 
@@ -327,13 +335,9 @@ describe("components", () => {
       expect(getById(mockLoadingId)).toBeNull();
       expect(getById(domPrefix)).toBeNull();
 
-      mockGetCachedExperienceAndEntriesDetailView.mockReturnValue({
-        data: {
-          getExperience: {
-            ...mockOnlineExperience1,
-          } as any,
-        },
-      } as GetExperienceAndEntriesDetailViewQueryResult);
+      mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
+        mockGetCachedExperienceAndEntriesDetailView2,
+      );
 
       retryEl.click();
 
@@ -561,14 +565,6 @@ describe("components", () => {
     } as OnSyncedData,
   };
 
-  const mockGetCachedExperienceAndEntriesDetailView2 = {
-    data: {
-      getExperience: {
-        ...mockOnlineExperience1,
-      } as any,
-    },
-  } as GetExperienceAndEntriesDetailViewQueryResult;
-
   it("sync online experience - with updateEntries and own fields errors", async () => {
     mockUseWithSubscriptionContext.mockReturnValue(withSubscriptionContext2);
 
@@ -594,19 +590,11 @@ describe("components", () => {
     });
   });
 
-  const mockGetCachedExperienceAndEntriesDetailView3 = {
-    data: {
-      getExperience: {
-        ...mockOnlineExperience1,
-      } as any,
-    },
-  } as GetExperienceAndEntriesDetailViewQueryResult;
-
   it("comments menu", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
-      mockGetCachedExperienceAndEntriesDetailView3,
+      mockGetCachedExperienceAndEntriesDetailView2,
     );
 
     const { ui } = makeComp();
@@ -652,19 +640,11 @@ describe("components", () => {
     });
   });
 
-  const mockGetCachedExperienceAndEntriesDetailView4 = {
-    data: {
-      getExperience: {
-        ...mockOnlineExperience1,
-      } as any,
-    },
-  } as GetExperienceAndEntriesDetailViewQueryResult;
-
   it("menu", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
-      mockGetCachedExperienceAndEntriesDetailView4,
+      mockGetCachedExperienceAndEntriesDetailView2,
     );
 
     const { ui } = makeComp();
