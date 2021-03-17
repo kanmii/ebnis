@@ -2,7 +2,6 @@
 import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
 import { DeleteExperiences } from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ComponentTimeoutsMs } from "@eb/cm/src/utils/timers";
 import { EbnisGlobals, OnSyncedData, StateValue } from "@eb/cm/src/utils/types";
 import {
@@ -54,8 +53,6 @@ import {
   Match,
   Props,
 } from "../components/DetailExperience/detailed-experience-utils";
-import { CallerProps as EntriesCallerProps } from "../components/entries/entries.utils";
-import { Props as NewEntryProps } from "../components/UpsertEntry/upsert-entry.utils";
 import { Props as UpsertExperienceProps } from "../components/UpsertExperience/upsert-experience.utils";
 import {
   // cleanUpOfflineExperiences,
@@ -117,16 +114,10 @@ jest.mock("../components/Loading/loading.component", () => {
 jest.mock("../components/Header/header.component", () => () => null);
 
 jest.mock("../components/entries/entries.component", () => {
-  return ({ postActions }: EntriesCallerProps) => {
+  return () => {
     return <div>1</div>;
   };
 });
-
-jest.mock("../components/DetailExperience/detail-experience.lazy", () => ({
-  Comments: () => {
-    return null;
-  },
-}));
 
 jest.mock("../utils/connections");
 const mockGetIsConnected = getIsConnected as jest.Mock;
@@ -144,36 +135,8 @@ jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
 // const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
 const mockCleanUpSyncedOfflineEntries = cleanUpSyncedOfflineEntries as jest.Mock;
 
-const mockUpsertEntrySuccessId = "?a?";
-const mockDismissUpsertEntryUiId = "?b?";
-const mockNewlyCreatedEntry = {
-  __typename: "Entry",
-  updatedAt: "2020-05-08T06:49:19Z",
-  id: "c",
-  clientId: "d",
-  dataObjects: [
-    {
-      id: "c",
-      definitionId: "1",
-      data: `{"integer":7}`,
-    },
-  ],
-} as EntryFragment;
-const mockStateValue = StateValue;
 jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
   return {
-    UpsertEntry: ({ onSuccess, onClose }: NewEntryProps) => (
-      <div>
-        <button
-          id={mockUpsertEntrySuccessId}
-          onClick={() => {
-            onSuccess(mockNewlyCreatedEntry, mockStateValue.online);
-          }}
-        />
-
-        <button id={mockDismissUpsertEntryUiId} onClick={onClose} />
-      </div>
-    ),
     Comments: () => null,
   };
 });
