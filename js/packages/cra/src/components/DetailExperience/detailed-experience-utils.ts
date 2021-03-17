@@ -140,7 +140,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           break;
 
         case ActionType.toggle_menu:
-          handleToggleExperienceMenuAction(proxy, payload as ToggleMenuPayload);
+          handleToggleMenuAction(proxy, payload as ToggleMenuPayload);
           break;
 
         case ActionType.on_fetched:
@@ -290,7 +290,7 @@ function handleDeleteExperienceConfirmedAction(proxy: StateMachine) {
   }
 }
 
-function handleToggleExperienceMenuAction(
+function handleToggleMenuAction(
   proxy: StateMachine,
   payload: ToggleMenuPayload,
 ) {
