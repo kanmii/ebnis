@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { activeClassName } from "../utils/utils.dom";
 import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
 import { DeleteExperiences } from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
@@ -45,19 +44,24 @@ import {
   deleteMenuItemId,
   deleteOkId,
   domPrefix,
+  menuSelector,
   menuTriggerSelector,
+  newEntryMenuItemSelector,
   noTriggerDocumentEventClassName,
   refetchId,
   syncErrorsNotificationId,
   updateMenuItemId,
   updateSuccessNotificationId,
-  menuSelector,
 } from "../components/DetailExperience/detail-experience.dom";
 import {
   ActionType,
   Match,
   Props,
 } from "../components/DetailExperience/detailed-experience-utils";
+import {
+  CallerProps as EntriesCallerProps,
+  EntriesRemoteActionType,
+} from "../components/entries/entries.utils";
 import {
   createCommentsMenuId,
   hideCommentsMenuId,
@@ -80,6 +84,9 @@ import { GetExperienceAndEntriesDetailViewQueryResult } from "../utils/experienc
 import { ChangeUrlType, windowChangeUrl } from "../utils/global-window";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { MY_URL } from "../utils/urls";
+import { activeClassName } from "../utils/utils.dom";
+
+const mockActionType = ActionType;
 
 jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
@@ -130,9 +137,30 @@ jest.mock("../components/Header/header.component", () => () => (
   <div id={mockHeaderId} />
 ));
 
+const mockNewEntryId = "@t/new-entry";
+const mockEntryMenuId = "@t/entry-menu";
+const mockEntriesRemoteActionType = EntriesRemoteActionType;
 jest.mock("../components/entries/entries.component", () => {
-  return () => {
-    return <div>1</div>;
+  return (props: EntriesCallerProps) => {
+    const { parentDispatch, postActions } = props;
+    const x = postActions[0];
+
+    return (
+      <div>
+        <span
+          id={mockNewEntryId}
+          onClick={() => {
+            parentDispatch({
+              type: mockActionType.hide_menus,
+              menus: ["mainCircular"],
+            });
+          }}
+        />
+        {x && x.type === mockEntriesRemoteActionType.upsert && (
+          <span id={mockEntryMenuId} />
+        )}
+      </div>
+    );
   };
 });
 
@@ -156,7 +184,6 @@ const mockUpsertCommentsId = "@t/upsert-comments";
 const mockCloseUpsertCommentsId = "@t/close-comments";
 const mockCommentsHideMenuId = "@t/comments-hide-menu";
 const mockCommentRemoteActionType = CommentRemoteActionType;
-const mockActionType = ActionType;
 const mockNoTriggerDocumentEventClassName = noTriggerDocumentEventClassName;
 jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
   return {
@@ -672,6 +699,38 @@ describe("components", () => {
       expect(menuEl.classList).toContain(activeClassName);
       // menu can also be closed by toggling
       menuTriggerEl.click();
+      expect(menuEl.classList).not.toContain(activeClassName);
+    });
+  });
+
+  it("entries", async () => {
+    mockUseWithSubscriptionContext.mockReturnValue({});
+
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
+      mockGetCachedExperienceAndEntriesDetailView2,
+    );
+
+    const { ui } = makeComp();
+
+    await act(async () => {
+      render(ui);
+
+      const newEntryMenuEl = await waitFor(() => {
+        const el = getOneByClass(newEntryMenuItemSelector);
+        expect(el).not.toBeNull();
+        return el;
+      });
+
+      expect(getById(mockEntryMenuId)).toBeNull();
+      newEntryMenuEl.click();
+      expect(getById(mockEntryMenuId)).not.toBeNull();
+
+      const menuEl = getOneByClass(menuSelector);
+      expect(menuEl.classList).not.toContain(activeClassName);
+      getOneByClass(menuTriggerSelector).click();
+      expect(menuEl.classList).toContain(activeClassName);
+
+      getById(mockNewEntryId).click();
       expect(menuEl.classList).not.toContain(activeClassName);
     });
   });
