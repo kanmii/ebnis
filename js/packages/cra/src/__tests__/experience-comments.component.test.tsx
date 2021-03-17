@@ -55,7 +55,7 @@ import {
   StateMachine as S,
 } from "../components/experience-comments/experience-comments.utils";
 import { Props as UpsertCommentProps } from "../components/UpsertComment/upsert-comment.utils";
-import { getByClass, getById, getEffects } from "../tests.utils";
+import { getAllByClass, getById, getEffects } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { getIsConnected } from "../utils/connections";
 import { getExperienceComments } from "../utils/experience.gql.types";
@@ -432,11 +432,11 @@ describe("components", () => {
       const { debug } = render(ui);
 
       // Comments options trigger should not be visible
-      expect(getByClass(commentItemOptionsSelector).length).toBe(0);
+      expect(getAllByClass(commentItemOptionsSelector).length).toBe(0);
 
       // Comments options trigger should be visible
       const optionsMenus = await waitFor(() => {
-        const options = getByClass(commentItemOptionsSelector);
+        const options = getAllByClass(commentItemOptionsSelector);
         expect(options.length).not.toBe(0);
         return options;
       });
@@ -451,7 +451,7 @@ describe("components", () => {
       expect(optionMenu2.classList).not.toContain(activeClassName);
 
       // When option 0 menu is toggled on
-      const optionsToggle = getByClass(commentItemOptionsToggleSelector);
+      const optionsToggle = getAllByClass(commentItemOptionsToggleSelector);
       const option0Toggle = optionsToggle.item(0) as HTMLElement;
       const option1Toggle = optionsToggle.item(1) as HTMLElement;
 
@@ -479,7 +479,7 @@ describe("components", () => {
       // Delete comment prompt should not be visible
       expect(getById(deleteCommentPromptHeaderCloseId)).toBeNull();
 
-      const deleteMenus = getByClass(deleteCommentMenuSelector);
+      const deleteMenus = getAllByClass(deleteCommentMenuSelector);
       const deleteMenu0 = deleteMenus.item(0) as HTMLElement;
 
       // When delete menu is clicked
@@ -528,7 +528,7 @@ describe("components", () => {
       // AfterCommentsDeleted UI should not be visible
       expect(getById(deletedCommentsFailure)).toBeNull();
       expect(getById(deletedCommentsSuccess)).toBeNull();
-      expect(getByClass(deletedCommentsFailureSelector).length).toBe(0);
+      expect(getAllByClass(deletedCommentsFailureSelector).length).toBe(0);
 
       // WaitingForTask UI should be visible
       expect(getById(mockLoadingId)).not.toBeNull();
@@ -537,7 +537,7 @@ describe("components", () => {
       await waitFor(() => {
         expect(getById(deletedCommentsSuccess)).not.toBeNull();
       });
-      expect(getByClass(deletedCommentsFailureSelector).length).not.toBe(0);
+      expect(getAllByClass(deletedCommentsFailureSelector).length).not.toBe(0);
 
       // WaitingForTask UI should not be visible
       expect(getById(mockLoadingId)).toBeNull();

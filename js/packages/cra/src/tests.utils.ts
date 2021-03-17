@@ -15,8 +15,12 @@ export function getById<T extends HTMLElement = HTMLElement>(domId: string) {
   return document.getElementById(domId) as T;
 }
 
-export function getByClass(className: string) {
+export function getAllByClass(className: string) {
   return document.getElementsByClassName(className);
+}
+
+export function getOneByClass(className: string, index = 0) {
+  return document.getElementsByClassName(className).item(index) as HTMLElement
 }
 
 export const defaultExperience = {
