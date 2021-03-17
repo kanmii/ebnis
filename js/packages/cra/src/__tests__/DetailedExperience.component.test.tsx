@@ -122,7 +122,10 @@ jest.mock("../components/Loading/loading.component", () => {
   return () => <span id={mockLoadingId} />;
 });
 
-jest.mock("../components/Header/header.component", () => () => null);
+const mockHeaderId = "@t/header";
+jest.mock("../components/Header/header.component", () => () => (
+  <div id={mockHeaderId} />
+));
 
 jest.mock("../components/entries/entries.component", () => {
   return () => {
@@ -148,6 +151,7 @@ const mockCleanUpSyncedOfflineEntries = cleanUpSyncedOfflineEntries as jest.Mock
 
 const mockUpsertCommentsId = "@t/upsert-comments";
 const mockCloseUpsertCommentsId = "@t/close-comments";
+const mockCommentsHideMenuId = "@t/comments-hide-menu";
 const mockCommentRemoteActionType = CommentRemoteActionType;
 const mockActionType = ActionType;
 const mockNoTriggerDocumentEventClassName = noTriggerDocumentEventClassName;
@@ -163,17 +167,13 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
             onClick={() => {
               const { type } = postActions[0];
 
-              switch (type) {
-                case mockCommentRemoteActionType.upsert:
-                  {
-                    parentDispatch({
-                      type: mockActionType.comment_action,
-                      action: {
-                        type: mockCommentRemoteActionType.upsert,
-                      },
-                    });
-                  }
-                  break;
+              if (type === mockCommentRemoteActionType.upsert) {
+                parentDispatch({
+                  type: mockActionType.comment_action,
+                  action: {
+                    type: mockCommentRemoteActionType.upsert,
+                  },
+                });
               }
             }}
           />
@@ -187,6 +187,28 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
                   type: mockCommentRemoteActionType.upsert_closed,
                 },
               });
+            }}
+          />
+
+          <span
+            id={mockCommentsHideMenuId}
+            onClick={() => {
+              const x = postActions[0];
+
+              if (!x) {
+                return;
+              }
+
+              const { type } = x;
+
+              if (type === mockCommentRemoteActionType.hide_menus) {
+                parentDispatch({
+                  type: mockActionType.comment_action,
+                  action: {
+                    type: mockCommentRemoteActionType.hide,
+                  },
+                });
+              }
             }}
           />
         </div>
@@ -614,6 +636,16 @@ describe("components", () => {
 
       getById(mockCloseUpsertCommentsId).click();
       expect(getById(hideCommentsMenuId)).not.toBeNull();
+
+      const mockHideCommentsEl = getById(mockCommentsHideMenuId);
+      mockHideCommentsEl.click();
+      expect(getById(mockUpsertCommentsId)).not.toBeNull();
+
+      // clicking any where on the page should send hide menu event to Comments
+      getById(mockHeaderId).click();
+      // we test that Comments component did indeed receive this message
+      mockHideCommentsEl.click();
+      expect(getById(mockUpsertCommentsId)).toBeNull();
     });
   });
 });
