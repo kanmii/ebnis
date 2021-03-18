@@ -8,8 +8,6 @@ context("Sync", () => {
   beforeEach(() => {
     cy.checkoutSession();
     cy.registerUser();
-
-    //
   });
 
   describe("My page", () => {
