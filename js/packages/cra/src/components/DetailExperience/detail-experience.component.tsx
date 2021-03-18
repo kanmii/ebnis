@@ -607,6 +607,11 @@ function PromptToFixSyncErrorNotificationComponent() {
     ownFieldsErrors,
   } = syncErrors as ExperienceSyncError;
 
+  const hasDefOrOwnFieldsErrors =
+    definitionsErrors ||
+    // istanbul ignore next:
+    ownFieldsErrors;
+
   return (
     <Modal onClose={closeSyncErrorsMsg}>
       <Modal.Card>
@@ -614,7 +619,7 @@ function PromptToFixSyncErrorNotificationComponent() {
           Please fix sync errors
         </Modal.Header>
         <Modal.Body>
-          {(definitionsErrors || ownFieldsErrors) && (
+          {hasDefOrOwnFieldsErrors && (
             <strong id={syncExperienceErrorsMsgId}>
               There are errors while syncing the experience. Click on 'Fix'
               button below
@@ -627,7 +632,7 @@ function PromptToFixSyncErrorNotificationComponent() {
           )}
         </Modal.Body>
         <Modal.Footer>
-          {(definitionsErrors || ownFieldsErrors) && (
+          {hasDefOrOwnFieldsErrors && (
             <Button
               id={fixSyncErrorsId}
               type="button"

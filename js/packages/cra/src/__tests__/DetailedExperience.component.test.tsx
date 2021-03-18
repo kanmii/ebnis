@@ -39,6 +39,7 @@ import {
 import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
 import { DetailExperience } from "../components/DetailExperience/detail-experience.component";
 import {
+  closeSyncErrorsMsgBtnId,
   deleteFooterCloseId,
   deleteHeaderCloseId,
   deleteMenuItemId,
@@ -614,6 +615,14 @@ describe("components", () => {
       });
 
       expect(mockCleanUpSyncedOfflineEntries).toBeCalled();
+
+      expect(getById(closeSyncErrorsMsgBtnId)).toBeNull();
+
+      const newEntryMenuEl = getOneByClass(newEntryMenuItemSelector);
+      newEntryMenuEl.click();
+
+      getById(closeSyncErrorsMsgBtnId).click();
+      expect(getById(closeSyncErrorsMsgBtnId)).toBeNull();
     });
   });
 
