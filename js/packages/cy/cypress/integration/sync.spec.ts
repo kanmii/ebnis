@@ -13,15 +13,13 @@ context("Sync", () => {
   });
 
   describe("My page", () => {
-    const title1 = "tt";
-
     it("sync complete offline experience succeeds", () => {
       // Given there is an offline experience in the system
       const p = createOfflineExperience(
         {
           input: [
             {
-              title: title1,
+              title: "t1",
               description: "dd",
               dataDefinitions: [
                 {
