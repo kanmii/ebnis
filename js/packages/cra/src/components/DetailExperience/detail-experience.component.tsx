@@ -15,7 +15,10 @@ import React, {
 } from "react";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { deleteExperiences } from "../../utils/delete-experiences.gql";
-import { getExperienceComments } from "../../utils/experience.gql.types";
+import {
+  getExperienceAndEntriesDetailView,
+  getExperienceComments,
+} from "../../utils/experience.gql.types";
 import { setUpRoutePage } from "../../utils/global-window";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
@@ -49,9 +52,9 @@ import {
   deleteMenuItemId,
   deleteOkId,
   domPrefix,
+  fixSyncErrorsId,
   menuSelector,
   menuTriggerSelector,
-  fixSyncErrorsId,
   newEntryMenuItemSelector,
   noTriggerDocumentEventClassName,
   refetchId,
@@ -233,6 +236,7 @@ export default (props: CallerProps) => {
       componentTimeoutsMs={componentTimeoutsMs}
       getExperienceComments={getExperienceComments}
       updateExperiencesMutation={updateExperiencesMutation}
+      getExperienceAndEntriesDetailView={getExperienceAndEntriesDetailView}
     />
   );
 };

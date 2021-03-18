@@ -71,7 +71,7 @@ import {
   getGeneralEffects,
 } from "../../utils/effects";
 import {
-  getExperienceAndEntriesDetailView,
+  GetExperienceAndEntriesDetailViewFn,
   GetExperienceCommentsFn,
 } from "../../utils/experience.gql.types";
 import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
@@ -1094,6 +1094,7 @@ type DefDeleteEffect = EffectDefinition<
 const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
   const {
     componentTimeoutsMs: { fetchRetries },
+    getExperienceAndEntriesDetailView,
   } = props;
 
   const experienceId = getExperienceId(props);
@@ -1131,7 +1132,7 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
     return;
   }
 
-  async function fetchDetailedExperience() {
+  async function doFetch() {
     try {
       const data = await getExperienceAndEntriesDetailView(
         {
@@ -1144,7 +1145,9 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
       );
 
       const daten =
-        (data && data.data) || ({} as GetExperienceAndEntriesDetailView);
+        (data && data.data) ||
+        // istanbul ignore next:
+        ({} as GetExperienceAndEntriesDetailView);
 
       const [experienceData, newSyncErrors] = processGetExperienceQuery(
         daten.getExperience || null,
@@ -1172,10 +1175,10 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
     }
   }
 
-  function mayBeScheduleFetchDetailedExperience() {
+  function schedule() {
     // we are connected
     if (getIsConnected()) {
-      fetchDetailedExperience();
+      doFetch();
       return;
     }
 
@@ -1192,13 +1195,10 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
       return;
     }
 
-    timeoutId = setTimeout(
-      mayBeScheduleFetchDetailedExperience,
-      fetchRetries[fetchAttemptsCount++],
-    );
+    timeoutId = setTimeout(schedule, fetchRetries[fetchAttemptsCount++]);
   }
 
-  mayBeScheduleFetchDetailedExperience();
+  schedule();
 };
 
 type DefFetchEffect = EffectDefinition<"fetchEffect">;
@@ -1675,6 +1675,7 @@ export type Props = DeleteExperiencesComponentProps &
   UpdateExperiencesMutationProps & {
     componentTimeoutsMs: ComponentTimeoutsMs;
     getExperienceComments: GetExperienceCommentsFn;
+    getExperienceAndEntriesDetailView: GetExperienceAndEntriesDetailViewFn;
   };
 
 export type Match = match<DetailExperienceRouteMatch>;

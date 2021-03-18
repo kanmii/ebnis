@@ -8,6 +8,7 @@ import {
   mockOfflineExperience1,
   mockOfflineExperienceId1,
   mockOnlineDataDefinitionId1,
+  mockOnlineEntry1,
   mockOnlineExperience1,
   mockOnlineExperienceId1,
 } from "@eb/cm/src/__tests__/mock-data";
@@ -56,8 +57,13 @@ import {
 } from "../components/DetailExperience/detail-experience.dom";
 import {
   ActionType,
+  EffectArgs,
+  effectFunctions,
+  EffectType as E,
+  initState,
   Match,
   Props,
+  StateMachine as S,
 } from "../components/DetailExperience/detailed-experience-utils";
 import {
   CallerProps as EntriesCallerProps,
@@ -77,11 +83,14 @@ import {
   // cleanUpOfflineExperiences,
   cleanUpSyncedOfflineEntries,
 } from "../components/WithSubscriptions/with-subscriptions.utils";
-import { getById, getOneByClass } from "../tests.utils";
+import { getById, getEffects, getOneByClass } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { getIsConnected } from "../utils/connections";
 import { deleteExperiences } from "../utils/delete-experiences.gql";
-import { GetExperienceAndEntriesDetailViewQueryResult } from "../utils/experience.gql.types";
+import {
+  getExperienceAndEntriesDetailView,
+  GetExperienceAndEntriesDetailViewQueryResult,
+} from "../utils/experience.gql.types";
 import { ChangeUrlType, windowChangeUrl } from "../utils/global-window";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { MY_URL } from "../utils/urls";
@@ -273,6 +282,10 @@ afterAll(() => {
   deleteObjectKey(window, "____ebnis");
 });
 
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
 describe("components", () => {
   beforeAll(() => {
     mswServerListen();
@@ -295,7 +308,6 @@ describe("components", () => {
     cleanup();
     deleteObjectKey(ebnisObject, "client");
     deleteObjectKey(ebnisObject, "cache");
-    jest.clearAllMocks();
   });
 
   it("fetch experience succeeds / connected / no retry", async () => {
@@ -745,6 +757,110 @@ describe("components", () => {
   });
 });
 
+describe("reducers", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.clearAllTimers();
+  });
+
+  const mockDispatchFn = jest.fn();
+  const mockGetExperienceAndEntriesDetailView = jest.fn();
+
+  const props = {
+    componentTimeoutsMs,
+    match: {
+      params: {
+        experienceId: mockOnlineExperienceId1,
+      },
+    },
+    getExperienceAndEntriesDetailView: mockGetExperienceAndEntriesDetailView as any,
+  } as Props;
+
+  const effectArgs = {
+    dispatch: mockDispatchFn,
+  } as EffectArgs;
+
+  it("fetches successfully on retry", async () => {
+    // first time to fetch , there is not network
+    mockGetIsConnected
+      .mockReturnValueOnce(false)
+      // So we try again
+      .mockReturnValueOnce(true);
+
+    const fetchState = initState();
+    const e = getEffects<E, S>(fetchState)[0];
+
+    mockGetExperienceAndEntriesDetailView.mockResolvedValue({
+      data: {
+        getExperience: {
+          ...mockOnlineExperience1,
+        } as any,
+        getEntries: {
+          __typename: "GetEntriesSuccess",
+          entries: {
+            pageInfo: {},
+            edges: [
+              {
+                node: {
+                  ...mockOnlineEntry1,
+                },
+              },
+            ],
+          },
+        },
+      },
+    } as GetExperienceAndEntriesDetailViewQueryResult);
+
+    await effectFunctions[e.key](e.ownArgs as any, props, effectArgs);
+    jest.runOnlyPendingTimers();
+    await waitFor(() => true);
+
+    const call = mockDispatchFn.mock.calls[0][0];
+    expect(call.experienceData.entriesData.key).toEqual(StateValue.success);
+  });
+
+  it("was never able to fetch after all retries", async () => {
+    // first time to fetch , there is no network
+    mockGetIsConnected
+      .mockReturnValueOnce(false)
+      // So we try again, but no network still - we will then fail
+      .mockReturnValueOnce(false);
+
+    const fetchState = initState();
+    const e = getEffects<E, S>(fetchState)[0];
+
+    mockGetExperienceAndEntriesDetailView.mockResolvedValue(
+      {} as GetExperienceAndEntriesDetailViewQueryResult,
+    );
+
+    await effectFunctions[e.key](e.ownArgs as any, props, effectArgs);
+    jest.runOnlyPendingTimers();
+    await waitFor(() => true);
+
+    const call = mockDispatchFn.mock.calls[0][0];
+    expect(call.experienceData.key).toEqual(StateValue.errors);
+  });
+
+  it("fetch throws exception", async () => {
+    mockGetIsConnected.mockReturnValueOnce(true);
+
+    const fetchState = initState();
+    const e = getEffects<E, S>(fetchState)[0];
+
+    mockGetExperienceAndEntriesDetailView.mockRejectedValue(new Error("a"));
+
+    await effectFunctions[e.key](e.ownArgs as any, props, effectArgs);
+    await waitFor(() => true);
+
+    const call = mockDispatchFn.mock.calls[0][0];
+    expect(call.experienceData.key).toEqual(StateValue.errors);
+  });
+});
+
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
 
 const DetailExperienceP = DetailExperience as ComponentType<Partial<Props>>;
@@ -773,6 +889,7 @@ function makeComp({
         componentTimeoutsMs={componentTimeoutsMs}
         updateExperiencesMutation={updateExperiencesMutation}
         deleteExperiences={deleteExperiences}
+        getExperienceAndEntriesDetailView={getExperienceAndEntriesDetailView}
         {...props}
       />
     ),

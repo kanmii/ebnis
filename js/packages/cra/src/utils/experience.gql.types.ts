@@ -147,6 +147,8 @@ export function getExperienceAndEntriesDetailView(
   });
 }
 
+export type GetExperienceAndEntriesDetailViewFn = typeof getExperienceAndEntriesDetailView;
+
 export type GetExperienceAndEntriesDetailViewQueryResult = ApolloQueryResult<GetExperienceAndEntriesDetailView>;
 
 export function getEntriesDetailView(variables: GetEntriesDetailViewVariables) {
