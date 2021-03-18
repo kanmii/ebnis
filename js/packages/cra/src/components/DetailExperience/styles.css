@@ -38,18 +38,6 @@
   z-index: 1;
 }
 
-.delete-experience-component,
-.upsert-experience-notification-modal {
-  .modal-card {
-    max-width: 350px;
-    width: 90%;
-  }
-}
-
-.delete-experience__cancel-button {
-  margin-left: 15px;
-}
-
 .refetch-btn {
   display: block;
   margin-top: 25px;

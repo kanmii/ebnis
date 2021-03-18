@@ -608,65 +608,45 @@ function PromptToFixSyncErrorNotificationComponent() {
   } = syncErrors as ExperienceSyncError;
 
   return (
-    <div
-      className={trimClass(`
-        modal
-        is-active
-        upsert-experience-notification-modal
-    `)}
-    >
-      <div className="modal-background"></div>
-
-      <div className="modal-card">
-        <header className="modal-card-head">
-          <div className="modal-card-title"></div>
-
-          <button
-            className="delete upsert-entry__delete"
-            aria-label="close"
-            type="button"
-            onClick={closeSyncErrorsMsg}
-            id={closeSyncErrorsMsgBtnId}
-          />
-        </header>
-
-        <section className="modal-card-body">
+    <Modal onClose={closeSyncErrorsMsg}>
+      <Modal.Card>
+        <Modal.Header id={closeSyncErrorsMsgBtnId}>
+          Please fix sync errors
+        </Modal.Header>
+        <Modal.Body>
           {(definitionsErrors || ownFieldsErrors) && (
             <strong id={syncExperienceErrorsMsgId}>
               There are errors while syncing the experience. Click on 'Fix'
               button below
             </strong>
           )}
-
           {entriesErrors && (
             <strong id={syncEntriesErrorsMsgId}>
               There are entries errors. Click on the entry to fix.
             </strong>
           )}
-        </section>
-
-        <footer className="modal-card-foot">
+        </Modal.Body>
+        <Modal.Footer>
           {(definitionsErrors || ownFieldsErrors) && (
-            <button
-              className="button is-success"
+            <Button
               id={fixSyncErrorsId}
               type="button"
               onClick={requestUpdateUiCb}
+              btnType="is-success"
             >
               Fix errors
-            </button>
+            </Button>
           )}
-
-          <button
-            className="button is-warning"
+          <Button
             id={closeSyncErrorsMsgId}
             type="button"
             onClick={closeSyncErrorsMsg}
+            btnType="is-danger"
           >
             Cancel
-          </button>
-        </footer>
-      </div>
-    </div>
+          </Button>
+        </Modal.Footer>
+      </Modal.Card>
+    </Modal>
   );
 }
