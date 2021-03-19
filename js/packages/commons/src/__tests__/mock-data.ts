@@ -27,6 +27,8 @@ const mockOnlineExperience3DefinitionId1 = "1";
 const mockOnlineEntry1ClientId = "on-ent-cl-1";
 export const mockOnlineEntry1Id = "on-ent-1";
 
+export const mockOnlineEntry2Id = "on-ent-2";
+
 export const mockOfflineEntry1Id = makeOfflineId("b");
 
 export const mockComment1Id = "comment-1";
@@ -35,7 +37,7 @@ export const mockComment2Id = "comment-2";
 
 export const mockComment3Id = "comment-3";
 
-export const mockDataObject1id = "aa";
+export const mockOnlineDataObject1id = "aa";
 // ====================================================
 // END IDs
 // ====================================================
@@ -49,7 +51,27 @@ export const mockOnlineEntry1: EntryFragment = {
   updatedAt: "2020-09-16T20:00:37Z",
   dataObjects: [
     {
-      id: mockDataObject1id,
+      id: mockOnlineDataObject1id,
+      definitionId: mockOnlineDataDefinitionId1,
+      data: `{"integer":1}`,
+      __typename: "DataObject",
+      clientId: "",
+      insertedAt: "2021-02-19T00:41:52.618Z",
+      updatedAt: "2021-02-19T00:41:52.618Z",
+    },
+  ],
+};
+
+export const mockOnlineEntry2: EntryFragment = {
+  __typename: "Entry",
+  experienceId: mockOnlineExperienceId1,
+  id: mockOnlineEntry2Id,
+  clientId: null,
+  insertedAt: "2020-09-16T20:00:37Z",
+  updatedAt: "2020-09-16T20:00:37Z",
+  dataObjects: [
+    {
+      id: mockOnlineDataObject1id,
       definitionId: mockOnlineDataDefinitionId1,
       data: `{"integer":1}`,
       __typename: "DataObject",

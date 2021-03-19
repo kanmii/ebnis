@@ -3,12 +3,23 @@ import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/Create
 import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
 import { DeleteExperiences } from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
 import { ComponentTimeoutsMs } from "@eb/cm/src/utils/timers";
-import { EbnisGlobals, OnSyncedData, StateValue } from "@eb/cm/src/utils/types";
 import {
+  EbnisGlobals,
+  OnSyncedData,
+  StateValue,
+  SyncErrors,
+} from "@eb/cm/src/utils/types";
+import {
+  mockOfflineEntry1,
+  mockOfflineEntry1Id,
   mockOfflineExperience1,
   mockOfflineExperienceId1,
   mockOnlineDataDefinitionId1,
+  mockOnlineDataObject1id,
   mockOnlineEntry1,
+  mockOnlineEntry1Id,
+  mockOnlineEntry2,
+  mockOnlineEntry2Id,
   mockOnlineExperience1,
   mockOnlineExperienceId1,
 } from "@eb/cm/src/__tests__/mock-data";
@@ -34,7 +45,7 @@ import {
 import { useWithSubscriptionContext } from "../apollo/injectables";
 import {
   getAndRemoveOfflineExperienceIdFromSyncFlag,
-  // getSyncError,
+  getSyncError,
   putOfflineExperienceIdInSyncFlag,
 } from "../apollo/sync-to-server-cache";
 import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
@@ -64,6 +75,7 @@ import {
   Match,
   Props,
   StateMachine as S,
+  reducer,
 } from "../components/DetailExperience/detailed-experience-utils";
 import {
   CallerProps as EntriesCallerProps,
@@ -181,7 +193,7 @@ jest.mock("../apollo/get-detailed-experience-query");
 const mockGetCachedExperienceAndEntriesDetailView = getCachedExperienceAndEntriesDetailView as jest.Mock;
 
 jest.mock("../apollo/sync-to-server-cache");
-// const mockGetSyncError = getSyncError as jest.Mock;
+const mockGetSyncError = getSyncError as jest.Mock;
 const mockgetAndRemoveOfflineExperienceIdFromSyncFlag = getAndRemoveOfflineExperienceIdFromSyncFlag as jest.Mock;
 const mockPutOfflineExperienceIdInSyncFlag = putOfflineExperienceIdInSyncFlag as jest.Mock;
 // const mockPutOrRemoveSyncError = putOrRemoveSyncError as jest.Mock;
@@ -284,6 +296,8 @@ afterAll(() => {
 
 afterEach(() => {
   jest.clearAllMocks();
+  ebnisObject.logApolloQueries = false;
+  ebnisObject.logReducers = false;
 });
 
 describe("components", () => {
@@ -605,6 +619,27 @@ describe("components", () => {
     } as OnSyncedData,
   };
 
+  const mockGetCachedExperienceAndEntriesDetailView3 = {
+    data: {
+      getExperience: {
+        ...mockOnlineExperience1,
+      } as any,
+      getEntries: {
+        __typename: "GetEntriesSuccess",
+        entries: {
+          pageInfo: {},
+          edges: [
+            {
+              node: {
+                ...mockOnlineEntry1,
+              },
+            },
+          ],
+        },
+      },
+    },
+  } as GetExperienceAndEntriesDetailViewQueryResult;
+
   it("sync online experience - with updateEntries and own fields errors", async () => {
     mockUseWithSubscriptionContext.mockReturnValue(withSubscriptionContext2);
 
@@ -613,7 +648,7 @@ describe("components", () => {
     );
 
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
-      mockGetCachedExperienceAndEntriesDetailView2,
+      mockGetCachedExperienceAndEntriesDetailView3,
     );
 
     const { ui } = makeComp();
@@ -784,7 +819,78 @@ describe("reducers", () => {
     dispatch: mockDispatchFn,
   } as EffectArgs;
 
-  it("fetches successfully on retry", async () => {
+  // TEST 1 mock data
+
+  const syncErrors1 = {
+    ownFields: {
+      __typename: "UpdateExperienceOwnFieldsError",
+      title: "a",
+    },
+    definitions: {
+      [mockOnlineDataDefinitionId1]: {
+        __typename: "DefinitionError",
+        id: mockOnlineDataDefinitionId1,
+        name: "a",
+        type: null,
+        error: null,
+      },
+    },
+    updateEntries: {
+      [mockOnlineEntry1Id]: {
+        [mockOnlineDataObject1id]: {
+          meta: {
+            index: 0,
+            id: mockOnlineDataObject1id,
+          },
+          data: "a",
+          error: null,
+        } as DataObjectErrorFragment,
+      },
+      [mockOnlineEntry2Id]: "a",
+    },
+    createEntries: {
+      [mockOfflineEntry1Id]: {
+        __typename: "CreateEntryError",
+        error: "e",
+      } as CreateEntryErrorFragment,
+    },
+  } as SyncErrors;
+
+  const mockGetExperienceAndEntriesDetailView1 = {
+    data: {
+      getExperience: {
+        ...mockOnlineExperience1,
+      } as any,
+      getEntries: {
+        __typename: "GetEntriesSuccess",
+        entries: {
+          pageInfo: {},
+          edges: [
+            {
+              node: {
+                ...mockOnlineEntry1,
+              },
+            },
+            {
+              node: {
+                ...mockOfflineEntry1,
+              },
+            },
+            {
+              node: {
+                ...mockOnlineEntry2,
+              },
+            },
+          ],
+        },
+      },
+    },
+  } as GetExperienceAndEntriesDetailViewQueryResult;
+
+  it("fetches successfully with sync errors on retry", async () => {
+    // ebnisObject.logReducers = true;
+    mockGetSyncError.mockReturnValue(syncErrors1);
+
     // first time to fetch , there is not network
     mockGetIsConnected
       .mockReturnValueOnce(false)
@@ -794,26 +900,9 @@ describe("reducers", () => {
     const fetchState = initState();
     const e = getEffects<E, S>(fetchState)[0];
 
-    mockGetExperienceAndEntriesDetailView.mockResolvedValue({
-      data: {
-        getExperience: {
-          ...mockOnlineExperience1,
-        } as any,
-        getEntries: {
-          __typename: "GetEntriesSuccess",
-          entries: {
-            pageInfo: {},
-            edges: [
-              {
-                node: {
-                  ...mockOnlineEntry1,
-                },
-              },
-            ],
-          },
-        },
-      },
-    } as GetExperienceAndEntriesDetailViewQueryResult);
+    mockGetExperienceAndEntriesDetailView.mockResolvedValue(
+      mockGetExperienceAndEntriesDetailView1,
+    );
 
     await effectFunctions[e.key](e.ownArgs as any, props, effectArgs);
     jest.runOnlyPendingTimers();
@@ -821,6 +910,8 @@ describe("reducers", () => {
 
     const call = mockDispatchFn.mock.calls[0][0];
     expect(call.experienceData.entriesData.key).toEqual(StateValue.success);
+
+    reducer(fetchState, call);
   });
 
   it("was never able to fetch after all retries", async () => {
