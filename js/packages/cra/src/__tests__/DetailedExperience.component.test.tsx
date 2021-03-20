@@ -35,7 +35,7 @@ import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
 import { makeApolloClient } from "../apollo/client";
 import {
-  // getDeleteExperienceLedger,
+  getDeleteExperienceLedger,
   putOrRemoveDeleteExperienceLedger,
 } from "../apollo/delete-experience-cache";
 import {
@@ -146,7 +146,7 @@ jest.mock("../components/My/my.lazy", () => ({
 }));
 
 jest.mock("../apollo/delete-experience-cache");
-// const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
+const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
 const mockPutOrRemoveDeleteExperienceLedger = putOrRemoveDeleteExperienceLedger as jest.Mock;
 
 const mockLoadingId = "@t/loading";
@@ -277,6 +277,10 @@ const componentTimeoutsMs: ComponentTimeoutsMs = {
   fetchRetries: [0],
   closeNotification: 0,
 };
+
+const history = {
+  push: mockHistoryPushFn,
+} as any;
 
 const ebnisObject = {
   persistor: {
@@ -865,6 +869,7 @@ describe("reducers", () => {
       },
     },
     getExperienceAndEntriesDetailView: mockGetExperienceAndEntriesDetailView as any,
+    history,
   } as Props;
 
   const effectArgs = {
@@ -1002,6 +1007,78 @@ describe("reducers", () => {
     const call = mockDispatchFn.mock.calls[0][0];
     expect(call.experienceData.key).toEqual(StateValue.errors);
   });
+
+  const mockGetCachedExperienceAndEntriesDetailView1 = {
+    data: {
+      getExperience: {
+        ...mockOnlineExperience1,
+      } as any,
+    },
+  } as GetExperienceAndEntriesDetailViewQueryResult;
+
+  it("cancels external delete request", async () => {
+    // ebnisObject.logReducers = true;
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
+      mockGetCachedExperienceAndEntriesDetailView1,
+    );
+
+    mockGetDeleteExperienceLedger.mockReturnValue({
+      key: StateValue.requested,
+    });
+
+    const fetchState = initState();
+    const fetchEffect = getEffects<E, S>(fetchState)[0];
+
+    effectFunctions[fetchEffect.key](
+      fetchEffect.ownArgs as any,
+      props,
+      effectArgs,
+    );
+
+    const deleteRequestedState = reducer(
+      fetchState,
+      mockDispatchFn.mock.calls[0][0],
+    );
+
+    const deleteRequestedEffect = getEffects<E, S>(deleteRequestedState)[0];
+
+    mockDispatchFn.mockClear();
+    expect(mockPutOrRemoveDeleteExperienceLedger).not.toBeCalled();
+
+    effectFunctions[deleteRequestedEffect.key](
+      deleteRequestedEffect.ownArgs as any,
+      props,
+      effectArgs,
+    );
+
+    expect(mockPutOrRemoveDeleteExperienceLedger).toBeCalled();
+
+    const deleteEvent = mockDispatchFn.mock.calls[0][0];
+    const deleteState = reducer(deleteRequestedState, deleteEvent);
+
+    const deleteCancelledState = reducer(deleteState, {
+      type: ActionType.delete_cancelled,
+    });
+
+    const deleteCancelledEffect = getEffects<E, S>(deleteCancelledState)[0];
+
+    mockPutOrRemoveDeleteExperienceLedger.mockClear();
+    expect(mockHistoryPushFn).not.toBeCalled();
+
+    effectFunctions[deleteCancelledEffect.key](
+      deleteCancelledEffect.ownArgs as any,
+      props,
+      effectArgs,
+    );
+
+    expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0]).toEqual({
+      id: mockOnlineExperienceId1,
+      key: StateValue.cancelled,
+      title: mockOnlineExperience1.title,
+    });
+
+    expect(mockHistoryPushFn).toBeCalledWith(MY_URL);
+  });
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
@@ -1014,9 +1091,6 @@ function makeComp({
   props?: Partial<Props>;
 } = {}) {
   const location = props.location || ({} as any);
-  const history = {
-    push: mockHistoryPushFn,
-  } as any;
 
   props.match = {
     params: {

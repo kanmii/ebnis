@@ -125,9 +125,9 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           break;
 
         case ActionType.delete_request:
-          handleDeleteExperienceRequestAction(
+          handleDeleteRequestAction(
             proxy,
-            payload as DeleteExperienceRequestPayload,
+            payload as DeleteRequestPayload,
           );
           break;
 
@@ -221,9 +221,9 @@ function handleRecordTimeoutAction(
   });
 }
 
-function handleDeleteExperienceRequestAction(
+function handleDeleteRequestAction(
   proxy: StateMachine,
-  payload: DeleteExperienceRequestPayload,
+  payload: DeleteRequestPayload,
 ) {
   const { states: globalStates } = proxy;
 
@@ -265,7 +265,7 @@ function handleDeleteExperienceCancelledAction(proxy: StateMachine) {
       const effects = getGeneralEffects(proxy);
 
       effects.push({
-        key: "cancelDeleteExperienceEffect",
+        key: "cancelDeleteEffect",
         ownArgs: {
           key: deleteExperienceActive.active.context.key,
           experience,
@@ -979,17 +979,22 @@ const deleteRequestedEffect: DefDeleteRequestedEffect["func"] = (
   effectArgs,
 ) => {
   const { dispatch } = effectArgs;
-  const deleteExperienceLedger = getDeleteExperienceLedger(experienceId);
+
+  // Is a request to delete this experience pending
+  const deleteLedger = getDeleteExperienceLedger(experienceId);
 
   if (
-    deleteExperienceLedger &&
-    deleteExperienceLedger.key === StateValue.requested
+    deleteLedger &&
+    deleteLedger.key === StateValue.requested
   ) {
+    // remove flag that indicates delete requested from cache
+    // since we'll now process this request
     putOrRemoveDeleteExperienceLedger();
 
+    // do the actual deletion (or ask user for confirmation)
     dispatch({
       type: ActionType.delete_request,
-      key: deleteExperienceLedger.key,
+      key: deleteLedger.key,
     });
   }
 };
@@ -1001,7 +1006,7 @@ type DefDeleteRequestedEffect = EffectDefinition<
   }
 >;
 
-const cancelDeleteExperienceEffect: DefCancelDeleteExperienceEffect["func"] = (
+const cancelDeleteEffect: DefCancelDeleteEffect["func"] = (
   { key, experience: { id, title } },
   props,
 ) => {
@@ -1018,8 +1023,8 @@ const cancelDeleteExperienceEffect: DefCancelDeleteExperienceEffect["func"] = (
   }
 };
 
-type DefCancelDeleteExperienceEffect = EffectDefinition<
-  "cancelDeleteExperienceEffect",
+type DefCancelDeleteEffect = EffectDefinition<
+  "cancelDeleteEffect",
   {
     experience: ExperienceDetailViewFragment;
     key: string;
@@ -1288,7 +1293,7 @@ type DefDeleteCreateEntrySyncErrorEffect = EffectDefinition<
 
 export const effectFunctions = {
   timeoutsEffect,
-  cancelDeleteExperienceEffect,
+  cancelDeleteEffect,
   deleteRequestedEffect,
   deleteEffect,
   fetchEffect,
@@ -1679,7 +1684,7 @@ export type Action =
     } & SetTimeoutPayload)
   | ({
       type: ActionType.delete_request;
-    } & DeleteExperienceRequestPayload)
+    } & DeleteRequestPayload)
   | {
       type: ActionType.delete_cancelled;
     }
@@ -1761,7 +1766,7 @@ interface ToggleMenuPayload {
   key?: "close" | "open";
 }
 
-interface DeleteExperienceRequestPayload {
+interface DeleteRequestPayload {
   key?: RequestedVal;
 }
 
@@ -1786,7 +1791,7 @@ type EffectDefinition<
 
 export type EffectType =
   | DefTimeoutsEffect
-  | DefCancelDeleteExperienceEffect
+  | DefCancelDeleteEffect
   | DefDeleteRequestedEffect
   | DefDeleteEffect
   | DefFetchEffect
