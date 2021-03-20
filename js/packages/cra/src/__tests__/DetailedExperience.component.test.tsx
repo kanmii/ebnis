@@ -465,7 +465,6 @@ describe("components", () => {
       // When update succeeds
       getById(mockUpsertSuccessId).click();
 
-
       // Notification should be visible
       expect(getById(updateSuccessNotificationId)).not.toBeNull();
 
@@ -508,6 +507,7 @@ describe("components", () => {
     const { ui } = makeComp();
 
     await act(async () => {
+      // ebnisObject.logReducers = true;
       render(ui);
 
       const triggerDeleteUiEl = await waitFor(() => {
@@ -516,29 +516,45 @@ describe("components", () => {
         return el;
       });
 
+      // Delete confirmation should not be visible
       expect(getById(deleteHeaderCloseId)).toBeNull();
 
+      // When delete is requested
       triggerDeleteUiEl.click();
 
+      // Delete confirmation should be visible
+      // When delete confirmation is closed: header
       getById(deleteHeaderCloseId).click();
+
+      // Delete confirmation should not be visible
       expect(getById(deleteHeaderCloseId)).toBeNull();
-
       expect(getById(deleteFooterCloseId)).toBeNull();
 
+      // When delete is requested
       triggerDeleteUiEl.click();
 
+      // Delete confirmation should be visible
+      // When delete confirmation is closed: footer
       getById(deleteFooterCloseId).click();
+
+      // Delete confirmation should not be visible
       expect(getById(deleteFooterCloseId)).toBeNull();
 
+      // When delete is requested
       triggerDeleteUiEl.click();
+
+      // When deletion is confirmed
       getById(deleteOkId).click();
 
+      // When deletion succeeds
+      // User should be navigated away from the page
       const calls = await waitForCount(() => {
         const calls = mockHistoryPushFn.mock.calls[0];
         return calls;
       });
-
       expect(calls[0]).toBe(MY_URL);
+
+      // Code to clean up deleted experience from cache should be called
       expect(mockPutOrRemoveDeleteExperienceLedger).toBeCalled();
       expect(mockRemoveUnsyncedExperiences).toBeCalled();
       expect(mockPersistFunc).toBeCalled();
