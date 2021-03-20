@@ -925,12 +925,6 @@ function setEntriesActions(
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
 
-const scrollDocToTopEffect: DefScrollDocToTopEffect["func"] = () => {
-  scrollDocumentToTop();
-};
-
-type DefScrollDocToTopEffect = EffectDefinition<"scrollDocToTopEffect">;
-
 const timeoutsEffect: DefTimeoutsEffect["func"] = (
   { set, clear },
   props,
@@ -1293,7 +1287,6 @@ type DefDeleteCreateEntrySyncErrorEffect = EffectDefinition<
 >;
 
 export const effectFunctions = {
-  scrollDocToTopEffect,
   timeoutsEffect,
   cancelDeleteExperienceEffect,
   deleteRequestedEffect,
@@ -1792,7 +1785,6 @@ type EffectDefinition<
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 export type EffectType =
-  | DefScrollDocToTopEffect
   | DefTimeoutsEffect
   | DefCancelDeleteExperienceEffect
   | DefDeleteRequestedEffect
