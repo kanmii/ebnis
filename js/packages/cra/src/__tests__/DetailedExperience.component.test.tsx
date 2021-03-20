@@ -424,25 +424,52 @@ describe("components", () => {
         return el;
       });
 
+      // Update UI should not be visible
       expect(getById(mockUpsertCancelId)).toBeNull();
 
+      // When Update UI is requested
       triggerUpdateUiEl.click();
+
+      // Update UI should be visible
+      // When Update UI is cancelled
       getById(mockUpsertCancelId).click();
-      expect(getById(mockUpsertCancelId)).toBeNull();
 
+      // Update UI should not be visible
+      expect(getById(mockUpsertCancelId)).toBeNull();
       expect(getById(mockUpsertSuccessId)).toBeNull();
+
+      // Notification should not be visible
       expect(getById(updateSuccessNotificationId)).toBeNull();
+
+      // When Update UI is requested
       triggerUpdateUiEl.click();
+
+      // Update UI should be visible
+      // When update succeeds
       getById(mockUpsertSuccessId).click();
 
+      // Update UI should not be visible
+      expect(getById(mockUpsertSuccessId)).toBeNull();
+
+      // Notification should be visible
+      // When notification is closed
       getById(updateSuccessNotificationId).click();
 
+      // Notification should not be visible
       expect(getById(updateSuccessNotificationId)).toBeNull();
 
+      // When Update UI is requested
       triggerUpdateUiEl.click();
+
+      // Update UI should be visible
+      // When update succeeds
       getById(mockUpsertSuccessId).click();
+
+
+      // Notification should be visible
       expect(getById(updateSuccessNotificationId)).not.toBeNull();
 
+      // Notification should auto close
       await waitFor(() => {
         expect(getById(updateSuccessNotificationId)).toBeNull();
       });
