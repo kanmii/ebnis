@@ -415,6 +415,7 @@ describe("components", () => {
     const { ui } = makeComp();
 
     await act(async () => {
+      // ebnisObject.logReducers = true;
       render(ui);
 
       const triggerUpdateUiEl = await waitFor(() => {
@@ -437,6 +438,14 @@ describe("components", () => {
       getById(updateSuccessNotificationId).click();
 
       expect(getById(updateSuccessNotificationId)).toBeNull();
+
+      triggerUpdateUiEl.click();
+      getById(mockUpsertSuccessId).click();
+      expect(getById(updateSuccessNotificationId)).not.toBeNull();
+
+      await waitFor(() => {
+        expect(getById(updateSuccessNotificationId)).toBeNull();
+      });
     });
   });
 
