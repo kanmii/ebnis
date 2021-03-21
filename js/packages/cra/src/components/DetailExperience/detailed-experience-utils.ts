@@ -125,10 +125,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           break;
 
         case ActionType.delete_request:
-          handleDeleteRequestAction(
-            proxy,
-            payload as DeleteRequestPayload,
-          );
+          handleDeleteRequestAction(proxy, payload as DeleteRequestPayload);
           break;
 
         case ActionType.delete_cancelled:
@@ -685,14 +682,14 @@ function processSyncErrors(
 
   const { definitions, ownFields } = syncErrors;
 
+  // istanbul ignore else:
   if (definitions) {
     const list: FieldError = [];
     syncErrors.definitionsErrors = list;
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    Object.entries(definitions).forEach(([, { __typename, id, ...errors }]) => {
+    Object.entries(definitions).forEach(([, errors]) => {
       Object.entries(errors).forEach(([k, v]) => {
-        if (v) {
+        if (v && k !== "__typename" && k !== "id") {
           list.push([k, v]);
         }
       });
@@ -701,14 +698,13 @@ function processSyncErrors(
     delete syncErrors.definitions;
   }
 
+  // istanbul ignore else:
   if (ownFields) {
     const list: FieldError = [];
     syncErrors.ownFieldsErrors = list;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { __typename, ...errors } = ownFields;
 
-    Object.entries(errors).forEach(([k, v]) => {
-      if (v) {
+    Object.entries(ownFields).forEach(([k, v]) => {
+      if (v && k !== "__typename") {
         list.push([k, v]);
       }
     });
@@ -983,10 +979,7 @@ const deleteRequestedEffect: DefDeleteRequestedEffect["func"] = (
   // Is a request to delete this experience pending
   const deleteLedger = getDeleteExperienceLedger(experienceId);
 
-  if (
-    deleteLedger &&
-    deleteLedger.key === StateValue.requested
-  ) {
+  if (deleteLedger && deleteLedger.key === StateValue.requested) {
     // remove flag that indicates delete requested from cache
     // since we'll now process this request
     putOrRemoveDeleteExperienceLedger();
