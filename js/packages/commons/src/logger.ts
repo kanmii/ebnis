@@ -43,8 +43,9 @@ export function wrapReducer<State, Action>(
     shouldWrap = true;
   }
 
+  const nextState = reducer(prevState, action);
+
   if (shouldWrap) {
-    const nextState = reducer(prevState, action);
     const diff = deepObjectDifference(nextState, prevState);
 
     console.log("\n\n{ LOG STARTS");
@@ -61,16 +62,10 @@ export function wrapReducer<State, Action>(
 
     console.log(objectForEnv(nextState));
 
-    headerWrap("PREVIOUS STATE");
-
-    console.log(objectForEnv(prevState));
-
     console.log("\nLOG ENDS }");
-
-    return nextState;
   }
 
-  return reducer(prevState, action);
+  return nextState;
 }
 
 function deepObjectDifference(
