@@ -5,17 +5,18 @@ import { trimClass } from "@eb/cm/src/utils";
 const notificationClasses: Record<Props["type"], string> = {
   "is-success": `
       bg-green-400
-      text-white
       text-green-800
    `,
   "is-danger": `
+      bg-red-200
+      text-red-800
   `,
   "is-light-success": `
       bg-green-100
       text-green-800
   `,
   "is-light-danger": `
-      bg-red-100
+      bg-red-50
       text-red-800
   `,
 };
@@ -26,6 +27,8 @@ const closeClasses: Record<Props["type"], string> = {
       hover:text-green-500
    `,
   "is-danger": `
+      text-red-300
+      hover:text-red-500
   `,
   "is-light-success": `
       text-green-300
@@ -60,6 +63,9 @@ export function Notification(props: Props) {
           font-semibold
         `,
       )}
+      style={{
+        maxWidth: "550px",
+      }}
     >
       <a
         onClick={onClose}
