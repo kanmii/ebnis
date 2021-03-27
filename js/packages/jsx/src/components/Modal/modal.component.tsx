@@ -60,7 +60,7 @@ export function Modal(props: Props) {
   );
 }
 
-function Card({ children }: PropsWithChildren<Any>) {
+function Card({ children, ...otherProps }: PropsWithChildren<Any>) {
   return (
     <div
       className={trimClass(
@@ -76,6 +76,10 @@ function Card({ children }: PropsWithChildren<Any>) {
           w-11/12
         `,
       )}
+      style={{
+        maxWidth: "500px",
+      }}
+      {...otherProps}
     >
       {children}
     </div>
