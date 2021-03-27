@@ -62,6 +62,7 @@ import {
   ErrorType,
   FETCH_ENTRIES_FAIL_ERROR_MSG,
   FieldError,
+  GENERIC_SERVER_ERROR,
   parseStringError,
 } from "../../utils/common-errors";
 import { getIsConnected } from "../../utils/connections";
@@ -218,7 +219,7 @@ function handleDeleteAction(proxy: StateMachine, payload: DeletePayload) {
       context: { experience },
     } = globalStates.data;
 
-    const deleteExperienceActive = deleteExperience as DeleteExperienceActiveState;
+    const deleteActive = deleteExperience as DeleteExperienceActiveState;
 
     switch (payload.value) {
       case "request": {
@@ -227,7 +228,7 @@ function handleDeleteAction(proxy: StateMachine, payload: DeletePayload) {
 
         deleteExperience.value = StateValue.active;
 
-        deleteExperienceActive.active = {
+        deleteActive.active = {
           states: {
             value: StateValue.requested,
             key: payload.key,
@@ -238,21 +239,17 @@ function handleDeleteAction(proxy: StateMachine, payload: DeletePayload) {
       }
 
       case "cancelled": {
-        // istanbul ignore else:
-        if (deleteExperienceActive.value === StateValue.active) {
-          deleteExperience.value = StateValue.inactive;
+        deleteExperience.value = StateValue.inactive;
 
-          const effects = getGeneralEffects(proxy);
+        const effects = getGeneralEffects(proxy);
 
-          effects.push({
-            key: "cancelDeleteEffect",
-            ownArgs: {
-              key: (deleteExperienceActive.active.states as DeleteRequested)
-                .key,
-              experience,
-            },
-          });
-        }
+        effects.push({
+          key: "cancelDeleteEffect",
+          ownArgs: {
+            key: (deleteActive.active.states as DeleteRequested).key,
+            experience,
+          },
+        });
 
         return;
       }
@@ -270,16 +267,27 @@ function handleDeleteAction(proxy: StateMachine, payload: DeletePayload) {
       }
 
       case "errors": {
-        deleteExperienceActive.active.states = {
+        deleteActive.active.states = {
           value: StateValue.errors,
           errors: payload.errors,
         };
+
+        const effects = getGeneralEffects(proxy);
+
+        effects.push({
+          key: "timeoutsEffect",
+          ownArgs: {
+            set: "set-close-delete-fail-notification",
+          },
+        });
+
         return;
       }
 
-      case 'closeNotification': {
-        deleteExperience.value = StateValue.inactive
-        return
+      case "closeNotification": {
+        deleteExperience.value = StateValue.inactive;
+
+        return;
       }
     }
   }
@@ -934,12 +942,24 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
 
     switch (set) {
       case "set-close-update-experience-success-notification":
-        timeoutCb = () => {
-          dispatch({
-            type: ActionType.request_update_ui,
-          });
-        };
+        {
+          timeoutCb = () => {
+            dispatch({
+              type: ActionType.request_update_ui,
+            });
+          };
+        }
+        break;
 
+      case "set-close-delete-fail-notification":
+        {
+          timeoutCb = () => {
+            dispatch({
+              type: ActionType.delete,
+              value: "closeNotification",
+            });
+          };
+        }
         break;
     }
 
@@ -955,10 +975,9 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
 type DefTimeoutsEffect = EffectDefinition<
   "timeoutsEffect",
   {
-    set?:
-      | "set-close-upsert-entry-created-notification"
-      | "set-close-update-experience-success-notification"
-      | "set-close-comment-notification";
+    set?: // | "set-close-upsert-entry-created-notification"
+    | "set-close-update-experience-success-notification"
+      | "set-close-delete-fail-notification";
     clear?: NodeJS.Timeout;
   }
 >;
@@ -1035,19 +1054,29 @@ const deleteEffect: DefDeleteEffect["func"] = async (
     const validResponse =
       response && response.data && response.data.deleteExperiences;
 
-    // :TODO: deal with this????
+    // :TODO: integration test
     if (!validResponse) {
+      dispatch({
+        type: ActionType.delete,
+        value: "errors",
+        errors: [["", GENERIC_SERVER_ERROR]],
+      });
+
       return;
     }
 
-    // :TODO: deal with this????
     if (validResponse.__typename === "DeleteExperiencesAllFail") {
+      dispatch({
+        type: ActionType.delete,
+        value: "errors",
+        errors: [["", validResponse.error]],
+      });
+
       return;
     }
 
     const experienceResponse = validResponse.experiences[0];
 
-    // :TODO: deal with this????
     if (experienceResponse.__typename === "DeleteExperienceErrors") {
       const {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1087,7 +1116,11 @@ const deleteEffect: DefDeleteEffect["func"] = async (
 
     history.push(MY_URL);
   } catch (error) {
-    // :TODO: deal with this????
+    dispatch({
+      type: ActionType.delete,
+      value: "errors",
+      errors: [["", GENERIC_SERVER_ERROR]],
+    });
   }
 };
 

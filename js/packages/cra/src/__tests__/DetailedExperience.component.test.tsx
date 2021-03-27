@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { clearTimeoutFn } from "../components/DetailExperience/detail-experience.injectables";
 import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
 import { DeleteExperiences } from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
@@ -52,6 +53,7 @@ import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
 import { DetailExperience } from "../components/DetailExperience/detail-experience.component";
 import {
   closeSyncErrorsMsgBtnId,
+  deleteFailNotificationCloseId,
   deleteFooterCloseId,
   deleteHeaderCloseId,
   deleteMenuItemId,
@@ -97,6 +99,7 @@ import {
 } from "../components/WithSubscriptions/with-subscriptions.utils";
 import { getById, getEffects, getOneByClass } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
+import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { getIsConnected } from "../utils/connections";
 import { deleteExperiences } from "../utils/delete-experiences.gql";
 import {
@@ -107,6 +110,9 @@ import { ChangeUrlType, windowChangeUrl } from "../utils/global-window";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { MY_URL } from "../utils/urls";
 import { activeClassName } from "../utils/utils.dom";
+
+jest.mock("../components/DetailExperience/detail-experience.injectables");
+const mockClearTimeoutFn = clearTimeoutFn as jest.Mock;
 
 const mockActionType = ActionType;
 
@@ -267,6 +273,7 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
 const mockHistoryPushFn = jest.fn();
 
 const mockPersistFunc = jest.fn();
+const mockDeleteExperiences = jest.fn();
 
 const componentTimeoutsMs: ComponentTimeoutsMs = {
   fetchRetries: [0],
@@ -555,6 +562,120 @@ describe("components", () => {
       expect(mockPutOrRemoveDeleteExperienceLedger).toBeCalled();
       expect(mockRemoveUnsyncedExperiences).toBeCalled();
       expect(mockPersistFunc).toBeCalled();
+    });
+  });
+
+  const deleteExperience2Data: DeleteExperiences = {
+    deleteExperiences: {
+      __typename: "DeleteExperiencesAllFail",
+      error: "a",
+    },
+  };
+
+  it("delete experience fails/manually close notification", async () => {
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue({
+      data: {
+        getExperience: {
+          ...mockOnlineExperience1,
+        } as any,
+      },
+    } as GetExperienceAndEntriesDetailViewQueryResult);
+
+    mswServer.use(deleteExperiencesMswGql(deleteExperience2Data));
+
+    const { ui } = makeComp();
+    let unmount1: any;
+
+    await act(async () => {
+      // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { unmount } = render(ui);
+      unmount1 = unmount;
+
+      const triggerDeleteUiEl = await waitFor(() => {
+        const el = getById(deleteMenuItemId);
+        expect(el).not.toBeNull();
+        return el;
+      });
+
+      // When delete is requested and confirmed
+      triggerDeleteUiEl.click();
+      getById(deleteOkId).click();
+
+      // notification should not be visible
+      expect(getById(deleteFailNotificationCloseId)).toBeNull();
+
+      // When deletion fails
+      // notification should be visible
+      const notificationEl = await waitFor(() => {
+        const el = getById(deleteFailNotificationCloseId);
+        expect(el).not.toBeNull();
+        return el;
+      });
+
+      // When notification closed
+      notificationEl.click();
+
+      // notification should not be visible
+      expect(getById(deleteFailNotificationCloseId)).toBeNull();
+
+      expect(mockClearTimeoutFn).not.toBeCalled();
+    });
+
+    // timeouts should be cleared after component unmount
+    expect(mockClearTimeoutFn).not.toBeCalled();
+    unmount1();
+    expect(mockClearTimeoutFn).toBeCalled();
+  });
+
+  it("delete experience fails/automatically close notification", async () => {
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue({
+      data: {
+        getExperience: {
+          ...mockOnlineExperience1,
+        } as any,
+      },
+    } as GetExperienceAndEntriesDetailViewQueryResult);
+
+    mockDeleteExperiences.mockResolvedValue({});
+
+    const { ui } = makeComp({
+      props: {
+        deleteExperiences: mockDeleteExperiences,
+      },
+    });
+
+    await act(async () => {
+      // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
+      render(ui);
+
+      const triggerDeleteUiEl = await waitFor(() => {
+        const el = getById(deleteMenuItemId);
+        expect(el).not.toBeNull();
+        return el;
+      });
+
+      // When delete is requested and confirmed
+      triggerDeleteUiEl.click();
+      getById(deleteOkId).click();
+
+      // notification should not be visible
+      expect(getById(deleteFailNotificationCloseId)).toBeNull();
+
+      // When deletion fails
+      // notification should be visible
+      await waitFor(() => {
+        const el = getById(deleteFailNotificationCloseId);
+        expect(el).not.toBeNull();
+        return el;
+      });
+
+      // Notification should auto close
+      await waitFor(() => {
+        expect(getById(deleteFailNotificationCloseId)).toBeNull();
+      });
     });
   });
 
@@ -862,6 +983,7 @@ describe("reducers", () => {
       },
     },
     getExperienceAndEntriesDetailView: mockGetExperienceAndEntriesDetailView as any,
+    deleteExperiences: mockDeleteExperiences as any,
     history,
   } as Props;
 
@@ -1072,6 +1194,76 @@ describe("reducers", () => {
     });
 
     expect(mockHistoryPushFn).toBeCalledWith(MY_URL);
+  });
+
+  const mockDeleteExperiences1Data = {
+    data: {
+      deleteExperiences: {
+        experiences: [
+          {
+            __typename: "DeleteExperienceErrors",
+            errors: {
+              error: "e",
+              it: null,
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  it("delete fails", async () => {
+    // ebnisObject.logReducers = true;
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
+      mockGetCachedExperienceAndEntriesDetailView1,
+    );
+
+    const fetchState = initState();
+    const fetchEffect = getEffects<E, S>(fetchState)[0];
+
+    effectFunctions[fetchEffect.key](
+      fetchEffect.ownArgs as any,
+      props,
+      effectArgs,
+    );
+
+    const fetchedState = reducer(fetchState, mockDispatchFn.mock.calls[0][0]);
+
+    const deleteRequestState = reducer(fetchedState, {
+      type: ActionType.delete,
+      value: "request",
+    });
+
+    const deleteConfirmedState = reducer(deleteRequestState, {
+      type: ActionType.delete,
+      value: "confirmed",
+    });
+
+    const deleteEffect = getEffects<E, S>(deleteConfirmedState)[0];
+
+    mockDispatchFn.mockClear();
+    mockDeleteExperiences.mockResolvedValue(mockDeleteExperiences1Data);
+
+    await effectFunctions[deleteEffect.key](
+      deleteEffect.ownArgs as any,
+      props,
+      effectArgs,
+    );
+
+    expect(mockDispatchFn.mock.calls[0][0].errors).toEqual([["error", "e"]]);
+
+    mockDispatchFn.mockClear();
+    mockDeleteExperiences.mockRejectedValueOnce(new Error("a"));
+
+    await effectFunctions[deleteEffect.key](
+      deleteEffect.ownArgs as any,
+      props,
+      effectArgs,
+    );
+
+    expect(mockDispatchFn.mock.calls[0][0].errors).toEqual([
+      ["", GENERIC_SERVER_ERROR],
+    ]);
   });
 });
 

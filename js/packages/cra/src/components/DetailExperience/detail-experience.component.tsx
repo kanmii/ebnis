@@ -15,6 +15,7 @@ import React, {
   useReducer,
 } from "react";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
+import { clearTimeoutFn } from "./detail-experience.injectables";
 import { deleteExperiences } from "../../utils/delete-experiences.gql";
 import {
   getExperienceAndEntriesDetailView,
@@ -107,7 +108,7 @@ export function DetailExperience(props: Props) {
   useEffect(() => {
     return () => {
       if (genericTimeout) {
-        clearTimeout(genericTimeout);
+        clearTimeoutFn(genericTimeout);
       }
     };
   }, [genericTimeout]);
@@ -374,7 +375,10 @@ function ExperienceComponent() {
               }}
               id={deleteFailNotificationCloseId}
               type="is-danger"
-              className="mb-5"
+              className={trimClass(`
+                mb-5
+                ${noTriggerDocumentEventClassName}
+              `)}
             >
               <div
                 className={trimClass(
@@ -403,7 +407,7 @@ function ExperienceComponent() {
                     `,
                   )}
                 >
-                Errors while deleting experience
+                  Errors while deleting experience
                 </div>
               </div>
               <ul
