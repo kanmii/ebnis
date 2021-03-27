@@ -1,6 +1,5 @@
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { CYPRESS_APOLLO_KEY } from "@eb/cm/src/utils/types";
 import { createOfflineExperience } from "@eb/cra/src/components/UpsertExperience/upsert-experience.resolvers";
 import { MY_URL } from "@eb/cra/src/utils/urls";
 
@@ -13,23 +12,20 @@ context("Sync", () => {
   describe("My page", () => {
     it("sync complete offline experience succeeds", () => {
       // Given there is an offline experience in the system
-      const p = createOfflineExperience(
-        {
-          input: [
-            {
-              title: "t1",
-              description: "dd",
-              dataDefinitions: [
-                {
-                  name: "nn",
-                  type: DataTypes.INTEGER,
-                },
-              ],
-            },
-          ],
-        },
-        Cypress.env(CYPRESS_APOLLO_KEY),
-      );
+      const p = createOfflineExperience({
+        input: [
+          {
+            title: "t1",
+            description: "dd",
+            dataDefinitions: [
+              {
+                name: "nn",
+                type: DataTypes.INTEGER,
+              },
+            ],
+          },
+        ],
+      });
 
       cy.wrap(p).then((p) => {
         const { id } = p as ExperienceCompleteFragment;

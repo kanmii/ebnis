@@ -1,6 +1,5 @@
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { CYPRESS_APOLLO_KEY } from "@eb/cm/src/utils/types";
 import {
   activateInsertExperienceDomId,
   dropdownTriggerClassName,
@@ -117,23 +116,20 @@ context("My page", () => {
 
     it("offline fails/succeeds", () => {
       // Given there is an offline experience in the system
-      const p = createOfflineExperience(
-        {
-          input: [
-            {
-              title: title1,
-              description: "dd",
-              dataDefinitions: [
-                {
-                  name: "nn",
-                  type: DataTypes.INTEGER,
-                },
-              ],
-            },
-          ],
-        },
-        Cypress.env(CYPRESS_APOLLO_KEY),
-      );
+      const p = createOfflineExperience({
+        input: [
+          {
+            title: title1,
+            description: "dd",
+            dataDefinitions: [
+              {
+                name: "nn",
+                type: DataTypes.INTEGER,
+              },
+            ],
+          },
+        ],
+      });
 
       cy.wrap(p).then(() => {
         // When we visit experiences list page
