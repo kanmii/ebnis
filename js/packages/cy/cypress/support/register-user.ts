@@ -1,14 +1,14 @@
-import { REGISTER_USER_MUTATION } from "@eb/cm/src/graphql/user.gql";
 import { RegisterUserInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { manageUserAuthentication } from "@eb/cra/src/utils/manage-user-auth";
 import {
   RegisterUserMutation,
   RegisterUserMutationVariables,
   RegisterUserMutation_registerUser,
 } from "@eb/cm/src/graphql/apollo-types/RegisterUserMutation";
-import { mutate } from "./mutate";
-import { REGISTER_USER_ATTRS } from "./create-user-attrs";
 import { UserFragment } from "@eb/cm/src/graphql/apollo-types/UserFragment";
+import { REGISTER_USER_MUTATION } from "@eb/cm/src/graphql/user.gql";
+import { manageUserAuthentication } from "@eb/cra/src/utils/manage-user-auth";
+import { REGISTER_USER_ATTRS } from "./create-user-attrs";
+import { mutate } from "./mutate";
 
 export async function registerUser(
   userData: RegisterUserInput = REGISTER_USER_ATTRS,
