@@ -1,3 +1,4 @@
+import Button from "@eb/jsx/src/components/Button/button.component";
 import Loading from "../Loading/loading.component";
 import { UpsertEntry } from "./entries.lazy";
 import { trimClass } from "@eb/cm/src/utils";
@@ -59,19 +60,20 @@ export function Entries(props: Props) {
   if (state.value === StateValue.fail) {
     return (
       <div className={noTriggerDocumentEventClassName}>
-        {state.error}
+        <div>{state.error}!</div>
 
-        <button
+        <Button
           id={refetchEntriesId}
-          className="button is-link"
+          btnType="is-success"
+          className="mt-2"
           onClick={() => {
             dispatch({
               type: ActionType.re_fetch_entries,
             });
           }}
         >
-          Retry
-        </button>
+          Please try again
+        </Button>
       </div>
     );
   }
