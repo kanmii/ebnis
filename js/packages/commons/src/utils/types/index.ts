@@ -1,8 +1,9 @@
 /* istanbul ignore file */
-import { ApolloClient, InMemoryCache } from "@apollo/client";
+import { ApolloClient, ApolloLink, InMemoryCache } from "@apollo/client";
 import { CachePersistor } from "apollo-cache-persist-dev";
 import { BroadcastChannel } from "broadcast-channel";
 import { graphql, SetupWorkerApi } from "msw";
+import { Socket as PhoenixSocket } from "phoenix";
 import { Observable } from "zen-observable-ts";
 import { CreateEntryErrorFragment } from "../../graphql/apollo-types/CreateEntryErrorFragment";
 import { CreateExperienceErrorsFragment_errors } from "../../graphql/apollo-types/CreateExperienceErrorsFragment";
@@ -17,6 +18,10 @@ export type Any = Record<string, any>;
 
 export const CYPRESS_APOLLO_KEY = "ebnis-cypress-apollo";
 
+export interface AppSocket extends PhoenixSocket {
+  ebnisConnect: (token?: string | null) => AppSocket;
+}
+
 export interface EbnisGlobals {
   cache: InMemoryCache;
   client: ApolloClient<Any>;
@@ -30,6 +35,8 @@ export interface EbnisGlobals {
   emitter: ZenObservable.SubscriptionObserver<EmitAction>;
   emitData: EmitData;
   observable: Observable<EmitAction>;
+  apolloLink: ApolloLink;
+  appSocket: AppSocket;
 }
 
 declare global {

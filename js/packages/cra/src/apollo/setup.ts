@@ -8,6 +8,7 @@ import {
   PersistedData,
   PersistentStorage,
 } from "apollo-cache-persist-dev/types";
+import { deleteObjectKey } from "../utils";
 import {
   makeConnectionObject,
   resetConnectionObject,
@@ -136,6 +137,8 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
   let cypressApollo = getGlobalsFromCypress();
 
   if (newE2eTest) {
+    resetGlobals(cypressApollo);
+
     // We need to set up local storage for local state management
     // so that whatever we persist in e2e tests will be picked up by apollo
     // when app starts. Otherwise, apollo will always clear out the local
@@ -186,4 +189,13 @@ function getGlobalsFromCypress() {
   }
 
   return globalVars;
+}
+
+function resetGlobals(ebnisGlobals: EbnisGlobals) {
+  const { appSocket } = ebnisGlobals;
+
+  if (appSocket) {
+    appSocket.disconnect();
+    deleteObjectKey(ebnisGlobals, "appSocket");
+  }
 }

@@ -1,16 +1,13 @@
 /* istanbul ignore file */
+import { AppSocket, EbnisGlobals } from "@eb/cm/src/utils/types";
 import { Socket as PhoenixSocket } from "phoenix";
+import { getIsConnected, storeConnectionStatus } from "./connections";
 import { getBackendUrls } from "./get-backend-urls";
-import { storeConnectionStatus, getIsConnected } from "./connections";
 import { getSessionId } from "./session-manager";
 
-export interface AppSocket extends PhoenixSocket {
-  ebnisConnect: (token?: string | null) => AppSocket;
-}
-
-let socket: AppSocket;
-
 export const defineSocket = ({ uri, token: connToken }: DefineParams) => {
+  let socket: AppSocket;
+
   function ebnisConnect(token?: string | null) {
     const params = makeParams(token);
     socket = new PhoenixSocket(
@@ -37,8 +34,6 @@ export const defineSocket = ({ uri, token: connToken }: DefineParams) => {
     return socket;
   }
 
-  ebnisConnect(connToken);
-
   function dispatchDisconnected() {
     const isConnected = getIsConnected();
 
@@ -62,19 +57,36 @@ export const defineSocket = ({ uri, token: connToken }: DefineParams) => {
     return { params };
   }
 
-  return socket;
+  return ebnisConnect(connToken);
 };
 
-export function getSocket({ forceReconnect, ...params }: DefineParams = {}) {
+export function getSocket({
+  forceReconnect,
+  ebnisGlobals,
+  ...params
+}: DefineParams = {}) {
+  let socket: AppSocket;
+
   if (forceReconnect) {
-    return defineSocket(params);
+    socket = defineSocket(params);
+  } else if (ebnisGlobals) {
+    const { appSocket } = ebnisGlobals;
+
+    socket = appSocket ? appSocket : defineSocket(params);
+  } else {
+    socket = defineSocket(params);
   }
 
-  return socket ? socket : defineSocket(params);
+  if (ebnisGlobals) {
+    ebnisGlobals.appSocket = socket;
+  }
+
+  return socket;
 }
 
 interface DefineParams {
   uri?: string;
   token?: string | null;
   forceReconnect?: boolean;
+  ebnisGlobals?: EbnisGlobals;
 }

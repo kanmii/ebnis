@@ -61,6 +61,7 @@ export function makeApolloClient(
       const absintheSocket = AbsintheSocket.create(
         getSocket({
           uri,
+          ebnisGlobals,
           ...makeSocketLinkArgs,
         }),
       );
