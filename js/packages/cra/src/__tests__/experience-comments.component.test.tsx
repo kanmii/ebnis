@@ -128,8 +128,6 @@ describe("components", () => {
     persistor: {
       persist: mockPersistFunc as any,
     },
-    // logApolloQueries: true,
-    // logReducers: true,
   } as EbnisGlobals;
 
   beforeAll(() => {
@@ -143,7 +141,7 @@ describe("components", () => {
   });
 
   beforeEach(() => {
-    const { client, cache } = makeApolloClient({ testing: true });
+    const { client, cache } = makeApolloClient(ebnisObject, { testing: true });
     ebnisObject.cache = cache;
     ebnisObject.client = client;
   });

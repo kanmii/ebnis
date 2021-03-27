@@ -95,7 +95,6 @@ import {
   cleanUpOfflineExperiences,
   cleanUpSyncedOfflineEntries,
 } from "../WithSubscriptions/with-subscriptions.utils";
-import { scrollDocumentToTop } from "./detail-experience.injectables";
 
 export enum ActionType {
   record_timeout = "@detailed-experience/record-timeout",
@@ -331,13 +330,9 @@ function handleOnFetchedAction(
 
         const dataState = states as DataState;
         dataState.value = StateValue.data;
-
         const dataStateData = dataState.data || ({} as DataState["data"]);
-
-        dataState.data = dataStateData;
-
         const context = dataStateData.context || ({} as DataStateContext);
-
+        dataState.data = dataStateData;
         dataStateData.context = context;
         context.experience = experience;
         processSyncErrors(context, syncErrors);
@@ -976,7 +971,7 @@ const deleteRequestedEffect: DefDeleteRequestedEffect["func"] = (
 ) => {
   const { dispatch } = effectArgs;
 
-  // Is a request to delete this experience pending
+  // Is a request to delete this experience pending?
   const deleteLedger = getDeleteExperienceLedger(experienceId);
 
   if (deleteLedger && deleteLedger.key === StateValue.requested) {

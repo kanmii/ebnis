@@ -74,8 +74,8 @@ import {
   initState,
   Match,
   Props,
-  StateMachine as S,
   reducer,
+  StateMachine as S,
 } from "../components/DetailExperience/detailed-experience-utils";
 import {
   CallerProps as EntriesCallerProps,
@@ -165,7 +165,7 @@ const mockEntriesRemoteActionType = EntriesRemoteActionType;
 jest.mock("../components/entries/entries.component", () => {
   return (props: EntriesCallerProps) => {
     const { parentDispatch, postActions } = props;
-    const x = postActions[0];
+    const action0 = postActions[0];
 
     return (
       <div>
@@ -178,7 +178,7 @@ jest.mock("../components/entries/entries.component", () => {
             });
           }}
         />
-        {x && x.type === mockEntriesRemoteActionType.upsert && (
+        {action0 && action0.type === mockEntriesRemoteActionType.upsert && (
           <span id={mockEntryMenuId} />
         )}
       </div>
@@ -211,15 +211,17 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
   return {
     Comments: (props: CommentsCallerProps) => {
       const { postActions, parentDispatch } = props;
+      const action0 = postActions[0];
 
       return (
         <div className={mockNoTriggerDocumentEventClassName}>
           <span
             id={mockUpsertCommentsId}
             onClick={() => {
-              const { type } = postActions[0];
-
-              if (type === mockCommentRemoteActionType.upsert) {
+              if (
+                action0 &&
+                action0.type === mockCommentRemoteActionType.upsert
+              ) {
                 parentDispatch({
                   type: mockActionType.comment_action,
                   action: {
@@ -229,7 +231,6 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
               }
             }}
           />
-
           <span
             id={mockCloseUpsertCommentsId}
             onClick={() => {
@@ -241,19 +242,13 @@ jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
               });
             }}
           />
-
           <span
             id={mockCommentsHideMenuId}
             onClick={() => {
-              const x = postActions[0];
-
-              if (!x) {
-                return;
-              }
-
-              const { type } = x;
-
-              if (type === mockCommentRemoteActionType.hide_menus) {
+              if (
+                action0 &&
+                action0.type === mockCommentRemoteActionType.hide_menus
+              ) {
                 parentDispatch({
                   type: mockActionType.comment_action,
                   action: {
@@ -286,8 +281,6 @@ const ebnisObject = {
   persistor: {
     persist: mockPersistFunc as any,
   },
-  // logApolloQueries: true,
-  // logReducers: true,
 } as EbnisGlobals;
 
 beforeAll(() => {
@@ -316,7 +309,7 @@ describe("components", () => {
   beforeEach(() => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    const { client, cache } = makeApolloClient({ testing: true });
+    const { client, cache } = makeApolloClient(ebnisObject, { testing: true });
     ebnisObject.cache = cache;
     ebnisObject.client = client;
   });
@@ -442,11 +435,11 @@ describe("components", () => {
       expect(getById(mockUpsertCancelId)).toBeNull();
       expect(getById(mockUpsertSuccessId)).toBeNull();
 
-      // Notification should not be visible
-      expect(getById(updateSuccessNotificationId)).toBeNull();
-
       // When Update UI is requested
       triggerUpdateUiEl.click();
+
+      // Notification should not be visible
+      expect(getById(updateSuccessNotificationId)).toBeNull();
 
       // Update UI should be visible
       // When update succeeds

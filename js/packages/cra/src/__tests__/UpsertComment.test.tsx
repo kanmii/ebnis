@@ -41,8 +41,6 @@ const ebnisObject = {
   persistor: {
     persist: mockPersistFunc as any,
   },
-  // logApolloQueries: true,
-  // logReducers: true,
 } as EbnisGlobals;
 
 describe("UpsertComment", () => {
@@ -57,7 +55,7 @@ describe("UpsertComment", () => {
   });
 
   beforeEach(() => {
-    const { client, cache } = makeApolloClient({ testing: true });
+    const { client, cache } = makeApolloClient(ebnisObject, { testing: true });
     ebnisObject.cache = cache;
     ebnisObject.client = client;
   });

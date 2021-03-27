@@ -1,9 +1,9 @@
 /* istanbul ignore file */
-import { ApolloClient, InMemoryCache } from "@apollo/client";
-import { makeBChannel } from "@eb/cm/src/broadcast-channel-manager";
-import { makeObservable } from "@eb/cm/src/observable-manager";
-import { Any, CYPRESS_APOLLO_KEY, EbnisGlobals } from "@eb/cm/src/utils/types";
-import { CachePersistor } from "apollo-cache-persist-dev";
+import {ApolloClient, InMemoryCache} from "@apollo/client";
+import {makeBChannel} from "@eb/cm/src/broadcast-channel-manager";
+import {makeObservable} from "@eb/cm/src/observable-manager";
+import {Any, CYPRESS_APOLLO_KEY, EbnisGlobals} from "@eb/cm/src/utils/types";
+import {CachePersistor} from "apollo-cache-persist-dev";
 import {
   PersistedData,
   PersistentStorage,
@@ -13,8 +13,8 @@ import {
   resetConnectionObject,
   storeConnectionStatus,
 } from "../utils/connections";
-import { makeApolloClient } from "./client";
-import { SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY } from "./schema-keys";
+import {makeApolloClient} from "./client";
+import {SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY} from "./schema-keys";
 
 export function buildClientCache(
   {
@@ -27,7 +27,7 @@ export function buildClientCache(
 ) {
   // use cypress version of cache if it has been set by cypress
   const globalVars = getOrMakeGlobals(newE2eTest);
-  let { cache, persistor } = globalVars;
+  let {cache, persistor} = globalVars;
 
   // cache has been set by e2e test
   if (cache) {
@@ -42,7 +42,10 @@ export function buildClientCache(
     storeConnectionStatus(true);
   }
 
-  const { client, ...others } = makeApolloClient({ uri, testing: useMsw });
+  const {client, ...others} = makeApolloClient(globalVars, {
+    uri,
+    testing: useMsw,
+  });
   cache = others.cache;
 
   persistor = makePersistor(cache, persistor);
@@ -51,9 +54,9 @@ export function buildClientCache(
     client.addResolvers(resolvers);
   }
 
-  const { bcBroadcaster } = addToGlobals({ client, cache, persistor });
+  const {bcBroadcaster} = addToGlobals({client, cache, persistor});
 
-  return { client, cache, persistor, bcBroadcaster };
+  return {client, cache, persistor, bcBroadcaster};
 }
 
 function makePersistor(
@@ -63,11 +66,11 @@ function makePersistor(
   persistor = persistor
     ? persistor
     : (new CachePersistor({
-        cache: appCache,
-        storage: localStorage as PersistentStorage<PersistedData<Any>>,
-        key: SCHEMA_KEY,
-        maxSize: false,
-      }) as CachePersistor<Any>);
+      cache: appCache,
+      storage: localStorage as PersistentStorage<PersistedData<Any>>,
+      key: SCHEMA_KEY,
+      maxSize: false,
+    }) as CachePersistor<Any>);
 
   return persistor;
 }

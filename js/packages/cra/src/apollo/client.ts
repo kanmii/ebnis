@@ -6,7 +6,7 @@ import {
   InMemoryCache,
 } from "@apollo/client/core";
 import possibleTypes from "@eb/cm/src/graphql/apollo-types/fragment-types.json";
-import { Any } from "@eb/cm/src/utils/types";
+import { Any, EbnisGlobals } from "@eb/cm/src/utils/types";
 import * as AbsintheSocket from "@kanmii/socket";
 import { createAbsintheSocketLink } from "@kanmii/socket-apollo-link";
 import { deleteExperienceVar } from "../apollo/delete-experience-cache";
@@ -20,7 +20,10 @@ import {
 import { syncErrorsPolicy, syncFlagVar } from "./sync-to-server-cache";
 import { unsyncedLedgerPolicy } from "./unsynced-ledger";
 
-export function makeApolloClient({ uri, testing }: MakeApolloClientArgs) {
+export function makeApolloClient(
+  ebnisGlobals: EbnisGlobals,
+  { uri, testing }: MakeApolloClientArgs,
+) {
   let client = (undefined as unknown) as ApolloClient<Any>;
   let cache = (undefined as unknown) as InMemoryCache;
 
@@ -34,8 +37,8 @@ export function makeApolloClient({ uri, testing }: MakeApolloClientArgs) {
     cache = windowCache;
   }
 
-  if (client && cache) {
-    return { client, cache };
+  if (ebnisGlobals.client && ebnisGlobals.cache) {
+    return ebnisGlobals;
   }
 
   if (!cache) {
@@ -78,11 +81,11 @@ export function makeApolloClient({ uri, testing }: MakeApolloClientArgs) {
     assumeImmutableResults: true,
   });
 
-  const ebnis = window.____ebnis || {};
-  ebnis.client = client;
-  ebnis.cache = cache;
+  ebnisGlobals.client = client;
+  ebnisGlobals.cache = cache;
+  ebnisGlobals.apolloLink = link;
 
-  return { client, cache, link };
+  return ebnisGlobals;
 }
 
 export function makeCache() {

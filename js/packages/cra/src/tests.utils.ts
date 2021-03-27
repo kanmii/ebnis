@@ -20,7 +20,7 @@ export function getAllByClass(className: string) {
 }
 
 export function getOneByClass(className: string, index = 0) {
-  return document.getElementsByClassName(className).item(index) as HTMLElement
+  return document.getElementsByClassName(className).item(index) as HTMLElement;
 }
 
 export const defaultExperience = {
