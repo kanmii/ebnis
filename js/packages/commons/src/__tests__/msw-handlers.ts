@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 import { ApolloError } from "@apollo/client/core";
 import { graphql } from "msw";
+import { CreateExperiences } from "../graphql/apollo-types/CreateExperiences";
 import { DeleteExperiences } from "../graphql/apollo-types/DeleteExperiences";
 import { GetExperienceAndEntriesDetailView } from "../graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import { GetExperienceComments } from "../graphql/apollo-types/GetExperienceComments";
@@ -50,6 +51,12 @@ export function deleteExperiencesMswGql(
   data: Partial<DeleteExperiences> | ApolloError,
 ) {
   return execGraphqlOperation(mutation, "DeleteExperiences", data);
+}
+
+export function createExperiencesMswGql(
+  data: Partial<CreateExperiences> | ApolloError,
+) {
+  return execGraphqlOperation(mutation, "CreateExperiences", data);
 }
 
 function execGraphqlOperation<TData>(
