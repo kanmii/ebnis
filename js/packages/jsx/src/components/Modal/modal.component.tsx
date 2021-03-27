@@ -137,7 +137,7 @@ function Header({
   }
 >) {
   const id = closeId || "";
-  const x = content || children;
+  const contentOrChildren = content || children;
   const { onClose } = useContext(Context);
 
   return (
@@ -164,7 +164,7 @@ function Header({
           `,
         )}
       >
-        {x}
+        {contentOrChildren}
       </div>
       <button
         id={id}
