@@ -12,7 +12,6 @@ import { deleteObjectKey } from "../utils";
 import {
   makeConnectionObject,
   resetConnectionObject,
-  storeConnectionStatus,
 } from "../utils/connections";
 import {makeApolloClient} from "./client";
 import {SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY} from "./schema-keys";
@@ -22,7 +21,6 @@ export function buildClientCache(
     uri,
     resolvers,
     newE2eTest,
-    appHydrated,
     useMsw,
   }: BuildClientCache = {} as BuildClientCache,
 ) {
@@ -33,14 +31,7 @@ export function buildClientCache(
   // cache has been set by e2e test
   if (cache) {
     // e2e test is now serving our app
-    if (appHydrated) {
-      // storeConnectionStatus(true);
-    }
     return globalVars;
-  }
-
-  if (useMsw) {
-    storeConnectionStatus(true);
   }
 
   const {client, ...others} = makeApolloClient(globalVars, {
@@ -130,7 +121,7 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
   if (!window.Cypress) {
     makeBChannel(window.____ebnis);
     makeObservable(window.____ebnis);
-    makeConnectionObject();
+    makeConnectionObject(window.____ebnis);
     return window.____ebnis;
   }
 
@@ -151,7 +142,7 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
     makeObservable(cypressApollo);
 
     // reset connections
-    cypressApollo.connectionStatus = resetConnectionObject();
+    resetConnectionObject(cypressApollo);
   }
 
   window.____ebnis = cypressApollo;

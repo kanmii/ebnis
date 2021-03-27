@@ -1,24 +1,30 @@
 /* istanbul ignore file */
-import { ConnectionStatus, EmitActionType } from "@eb/cm/src/utils/types";
+import {
+  ConnectionStatus,
+  EmitActionType,
+  EbnisGlobals,
+} from "@eb/cm/src/utils/types";
 import { deleteObjectKey } from ".";
 
-export function makeConnectionObject() {
-  let connectionStatus = window.____ebnis.connectionStatus;
+export function makeConnectionObject(ebnisGlobals?: EbnisGlobals) {
+  ebnisGlobals = ebnisGlobals || window.____ebnis;
+  let connectionStatus = ebnisGlobals.connectionStatus;
 
   if (!connectionStatus) {
     connectionStatus = {
       isConnected: null,
     } as ConnectionStatus;
 
-    window.____ebnis.connectionStatus = connectionStatus;
+    ebnisGlobals.connectionStatus = connectionStatus;
   }
 
-  return connectionStatus;
+  return ebnisGlobals;
 }
 
-export function resetConnectionObject() {
-  deleteObjectKey(window.____ebnis, "connectionStatus");
-  return makeConnectionObject();
+export function resetConnectionObject(ebnisGlobals?: EbnisGlobals) {
+  ebnisGlobals = ebnisGlobals || window.____ebnis;
+  deleteObjectKey(ebnisGlobals, "connectionStatus");
+  return makeConnectionObject(ebnisGlobals);
 }
 
 export function storeConnectionStatus(
