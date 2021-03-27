@@ -2,6 +2,7 @@ export const domPrefix = "detail-experience";
 export const syncErrorsNotificationId = `${domPrefix}-entries-errors-notification`;
 export const refetchId = `${domPrefix}-refetch`;
 export const updateSuccessNotificationId = `${domPrefix}-update-success-notification`;
+export const deleteFailNotificationCloseId = `${domPrefix}-delete-fail-notification-close`;
 export const isOfflineClassName = "detailed-experience-menu--is-danger";
 export const isPartOfflineClassName = "detailed-experience-menu--is-warning";
 export const closeSyncErrorsMsgId = `${domPrefix}-sync-errors-msg-close-id`;

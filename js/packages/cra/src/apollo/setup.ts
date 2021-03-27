@@ -1,9 +1,9 @@
 /* istanbul ignore file */
-import {ApolloClient, InMemoryCache} from "@apollo/client";
-import {makeBChannel} from "@eb/cm/src/broadcast-channel-manager";
-import {makeObservable} from "@eb/cm/src/observable-manager";
-import {Any, CYPRESS_APOLLO_KEY, EbnisGlobals} from "@eb/cm/src/utils/types";
-import {CachePersistor} from "apollo-cache-persist-dev";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
+import { makeBChannel } from "@eb/cm/src/broadcast-channel-manager";
+import { makeObservable } from "@eb/cm/src/observable-manager";
+import { Any, CYPRESS_APOLLO_KEY, EbnisGlobals } from "@eb/cm/src/utils/types";
+import { CachePersistor } from "apollo-cache-persist-dev";
 import {
   PersistedData,
   PersistentStorage,
@@ -13,8 +13,8 @@ import {
   makeConnectionObject,
   resetConnectionObject,
 } from "../utils/connections";
-import {makeApolloClient} from "./client";
-import {SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY} from "./schema-keys";
+import { makeApolloClient } from "./client";
+import { SCHEMA_KEY, SCHEMA_VERSION, SCHEMA_VERSION_KEY } from "./schema-keys";
 
 export function buildClientCache(
   {
@@ -25,46 +25,36 @@ export function buildClientCache(
   }: BuildClientCache = {} as BuildClientCache,
 ) {
   // use cypress version of cache if it has been set by cypress
-  const globalVars = getOrMakeGlobals(newE2eTest);
-  let {cache, persistor} = globalVars;
+  const ebnisGlobals = getOrMakeGlobals({ newE2eTest, useMsw });
 
   // cache has been set by e2e test
-  if (cache) {
-    // e2e test is now serving our app
-    return globalVars;
+  if (ebnisGlobals.cache && ebnisGlobals.client) {
+    return ebnisGlobals;
   }
 
-  const {client, ...others} = makeApolloClient(globalVars, {
+  const { client, cache } = makeApolloClient(ebnisGlobals, {
     uri,
     testing: useMsw,
   });
-  cache = others.cache;
 
-  persistor = makePersistor(cache, persistor);
+  makePersistor(cache, ebnisGlobals);
 
   if (resolvers) {
     client.addResolvers(resolvers);
   }
 
-  const {bcBroadcaster} = addToGlobals({client, cache, persistor});
-
-  return {client, cache, persistor, bcBroadcaster};
+  return ebnisGlobals;
 }
 
-function makePersistor(
-  appCache: InMemoryCache,
-  persistor?: CachePersistor<Any>,
-) {
-  persistor = persistor
-    ? persistor
-    : (new CachePersistor({
-      cache: appCache,
-      storage: localStorage as PersistentStorage<PersistedData<Any>>,
-      key: SCHEMA_KEY,
-      maxSize: false,
-    }) as CachePersistor<Any>);
+function makePersistor(appCache: InMemoryCache, ebnisGlobals: EbnisGlobals) {
+  const persistor = new CachePersistor({
+    cache: appCache,
+    storage: localStorage as PersistentStorage<PersistedData<Any>>,
+    key: SCHEMA_KEY,
+    maxSize: false,
+  }) as CachePersistor<Any>;
 
-  return persistor;
+  ebnisGlobals.persistor = persistor;
 }
 
 export async function restoreCacheOrPurgeStorage(
@@ -113,22 +103,20 @@ interface BuildClientCache {
 
 ///////////////////// END TO END TESTS THINGS ///////////////////////
 
-function getOrMakeGlobals(newE2eTest?: boolean) {
-  if (!window.____ebnis) {
-    window.____ebnis = {} as EbnisGlobals;
-  }
-
+function getOrMakeGlobals({ newE2eTest }: BuildClientCache) {
   if (!window.Cypress) {
-    makeBChannel(window.____ebnis);
-    makeObservable(window.____ebnis);
-    makeConnectionObject(window.____ebnis);
-    return window.____ebnis;
+    const ebnisGlobals = window.____ebnis || ({} as EbnisGlobals);
+    makeBChannel(ebnisGlobals);
+    makeObservable(ebnisGlobals);
+    makeConnectionObject(ebnisGlobals);
+    window.____ebnis = ebnisGlobals;
+    return ebnisGlobals;
   }
 
-  let cypressApollo = getGlobalsFromCypress();
+  let ebnisGlobals = getGlobalsFromCypress();
 
   if (newE2eTest) {
-    resetGlobals(cypressApollo);
+    resetGlobals(ebnisGlobals);
 
     // We need to set up local storage for local state management
     // so that whatever we persist in e2e tests will be picked up by apollo
@@ -137,39 +125,21 @@ function getOrMakeGlobals(newE2eTest?: boolean) {
     localStorage.setItem(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
 
     // reset globals
-    cypressApollo = {} as EbnisGlobals;
-    makeBChannel(cypressApollo);
-    makeObservable(cypressApollo);
+    ebnisGlobals = {} as EbnisGlobals;
+    makeBChannel(ebnisGlobals);
+    makeObservable(ebnisGlobals);
 
     // reset connections
-    resetConnectionObject(cypressApollo);
+    resetConnectionObject(ebnisGlobals);
   }
 
-  window.____ebnis = cypressApollo;
-  window.Cypress.env(CYPRESS_APOLLO_KEY, cypressApollo);
+  // if we reach here from App, then we need to set window.____ebnis to the
+  // value obtained from cypress
+  window.____ebnis = ebnisGlobals;
 
-  return cypressApollo;
-}
+  window.Cypress.env(CYPRESS_APOLLO_KEY, ebnisGlobals);
 
-function addToGlobals(args: {
-  client: ApolloClient<Any>;
-  cache: InMemoryCache;
-  persistor: CachePersistor<Any>;
-}) {
-  const keys: (keyof typeof args)[] = ["client", "cache", "persistor"];
-  const globals = window.Cypress ? getGlobalsFromCypress() : window.____ebnis;
-
-  keys.forEach((key) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any*/
-    (globals as any)[key] = args[key];
-  });
-
-  if (window.Cypress) {
-    window.Cypress.env(CYPRESS_APOLLO_KEY, globals);
-    window.____ebnis = globals;
-  }
-
-  return globals;
+  return ebnisGlobals;
 }
 
 function getGlobalsFromCypress() {

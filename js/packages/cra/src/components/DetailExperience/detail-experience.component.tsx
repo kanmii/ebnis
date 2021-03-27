@@ -1,3 +1,4 @@
+import { ReactComponent as ExclamationErrorSvg } from "@eb/cm/src/styles/exclamation-error.svg";
 import { trimClass } from "@eb/cm/src/utils";
 import { componentTimeoutsMs } from "@eb/cm/src/utils/timers";
 import { StateValue } from "@eb/cm/src/utils/types";
@@ -47,6 +48,7 @@ import {
 import {
   closeSyncErrorsMsgBtnId,
   closeSyncErrorsMsgId,
+  deleteFailNotificationCloseId,
   deleteFooterCloseId,
   deleteHeaderCloseId,
   deleteMenuItemId,
@@ -115,19 +117,22 @@ export function DetailExperience(props: Props) {
       dispatch,
       onDeleteDeclined() {
         dispatch({
-          type: ActionType.delete_cancelled,
+          type: ActionType.delete,
+          value: "cancelled",
         });
       },
       onDeleteConfirmed() {
         dispatch({
-          type: ActionType.delete_confirmed,
+          type: ActionType.delete,
+          value: "confirmed",
         });
       },
       onDeleteRequested(e) {
         e.preventDefault();
 
         dispatch({
-          type: ActionType.delete_request,
+          type: ActionType.delete,
+          value: "request",
         });
       },
       toggleMenuCb() {
@@ -255,7 +260,7 @@ function ExperienceComponent() {
   const {
     context,
     states: {
-      deleteExperience: deleteExperienceState,
+      deleteExperience: deleteState,
       entries: entriesState,
       updateUiActive,
       syncErrorsMsg,
@@ -307,38 +312,39 @@ function ExperienceComponent() {
         </Suspense>
       )}
 
-      {deleteExperienceState.value === StateValue.active && (
-        <Modal
-          className={noTriggerDocumentEventClassName}
-          onClose={onDeleteDeclined}
-        >
-          <Modal.Card>
-            <Modal.Header id={deleteHeaderCloseId}>
-              <strong>Delete Experience</strong>
-              <div>{experience.title}</div>
-            </Modal.Header>
-            <Modal.Footer>
-              <Button
-                id={deleteOkId}
-                type="button"
-                btnType="is-danger"
-                onClick={onDeleteConfirmed}
-              >
-                Ok
-              </Button>
-              <Button
-                id={deleteFooterCloseId}
-                type="button"
-                onClick={onDeleteDeclined}
-                btnType="is-success"
-                className="ml-5"
-              >
-                Cancel
-              </Button>
-            </Modal.Footer>
-          </Modal.Card>
-        </Modal>
-      )}
+      {deleteState.value === StateValue.active &&
+        deleteState.active.states.value === StateValue.requested && (
+          <Modal
+            className={noTriggerDocumentEventClassName}
+            onClose={onDeleteDeclined}
+          >
+            <Modal.Card>
+              <Modal.Header id={deleteHeaderCloseId}>
+                <strong>Delete Experience</strong>
+                <div>{experience.title}</div>
+              </Modal.Header>
+              <Modal.Footer>
+                <Button
+                  id={deleteOkId}
+                  type="button"
+                  btnType="is-danger"
+                  onClick={onDeleteConfirmed}
+                >
+                  Ok
+                </Button>
+                <Button
+                  id={deleteFooterCloseId}
+                  type="button"
+                  onClick={onDeleteDeclined}
+                  btnType="is-success"
+                  className="ml-5"
+                >
+                  Cancel
+                </Button>
+              </Modal.Footer>
+            </Modal.Card>
+          </Modal>
+        )}
 
       {syncErrorsMsg.value === StateValue.active && (
         <PromptToFixSyncErrorNotificationComponent />
@@ -356,6 +362,74 @@ function ExperienceComponent() {
             Update was successful
           </Notification>
         )}
+
+        {deleteState.value === StateValue.active &&
+          deleteState.active.states.value === StateValue.errors && (
+            <Notification
+              onClose={() => {
+                dispatch({
+                  type: ActionType.delete,
+                  value: "closeNotification",
+                });
+              }}
+              id={deleteFailNotificationCloseId}
+              type="is-danger"
+              className="mb-5"
+            >
+              <div
+                className={trimClass(
+                  `
+                    flex
+                    mb-2
+                    pl-1
+                    pr-2
+                    font-semibold
+                  `,
+                )}
+              >
+                <div
+                  className="flex-shrink-0"
+                  style={{
+                    width: "24px",
+                  }}
+                >
+                  <ExclamationErrorSvg />
+                </div>
+                <div
+                  className={trimClass(
+                    `
+                      flex-grow
+                      ml-2
+                    `,
+                  )}
+                >
+                Errors while deleting experience
+                </div>
+              </div>
+              <ul
+                className={trimClass(
+                  `
+                      ml-5
+                      mt-2
+                  `,
+                )}
+              >
+                {deleteState.active.states.errors.map(([key, error]) => {
+                  return (
+                    <li
+                      key={key}
+                      className={`
+                        list-disc
+                         mb-2
+                      `}
+                    >
+                      {error}
+                    </li>
+                  );
+                })}
+              </ul>
+            </Notification>
+          )}
 
         {commentsState.value === StateValue.active && (
           <Comments

@@ -168,6 +168,7 @@ export const mockOnlineExperience1 = {
   id: mockOnlineExperienceId1,
   dataDefinitions: [mockDataDefinition1],
   __typename: "Experience",
+  comments: null,
 } as ExperienceCompleteFragment;
 
 export const mockOfflineExperience1 = {

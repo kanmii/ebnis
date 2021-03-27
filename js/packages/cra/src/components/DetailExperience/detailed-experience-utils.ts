@@ -59,6 +59,7 @@ import { purgeEntry } from "../../apollo/update-get-experiences-list-view-query"
 import { deleteObjectKey } from "../../utils";
 import {
   DATA_FETCHING_FAILED,
+  ErrorType,
   FETCH_ENTRIES_FAIL_ERROR_MSG,
   FieldError,
   parseStringError,
@@ -98,9 +99,7 @@ import {
 
 export enum ActionType {
   record_timeout = "@detailed-experience/record-timeout",
-  delete_request = "@detailed-experience/delete-request",
-  delete_cancelled = "@detailed-experience/delete-cancelled",
-  delete_confirmed = "@detailed-experience/delete-confirmed",
+  delete = "@detailed-experience/delete",
   toggle_menu = "@detailed-experience/toggle-menu",
   on_fetched = "@detailed-experience/on-fetched",
   re_fetch = "@detailed-experience/re-fetch",
@@ -123,16 +122,8 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
           handleRecordTimeoutAction(proxy, payload as SetTimeoutPayload);
           break;
 
-        case ActionType.delete_request:
-          handleDeleteRequestAction(proxy, payload as DeleteRequestPayload);
-          break;
-
-        case ActionType.delete_cancelled:
-          handleDeleteExperienceCancelledAction(proxy);
-          break;
-
-        case ActionType.delete_confirmed:
-          handleDeleteExperienceConfirmedAction(proxy);
+        case ActionType.delete:
+          handleDeleteAction(proxy, payload as DeletePayload);
           break;
 
         case ActionType.toggle_menu:
@@ -217,36 +208,10 @@ function handleRecordTimeoutAction(
   });
 }
 
-function handleDeleteRequestAction(
-  proxy: StateMachine,
-  payload: DeleteRequestPayload,
-) {
+function handleDeleteAction(proxy: StateMachine, payload: DeletePayload) {
   const { states: globalStates } = proxy;
 
-  // istanbul ignore else:
-  if (globalStates.value === StateValue.data) {
-    const {
-      states: { deleteExperience },
-    } = globalStates.data;
-
-    // clear all menus
-    handleHideMenusActions(proxy, ["mainCircular", "comments", "entries"]);
-
-    deleteExperience.value = StateValue.active;
-    const deleteExperienceActive = deleteExperience as DeleteExperienceActiveState;
-
-    deleteExperienceActive.active = {
-      context: {
-        key: payload.key,
-      },
-    };
-  }
-}
-
-function handleDeleteExperienceCancelledAction(proxy: StateMachine) {
-  const { states: globalStates } = proxy;
-
-  // istanbul ignore else:
+  // istanbul ignore else
   if (globalStates.value === StateValue.data) {
     const {
       states: { deleteExperience },
@@ -255,34 +220,68 @@ function handleDeleteExperienceCancelledAction(proxy: StateMachine) {
 
     const deleteExperienceActive = deleteExperience as DeleteExperienceActiveState;
 
-    // istanbul ignore else:
-    if (deleteExperienceActive.value === StateValue.active) {
-      deleteExperience.value = StateValue.inactive;
-      const effects = getGeneralEffects(proxy);
+    switch (payload.value) {
+      case "request": {
+        // clear all menus
+        handleHideMenusActions(proxy, ["mainCircular", "comments", "entries"]);
 
-      effects.push({
-        key: "cancelDeleteEffect",
-        ownArgs: {
-          key: deleteExperienceActive.active.context.key,
-          experience,
-        },
-      });
+        deleteExperience.value = StateValue.active;
+
+        deleteExperienceActive.active = {
+          states: {
+            value: StateValue.requested,
+            key: payload.key,
+          },
+        };
+
+        return;
+      }
+
+      case "cancelled": {
+        // istanbul ignore else:
+        if (deleteExperienceActive.value === StateValue.active) {
+          deleteExperience.value = StateValue.inactive;
+
+          const effects = getGeneralEffects(proxy);
+
+          effects.push({
+            key: "cancelDeleteEffect",
+            ownArgs: {
+              key: (deleteExperienceActive.active.states as DeleteRequested)
+                .key,
+              experience,
+            },
+          });
+        }
+
+        return;
+      }
+
+      case "confirmed": {
+        const effects = getGeneralEffects(proxy);
+        effects.push({
+          key: "deleteEffect",
+          ownArgs: {
+            experienceId: globalStates.data.context.experience.id,
+          },
+        });
+
+        return;
+      }
+
+      case "errors": {
+        deleteExperienceActive.active.states = {
+          value: StateValue.errors,
+          errors: payload.errors,
+        };
+        return;
+      }
+
+      case 'closeNotification': {
+        deleteExperience.value = StateValue.inactive
+        return
+      }
     }
-  }
-}
-
-function handleDeleteExperienceConfirmedAction(proxy: StateMachine) {
-  const { states } = proxy;
-
-  // istanbul ignore else
-  if (states.value === StateValue.data) {
-    const effects = getGeneralEffects(proxy);
-    effects.push({
-      key: "deleteEffect",
-      ownArgs: {
-        experienceId: states.data.context.experience.id,
-      },
-    });
   }
 }
 
@@ -981,7 +980,8 @@ const deleteRequestedEffect: DefDeleteRequestedEffect["func"] = (
 
     // do the actual deletion (or ask user for confirmation)
     dispatch({
-      type: ActionType.delete_request,
+      type: ActionType.delete,
+      value: "request",
       key: deleteLedger.key,
     });
   }
@@ -1022,8 +1022,10 @@ type DefCancelDeleteEffect = EffectDefinition<
 const deleteEffect: DefDeleteEffect["func"] = async (
   { experienceId },
   props,
+  ownArgs,
 ) => {
   const { history, deleteExperiences } = props;
+  const { dispatch } = ownArgs;
 
   try {
     const response = await deleteExperiences({
@@ -1047,6 +1049,24 @@ const deleteEffect: DefDeleteEffect["func"] = async (
 
     // :TODO: deal with this????
     if (experienceResponse.__typename === "DeleteExperienceErrors") {
+      const {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        errors: { id, __typename, ...otherErrors },
+      } = experienceResponse;
+      const errors: ErrorType = [];
+
+      Object.entries(otherErrors).forEach(([k, v]) => {
+        if (v) {
+          errors.push([k, v]);
+        }
+      });
+
+      dispatch({
+        type: ActionType.delete,
+        value: "errors",
+        errors,
+      });
+
       return;
     }
 
@@ -1629,10 +1649,18 @@ type DeleteExperienceState =
 type DeleteExperienceActiveState = {
   value: ActiveVal;
   active: {
-    context: {
-      key?: RequestedVal; // with key, we know request came from 'my' component
-    };
+    states: DeleteRequested | DeleteErrors;
   };
+};
+
+type DeleteRequested = {
+  value: RequestedVal;
+  key?: RequestedVal; // with key, we know request came from 'my' component
+};
+
+type DeleteErrors = {
+  value: ErrorsVal;
+  errors: ErrorType;
 };
 
 type NotificationActive = {
@@ -1671,14 +1699,8 @@ export type Action =
       type: ActionType.record_timeout;
     } & SetTimeoutPayload)
   | ({
-      type: ActionType.delete_request;
-    } & DeleteRequestPayload)
-  | {
-      type: ActionType.delete_cancelled;
-    }
-  | {
-      type: ActionType.delete_confirmed;
-    }
+      type: ActionType.delete;
+    } & DeletePayload)
   | ({
       type: ActionType.toggle_menu;
     } & ToggleMenuPayload)
@@ -1706,6 +1728,25 @@ export type Action =
   | ({
       type: ActionType.entries_actions;
     } & EntriesActionPayload);
+
+type DeletePayload =
+  | {
+      value: "request";
+      key?: RequestedVal;
+    }
+  | {
+      value: "cancelled";
+    }
+  | {
+      value: "errors";
+      errors: ErrorType;
+    }
+  | {
+      value: "confirmed";
+    }
+  | {
+      value: "closeNotification";
+    };
 
 type EntriesActionPayload = {
   action: EntriesRemoteActionType;
@@ -1752,10 +1793,6 @@ type FetchedExperiencePayload =
 
 interface ToggleMenuPayload {
   key?: "close" | "open";
-}
-
-interface DeleteRequestPayload {
-  key?: RequestedVal;
 }
 
 export interface DataDefinitionIdToNameMap {

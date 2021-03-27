@@ -1,4 +1,5 @@
 import { RegisterUserInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { UserFragment } from "@eb/cm/src/graphql/apollo-types/UserFragment";
 
 export interface CreateUserAttrs {
   email: string;
@@ -22,4 +23,12 @@ export const REGISTER_USER_ATTRS: RegisterUserInput = {
   password: "a@b.com",
   passwordConfirmation: "a@b.com",
   source: "password",
+};
+
+export const MOCK_USER: UserFragment = {
+  __typename: "User",
+  email: "a@b.com",
+  name: "a@b.com",
+  jwt: "abc",
+  id: "abc",
 };

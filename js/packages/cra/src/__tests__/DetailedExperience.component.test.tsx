@@ -1050,7 +1050,8 @@ describe("reducers", () => {
     const deleteState = reducer(deleteRequestedState, deleteEvent);
 
     const deleteCancelledState = reducer(deleteState, {
-      type: ActionType.delete_cancelled,
+      type: ActionType.delete,
+      value: "cancelled",
     });
 
     const deleteCancelledEffect = getEffects<E, S>(deleteCancelledState)[0];
