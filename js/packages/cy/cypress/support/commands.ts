@@ -35,15 +35,6 @@ function checkoutMockSession() {
 function checkoutSession() {
   window.localStorage.clear();
 
-    console.log(
-    `\n======================Logging start==================\n
-        Label: ebnisGlobals
-    `,
-    11111,
-    `\n\n=====================Logging ends===================\n`,
-  );
-
-
   const ebnisGlobals = buildClientCache({
     uri: serverUrl,
     newE2eTest: true,
