@@ -492,14 +492,14 @@ function SyncErrorsNotificationComponent(props: {
           entriesErrors.map(([, { others, dataObjects }], entryIndex) => {
             return (
               <Fragment key={entryIndex}>
-                <strong>Entry #{entryIndex}</strong>
+                <strong>Entry #{entryIndex + 1}</strong>
 
                 <div className="detailed-experience__data-object-errors">
                   {others &&
                     others.map(([k, v]) => {
                       return (
                         <div key={k}>
-                          <span>{k} </span>
+                          <span>{k}: </span>
                           <span>{v}</span>
                         </div>
                       );
