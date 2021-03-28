@@ -1,8 +1,10 @@
+import { Notification } from "@eb/jsx/src/components/Notification/notification.component";
 import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
 import { trimClass } from "@eb/cm/src/utils";
 import { isOfflineId } from "@eb/cm/src/utils/offlines";
+import { Button } from "@eb/jsx/src/components/Button/button.component";
 import DropdownMenu from "@eb/jsx/src/components/dropdown-menu/dropdown-menu.component";
-import React, { useContext, Fragment } from "react";
+import React, { useContext } from "react";
 import { DataStateContext } from "../DetailExperience/detail-experience.context";
 import { noTriggerDocumentEventClassName } from "../DetailExperience/detail-experience.dom";
 import { formatDatetime } from "../entries/entries.utils";
@@ -13,6 +15,7 @@ import {
   entryUpdateMenuItemSelector,
 } from "./entry.dom";
 import { Props } from "./entry.utils";
+import { ComponentColorType } from "@eb/cm/src/utils/types/react";
 
 export function Entry(props: Props) {
   const {
@@ -33,32 +36,28 @@ export function Entry(props: Props) {
   const isOffline = isOfflineId(entryId);
 
   return (
-    <Fragment>
+    <>
       {syncError && (
-        <div>
+        <Notification
+          type={ComponentColorType.is_danger}
+          className={trimClass(`
+            mt-5
+          `)}
+        >
+          <p>Entry has errors and can not be created/uploaded!</p>
+          <p style={{ marginTop: "10px" }}>Click 'edit button' to fix.</p>
+
           <div
             className={trimClass(`
-               subtitle
-               is-6
-               font-bold
+               text-right
             `)}
           >
-            <p>Entry has errors and can not be created/uploaded!</p>
-            <p style={{ marginTop: "10px" }}>Click 'edit button' to fix.</p>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <button
+            <Button
               type="button"
-              className={trimClass(
-                `
-                  button
-                  is-small
-                  detailed-experience__entry-edit
-                `,
-              )}
-              onClick={(e) => {
-                e.preventDefault();
-
+              className={trimClass(`
+                  font-extrabold
+              `)}
+              onClick={() => {
                 activateUpdateEntryCb({
                   entry,
                   // TODO: remove any type
@@ -68,15 +67,15 @@ export function Entry(props: Props) {
               }}
             >
               Fix error
-            </button>
+            </Button>
           </div>
-        </div>
+        </Notification>
       )}
 
       <div
         id={entryId}
         className={trimClass(
-        `
+          `
           relative
           shadow-lg
           relative
@@ -164,7 +163,7 @@ export function Entry(props: Props) {
           />
         </DropdownMenu>
       </div>
-    </Fragment>
+    </>
   );
 }
 
