@@ -247,7 +247,7 @@ async function upsertOfflineEntryEffectHelper(
 
   const { dispatch } = effectArgs;
 
-  const validResponse = createOfflineEntryMutation({
+  const validResponse = await createOfflineEntryMutation({
     experienceId,
     dataObjects: input.dataObjects as CreateDataObject[],
   });

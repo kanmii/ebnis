@@ -47,7 +47,7 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-it("online experience/creates entry", () => {
+it("online experience/creates entry", async () => {
   mockGetUnsyncedExperience.mockReturnValue({});
 
   mockGetEntriesQuerySuccess.mockReturnValueOnce({
@@ -68,7 +68,9 @@ it("online experience/creates entry", () => {
 
   const {
     entry: { id, dataObjects },
-  } = createOfflineEntryMutation(variables) as CreateOfflineEntryMutationValid;
+  } = (await createOfflineEntryMutation(
+    variables,
+  )) as CreateOfflineEntryMutationValid;
 
   expect(mockUpsertWithEntry).toHaveBeenCalled();
   expect(isOfflineId(id)).toBe(true);
@@ -82,7 +84,7 @@ it("online experience/creates entry", () => {
   ]);
 });
 
-it("offline experience/creates entry", () => {
+it("offline experience/creates entry", async () => {
   mockGetUnsyncedExperience.mockReturnValue(null);
 
   mockGetEntriesQuerySuccess.mockReturnValueOnce({
@@ -100,18 +102,18 @@ it("offline experience/creates entry", () => {
     dataObjects: [{}],
   } as CreateOfflineEntryMutationVariables;
 
-  createOfflineEntryMutation(variables);
+  await createOfflineEntryMutation(variables);
 
   expect(mockWriteUnsyncedExperience).not.toHaveBeenCalled();
   expect(mockUpsertWithEntry).toHaveBeenCalled();
 });
 
-it("experience not found", () => {
+it("experience not found", async () => {
   const variables = {
     experienceId: "0",
     dataObjects: [{}],
   } as CreateOfflineEntryMutationVariables;
 
-  const result = createOfflineEntryMutation(variables);
+  const result = await createOfflineEntryMutation(variables);
   expect(result).toBeNull();
 });

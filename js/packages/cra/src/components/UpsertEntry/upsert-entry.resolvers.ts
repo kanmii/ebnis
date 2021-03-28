@@ -21,16 +21,9 @@ import {
   UpsertNewEntryReturnVal,
 } from "./upsert-entry.injectables";
 
-export interface CreateOfflineEntryMutationValid {
-  id: string;
-  entry: EntryFragment;
-  experience: ExperienceCompleteFragment;
-  __typename: "Entry";
-}
-
-export function createOfflineEntryMutation(
+export async function createOfflineEntryMutation(
   variables: CreateOfflineEntryMutationVariables,
-) {
+): Promise<CreateOfflineEntryMutationValid | null> {
   const { experienceId, insertedAt, updatedAt } = variables;
   const today = new Date();
   const timestamps = today.toJSON();
@@ -82,6 +75,9 @@ export function createOfflineEntryMutation(
 
   updateUnsynced(experienceId);
 
+  const { persistor } = window.____ebnis;
+  await persistor.persist();
+
   return {
     id,
     experience: updates.experience,
@@ -92,6 +88,13 @@ export function createOfflineEntryMutation(
 export type CreateOfflineEntryMutationVariables = CreateEntryInput & {
   experienceId: string;
   id?: string;
+};
+
+export interface CreateOfflineEntryMutationValid {
+  id: string;
+  entry: EntryFragment;
+  experience: ExperienceCompleteFragment;
+  __typename: "Entry";
 }
 
 function updateUnsynced(experienceId: string) {
