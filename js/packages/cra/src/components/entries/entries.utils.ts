@@ -90,6 +90,7 @@ import { cleanUpSyncedOfflineEntries } from "../WithSubscriptions/with-subscript
 export enum EntriesRemoteActionType {
   upsert = "@entries/remote/upsert",
   hide_menus = "@entries/remote/hide-menus",
+  sync_errors_received = "@entries/remote/sync-errors-received",
 }
 
 export enum ActionType {
@@ -691,6 +692,34 @@ const parentActionsObject = {
   [EntriesRemoteActionType.hide_menus]: (proxy) => {
     handleMenusAction(proxy, {});
   },
+  [EntriesRemoteActionType.sync_errors_received]: (
+    proxy,
+    payload: FromParentSyncErrorsReceivedPayload,
+  ) => {
+    const { data } = payload;
+    const {
+      states: { entries },
+    } = proxy;
+
+    const successState = entries as DataSuccess;
+    successState.value = StateValue.success;
+    const success =
+      successState.success ||
+      // istanbul ignore next:
+      {};
+    const context =
+      success.context ||
+      // istanbul ignore next:
+      {};
+
+    successState.success = {
+      ...success,
+      context: {
+        ...context,
+        entries: [...data],
+      },
+    };
+  },
 } as Record<
   EntriesRemoteActionType,
   <P = Record<string, unknown>>(proxy: DraftState, payload: P) => void
@@ -700,9 +729,9 @@ function handleFromParentAction(
   proxy: DraftState,
   actionObj: FromParentActionPayload,
 ) {
-  const { actions, ...payload } = actionObj;
+  const { actions } = actionObj;
 
-  actions.forEach(({ type }) => {
+  actions.forEach(({ type, ...payload }) => {
     parentActionsObject[type as keyof typeof parentActionsObject](
       proxy,
       payload,
@@ -788,7 +817,7 @@ function updateEntriesFn(
     }
 
     existingEntry.entryData = upsertedEntry;
-    existingEntry.entrySyncError = undefined;
+    existingEntry.syncError = undefined;
   }
 }
 
@@ -1227,7 +1256,7 @@ export function processCreateEntriesErrors(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   { __typename, meta, dataObjects, ...errors }: CreateEntryErrorFragment,
   index: number,
-) {
+): [IndexToEntryErrorsList, EntryErrorsList] {
   const processedErrors: EntryErrorsList = {};
   entryErrors.push([index + 1, processedErrors]);
 
@@ -1251,14 +1280,14 @@ export function processCreateEntriesErrors(
     );
   }
 
-  return entryErrors;
+  return [entryErrors, processedErrors];
 }
 
 export function processUpdateEntriesErrors(
   entryErrors: IndexToEntryErrorsList,
   data: UpdateEntrySyncErrors,
   index: number,
-) {
+): [IndexToEntryErrorsList, EntryErrorsList] {
   const processedErrors: EntryErrorsList = {};
   entryErrors.push([index + 1, processedErrors]);
 
@@ -1270,7 +1299,7 @@ export function processUpdateEntriesErrors(
     );
   }
 
-  return entryErrors
+  return [entryErrors, processedErrors];
 }
 
 function processDataObjectsErrors(dataObjects: DataObjectErrorFragment[]) {
@@ -1443,7 +1472,7 @@ type DataContext = DataContextEntry[];
 
 export type DataContextEntry = {
   entryData: EntryFragment;
-  entrySyncError?: CreateEntryErrorFragment | UpdateEntrySyncErrors;
+  syncError?: EntryErrorsList;
 };
 
 type DataFailure = {
@@ -1498,10 +1527,17 @@ export type EntriesRemoteAction =
     }
   | {
       type: EntriesRemoteActionType.hide_menus;
-    };
+    }
+  | ({
+      type: EntriesRemoteActionType.sync_errors_received;
+    } & FromParentSyncErrorsReceivedPayload);
 
 type FromParentActionPayload = {
   actions: EntriesRemoteAction[];
+};
+
+type FromParentSyncErrorsReceivedPayload = {
+  data: DataContext;
 };
 
 type DeletePayload =
@@ -1574,11 +1610,15 @@ export type OldEntryData = {
   index: number;
 };
 
-export type CallerProps = {
-  experience: ExperienceDetailViewFragment;
-  entriesData: ProcessedEntriesQueryReturnVal;
+export type EntriesParentContext = {
+  value: ActiveVal | InActiveVal;
   postActions: EntriesRemoteAction[];
-  syncErrors?: EntriesSyncErrors;
+  entriesData: ProcessedEntriesQueryReturnVal;
+  syncErrors?: boolean;
+};
+
+export type CallerProps = EntriesParentContext & {
+  experience: ExperienceDetailViewFragment;
   parentDispatch: ParentDispatchType;
 };
 

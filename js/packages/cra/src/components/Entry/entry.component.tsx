@@ -16,7 +16,7 @@ import { Props } from "./entry.utils";
 
 export function Entry(props: Props) {
   const {
-    state: { entryData: entry, entrySyncError },
+    state: { entryData: entry, syncError },
     index,
     activateUpdateEntryCb,
     entriesOptionsCb,
@@ -34,7 +34,7 @@ export function Entry(props: Props) {
 
   return (
     <Fragment>
-      {entrySyncError && (
+      {syncError && (
         <div>
           <div
             className={trimClass(`
@@ -62,7 +62,7 @@ export function Entry(props: Props) {
                 activateUpdateEntryCb({
                   entry,
                   // TODO: remove any type
-                  errors: entrySyncError as any,
+                  errors: syncError as any,
                   index,
                 });
               }}
@@ -134,7 +134,7 @@ export function Entry(props: Props) {
                 activateUpdateEntryCb({
                   entry,
                   // :TODO: remove any type
-                  errors: entrySyncError as any,
+                  errors: syncError as any,
                   index,
                 });
               }}

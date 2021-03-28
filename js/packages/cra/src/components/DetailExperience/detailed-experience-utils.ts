@@ -471,7 +471,7 @@ function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
 
     const {
       context,
-      // states: { entries: entriesState },
+      states: { entries: entriesState },
     } = globalStates.data;
     const {
       offlineIdToOnlineExperienceMap,
@@ -547,8 +547,8 @@ function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
     // istanbul ignore else:
     if (experienceSyncErrors) {
       const {
-        createEntries,
-        updateEntries,
+        createEntries: maybeCreateEntries,
+        updateEntries: maybeUpdateEntries,
         ownFields,
         definitions,
       } = experienceSyncErrors;
@@ -577,54 +577,54 @@ function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
 
       let entriesErrors = contextSyncErrors.entriesErrors || [];
 
-      // :TODO: update child entries
       // istanbul ignore else:
-      if (createEntries) {
-        Object.entries(createEntries).forEach(
-          (
-            [
-              ,
-              // entryId
-              createError,
-            ],
-            index,
-          ) => {
-            entriesErrors = processCreateEntriesErrors(
-              entriesErrors,
-              createError,
-              index,
-            );
-          },
-        );
-      }
+      if (maybeCreateEntries || maybeUpdateEntries) {
+        const createEntries = maybeCreateEntries || {};
+        const updateEntries = maybeUpdateEntries || {};
+        entriesState.syncErrors = true;
 
-      // :TODO: update child entries
-      // istanbul ignore else:
-      if (updateEntries) {
-        Object.entries(updateEntries).forEach(
-          (
-            [
-              ,
-              // entryId
-              updateError,
-            ],
-            index,
-          ) => {
-            entriesErrors = processUpdateEntriesErrors(
-              entriesErrors,
-              updateError,
-              index,
-            );
-          },
-        );
-      }
+        if (entriesState.entriesData.key === StateValue.success) {
+          const entries = entriesState.entriesData.entries;
 
-      // istanbul ignore else:
-      if (entriesErrors.length) {
-        context.syncErrors = {
-          ...contextSyncErrors,
-          entriesErrors,
-        };
+          entries.forEach((entry, index) => {
+            const { id } = entry.entryData;
+
+            const createError = createEntries[id];
+            const updateError = updateEntries[id];
+
+            if (createError) {
+              const [a, b] = processCreateEntriesErrors(
+                entriesErrors,
+                createError,
+                index,
+              );
+
+              entriesErrors = a;
+              entry.syncError = b;
+            }
+            // istanbul ignore else:
+            else if (updateError) {
+              const [a, b] = processUpdateEntriesErrors(
+                entriesErrors,
+                updateError,
+                index,
+              );
+
+              entriesErrors = a;
+              entry.syncError = b;
+            }
+          });
+
+          context.syncErrors = {
+            ...contextSyncErrors,
+            entriesErrors,
+          };
+
+          setEntriesActions(proxy, {
+            type: EntriesRemoteActionType.sync_errors_received,
+            data: entries,
+          });
+        }
       }
     }
 
@@ -1040,7 +1040,6 @@ const deleteEffect: DefDeleteEffect["func"] = async (
     const validResponse =
       response && response.data && response.data.deleteExperiences;
 
-    // :TODO: integration test
     if (!validResponse) {
       dispatch({
         type: ActionType.delete,
@@ -1414,7 +1413,7 @@ export type DataState = {
         | NotificationActive;
       deleteExperience: DeleteExperienceState;
       showingOptionsMenu: ShowingOptionsMenuState;
-      entries: EntriesData;
+      entries: EntriesParentContext;
       updateUiActive:
         | {
             value: InActiveVal;

@@ -688,7 +688,7 @@ describe("components", () => {
       syncErrors: {
         [mockOfflineExperienceId1]: {
           createEntries: {
-            1: {
+            [mockOfflineEntry1Id]: {
               error: "e",
               dataObjects: [
                 {
@@ -702,6 +702,9 @@ describe("components", () => {
               ],
             } as CreateEntryErrorFragment,
           },
+          updateEntries: {
+            [mockOnlineEntry1Id]: "a",
+          },
         },
       },
     } as OnSyncedData,
@@ -712,6 +715,24 @@ describe("components", () => {
       getExperience: {
         ...mockOfflineExperience1,
       } as any,
+      getEntries: {
+        __typename: "GetEntriesSuccess",
+        entries: {
+          pageInfo: {},
+          edges: [
+            {
+              node: {
+                ...mockOfflineEntry1,
+              },
+            },
+            {
+              node: {
+                ...mockOnlineEntry1,
+              },
+            },
+          ],
+        },
+      },
     },
   } as GetExperienceAndEntriesDetailViewQueryResult;
 
@@ -729,6 +750,8 @@ describe("components", () => {
     const { ui } = makeComp();
 
     await act(async () => {
+      // ebnisObject.logReducers = true;
+
       render(ui);
       expect(getById(syncErrorsNotificationId)).toBeNull();
 

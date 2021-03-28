@@ -462,7 +462,6 @@ function ExperienceComponent() {
         <Entries
           {...entriesState}
           experience={experience}
-          syncErrors={syncErrors}
           parentDispatch={dispatch}
         />
       </div>
@@ -478,12 +477,16 @@ function SyncErrorsNotificationComponent(props: {
   const { entriesErrors, definitionsErrors, ownFieldsErrors } = state;
 
   return (
-    <div className="message is-danger" id={syncErrorsNotificationId}>
-      <div className="message-header">
-        <p>There were errors while uploading changes for this item</p>
-      </div>
+    <Notification
+      type={ComponentColorType.is_danger}
+      id={syncErrorsNotificationId}
+      className={trimClass(`
+        ${noTriggerDocumentEventClassName}
+      `)}
+    >
+      <p>There were errors while uploading changes for this item</p>
 
-      <div className="message-body">
+      <div>
         {ownFieldsErrors &&
           ownFieldsErrors.map(([k, v]) => {
             return (
@@ -557,7 +560,7 @@ function SyncErrorsNotificationComponent(props: {
             );
           })}
       </div>
-    </div>
+    </Notification>
   );
 }
 

@@ -1,4 +1,6 @@
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { UpdateExperiencesOnline } from "@eb/cm/src/graphql/apollo-types/UpdateExperiencesOnline";
 import { mockOnlineExperience1 } from "@eb/cm/src/__tests__/mock-data";
 import {
   createExperiencesMswGql,
@@ -71,50 +73,12 @@ context("Delete experience MSW", () => {
         const { entry } = unwrapped as CreateOfflineEntryMutationReturnVal;
 
         useCypressMsw(
-          updateExperiencesMswGql({
-            updateExperiences: {
-              __typename: "UpdateExperiencesSomeSuccess",
-              experiences: [
-                {
-                  __typename: "UpdateExperienceSomeSuccess",
-                  experience: {
-                    __typename: "UpdateExperience",
-                    experienceId,
-                    ownFields: null,
-                    updatedDefinitions: null,
-                    updatedAt: "",
-                  },
-                  entries: {
-                    __typename: "UpdateExperienceEntriesKomponenten",
-                    updatedEntries: null,
-                    deletedEntries: null,
-                    newEntries: [
-                      {
-                        __typename: "CreateEntryErrors",
-                        errors: {
-                          __typename: "CreateEntryError",
-                          error: "some error",
-                          clientId: null,
-                          experienceId: null,
-                          dataObjects: null,
-                          meta: {
-                            __typename: "CreateEntryErrorMeta",
-                            experienceId,
-                            index: 0,
-                            clientId: entry.clientId,
-                          },
-                        },
-                      },
-                    ],
-                  },
-                  comments: null,
-                },
-              ],
-            },
-          }),
+          updateExperiencesMswGql(
+            updateExperiencesMswGql1(entry, experienceId),
+          ),
         );
 
-        // When we visit experiences list page
+        // When we visit experience detail page
         const url = makeDetailedExperienceRoute(experienceId);
         cy.visit(url);
         cy.setConnectionStatus(true);
@@ -122,3 +86,49 @@ context("Delete experience MSW", () => {
     });
   });
 });
+
+function updateExperiencesMswGql1(entry: EntryFragment, experienceId: string) {
+  const data: UpdateExperiencesOnline = {
+    updateExperiences: {
+      __typename: "UpdateExperiencesSomeSuccess",
+      experiences: [
+        {
+          __typename: "UpdateExperienceSomeSuccess",
+          experience: {
+            __typename: "UpdateExperience",
+            experienceId,
+            ownFields: null,
+            updatedDefinitions: null,
+            updatedAt: "",
+          },
+          entries: {
+            __typename: "UpdateExperienceEntriesKomponenten",
+            updatedEntries: null,
+            deletedEntries: null,
+            newEntries: [
+              {
+                __typename: "CreateEntryErrors",
+                errors: {
+                  __typename: "CreateEntryError",
+                  error: "some error",
+                  clientId: null,
+                  experienceId: null,
+                  dataObjects: null,
+                  meta: {
+                    __typename: "CreateEntryErrorMeta",
+                    experienceId,
+                    index: 0,
+                    clientId: entry.clientId,
+                  },
+                },
+              },
+            ],
+          },
+          comments: null,
+        },
+      ],
+    },
+  };
+
+  return data;
+}

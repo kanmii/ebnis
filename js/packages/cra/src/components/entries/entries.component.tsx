@@ -36,7 +36,7 @@ import {
 } from "./entries.utils";
 
 export function Entries(props: Props) {
-  const { postActions, experience, syncErrors } = props;
+  const { postActions, experience } = props;
   const [states, dispatch] = useReducer(reducer, props, initState);
   const general = states.effects.general;
 
@@ -122,7 +122,6 @@ export function Entries(props: Props) {
                   onlineStatus,
                 },
                 oldData,
-                syncErrors,
               });
             }}
             onClose={() => {
