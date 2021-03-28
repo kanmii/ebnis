@@ -80,7 +80,7 @@ export async function createOfflineExperience(
 
   const today = new Date();
   const timestamp = today.toJSON();
-  const experienceId = makeOfflineId(v4());
+  const experienceId = input.id || makeOfflineId(v4());
 
   const {
     dataDefinitions: createDataDefinitions,
@@ -89,15 +89,15 @@ export async function createOfflineExperience(
   } = input;
 
   const dataDefinitions: DataDefinitionFragment[] = (createDataDefinitions as CreateDataDefinition[]).map(
-    ({ name, type }, index) => {
-      const id = experienceId + "--" + index;
+    ({ name, type, id }, index) => {
+      const definitionId = id || experienceId + "--" + index;
 
       return {
         __typename: "DataDefinition",
         name,
         type,
-        id,
-        clientId: id,
+        id: definitionId,
+        clientId: definitionId,
       };
     },
   );

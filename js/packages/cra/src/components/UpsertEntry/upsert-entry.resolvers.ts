@@ -1,7 +1,7 @@
 import { EntryConnectionFragment_edges } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { CreateDataObject } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { CreateEntryInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import {
   isOfflineId,
   makeOfflineDataObjectIdFromEntry,
@@ -31,7 +31,7 @@ export interface CreateOfflineEntryMutationValid {
 export function createOfflineEntryMutation(
   variables: CreateOfflineEntryMutationVariables,
 ) {
-  const { experienceId } = variables;
+  const { experienceId, insertedAt, updatedAt } = variables;
   const today = new Date();
   const timestamps = today.toJSON();
   const experience = readExperienceCompleteFragment(experienceId);
@@ -40,21 +40,31 @@ export function createOfflineEntryMutation(
     return null;
   }
 
-  const entryIndex = (getCachedEntriesDetailViewSuccess(experienceId)
-    .edges as EntryConnectionFragment_edges[]).length;
+  let id = variables.id as string;
 
-  const id = makeOfflineEntryIdFromExperience(experienceId, entryIndex);
+  if (!id) {
+    const entryIndex = (getCachedEntriesDetailViewSuccess(experienceId)
+      .edges as EntryConnectionFragment_edges[]).length;
+
+    id = makeOfflineEntryIdFromExperience(experienceId, entryIndex);
+  }
 
   const dataObjects = variables.dataObjects.map((dataObject, index) => {
-    const dataObjectId = makeOfflineDataObjectIdFromEntry(id, index);
+    const { insertedAt, updatedAt } = dataObject;
+
+    let dataObjectId = dataObject.id as string;
+
+    if (!dataObjectId) {
+      dataObjectId = makeOfflineDataObjectIdFromEntry(id, index);
+    }
 
     return {
       ...dataObject,
       __typename: "DataObject" as "DataObject",
       id: dataObjectId,
       clientId: dataObjectId,
-      insertedAt: timestamps,
-      updatedAt: timestamps,
+      insertedAt: insertedAt || timestamps,
+      updatedAt: updatedAt || timestamps,
     };
   });
 
@@ -64,8 +74,8 @@ export function createOfflineEntryMutation(
     clientId: id,
     experienceId,
     dataObjects,
-    insertedAt: timestamps,
-    updatedAt: timestamps,
+    insertedAt: insertedAt || timestamps,
+    updatedAt: updatedAt || timestamps,
   };
 
   const updates = upsertNewEntry(experience, entry) as UpsertNewEntryReturnVal;
@@ -79,9 +89,9 @@ export function createOfflineEntryMutation(
   };
 }
 
-export interface CreateOfflineEntryMutationVariables {
-  dataObjects: CreateDataObject[];
+export type CreateOfflineEntryMutationVariables = CreateEntryInput & {
   experienceId: string;
+  id?: string;
 }
 
 function updateUnsynced(experienceId: string) {

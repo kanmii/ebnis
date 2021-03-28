@@ -286,6 +286,13 @@ defmodule EbnisData.Schema.Experience do
     """
     field(:client_id, :id)
 
+    @desc ~S"""
+      Id can be specified by client when creating an entry
+      useful for creating offline and syncing.
+      We'll check to ensure it is unique
+    """
+    field(:id, :id)
+
     @desc """
       If entry is created on the client, it might include timestamps
     """
@@ -328,6 +335,12 @@ defmodule EbnisData.Schema.Experience do
     """
     field(:client_id, :id)
 
+    @desc ~S"""
+        Client can assign ID when creating data object e.g. when created
+        offline. We will check uniqueness
+    """
+    field(:id, :id)
+
     @desc """
       If data objects is created on the client, it might include timestamps
     """
@@ -351,6 +364,12 @@ defmodule EbnisData.Schema.Experience do
       field and will be validated as such.
     """
     field(:client_id, :id)
+
+    @desc ~S"""
+      client can assign an ID when creating data definition e.g. offline
+      We will check uniqueness
+    """
+    field(:id, :id)
   end
 
   @desc """
@@ -372,6 +391,12 @@ defmodule EbnisData.Schema.Experience do
       This will be used to prevent offline save conflict.
     """
     field(:client_id, :id)
+
+    @desc ~S"""
+      client can assign an ID when creating experience e.g. offline
+      We will check uniqueness
+    """
+    field(:id, :id)
 
     @desc "If experience is created on the client, it might include timestamps"
     field(:inserted_at, :datetime)
@@ -1063,7 +1088,12 @@ defmodule EbnisData.Schema.Experience do
   ############################################
 
   input_object :comment_input do
+    @desc ~S"""
+      client can assign an ID when creating comment e.g. offline
+      We will check uniqueness
+    """
     field(:id, :id)
+
     field(:text, non_null(:string))
     field(:inserted_at, :datetime)
     field(:updated_at, :datetime)

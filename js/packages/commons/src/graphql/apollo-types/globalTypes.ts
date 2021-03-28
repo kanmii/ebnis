@@ -31,6 +31,7 @@ export interface CommentInput {
  */
 export interface CreateDataDefinition {
   clientId?: string | null;
+  id?: string | null;
   name: string;
   type: DataTypes;
 }
@@ -42,6 +43,7 @@ export interface CreateDataObject {
   clientId?: string | null;
   data: any;
   definitionId: string;
+  id?: string | null;
   insertedAt?: any | null;
   updatedAt?: any | null;
 }
@@ -51,6 +53,7 @@ export interface CreateEntryInput {
   commentText?: string | null;
   dataObjects: CreateDataObject[];
   experienceId?: string | null;
+  id?: string | null;
   insertedAt?: any | null;
   updatedAt?: any | null;
 }
@@ -64,6 +67,7 @@ export interface CreateExperienceInput {
   dataDefinitions: (CreateDataDefinition | null)[];
   description?: string | null;
   entries?: (CreateEntryInput | null)[] | null;
+  id?: string | null;
   insertedAt?: any | null;
   title: string;
   updatedAt?: any | null;
