@@ -260,9 +260,14 @@ export function Entries(props: Props) {
             })}
           </div>
           {connected && hasNextPage && (
-            <div className="detailed-experience__next-entries">
+            <div
+              className={trimClass(`
+                  mt-6
+                  text-center
+              `)}
+            >
               {error && error.value === "pagingError" && (
-                <div className="detailed-experience__paginierung-error">
+                <div>
                   Unable to fetch more entries
                   {error.error}
                 </div>

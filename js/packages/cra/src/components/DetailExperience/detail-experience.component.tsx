@@ -77,7 +77,6 @@ import {
   Props,
   reducer,
 } from "./detailed-experience-utils";
-import "./styles.css";
 
 export function DetailExperience(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
@@ -199,13 +198,19 @@ export function DetailExperience(props: Props) {
           <div>
             {states.errors.context.error}
 
-            <button
+            <Button
               id={refetchId}
-              className="button is-link refetch-btn"
+              className={trimClass(`
+                block
+              `)}
+              style={{
+                marginTop: "25px",
+                minWidth: "150px",
+              }}
               onClick={contextVal.refetchCb}
             >
               Refetch
-            </button>
+            </Button>
           </div>
         );
 
@@ -351,7 +356,17 @@ function ExperienceComponent() {
         <PromptToFixSyncErrorNotificationComponent />
       )}
 
-      <div id={domPrefix} className="container detailed-experience-component">
+      <div
+        id={domPrefix}
+        className={trimClass(`
+          container
+          detailed-experience-component
+        `)}
+        style={{
+          paddingBottom: "calc(var(--floating-circular-bottom) * 2.66)",
+          paddingTop: "10px",
+        }}
+      >
         {syncErrors && <SyncErrorsNotificationComponent state={syncErrors} />}
 
         {updateUiActive.value === StateValue.success && (
@@ -494,7 +509,14 @@ function SyncErrorsNotificationComponent(props: {
               <Fragment key={entryIndex}>
                 <strong>Entry #{entryIndex + 1}</strong>
 
-                <div className="detailed-experience__data-object-errors">
+                <div
+                  className={trimClass(`
+                     relative
+                  `)}
+                  style={{
+                    left: "10px",
+                  }}
+                >
                   {others &&
                     others.map(([k, v]) => {
                       return (
@@ -514,7 +536,12 @@ function SyncErrorsNotificationComponent(props: {
                             return (
                               <div
                                 key={k}
-                                className="detailed-experience__data-object-error"
+                                className={trimClass(`
+                                  relative
+                                `)}
+                                style={{
+                                  left: "10px",
+                                }}
                               >
                                 <span>{k} </span>
                                 <span>{v}</span>

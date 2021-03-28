@@ -76,15 +76,18 @@ export function Entry(props: Props) {
       <div
         id={entryId}
         className={trimClass(
-          `
-          entry
+        `
           relative
-          ${isOffline ? "entry--is-danger" : ""}
           shadow-lg
           relative
           mt-5
         `,
         )}
+        style={{
+          boxShadow: isOffline
+            ? "var(--media-shadow-1) var(--danger-color), var(--media-shadow-2) var(--danger-color)"
+            : "initial",
+        }}
       >
         <div
           className={trimClass(
