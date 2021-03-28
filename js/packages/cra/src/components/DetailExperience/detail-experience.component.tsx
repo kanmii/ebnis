@@ -2,6 +2,7 @@ import { ReactComponent as ExclamationErrorSvg } from "@eb/cm/src/styles/exclama
 import { trimClass } from "@eb/cm/src/utils";
 import { componentTimeoutsMs } from "@eb/cm/src/utils/timers";
 import { StateValue } from "@eb/cm/src/utils/types";
+import { ComponentColorType } from "@eb/cm/src/utils/types/react";
 import Button from "@eb/jsx/src/components/Button/button.component";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import Notification from "@eb/jsx/src/components/Notification/notification.component";
@@ -15,7 +16,6 @@ import React, {
   useReducer,
 } from "react";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
-import { clearTimeoutFn } from "./detail-experience.injectables";
 import { deleteExperiences } from "../../utils/delete-experiences.gql";
 import {
   getExperienceAndEntriesDetailView,
@@ -67,6 +67,7 @@ import {
   updateMenuItemId,
   updateSuccessNotificationId,
 } from "./detail-experience.dom";
+import { clearTimeoutFn } from "./detail-experience.injectables";
 import { Comments } from "./detail-experience.lazy";
 import {
   ActionType,
@@ -373,7 +374,7 @@ function ExperienceComponent() {
           <Notification
             onClose={requestUpdateUiCb}
             id={updateSuccessNotificationId}
-            type="is-success"
+            type={ComponentColorType.is_success}
           >
             Update was successful
           </Notification>
@@ -389,7 +390,7 @@ function ExperienceComponent() {
                 });
               }}
               id={deleteFailNotificationCloseId}
-              type="is-danger"
+              type={ComponentColorType.is_danger}
               className={trimClass(`
                 mb-5
                 ${noTriggerDocumentEventClassName}

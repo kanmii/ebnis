@@ -1,42 +1,27 @@
-import { ReactComponent as XCircleFilledSvg } from "@eb/cm/src/styles/x-circle-filled.svg";
-import { ComponentProps, ReactMouseEvent } from "@eb/cm/src/utils/types/react";
 import { trimClass } from "@eb/cm/src/utils";
+import {
+  ComponentColorType,
+  ComponentProps,
+  ReactMouseEvent,
+} from "@eb/cm/src/utils/types/react";
+import { ButtonClose } from "../../components/Button/button.component";
 
-const notificationClasses: Record<Props["type"], string> = {
-  "is-success": `
+const notificationClasses: Record<ComponentColorType, string> = {
+  [ComponentColorType.is_success]: `
       bg-green-400
       text-green-800
    `,
-  "is-danger": `
+  [ComponentColorType.is_danger]: `
       bg-red-200
       text-red-800
   `,
-  "is-light-success": `
+  [ComponentColorType.is_light_success]: `
       bg-green-100
       text-green-800
   `,
-  "is-light-danger": `
+  [ComponentColorType.is_light_danger]: `
       bg-red-50
       text-red-800
-  `,
-};
-
-const closeClasses: Record<Props["type"], string> = {
-  "is-success": `
-      text-green-300
-      hover:text-green-500
-   `,
-  "is-danger": `
-      text-red-300
-      hover:text-red-500
-  `,
-  "is-light-success": `
-      text-green-300
-      hover:text-green-500
-  `,
-  "is-light-danger": `
-      text-red-300
-      hover:text-red-500
   `,
 };
 
@@ -67,30 +52,8 @@ export function Notification(props: Props) {
         maxWidth: "550px",
       }}
     >
-      <a
-        onClick={onClose}
-        id={id}
-        className={trimClass(
-          `
-            absolute
-            h-7
-            w-7
-            cursor-pointer
-            box-content
-            pl-4
-            pr-2
-            pb-4
-            pt-1
-            ${closeClasses[type] || ""}
-          `,
-        )}
-        style={{
-          right: ".5rem",
-          top: ".5rem",
-        }}
-      >
-        <XCircleFilledSvg />
-      </a>
+      <ButtonClose id={id} type={type} onClose={onClose} />
+
       {children}
     </div>
   );
@@ -100,6 +63,6 @@ export function Notification(props: Props) {
 export default Notification;
 
 type Props = ComponentProps & {
-  type: "is-success" | "is-danger" | "is-light-success" | "is-light-danger";
+  type: ComponentColorType;
   onClose: (e: ReactMouseEvent) => void;
 };

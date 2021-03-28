@@ -1,6 +1,7 @@
 import { trimClass } from "@eb/cm/src/utils";
 import { componentTimeoutsMs } from "@eb/cm/src/utils/timers";
 import { StateValue } from "@eb/cm/src/utils/types";
+import { ComponentColorType } from "@eb/cm/src/utils/types/react";
 import Button from "@eb/jsx/src/components/Button/button.component";
 import DropdownMenu from "@eb/jsx/src/components/dropdown-menu/dropdown-menu.component";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
@@ -201,7 +202,11 @@ export function Comments(props: Props) {
                         mt-5
                       `,
                     )}
-                    type={successCount ? "is-light-success" : "is-light-danger"}
+                    type={
+                      successCount
+                        ? ComponentColorType.is_light_success
+                        : ComponentColorType.is_light_danger
+                    }
                     onClose={() => {
                       //
                     }}
@@ -231,7 +236,7 @@ export function Comments(props: Props) {
                 {notification.value === StateValue.active && (
                   <Notification
                     id={commentNotificationCloseId}
-                    type="is-success"
+                    type={ComponentColorType.is_success}
                     onClose={() => {
                       // commentCb(e, CommentAction.CLOSE_NOTIFICATION);
                     }}
@@ -255,7 +260,7 @@ export function Comments(props: Props) {
                                 mt-5
                               `,
                             )}
-                            type="is-light-danger"
+                            type={ComponentColorType.is_light_danger}
                             onClose={() => {
                               //
                             }}

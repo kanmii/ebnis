@@ -1,17 +1,17 @@
-import Button from "@eb/jsx/src/components/Button/button.component";
-import Loading from "../Loading/loading.component";
-import { UpsertEntry } from "./entries.lazy";
 import { trimClass } from "@eb/cm/src/utils";
 import { componentTimeoutsMs } from "@eb/cm/src/utils/timers";
 import { StateValue } from "@eb/cm/src/utils/types";
+import { ComponentColorType } from "@eb/cm/src/utils/types/react";
+import Button from "@eb/jsx/src/components/Button/button.component";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import Notification from "@eb/jsx/src/components/Notification/notification.component";
-import { useReducer, useEffect, Suspense } from "react";
+import { Suspense, useEffect, useReducer } from "react";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { noTriggerDocumentEventClassName } from "../DetailExperience/detail-experience.dom";
 import Entry from "../Entry/entry.component";
+import Loading from "../Loading/loading.component";
 import {
   closeDeleteEntryConfirmationId,
   closeUpsertEntryNotificationId,
@@ -23,15 +23,16 @@ import {
   okDeleteEntryId,
   refetchEntriesId,
 } from "./entries.dom";
+import { UpsertEntry } from "./entries.lazy";
 import {
+  ActionType,
   CallerProps,
+  DispatchType,
   effectFunctions,
   initState,
+  OldEntryData,
   Props,
   reducer,
-  ActionType,
-  DispatchType,
-  OldEntryData,
 } from "./entries.utils";
 
 export function Entries(props: Props) {
@@ -141,7 +142,7 @@ export function Entries(props: Props) {
               type: ActionType.close_notification,
             });
           }}
-          type="is-success"
+          type={ComponentColorType.is_success}
         >
           {notification.active.context.message}
         </Notification>
@@ -161,7 +162,7 @@ export function Entries(props: Props) {
               key: StateValue.cancelled,
             });
           }}
-          type="is-success"
+          type={ComponentColorType.is_success}
         >
           Entry deleted successfully
         </Notification>
@@ -177,7 +178,7 @@ export function Entries(props: Props) {
               key: StateValue.cancelled,
             });
           }}
-          type="is-danger"
+          type={ComponentColorType.is_danger}
         >
           <div>
             Entry delete failed with error:

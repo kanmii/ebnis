@@ -1,3 +1,9 @@
+import { ReactComponent as XCircleFilledSvg } from "@eb/cm/src/styles/x-circle-filled.svg";
+import {
+  ComponentProps,
+  ReactMouseEvent,
+  ComponentColorType,
+} from "@eb/cm/src/utils/types/react";
 import { trimClass } from "@eb/cm/src/utils";
 import { DetailedHTMLProps } from "react";
 
@@ -53,6 +59,65 @@ export function Button({ children, className, btnType, ...props }: Props) {
 
 // istanbul ignore next:
 export default Button;
+
+const closeClasses: Record<ComponentColorType, string> = {
+  [ComponentColorType.is_success]: `
+      text-green-300
+      hover:text-green-500
+   `,
+  [ComponentColorType.is_danger]: `
+      text-red-300
+      hover:text-red-500
+  `,
+  [ComponentColorType.is_light_success]: `
+      text-green-300
+      hover:text-green-500
+  `,
+  [ComponentColorType.is_light_danger]: `
+      text-red-300
+      hover:text-red-500
+  `,
+};
+
+export function ButtonClose({
+  onClose,
+  id = "",
+  type = "" as any,
+}: ComponentProps & {
+  onClose?: (e: ReactMouseEvent) => void;
+  type?: ComponentColorType;
+}) {
+  return (
+    <a
+      onClick={(e) => {
+        if (onClose) {
+          onClose(e);
+        }
+      }}
+      id={id}
+      className={trimClass(
+        `
+            absolute
+            h-7
+            w-7
+            cursor-pointer
+            box-content
+            pl-4
+            pr-2
+            pb-4
+            pt-1
+            ${closeClasses[type] || ""}
+          `,
+      )}
+      style={{
+        right: ".5rem",
+        top: ".5rem",
+      }}
+    >
+      <XCircleFilledSvg />
+    </a>
+  );
+}
 
 type Props = {
   btnType?: keyof typeof classes;

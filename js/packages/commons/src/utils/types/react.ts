@@ -32,3 +32,10 @@ export type ReactMouseEvent = React.MouseEvent<
   | SVGElement,
   MouseEvent
 >;
+
+export enum ComponentColorType {
+  is_success = "is-success",
+  is_danger = "is-danger",
+  is_light_success = "is-light-success",
+  is_light_danger = "is-light-danger",
+}
