@@ -74,7 +74,7 @@ afterAll(() => {
 });
 
 afterEach(() => {
-  jest.resetAllMocks();
+  jest.clearAllMocks();
   mockUuid = 0;
 });
 
