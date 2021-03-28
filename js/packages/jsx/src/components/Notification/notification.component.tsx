@@ -52,6 +52,7 @@ export function Notification(props: Props) {
       style={{
         maxWidth: "550px",
       }}
+      id={onClose ? "" : id}
     >
       {onClose && <ButtonClose id={id} type={type} onClose={onClose} />}
 
