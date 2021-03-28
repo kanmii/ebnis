@@ -5,9 +5,11 @@ import {
   GetEntriesUnionFragment_GetEntriesSuccess_entries,
 } from "./apollo-types/GetEntriesUnionFragment";
 import {
+  EntryConnectionFragment,
   EntryConnectionFragment_edges,
   EntryConnectionFragment_edges_node,
 } from "./apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "./apollo-types/EntryFragment";
 
 export function entryToEdge(
   entry: EntryConnectionFragment_edges_node,
@@ -55,4 +57,14 @@ export function toGetEntriesSuccessQuery(
     entries,
     __typename: "GetEntriesSuccess" as "GetEntriesSuccess",
   };
+}
+
+export function entriesToConnection(entries: EntryFragment[]) {
+  const entriesConnection: EntryConnectionFragment = {
+    __typename: "EntryConnection",
+    pageInfo: emptyPageInfo,
+    edges: entries.map(entryToEdge),
+  };
+
+  return entriesConnection;
 }

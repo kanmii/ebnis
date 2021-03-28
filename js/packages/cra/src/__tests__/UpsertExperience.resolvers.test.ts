@@ -2,6 +2,11 @@ import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import { GetExperiencesConnectionListView_getExperiences } from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import {
+  entriesToConnection,
+  toGetEntriesSuccessQuery,
+} from "@eb/cm/src/graphql/utils.gql";
+import { isOfflineId, makeOfflineId } from "@eb/cm/src/utils/offlines";
 import { EbnisGlobals } from "@eb/cm/src/utils/types";
 import { getCachedExperiencesConnectionListView } from "../apollo/cached-experiences-list-view";
 import {
@@ -18,13 +23,16 @@ import {
   floatExperienceToTheTopInGetExperiencesMiniQuery,
   upsertExperiencesInGetExperiencesMiniQuery,
 } from "../apollo/update-get-experiences-list-view-query";
+import { createOfflineEntryMutation } from "../components/UpsertEntry/upsert-entry.resolvers";
 import {
   createOfflineExperience,
   updateExperienceOfflineFn,
 } from "../components/UpsertExperience/upsert-experience.resolvers";
 import { deleteObjectKey } from "../utils";
 import { AppPersistor } from "../utils/app-context";
-import { isOfflineId, makeOfflineId } from "@eb/cm/src/utils/offlines";
+
+jest.mock("../components/UpsertEntry/upsert-entry.resolvers");
+const mockCreateOfflineEntryMutation = createOfflineEntryMutation as jest.Mock;
 
 jest.mock("../apollo/get-detailed-experience-query");
 const mockReadExperienceFragment = readExperienceCompleteFragment as jest.Mock;
@@ -414,4 +422,53 @@ it("deletes entry from cache when entry deleted, but no updates for entries and/
       },
     },
   );
+});
+
+it("creates with entries", async () => {
+  const experienceId = "experienceId";
+  const experience = {
+    id: experienceId,
+  };
+
+  const entry = {
+    id: "entryId",
+  } as any;
+
+  mockCreateOfflineEntryMutation.mockResolvedValue({
+    experience,
+    entry,
+  });
+
+  mockGetExperiencesMiniQuery.mockReturnValue(null);
+
+  (await createOfflineExperience({
+    input: [
+      {
+        id: experienceId,
+        title: "aa",
+        dataDefinitions: [
+          {
+            name: "nn",
+            type: DataTypes.DATE,
+          },
+        ],
+        entries: [{} as any],
+      },
+    ],
+  })) as ExperienceDetailViewFragment;
+
+  expect(mockCreateOfflineEntryMutation.mock.calls[0][0]).toEqual({
+    experienceId,
+  });
+
+  const getEntries = toGetEntriesSuccessQuery(entriesToConnection([entry]));
+
+  expect(mockWriteGetEntriesQuery).toBeCalledWith(experienceId, getEntries);
+
+  expect(mockWriteQueryFn.mock.calls[0][0].data).toEqual({
+    getEntries,
+    getExperience: {
+      ...experience,
+    },
+  });
 });

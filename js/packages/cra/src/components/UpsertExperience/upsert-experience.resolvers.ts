@@ -1,55 +1,61 @@
 /* eslint-disable react-hooks/rules-of-hooks*/
-import {CreateExperiencesVariables} from "@eb/cm/src/graphql/apollo-types/CreateExperiences";
-import {DataDefinitionFragment} from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
-import {DataObjectFragment} from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
+import { CreateExperiencesVariables } from "@eb/cm/src/graphql/apollo-types/CreateExperiences";
+import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
+import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
 import {
   EntryConnectionFragment,
-  EntryConnectionFragment_edges
+  EntryConnectionFragment_edges,
 } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import {EntryFragment} from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import {ExperienceCompleteFragment} from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
+import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
 import {
   GetExperienceAndEntriesDetailView,
-  GetExperienceAndEntriesDetailViewVariables
+  GetExperienceAndEntriesDetailViewVariables,
 } from "@eb/cm/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import {
   GetExperiencesConnectionListView_getExperiences_edges,
-  GetExperiencesConnectionListView_getExperiences_edges_node
+  GetExperiencesConnectionListView_getExperiences_edges_node,
 } from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
 import {
   CreateDataDefinition,
+  CreateEntryInput,
   DataTypes,
   UpdateDefinitionInput,
-  UpdateExperienceInput
+  UpdateExperienceInput,
 } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import {GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY} from "@eb/cm/src/graphql/experience.gql";
+import { GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY } from "@eb/cm/src/graphql/experience.gql";
 import {
   emptyGetEntries,
-  toGetEntriesSuccessQuery
+  entriesToConnection,
+  toGetEntriesSuccessQuery,
 } from "@eb/cm/src/graphql/utils.gql";
-import {isOfflineId, makeOfflineId} from "@eb/cm/src/utils/offlines";
+import { isOfflineId, makeOfflineId } from "@eb/cm/src/utils/offlines";
 import immer from "immer";
-import {v4} from "uuid";
-import {getCachedExperiencesConnectionListView} from "../../apollo/cached-experiences-list-view";
+import { v4 } from "uuid";
+import { getCachedExperiencesConnectionListView } from "../../apollo/cached-experiences-list-view";
 import {
   getCachedEntriesDetailViewSuccess,
   readExperienceCompleteFragment,
   writeCachedEntriesDetailView,
-  writeCachedExperienceCompleteFragment
+  writeCachedExperienceCompleteFragment,
 } from "../../apollo/get-detailed-experience-query";
 import {
   getUnsyncedExperience,
-  writeUnsyncedExperience
+  writeUnsyncedExperience,
 } from "../../apollo/unsynced-ledger";
 import {
   floatExperienceToTheTopInGetExperiencesMiniQuery,
   purgeEntry,
-  upsertExperiencesInGetExperiencesMiniQuery
+  upsertExperiencesInGetExperiencesMiniQuery,
 } from "../../apollo/update-get-experiences-list-view-query";
-import {UnsyncedModifiedExperience} from "../../utils/unsynced-ledger.types";
+import { UnsyncedModifiedExperience } from "../../utils/unsynced-ledger.types";
+import {
+  createOfflineEntryMutation,
+  CreateOfflineEntryMutationVariables,
+} from "../UpsertEntry/upsert-entry.resolvers";
 import {
   parseDataObjectData,
-  stringifyDataObjectData
+  stringifyDataObjectData,
 } from "../UpsertEntry/upsert-entry.utils";
 
 ////////////////////////// CREATE ////////////////////////////
@@ -102,7 +108,7 @@ export async function createOfflineExperience(
     },
   );
 
-  const experience: ExperienceCompleteFragment = {
+  let experience: ExperienceCompleteFragment = {
     __typename: "Experience",
     id: experienceId,
     clientId: experienceId,
@@ -111,31 +117,34 @@ export async function createOfflineExperience(
     description: description as string,
     title,
     dataDefinitions,
-    comments: [],
+    comments: null,
   };
 
-  writeCachedExperienceCompleteFragment(experience);
+  const entriesInputs = input.entries;
+  let entries: undefined | EntryFragment[] = undefined;
 
-  const { cache, persistor } =  window.____ebnis;
-
-  cache.writeQuery<
-    GetExperienceAndEntriesDetailView,
-    GetExperienceAndEntriesDetailViewVariables
-  >({
-    query: GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY,
-    data: {
-      getExperience: experience,
-      getEntries: emptyGetEntries,
-    },
-    variables: {
+  if (entriesInputs) {
+    const entriesInput = entriesInputs[0] as CreateEntryInput;
+    const entryInput = {
+      ...entriesInput,
       experienceId,
-      pagination: {
-        first: 10,
-      },
-    },
-  });
+    };
 
-  upsertExperiencesInGetExperiencesMiniQuery([[experienceId, experience]]);
+    const result = await createOfflineEntryMutation(
+      entryInput as CreateOfflineEntryMutationVariables,
+      experience,
+    );
+
+    // :TODO: deal with else?????
+    if (result) {
+      experience = result.experience;
+      entries = [result.entry];
+    }
+  }
+
+  updateCacheQueriesWithCreatedExperience(experience, entries);
+
+  const { persistor } = window.____ebnis;
 
   writeUnsyncedExperience(experienceId, {
     isOffline: true,
@@ -144,6 +153,48 @@ export async function createOfflineExperience(
   await persistor.persist();
 
   return experience;
+}
+
+export function updateCacheQueriesWithCreatedExperience(
+  experience: ExperienceCompleteFragment,
+  entries?: EntryFragment[],
+) {
+  const { id: experienceId } = experience;
+  const { cache } = window.____ebnis;
+
+  writeCachedExperienceCompleteFragment(experience);
+
+  upsertExperiencesInGetExperiencesMiniQuery([[experienceId, experience]]);
+
+  let getEntries = emptyGetEntries;
+
+  if (entries) {
+    const entriesConnection = entriesToConnection(entries);
+
+    writeCachedEntriesDetailView(
+      experienceId,
+      toGetEntriesSuccessQuery(entriesConnection),
+    );
+
+    getEntries = toGetEntriesSuccessQuery(entriesConnection);
+  }
+
+  cache.writeQuery<
+    GetExperienceAndEntriesDetailView,
+    GetExperienceAndEntriesDetailViewVariables
+  >({
+    query: GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY,
+    data: {
+      getExperience: experience,
+      getEntries,
+    },
+    variables: {
+      experienceId,
+      pagination: {
+        first: 10,
+      },
+    },
+  });
 }
 
 ////////////////////////// END CREATE ////////////////////////////
