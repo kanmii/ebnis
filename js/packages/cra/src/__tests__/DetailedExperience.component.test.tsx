@@ -94,7 +94,7 @@ import {
 } from "../components/experience-comments/experience-comments.utils";
 import { Props as UpsertExperienceProps } from "../components/UpsertExperience/upsert-experience.utils";
 import {
-  // cleanUpOfflineExperiences,
+  cleanUpOfflineExperiences,
   cleanUpSyncedOfflineEntries,
 } from "../components/WithSubscriptions/with-subscriptions.utils";
 import { getById, getEffects, getOneByClass } from "../tests.utils";
@@ -205,7 +205,7 @@ const mockPutOfflineExperienceIdInSyncFlag = putOfflineExperienceIdInSyncFlag as
 // const mockPutOrRemoveSyncError = putOrRemoveSyncError as jest.Mock;
 
 jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
-// const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
+const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
 const mockCleanUpSyncedOfflineEntries = cleanUpSyncedOfflineEntries as jest.Mock;
 
 const mockUpsertCommentsId = "@t/upsert-comments";
@@ -683,6 +683,7 @@ describe("components", () => {
     onSyncData: {
       offlineIdToOnlineExperienceMap: {
         [mockOfflineExperienceId1]: mockOnlineExperience1,
+        "fake-id": {},
       },
       syncErrors: {
         [mockOfflineExperienceId1]: {
@@ -746,6 +747,10 @@ describe("components", () => {
       const [path, type] = calls0;
       expect(path.includes(mockOnlineExperienceId1)).toBe(true);
       expect(type).toEqual(ChangeUrlType.replace);
+
+      expect(mockCleanUpOfflineExperiences).toBeCalledWith({
+        "fake-id": {},
+      });
     });
   });
 

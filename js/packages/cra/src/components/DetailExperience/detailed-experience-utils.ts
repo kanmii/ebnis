@@ -522,13 +522,19 @@ function handleOnSyncAction(proxy: StateMachine, payload: OnSyncedData) {
       if (onlineExperience) {
         // Offline experience now synced
 
-        // this offline experience will be purged upon navigation to related
-        // online experience, hence deletion here
         const offlineExperienceId = id;
 
-        ownArgs.onlineIdToOffline = [onlineExperience.id, offlineExperienceId];
-
+        // All offline experiences synced will be purged right now except this
+        // one, which will be purged after we have navigated away, hence the
+        // need to remove it
         delete data[offlineExperienceId];
+
+        // We will keep a memo to remind us to purge this offline experience
+        // after we have navigated away
+        ownArgs.onlineIdToOfflineId = [
+          onlineExperience.id,
+          offlineExperienceId,
+        ];
       }
 
       effects.push({
@@ -1245,18 +1251,20 @@ type DefFetchEffect = EffectDefinition<"fetchEffect">;
 
 const postOfflineExperiencesSyncEffect: DefPostOfflineExperiencesSyncEffect["func"] = async ({
   data,
-  onlineIdToOffline,
+  onlineIdToOfflineId,
 }) => {
+  // istanbul ignore else:
   if (Object.keys(data).length) {
     cleanUpOfflineExperiences(data);
   }
 
   const { persistor } = window.____ebnis;
 
-  if (onlineIdToOffline) {
-    const [onlineId] = onlineIdToOffline;
+  // istanbul ignore else:
+  if (onlineIdToOfflineId) {
+    const [onlineId] = onlineIdToOfflineId;
 
-    putOfflineExperienceIdInSyncFlag(onlineIdToOffline);
+    putOfflineExperienceIdInSyncFlag(onlineIdToOfflineId);
 
     setTimeout(() => {
       windowChangeUrl(
@@ -1273,7 +1281,7 @@ type DefPostOfflineExperiencesSyncEffect = EffectDefinition<
   "postOfflineExperiencesSyncEffect",
   {
     data: OfflineIdToOnlineExperienceMap;
-    onlineIdToOffline?: [string, string];
+    onlineIdToOfflineId?: [string, string];
   }
 >;
 
