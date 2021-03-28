@@ -91,16 +91,16 @@ export enum EntriesRemoteActionType {
 }
 
 export enum ActionType {
-  toggle_upsert_entry_active = "@entries/toggle-upsert-entry",
-  on_upsert_entry_success = "@entries/on-upsert-entry-success",
-  on_close_new_entry_created_notification = "@entries/on-close-upsert-entry-created-notification",
+  toggle_upsert_ui = "@entries/toggle-upsert-ui",
+  on_upsert_success = "@entries/on-upsert-success",
+  close_notification = "@entries/close-notification",
   record_timeout = "@entries/record-timeout",
-  re_fetch_entries = "@entries/re-fetch-entries",
-  fetch_next_entries = "@entries/fetch-next-entries",
-  entries_received = "@entries/on-entries-received",
+  re_fetch = "@entries/re-fetch",
+  fetch_next = "@entries/fetch-next",
+  on_fetched = "@entries/on-fetched",
   menus = "@entries/menus",
-  delete_entry = "@entries/delete-entry",
-  from_parent_post_actions = "@entries/from-parent-exit-actions",
+  delete = "@entries/delete",
+  from_parent_actions = "@entries/from-parent-actions",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -110,53 +110,47 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
       unsetStatesHelper(proxy);
 
       switch (type) {
-        case ActionType.toggle_upsert_entry_active:
-          handleToggleUpsertEntryActiveAction(
-            proxy,
-            payload as UpsertActivePayload,
-          );
+        case ActionType.toggle_upsert_ui:
+          handleToggleUpsertUiAction(proxy, payload as UpsertActivePayload);
           break;
 
-        case ActionType.on_close_new_entry_created_notification:
-          handleOnCloseNewEntryCreatedNotification(proxy);
+        case ActionType.close_notification:
+          handleCloseNotification(proxy);
           break;
 
         case ActionType.record_timeout:
           handleRecordTimeoutAction(proxy, payload as SetTimeoutPayload);
           break;
 
-        case ActionType.re_fetch_entries:
-          handleRefetchEntriesAction(proxy);
+        case ActionType.re_fetch:
+          handleRefetchAction(proxy);
           break;
 
-        case ActionType.entries_received:
-          handleEntriesReceivedAction(
+        case ActionType.on_fetched:
+          handleOnFetchedAction(
             proxy,
             payload as ProcessedEntriesQueryReturnVal,
           );
           break;
 
-        case ActionType.fetch_next_entries:
-          handleFetchNextEntriesAction(proxy);
+        case ActionType.fetch_next:
+          handleFetchNextAction(proxy);
           break;
 
-        case ActionType.on_upsert_entry_success:
-          handleOnUpsertEntrySuccessAction(
-            proxy,
-            payload as OnEntryCreatedPayload,
-          );
+        case ActionType.on_upsert_success:
+          handleOnUpsertSuccessAction(proxy, payload as OnUpsertPayload);
           break;
 
         case ActionType.menus:
           handleMenusAction(proxy, payload as MenusPayload);
           break;
 
-        case ActionType.delete_entry:
-          handleDeleteEntryAction(proxy, payload as DeleteEntryPayload);
+        case ActionType.delete:
+          handleDeleteAction(proxy, payload as DeletePayload);
           break;
 
-        case ActionType.from_parent_post_actions:
-          handleParentAction(proxy, payload as ParentPostActionPayload);
+        case ActionType.from_parent_actions:
+          handleFromParentAction(proxy, payload as FromParentActionPayload);
           break;
       }
     });
@@ -209,7 +203,7 @@ export function initState(props: Props): StateMachine {
   return wrapState(state);
 }
 
-function handleToggleUpsertEntryActiveAction(
+function handleToggleUpsertUiAction(
   proxy: DraftState,
   payload: UpsertActivePayload,
 ) {
@@ -251,7 +245,7 @@ function handleToggleUpsertEntryActiveAction(
   };
 }
 
-function handleOnCloseNewEntryCreatedNotification(proxy: DraftState) {
+function handleCloseNotification(proxy: DraftState) {
   // istanbul ignore else:
   const { states, timeouts } = proxy;
   states.notification.value = StateValue.inactive;
@@ -279,7 +273,7 @@ function handleRecordTimeoutAction(
   });
 }
 
-function handleRefetchEntriesAction(proxy: DraftState) {
+function handleRefetchAction(proxy: DraftState) {
   const { states } = proxy;
 
   // istanbul ignore else
@@ -293,14 +287,14 @@ function handleRefetchEntriesAction(proxy: DraftState) {
   }
 }
 
-function handleEntriesReceivedAction(
+function handleOnFetchedAction(
   proxy: DraftState,
   payload: ProcessedEntriesQueryReturnVal | ReFetchOnlyPayload,
 ) {
   const { states } = proxy;
 
   const entriesState = states.entries;
-  const successState = states.entries as EntriesDataSuccessSate;
+  const successState = states.entries as DataSuccess;
 
   switch (entriesState.value) {
     // state
@@ -382,12 +376,11 @@ function handleEntriesReceivedAction(
 
             successState.success = {
               context: {
-                entries: (data as ProcessedEntriesQuerySuccessReturnVal)
-                  .entries,
+                entries: (data as ProcessedQuerySuccessReturnVal).entries,
                 pageInfo: entries.pageInfo,
                 error: {
                   value: "fetchError",
-                  error: (states.entries as EntriesDataFailureState).error,
+                  error: (states.entries as DataFailure).error,
                 },
               },
             };
@@ -398,7 +391,7 @@ function handleEntriesReceivedAction(
   }
 }
 
-function handleFetchNextEntriesAction(proxy: DraftState) {
+function handleFetchNextAction(proxy: DraftState) {
   const { states } = proxy;
 
   // istanbul ignore else
@@ -422,9 +415,9 @@ function handleFetchNextEntriesAction(proxy: DraftState) {
   }
 }
 
-function handleOnUpsertEntrySuccessAction(
+function handleOnUpsertSuccessAction(
   proxy: DraftState,
-  payload: OnEntryCreatedPayload,
+  payload: OnUpsertPayload,
 ) {
   const { states, context } = proxy;
 
@@ -433,7 +426,7 @@ function handleOnUpsertEntrySuccessAction(
   } = context;
 
   const { upsertUi, notification, entries: entriesState } = states;
-  const successState = entriesState as EntriesDataSuccessSate;
+  const successState = entriesState as DataSuccess;
 
   upsertUi.value = StateValue.inactive;
   // :TODO: parent experience detail notification must be set to inactive ???
@@ -462,11 +455,11 @@ function handleOnUpsertEntrySuccessAction(
 
   // completely new entry created online
   if (!oldData) {
-    const newEntryState = notification as NotificationState;
+    const newEntryNotification = notification as NotificationState;
 
-    newEntryState.value = StateValue.active;
+    newEntryNotification.value = StateValue.active;
 
-    newEntryState.active = {
+    newEntryNotification.active = {
       context: {
         message: `New entry created on: ${formatDatetime(
           upsertedEntry.updatedAt,
@@ -512,6 +505,7 @@ function handleOnUpsertEntrySuccessAction(
         break;
     }
   } else {
+    // :TODO: notification?
     // updated entry: either offline entry synced / online entry updated
     const { entry, index } = oldData;
     const { id: oldEntryId } = entry;
@@ -600,10 +594,7 @@ function handleMenusAction(proxy: DraftState, { entry }: MenusPayload) {
   }
 }
 
-function handleDeleteEntryAction(
-  proxy: DraftState,
-  payload: DeleteEntryPayload,
-) {
+function handleDeleteAction(proxy: DraftState, payload: DeletePayload) {
   const {
     states: { menu, entries },
     context: { experience },
@@ -669,7 +660,7 @@ function handleDeleteEntryAction(
 
         proxy.timeouts.genericTimeout = timeoutId;
 
-        const entriesState = entries as EntriesDataSuccessSate;
+        const entriesState = entries as DataSuccess;
         entriesState.success.context.entries = entriesState.success.context.entries.filter(
           (e) => {
             return id !== e.entryData.id;
@@ -695,7 +686,7 @@ function handleDeleteEntryAction(
 }
 
 const parentActionsObject = {
-  [EntriesRemoteActionType.upsert]: handleToggleUpsertEntryActiveAction,
+  [EntriesRemoteActionType.upsert]: handleToggleUpsertUiAction,
   [EntriesRemoteActionType.hide_menus]: (proxy) => {
     handleMenusAction(proxy, {});
   },
@@ -704,9 +695,9 @@ const parentActionsObject = {
   <P = Record<string, unknown>>(proxy: DraftState, payload: P) => void
 >;
 
-function handleParentAction(
+function handleFromParentAction(
   proxy: DraftState,
-  actionObj: ParentPostActionPayload,
+  actionObj: FromParentActionPayload,
 ) {
   const { actions, ...payload } = actionObj;
 
@@ -747,11 +738,11 @@ export function formatDatetime(date: Date | string) {
 
 function updateEntriesFn(
   proxy: DraftState,
-  state: EntriesData,
+  state: Data,
   upsertedEntry: EntryFragment,
   oldEntryId: string,
 ) {
-  const successState = state as EntriesDataSuccessSate;
+  const successState = state as DataSuccess;
 
   if (state.value === StateValue.fail) {
     successState.value = StateValue.success;
@@ -831,7 +822,7 @@ const fetchEntriesEffect: DefFetchEntriesEffect["func"] = async (
 
   if (reFetchFromCache && previousEntries) {
     dispatch({
-      type: ActionType.entries_received,
+      type: ActionType.on_fetched,
       key: StateValue.reFetchOnly,
       entries: previousEntries.entries,
     });
@@ -861,19 +852,19 @@ const fetchEntriesEffect: DefFetchEntriesEffect["func"] = async (
       }
 
       dispatch({
-        type: ActionType.entries_received,
+        type: ActionType.on_fetched,
         ...processedEntries,
       });
     } else {
       dispatch({
-        type: ActionType.entries_received,
+        type: ActionType.on_fetched,
         key: StateValue.fail,
         error: error as ApolloError,
       });
     }
   } catch (error) {
     dispatch({
-      type: ActionType.entries_received,
+      type: ActionType.on_fetched,
       key: StateValue.fail,
       error: error,
     });
@@ -911,7 +902,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
       case "set-close-upsert-entry-created-notification":
         timeoutCb = () => {
           dispatch({
-            type: ActionType.on_close_new_entry_created_notification,
+            type: ActionType.close_notification,
           });
         };
         break;
@@ -1316,13 +1307,13 @@ function deleteEntrySuccessEffectHelper(
 
   const timeoutId = setTimeout(() => {
     dispatch({
-      type: ActionType.delete_entry,
+      type: ActionType.delete,
       key: StateValue.cancelled,
     });
   }, closeNotification);
 
   dispatch({
-    type: ActionType.delete_entry,
+    type: ActionType.delete,
     key: StateValue.success,
     id,
     timeoutId,
@@ -1341,13 +1332,13 @@ function deleteEntryFailEffectHelper(
 
   const timeoutId = setTimeout(() => {
     dispatch({
-      type: ActionType.delete_entry,
+      type: ActionType.delete,
       key: StateValue.cancelled,
     });
   }, closeNotification);
 
   dispatch({
-    type: ActionType.delete_entry,
+    type: ActionType.delete,
     key: StateValue.errors,
     error,
     timeoutId,
@@ -1373,7 +1364,7 @@ export type StateMachine = GenericGeneralEffect<EffectType> & {
           value: InActiveVal;
         }
       | NotificationState;
-    entries: EntriesData;
+    entries: Data;
     menu:
       | MenuInactive
       | MenuActive
@@ -1427,32 +1418,32 @@ type MenuActive = {
   };
 };
 
-type EntriesData = EntriesDataSuccessSate | EntriesDataFailureState;
+type Data = DataSuccess | DataFailure;
 
 type DataContextError = {
   value: "pagingError" | "fetchError";
   error: string;
 };
 
-export type EntriesDataSuccessSate = {
+export type DataSuccess = {
   value: SuccessVal;
   success: {
     context: {
-      entries: DataStateContextEntries;
+      entries: DataContext;
       pageInfo: PageInfoFragment;
       error?: DataContextError;
     };
   };
 };
 
-type DataStateContextEntries = DataStateContextEntry[];
+type DataContext = DataContextEntry[];
 
-type DataStateContextEntry = {
+type DataContextEntry = {
   entryData: EntryFragment;
   entrySyncError?: CreateEntryErrorFragment | UpdateEntrySyncErrors;
 };
 
-export type EntriesDataFailureState = {
+type DataFailure = {
   value: FailVal;
   error: string;
 };
@@ -1468,35 +1459,35 @@ type NotificationState = {
 
 export type Action =
   | ({
-      type: ActionType.toggle_upsert_entry_active;
+      type: ActionType.toggle_upsert_ui;
     } & UpsertActivePayload)
   | ({
-      type: ActionType.on_upsert_entry_success;
-    } & OnEntryCreatedPayload)
+      type: ActionType.on_upsert_success;
+    } & OnUpsertPayload)
   | {
-      type: ActionType.on_close_new_entry_created_notification;
+      type: ActionType.close_notification;
     }
   | ({
       type: ActionType.record_timeout;
     } & SetTimeoutPayload)
   | {
-      type: ActionType.re_fetch_entries;
+      type: ActionType.re_fetch;
     }
   | ({
-      type: ActionType.entries_received;
+      type: ActionType.on_fetched;
     } & (ProcessedEntriesQueryReturnVal | ReFetchOnlyPayload))
   | {
-      type: ActionType.fetch_next_entries;
+      type: ActionType.fetch_next;
     }
   | ({
       type: ActionType.menus;
     } & MenusPayload)
   | ({
-      type: ActionType.delete_entry;
-    } & DeleteEntryPayload)
+      type: ActionType.delete;
+    } & DeletePayload)
   | ({
-      type: ActionType.from_parent_post_actions;
-    } & ParentPostActionPayload);
+      type: ActionType.from_parent_actions;
+    } & FromParentActionPayload);
 
 export type EntriesRemoteAction =
   | {
@@ -1506,11 +1497,11 @@ export type EntriesRemoteAction =
       type: EntriesRemoteActionType.hide_menus;
     };
 
-type ParentPostActionPayload = {
+type FromParentActionPayload = {
   actions: EntriesRemoteAction[];
 };
 
-type DeleteEntryPayload =
+type DeletePayload =
   | {
       key: RequestedVal;
       entry: EntryFragment;
@@ -1541,20 +1532,20 @@ type ReFetchOnlyPayload = {
   entries: EntryConnectionFragment;
 };
 
-type ProcessedEntriesQueryErrorReturnVal = {
+type ProcessedQueryErrorReturnVal = {
   key: FailVal;
   error: string | Error;
 };
 
-type ProcessedEntriesQuerySuccessReturnVal = {
+type ProcessedQuerySuccessReturnVal = {
   key: SuccessVal;
-  entries: DataStateContextEntries;
+  entries: DataContext;
   pageInfo: PageInfoFragment;
 };
 
 export type ProcessedEntriesQueryReturnVal =
-  | ProcessedEntriesQuerySuccessReturnVal
-  | ProcessedEntriesQueryErrorReturnVal;
+  | ProcessedQuerySuccessReturnVal
+  | ProcessedQueryErrorReturnVal;
 
 export type UpsertActivePayload = {
   updatingEntry?: UpdatingPayload & {
@@ -1562,7 +1553,7 @@ export type UpsertActivePayload = {
   };
 };
 
-interface OnEntryCreatedPayload {
+interface OnUpsertPayload {
   oldData?: OldEntryData;
   newData: {
     entry: EntryFragment;

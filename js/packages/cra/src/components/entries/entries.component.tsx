@@ -48,7 +48,7 @@ export function Entries(props: Props) {
   useEffect(() => {
     if (postActions.length) {
       dispatch({
-        type: ActionType.from_parent_post_actions,
+        type: ActionType.from_parent_actions,
         actions: postActions,
       });
     }
@@ -68,7 +68,7 @@ export function Entries(props: Props) {
           className="mt-2"
           onClick={() => {
             dispatch({
-              type: ActionType.re_fetch_entries,
+              type: ActionType.re_fetch,
             });
           }}
         >
@@ -115,7 +115,7 @@ export function Entries(props: Props) {
               }
 
               dispatch({
-                type: ActionType.on_upsert_entry_success,
+                type: ActionType.on_upsert_success,
                 newData: {
                   entry,
                   onlineStatus,
@@ -126,7 +126,7 @@ export function Entries(props: Props) {
             }}
             onClose={() => {
               dispatch({
-                type: ActionType.toggle_upsert_entry_active,
+                type: ActionType.toggle_upsert_ui,
               });
             }}
           />
@@ -138,7 +138,7 @@ export function Entries(props: Props) {
           id={closeUpsertEntryNotificationId}
           onClose={() => {
             dispatch({
-              type: ActionType.on_close_new_entry_created_notification,
+              type: ActionType.close_notification,
             });
           }}
           type="is-success"
@@ -157,7 +157,7 @@ export function Entries(props: Props) {
           onClose={(e) => {
             e.preventDefault();
             dispatch({
-              type: ActionType.delete_entry,
+              type: ActionType.delete,
               key: StateValue.cancelled,
             });
           }}
@@ -173,7 +173,7 @@ export function Entries(props: Props) {
           onClose={(e) => {
             e.preventDefault();
             dispatch({
-              type: ActionType.delete_entry,
+              type: ActionType.delete,
               key: StateValue.cancelled,
             });
           }}
@@ -201,7 +201,7 @@ export function Entries(props: Props) {
           )}
           onClick={() => {
             dispatch({
-              type: ActionType.toggle_upsert_entry_active,
+              type: ActionType.toggle_upsert_ui,
             });
           }}
         >
@@ -235,7 +235,7 @@ export function Entries(props: Props) {
                   index={index}
                   activateUpdateEntryCb={(data) => {
                     dispatch({
-                      type: ActionType.toggle_upsert_entry_active,
+                      type: ActionType.toggle_upsert_ui,
                       updatingEntry: data,
                     });
                   }}
@@ -250,7 +250,7 @@ export function Entries(props: Props) {
                   }
                   deleteEntryRequest={(entry) => {
                     dispatch({
-                      type: ActionType.delete_entry,
+                      type: ActionType.delete,
                       key: StateValue.requested,
                       entry,
                     });
@@ -273,7 +273,8 @@ export function Entries(props: Props) {
                 className="button is-primary"
                 onClick={() => {
                   dispatch({
-                    type: ActionType.re_fetch_entries,
+                    // TODO: shouldn't this be fetch_next????
+                    type: ActionType.re_fetch,
                   });
                 }}
               >
@@ -312,7 +313,7 @@ function DeleteEntryConfirmationComponent({
       )}
       onClose={() => {
         dispatch({
-          type: ActionType.delete_entry,
+          type: ActionType.delete,
           key: StateValue.cancelled,
         });
       }}
@@ -329,7 +330,7 @@ function DeleteEntryConfirmationComponent({
             onClick={(e) => {
               e.preventDefault();
               dispatch({
-                type: ActionType.delete_entry,
+                type: ActionType.delete,
                 key: StateValue.deleted,
               });
             }}
@@ -343,7 +344,7 @@ function DeleteEntryConfirmationComponent({
             type="button"
             onClick={() => {
               dispatch({
-                type: ActionType.delete_entry,
+                type: ActionType.delete,
                 key: StateValue.cancelled,
               });
             }}
