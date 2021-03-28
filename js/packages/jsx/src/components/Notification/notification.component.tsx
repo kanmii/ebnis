@@ -23,10 +23,11 @@ const notificationClasses: Record<ComponentColorType, string> = {
       bg-red-50
       text-red-800
   `,
+  [ComponentColorType.default]: "",
 };
 
 export function Notification(props: Props) {
-  const { children, type, onClose } = props;
+  const { children, type = ComponentColorType.default, onClose } = props;
   // istanbul ignore next:
   const id = props.id || "";
   // istanbul ignore next:
@@ -63,6 +64,6 @@ export function Notification(props: Props) {
 export default Notification;
 
 type Props = ComponentProps & {
-  type: ComponentColorType;
-  onClose: (e: ReactMouseEvent) => void;
+  type?: ComponentColorType;
+  onClose?: (e: ReactMouseEvent) => void;
 };

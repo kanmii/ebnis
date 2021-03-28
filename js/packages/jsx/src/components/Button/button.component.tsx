@@ -77,12 +77,13 @@ const closeClasses: Record<ComponentColorType, string> = {
       text-red-300
       hover:text-red-500
   `,
+  [ComponentColorType.default]: "",
 };
 
 export function ButtonClose({
   onClose,
   id = "",
-  type = "" as any,
+  type = ComponentColorType.default,
 }: ComponentProps & {
   onClose?: (e: ReactMouseEvent) => void;
   type?: ComponentColorType;

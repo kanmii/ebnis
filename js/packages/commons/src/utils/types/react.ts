@@ -38,4 +38,5 @@ export enum ComponentColorType {
   is_danger = "is-danger",
   is_light_success = "is-light-success",
   is_light_danger = "is-light-danger",
+  default = "default",
 }
