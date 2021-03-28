@@ -53,7 +53,7 @@ export function Notification(props: Props) {
         maxWidth: "550px",
       }}
     >
-      <ButtonClose id={id} type={type} onClose={onClose} />
+      {onClose && <ButtonClose id={id} type={type} onClose={onClose} />}
 
       {children}
     </div>

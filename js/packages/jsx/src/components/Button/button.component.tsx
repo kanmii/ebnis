@@ -85,16 +85,12 @@ export function ButtonClose({
   id = "",
   type = ComponentColorType.default,
 }: ComponentProps & {
-  onClose?: (e: ReactMouseEvent) => void;
+  onClose: (e: ReactMouseEvent) => void;
   type?: ComponentColorType;
 }) {
   return (
     <a
-      onClick={(e) => {
-        if (onClose) {
-          onClose(e);
-        }
-      }}
+      onClick={onClose}
       id={id}
       className={trimClass(
         `
