@@ -14,6 +14,7 @@ import {
   CreateOfflineEntryMutationVariables,
 } from "../components/UpsertEntry/upsert-entry.resolvers";
 import { isOfflineId, makeOfflineId } from "@eb/cm/src/utils/offlines";
+import { deleteObjectKey } from "../utils";
 
 jest.mock("../components/UpsertEntry/upsert-entry.injectables");
 const mockUpsertWithEntry = upsertNewEntry as jest.Mock;
@@ -25,6 +26,22 @@ const mockWriteUnsyncedExperience = writeUnsyncedExperience as jest.Mock;
 jest.mock("../apollo/get-detailed-experience-query");
 const mockReadExperienceFragment = readExperienceCompleteFragment as jest.Mock;
 const mockGetEntriesQuerySuccess = getCachedEntriesDetailViewSuccess as jest.Mock;
+
+const mockPersistFn = jest.fn();
+
+const ebnisObject = {
+  persistor: {
+    persist: mockPersistFn,
+  },
+};
+
+beforeAll(() => {
+  window.____ebnis = ebnisObject as any;
+});
+
+afterAll(() => {
+  deleteObjectKey(window, "____ebnis");
+});
 
 afterEach(() => {
   jest.clearAllMocks();
