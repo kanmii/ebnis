@@ -15,7 +15,7 @@ import {
   mockOfflineEntry1Id,
   mockOfflineExperience1,
   mockOfflineExperienceId1,
-  mockOnlineDataDefinitionId1,
+  mockOnlineDataDefinitionInteger1Id,
   mockOnlineDataObject1id,
   mockOnlineEntry1,
   mockOnlineEntry1Id,
@@ -769,9 +769,9 @@ describe("components", () => {
             title: "a",
           },
           definitions: {
-            [mockOnlineDataDefinitionId1]: {
+            [mockOnlineDataDefinitionInteger1Id]: {
               __typename: "DefinitionError",
-              id: mockOnlineDataDefinitionId1,
+              id: mockOnlineDataDefinitionInteger1Id,
               name: "a",
               type: null,
               error: null,
@@ -1004,9 +1004,9 @@ describe("reducers", () => {
       title: "a",
     },
     definitions: {
-      [mockOnlineDataDefinitionId1]: {
+      [mockOnlineDataDefinitionInteger1Id]: {
         __typename: "DefinitionError",
-        id: mockOnlineDataDefinitionId1,
+        id: mockOnlineDataDefinitionInteger1Id,
         name: "a",
         type: null,
         error: null,

@@ -14,7 +14,7 @@ import { makeOfflineId } from "../utils/offlines";
 export const mockUser1Id = "aaa";
 
 export const mockOnlineExperienceId1 = "onlineId1";
-export const mockOnlineDataDefinitionId1 = "1";
+export const mockOnlineDataDefinitionInteger1Id = "1";
 
 export const mockOfflineExperienceId1 = makeOfflineId("onlineId1");
 
@@ -46,7 +46,7 @@ export const mockOnlineEntry1: EntryFragment = {
   dataObjects: [
     {
       id: mockOnlineDataObject1id,
-      definitionId: mockOnlineDataDefinitionId1,
+      definitionId: mockOnlineDataDefinitionInteger1Id,
       data: `{"integer":1}`,
       __typename: "DataObject",
       clientId: "",
@@ -66,7 +66,7 @@ export const mockOnlineEntry2: EntryFragment = {
   dataObjects: [
     {
       id: mockOnlineDataObject1id,
-      definitionId: mockOnlineDataDefinitionId1,
+      definitionId: mockOnlineDataDefinitionInteger1Id,
       data: `{"integer":1}`,
       __typename: "DataObject",
       clientId: "",
@@ -145,9 +145,9 @@ export const mockComment3: CommentFragment = {
   __typename: "Comment",
 };
 
-export const mockDataDefinition1: DataDefinitionFragment = {
+export const mockDataDefinitionInteger1: DataDefinitionFragment = {
   __typename: "DataDefinition",
-  id: mockOnlineDataDefinitionId1,
+  id: mockOnlineDataDefinitionInteger1Id,
   clientId: "",
   name: "aa",
   type: DataTypes.INTEGER,
@@ -160,7 +160,7 @@ export const mockOnlineExperience1 = {
   insertedAt: "2021-02-19T00:40:39.388Z",
   updatedAt: "2021-02-19T00:40:39.388Z",
   id: mockOnlineExperienceId1,
-  dataDefinitions: [mockDataDefinition1],
+  dataDefinitions: [mockDataDefinitionInteger1],
   __typename: "Experience",
   comments: null,
 } as ExperienceCompleteFragment;
