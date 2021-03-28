@@ -187,8 +187,7 @@ export function initState(props: Props): StateMachine {
               value: StateValue.success,
               success: {
                 context: {
-                  entries: entriesData.entries,
-                  pageInfo: entriesData.pageInfo,
+                  ...entriesData,
                 },
               },
             }
