@@ -1,27 +1,20 @@
 import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
 import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
-import {
-  EntryConnectionFragment,
-  EntryConnectionFragment_edges,
-} from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import { GetEntriesUnionFragment } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { GetExperienceAndEntriesDetailView } from "@eb/cm/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
-import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragment";
 import { wrapReducer, wrapState } from "@eb/cm/src/logger";
 import {
   ActiveVal,
   DataVal,
   ErrorsVal,
   FailVal,
-  IdToUpdateEntrySyncErrorMap,
   InActiveVal,
   KeyOfTimeouts,
   LoadingState,
-  OfflineIdToCreateEntrySyncErrorMap,
   OfflineIdToOnlineExperienceMap,
   OnlineExperienceIdToOfflineEntriesMap,
   OnlineStatus,
@@ -60,7 +53,6 @@ import { deleteObjectKey } from "../../utils";
 import {
   DATA_FETCHING_FAILED,
   ErrorType,
-  FETCH_ENTRIES_FAIL_ERROR_MSG,
   FieldError,
   GENERIC_SERVER_ERROR,
   parseStringError,
@@ -88,6 +80,7 @@ import {
   EntriesRemoteActionType,
   EntriesSyncErrors,
   ProcessedEntriesQueryReturnVal,
+  processEntriesQuery,
 } from "../entries/entries.utils";
 import {
   CommentRemoteAction,
@@ -1394,90 +1387,6 @@ function processGetExperienceQuery(
   return [result, undefined];
 }
 
-function processEntriesQuery(
-  entriesQueryResult?: GetEntriesUnionFragment | null,
-  syncErrors?: SyncError,
-): {
-  data: ProcessedEntriesQueryReturnVal;
-  entriesErrors?: IndexToEntryErrorsList;
-  processedSyncErrors?: SyncError;
-} {
-  if (!entriesQueryResult) {
-    const data = {
-      key: StateValue.fail,
-      error: FETCH_ENTRIES_FAIL_ERROR_MSG,
-    };
-
-    return {
-      data,
-    };
-  }
-
-  const syncErrors1 =
-    (syncErrors && {
-      ...syncErrors,
-    }) ||
-    ({} as SyncError);
-
-  const { createEntries, updateEntries } = syncErrors1;
-
-  const createSyncErrors =
-    createEntries || ({} as OfflineIdToCreateEntrySyncErrorMap);
-
-  const updateSyncErrors = updateEntries || ({} as IdToUpdateEntrySyncErrorMap);
-
-  const entriesErrors: IndexToEntryErrorsList = [];
-
-  if (entriesQueryResult.__typename === "GetEntriesSuccess") {
-    const daten = entriesQueryResult.entries as EntryConnectionFragment;
-
-    const entries = (daten.edges as EntryConnectionFragment_edges[]).map(
-      (edge, index) => {
-        const entry = edge.node as EntryFragment;
-        const { id } = entry;
-        const errorId = id;
-        const createError = createSyncErrors[errorId];
-        const updateError = updateSyncErrors[id];
-
-        if (createError) {
-          processCreateEntriesErrors(entriesErrors, createError, index);
-        } else if (updateError) {
-          processUpdateEntriesErrors(entriesErrors, updateError, index);
-        }
-
-        return {
-          entryData: entry,
-          entrySyncError: createError || updateError,
-        };
-      },
-    );
-
-    delete syncErrors1.createEntries;
-    delete syncErrors1.updateEntries;
-
-    const data = {
-      key: StateValue.success,
-      entries,
-      pageInfo: daten.pageInfo,
-    };
-
-    return {
-      data,
-      entriesErrors: entriesErrors.length ? entriesErrors : undefined,
-      processedSyncErrors: syncErrors1,
-    };
-  } else {
-    const data = {
-      key: StateValue.fail,
-      error: entriesQueryResult.errors.error,
-    };
-
-    return {
-      data,
-    };
-  }
-}
-
 function processCreateEntriesErrors(
   entryErrors: IndexToEntryErrorsList,
   { dataObjects, ...errors }: CreateEntryErrorFragment,
@@ -1585,17 +1494,6 @@ type ErrorState = {
   };
 };
 
-export type EntriesDataSuccessSate = {
-  value: SuccessVal;
-  success: {
-    context: {
-      entries: DataStateContextEntries;
-      pageInfo: PageInfoFragment;
-      pagingError?: string;
-    };
-  };
-};
-
 export type EntriesDataFailureState = {
   value: FailVal;
   error: string;
@@ -1614,13 +1512,6 @@ export type DataStateContext = {
   syncErrors?: ExperienceSyncError;
   onlineStatus: OnlineStatus;
 };
-
-export type DataStateContextEntry = {
-  entryData: EntryFragment;
-  entrySyncError?: CreateEntryErrorFragment | UpdateEntrySyncErrors;
-};
-
-export type DataStateContextEntries = DataStateContextEntry[];
 
 export type DataState = {
   value: DataVal;

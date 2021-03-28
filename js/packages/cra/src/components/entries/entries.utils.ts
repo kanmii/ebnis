@@ -1081,7 +1081,7 @@ function getEffects(proxy: DraftState) {
   return getGeneralEffects<EffectType, DraftState>(proxy);
 }
 
-function processEntriesQuery(
+export function processEntriesQuery(
   entriesQueryResult?: GetEntriesUnionFragment | null,
   syncErrors?: SyncError,
 ): {
@@ -1440,7 +1440,7 @@ export type DataSuccess = {
 
 type DataContext = DataContextEntry[];
 
-type DataContextEntry = {
+export type DataContextEntry = {
   entryData: EntryFragment;
   entrySyncError?: CreateEntryErrorFragment | UpdateEntrySyncErrors;
 };
