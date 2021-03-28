@@ -10,7 +10,7 @@ import {
 import { upsertNewEntry } from "../components/UpsertEntry/upsert-entry.injectables";
 import {
   createOfflineEntryMutation,
-  CreateOfflineEntryMutationValid,
+  CreateOfflineEntryMutationReturnVal,
   CreateOfflineEntryMutationVariables,
 } from "../components/UpsertEntry/upsert-entry.resolvers";
 import { isOfflineId, makeOfflineId } from "@eb/cm/src/utils/offlines";
@@ -70,7 +70,7 @@ it("online experience/creates entry", async () => {
     entry: { id, dataObjects },
   } = (await createOfflineEntryMutation(
     variables,
-  )) as CreateOfflineEntryMutationValid;
+  )) as CreateOfflineEntryMutationReturnVal;
 
   expect(mockUpsertWithEntry).toHaveBeenCalled();
   expect(isOfflineId(id)).toBe(true);

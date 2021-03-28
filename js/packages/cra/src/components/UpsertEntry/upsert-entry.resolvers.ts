@@ -23,7 +23,7 @@ import {
 
 export async function createOfflineEntryMutation(
   variables: CreateOfflineEntryMutationVariables,
-): Promise<CreateOfflineEntryMutationValid | null> {
+): Promise<CreateOfflineEntryMutationReturnVal | null> {
   const { experienceId, insertedAt, updatedAt } = variables;
   const today = new Date();
   const timestamps = today.toJSON();
@@ -90,12 +90,11 @@ export type CreateOfflineEntryMutationVariables = CreateEntryInput & {
   id?: string;
 };
 
-export interface CreateOfflineEntryMutationValid {
+export type CreateOfflineEntryMutationReturnVal = {
   id: string;
   entry: EntryFragment;
   experience: ExperienceCompleteFragment;
-  __typename: "Entry";
-}
+};
 
 function updateUnsynced(experienceId: string) {
   if (isOfflineId(experienceId)) {
