@@ -283,7 +283,7 @@ function handleRefetchAction(proxy: DraftState) {
     const effects = getEffects(proxy);
 
     effects.push({
-      key: "fetchEntriesEffect",
+      key: "fetchEffect",
       ownArgs: {},
     });
   }
@@ -405,7 +405,7 @@ function handleFetchNextAction(proxy: DraftState) {
       const effects = getEffects(proxy);
 
       effects.push({
-        key: "fetchEntriesEffect",
+        key: "fetchEffect",
         ownArgs: {
           pagination: {
             first: 10,
@@ -794,7 +794,7 @@ function updateEntriesFn(
 
     const effects = getEffects(proxy);
     effects.push({
-      key: "fetchEntriesEffect",
+      key: "fetchEffect",
       ownArgs: {},
     });
 
@@ -829,7 +829,7 @@ function updateEntriesFn(
 // START EFFECT SECTIONS
 // ====================================================
 
-const fetchEntriesEffect: DefFetchEntriesEffect["func"] = async (
+const fetchEffect: DefFetchEffect["func"] = async (
   { pagination, reFetchFromCache },
   props,
   effectArgs,
@@ -901,8 +901,8 @@ const fetchEntriesEffect: DefFetchEntriesEffect["func"] = async (
   }
 };
 
-type DefFetchEntriesEffect = EffectDefinition<
-  "fetchEntriesEffect",
+type DefFetchEffect = EffectDefinition<
+  "fetchEffect",
   {
     pagination?: PaginationInput;
     // if we have updated experience successfully, then we re-fetch entries
@@ -1097,7 +1097,7 @@ type DefParentEffect = EffectDefinition<"parentEffects", ParentAction>;
 
 export const effectFunctions = {
   timeoutsEffect,
-  fetchEntriesEffect,
+  fetchEffect,
   postOfflineEntriesSyncEffect,
   deleteCreateEntrySyncErrorEffect,
   deleteEntryEffect,
@@ -1634,7 +1634,7 @@ export type Props = CallerProps &
 
 export type EffectType =
   | DefTimeoutsEffect
-  | DefFetchEntriesEffect
+  | DefFetchEffect
   | DefPostOfflineEntriesSyncEffect
   | DefDeleteCreateEntrySyncErrorEffect
   | DefDeleteEntryEffect
