@@ -23,11 +23,13 @@ import {
 
 export async function createOfflineEntryMutation(
   variables: CreateOfflineEntryMutationVariables,
+  experienceArg?: ExperienceCompleteFragment,
 ): Promise<CreateOfflineEntryMutationReturnVal | null> {
   const { experienceId, insertedAt, updatedAt } = variables;
   const today = new Date();
   const timestamps = today.toJSON();
-  const experience = readExperienceCompleteFragment(experienceId);
+  const experience =
+    experienceArg || readExperienceCompleteFragment(experienceId);
 
   if (!experience) {
     return null;

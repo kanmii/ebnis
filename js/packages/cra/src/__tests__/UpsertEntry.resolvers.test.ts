@@ -117,3 +117,46 @@ it("experience not found", async () => {
   const result = await createOfflineEntryMutation(variables);
   expect(result).toBeNull();
 });
+
+it("with default values", async () => {
+  mockGetUnsyncedExperience.mockReturnValue({});
+
+  mockGetEntriesQuerySuccess.mockReturnValueOnce({
+    edges: [],
+  });
+
+  mockUpsertWithEntry.mockReturnValueOnce({});
+
+  const variables = {
+    experienceId: "1",
+    id: "e",
+    dataObjects: [
+      {
+        id: "d",
+      },
+    ],
+  } as CreateOfflineEntryMutationVariables;
+
+  expect(mockUpsertWithEntry).not.toHaveBeenCalled();
+  expect(mockWriteUnsyncedExperience).not.toHaveBeenCalled();
+
+  const {
+    entry: { id, dataObjects },
+  } = (await createOfflineEntryMutation(
+    variables,
+    {} as any,
+  )) as CreateOfflineEntryMutationReturnVal;
+
+  expect(mockUpsertWithEntry).toHaveBeenCalled();
+
+  expect(id).toBe("e");
+
+  expect((dataObjects[0] as any).id).toBe("d");
+
+  expect(mockWriteUnsyncedExperience.mock.calls[0]).toEqual([
+    "1",
+    {
+      newEntries: true,
+    },
+  ]);
+});
