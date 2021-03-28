@@ -37,7 +37,13 @@ export function Entry(props: Props) {
 
   return (
     <>
-      {syncError && (
+    {
+
+      // :TODO: this does not show up unless sync fails when connection
+      // returns. Please fix so that it always show up when there is
+      // sync error related to this entry.
+      // ???? How to handle fix if no network??? When online/offline entry??
+      syncError && (
         <Notification
           type={ComponentColorType.is_danger}
           className={trimClass(`
