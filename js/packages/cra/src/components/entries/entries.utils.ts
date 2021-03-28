@@ -13,7 +13,10 @@ import {
 } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { PaginationInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragment";
-import { toGetEntriesSuccessQuery } from "@eb/cm/src/graphql/utils.gql";
+import {
+  entryToEdge,
+  toGetEntriesSuccessQuery,
+} from "@eb/cm/src/graphql/utils.gql";
 import { wrapReducer, wrapState } from "@eb/cm/src/logger";
 import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import { ComponentTimeoutsMs } from "@eb/cm/src/utils/timers";
@@ -80,7 +83,6 @@ import {
   DispatchType as ParentDispatchType,
   ExperienceSyncError,
 } from "../DetailExperience/detailed-experience-utils";
-import { entryToEdge } from "../UpsertEntry/entry-to-edge";
 import { UpdatingPayload } from "../UpsertEntry/upsert-entry.utils";
 import { updateExperienceOfflineFn } from "../UpsertExperience/upsert-experience.resolvers";
 import { cleanUpSyncedOfflineEntries } from "../WithSubscriptions/with-subscriptions.utils";

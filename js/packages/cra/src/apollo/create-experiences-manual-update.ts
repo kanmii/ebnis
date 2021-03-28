@@ -4,13 +4,15 @@ import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFr
 import { EntryConnectionFragment_edges } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { toGetEntriesSuccessQuery } from "@eb/cm/src/graphql/utils.gql";
+import {
+  entryToEdge,
+  toGetEntriesSuccessQuery,
+} from "@eb/cm/src/graphql/utils.gql";
 import {
   OfflineIdToOnlineExperienceMap,
   SyncError,
   SyncErrors,
 } from "@eb/cm/src/utils/types";
-import { entryToEdge } from "../components/UpsertEntry/entry-to-edge";
 import { CreateExperiencesMutationResult } from "../utils/experience.gql.types";
 import {
   getCachedEntriesDetailViewSuccess,

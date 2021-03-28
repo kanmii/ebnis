@@ -4,7 +4,20 @@ import {
   GetEntriesUnionFragment_GetEntriesSuccess,
   GetEntriesUnionFragment_GetEntriesSuccess_entries,
 } from "./apollo-types/GetEntriesUnionFragment";
-import { EntryConnectionFragment_edges } from "./apollo-types/EntryConnectionFragment";
+import {
+  EntryConnectionFragment_edges,
+  EntryConnectionFragment_edges_node,
+} from "./apollo-types/EntryConnectionFragment";
+
+export function entryToEdge(
+  entry: EntryConnectionFragment_edges_node,
+): EntryConnectionFragment_edges {
+  return {
+    node: entry,
+    cursor: "",
+    __typename: "EntryEdge" as "EntryEdge",
+  };
+}
 
 export const emptyPageInfo: PageInfoFragment = {
   __typename: "PageInfo",

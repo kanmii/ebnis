@@ -11,7 +11,10 @@ import {
   UpdateExperienceSomeSuccessFragment_comments,
   UpdateExperienceSomeSuccessFragment_entries,
 } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
-import { toGetEntriesSuccessQuery } from "@eb/cm/src/graphql/utils.gql";
+import {
+  entryToEdge,
+  toGetEntriesSuccessQuery,
+} from "@eb/cm/src/graphql/utils.gql";
 import {
   IdToDefinitionUpdateSyncErrorMap,
   IdToUpdateDataObjectSyncErrorMap,
@@ -24,7 +27,6 @@ import {
   SyncErrors,
 } from "@eb/cm/src/utils/types";
 import immer, { Draft } from "immer";
-import { entryToEdge } from "../components/UpsertEntry/entry-to-edge";
 import { UpdateExperiencesOnlineMutationResult } from "../utils/experience.gql.types";
 import { UnsyncedModifiedExperience } from "../utils/unsynced-ledger.types";
 import {

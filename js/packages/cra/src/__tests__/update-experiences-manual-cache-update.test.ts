@@ -4,6 +4,7 @@ import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { UpdateExperienceSomeSuccessFragment } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
+import { entryToEdge } from "@eb/cm/src/graphql/utils.gql";
 import {
   getCachedEntriesDetailViewSuccess,
   readExperienceCompleteFragment,
@@ -16,7 +17,6 @@ import {
   writeUnsyncedExperience,
 } from "../apollo/unsynced-ledger";
 import { updateExperiencesManualCacheUpdate } from "../apollo/update-experiences-manual-cache-update";
-import { entryToEdge } from "../components/UpsertEntry/entry-to-edge";
 import { UpdateExperiencesOnlineMutationResult } from "../utils/experience.gql.types";
 import { UnsyncedModifiedExperience } from "../utils/unsynced-ledger.types";
 
