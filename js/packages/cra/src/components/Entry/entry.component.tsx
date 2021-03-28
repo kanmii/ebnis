@@ -5,7 +5,7 @@ import DropdownMenu from "@eb/jsx/src/components/dropdown-menu/dropdown-menu.com
 import React, { useContext, Fragment } from "react";
 import { DataStateContext } from "../DetailExperience/detail-experience.context";
 import { noTriggerDocumentEventClassName } from "../DetailExperience/detail-experience.dom";
-import { formatDatetime } from "../DetailExperience/detailed-experience-utils";
+import { formatDatetime } from "../entries/entries.utils";
 import {
   entryDeleteMenuItemSelector,
   entryDropdownIsActiveClassName,

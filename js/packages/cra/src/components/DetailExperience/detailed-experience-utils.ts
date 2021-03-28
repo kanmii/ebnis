@@ -1,6 +1,4 @@
-import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
-import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
@@ -24,10 +22,7 @@ import {
   SuccessVal,
   SyncError,
   Timeouts,
-  UpdateEntrySyncErrors,
 } from "@eb/cm/src/utils/types";
-import dateFnFormat from "date-fns/format";
-import parseISO from "date-fns/parseISO";
 import immer from "immer";
 // import { original } from "immer";
 import { Dispatch, Reducer } from "react";
@@ -76,11 +71,13 @@ import {
   MY_URL,
 } from "../../utils/urls";
 import {
+  EntriesParentContext,
   EntriesRemoteAction,
   EntriesRemoteActionType,
-  EntriesSyncErrors,
+  processCreateEntriesErrors,
   ProcessedEntriesQueryReturnVal,
   processEntriesQuery,
+  processUpdateEntriesErrors,
 } from "../entries/entries.utils";
 import {
   CommentRemoteAction,
@@ -445,22 +442,12 @@ function handleUpdateUiRequestAction(
         experience.dataDefinitions,
       );
 
-      effects.push(
-        // :TODO: where should this go in child entries??????
-        // {
-        //   key: "fetchEntriesEffect",
-        //   ownArgs: {
-        //     reFetchFromCache: true,
-        //   },
-        // },
-
-        {
-          key: "timeoutsEffect",
-          ownArgs: {
-            set: "set-close-update-experience-success-notification",
-          },
+      effects.push({
+        key: "timeoutsEffect",
+        ownArgs: {
+          set: "set-close-update-experience-success-notification",
         },
-      );
+      });
 
       return;
     }
@@ -1387,98 +1374,7 @@ function processGetExperienceQuery(
   return [result, undefined];
 }
 
-function processCreateEntriesErrors(
-  entryErrors: IndexToEntryErrorsList,
-  { dataObjects, ...errors }: CreateEntryErrorFragment,
-  index: number,
-) {
-  const processedErrors: EntryErrorsList = {};
-  entryErrors.push([index + 1, processedErrors]);
-
-  const others: [string, string][] = [];
-
-  Object.entries(errors).forEach(([k, v]) => {
-    if (v && k !== "__typename" && k !== "meta") {
-      others.push([k, v]);
-    }
-  });
-
-  // istanbul ignore else:
-  if (others.length) {
-    processedErrors.others = others;
-  }
-
-  // istanbul ignore else:
-  if (dataObjects) {
-    processedErrors.dataObjects = processDataObjectsErrors(
-      dataObjects as DataObjectErrorFragment[],
-    );
-  }
-
-  return entryErrors;
-}
-
-function processUpdateEntriesErrors(
-  entryErrors: IndexToEntryErrorsList,
-  data: UpdateEntrySyncErrors,
-  index: number,
-) {
-  const processedErrors: EntryErrorsList = {};
-  entryErrors.push([index + 1, processedErrors]);
-
-  if ("string" === typeof data) {
-    processedErrors.others = [["", data]];
-  } else {
-    processedErrors.dataObjects = processDataObjectsErrors(
-      Object.values(data) as DataObjectErrorFragment[],
-    );
-  }
-
-  return entryErrors;
-}
-
-function processDataObjectsErrors(dataObjects: DataObjectErrorFragment[]) {
-  const dataErrorList: DataObjectErrorsList = [];
-
-  dataObjects.forEach((d) => {
-    const list: [string, string][] = [];
-
-    const {
-      meta: { index: dIndex },
-      ...errors
-    } = d as DataObjectErrorFragment;
-
-    Object.entries(errors).forEach(([k, v]) => {
-      if (v && k !== "__typename") {
-        list.push([k, v]);
-      }
-    });
-
-    dataErrorList.push([dIndex + 1, list]);
-  });
-
-  return dataErrorList;
-}
-
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
-
-////////////////////////// HELPER FUNCTIONS ////////////////////////////
-
-export const DISPLAY_DATE_FORMAT_STRING = "dd/MM/yyyy";
-export const DISPLAY_TIME_FORMAT_STRING = " HH:mm";
-const DISPLAY_DATETIME_FORMAT_STRING =
-  DISPLAY_DATE_FORMAT_STRING + DISPLAY_TIME_FORMAT_STRING;
-
-export function formatDatetime(date: Date | string) {
-  date =
-    typeof date === "string"
-      ? parseISO(date)
-      : // istanbul ignore next:
-        date;
-  return dateFnFormat(date, DISPLAY_DATETIME_FORMAT_STRING);
-}
-
-////////////////////////// END HELPER FUNCTIONS ////////////////////////////
 
 export type StateMachine = GenericGeneralEffect<EffectType> & {
   states: LoadingState | ErrorState | DataState;
@@ -1497,13 +1393,6 @@ type ErrorState = {
 export type EntriesDataFailureState = {
   value: FailVal;
   error: string;
-};
-
-export type EntriesData = {
-  value: ActiveVal | InActiveVal;
-  postActions: EntriesRemoteAction[];
-  entriesData: ProcessedEntriesQueryReturnVal;
-  syncErrors?: EntriesSyncErrors;
 };
 
 export type DataStateContext = {
@@ -1755,8 +1644,6 @@ export type EffectType =
   | DefPostOfflineExperiencesSyncEffect
   | DefPostOfflineEntriesSyncEffect
   | DefDeleteCreateEntrySyncErrorEffect;
-
-type DataObjectErrorsList = [string | number, [string, string][]][];
 
 export type EntryErrorsList = {
   // [key, errorValue]

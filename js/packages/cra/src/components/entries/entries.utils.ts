@@ -1223,7 +1223,7 @@ function appendToPreviousEntries(
   );
 }
 
-function processCreateEntriesErrors(
+export function processCreateEntriesErrors(
   entryErrors: IndexToEntryErrorsList,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   { __typename, meta, dataObjects, ...errors }: CreateEntryErrorFragment,
@@ -1255,7 +1255,7 @@ function processCreateEntriesErrors(
   return entryErrors;
 }
 
-function processUpdateEntriesErrors(
+export function processUpdateEntriesErrors(
   entryErrors: IndexToEntryErrorsList,
   data: UpdateEntrySyncErrors,
   index: number,
@@ -1270,6 +1270,8 @@ function processUpdateEntriesErrors(
       Object.values(data) as DataObjectErrorFragment[],
     );
   }
+
+  return entryErrors
 }
 
 function processDataObjectsErrors(dataObjects: DataObjectErrorFragment[]) {
