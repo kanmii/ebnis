@@ -27,7 +27,7 @@ const mockReadExperienceFragment = readExperienceCompleteFragment as jest.Mock;
 const mockGetEntriesQuerySuccess = getCachedEntriesDetailViewSuccess as jest.Mock;
 
 afterEach(() => {
-  jest.resetAllMocks();
+  jest.clearAllMocks();
 });
 
 it("online experience/creates entry", () => {
