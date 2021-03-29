@@ -15,13 +15,13 @@ import { makeDetailedExperienceRoute } from "@eb/cra/src/utils/urls";
 import { createOnlineExperience } from "../support/create-experiences";
 import { useCypressMsw } from "../support/cypress-msw";
 
-context("Delete experience MSW", () => {
+context("Entries MSW", () => {
   beforeEach(() => {
     cy.checkoutMockSession();
     cy.loginMockUser();
   });
 
-  describe("My page", () => {
+  describe("Detailed experience page", () => {
     it("sync complete offline experience succeeds", () => {
       const { id: experienceId, title, description } = mockOnlineExperience1;
 
