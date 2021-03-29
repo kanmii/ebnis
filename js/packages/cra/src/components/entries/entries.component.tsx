@@ -7,6 +7,7 @@ import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import Notification from "@eb/jsx/src/components/Notification/notification.component";
 import { Suspense, useEffect, useReducer } from "react";
 import { useWithSubscriptionContext } from "../../apollo/injectables";
+import { getEntriesDetailView } from "../../utils/experience.gql.types";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { noTriggerDocumentEventClassName } from "../DetailExperience/detail-experience.dom";
@@ -299,6 +300,7 @@ export default (props: CallerProps) => {
       {...props}
       componentTimeoutsMs={componentTimeoutsMs}
       updateExperiencesMutation={updateExperiencesMutation}
+      getEntriesDetailView={getEntriesDetailView}
     />
   );
 };

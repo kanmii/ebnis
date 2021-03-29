@@ -163,6 +163,12 @@ export function getEntriesDetailView(variables: GetEntriesDetailViewVariables) {
 
 export type GetEntriesDetailViewQueryResult = ApolloQueryResult<GetEntriesDetailView>;
 
+type GetEntriesDetailViewFn = typeof getEntriesDetailView;
+
+export type GetEntriesDetailViewProps = {
+  getEntriesDetailView: GetEntriesDetailViewFn;
+};
+
 export function getExperienceDetailView(
   variables: GetExperienceDetailViewVariables,
 ) {

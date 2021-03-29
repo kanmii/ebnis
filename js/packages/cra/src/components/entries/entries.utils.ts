@@ -70,7 +70,7 @@ import {
   getGeneralEffects,
 } from "../../utils/effects";
 import {
-  getEntriesDetailView,
+  GetEntriesDetailViewProps,
   GetEntriesDetailViewQueryResult,
 } from "../../utils/experience.gql.types";
 import { scrollIntoView } from "../../utils/scroll-into-view";
@@ -836,6 +836,7 @@ const fetchEffect: DefFetchEffect["func"] = async (
 ) => {
   const {
     experience: { id: experienceId },
+    getEntriesDetailView,
   } = props;
   const { dispatch } = effectArgs;
 
@@ -1628,7 +1629,8 @@ export type EntriesSyncErrors = Pick<
 >;
 
 export type Props = CallerProps &
-  UpdateExperiencesMutationProps & {
+  UpdateExperiencesMutationProps &
+  GetEntriesDetailViewProps & {
     componentTimeoutsMs: ComponentTimeoutsMs;
   };
 
