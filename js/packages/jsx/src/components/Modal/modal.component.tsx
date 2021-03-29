@@ -1,7 +1,13 @@
 import { trimClass } from "@eb/cm/src/utils";
 import { Any } from "@eb/cm/src/utils/types";
 import { ComponentProps, ReactMouseEvent } from "@eb/cm/src/utils/types/react";
-import { createContext, PropsWithChildren, useContext } from "react";
+import React, {
+  Children,
+  cloneElement,
+  createContext,
+  PropsWithChildren,
+  useContext,
+} from "react";
 
 type ContextValue = {
   onClose: (e: ReactMouseEvent) => void;
@@ -11,20 +17,10 @@ const Context = createContext<ContextValue>({} as ContextValue);
 const Provider = Context.Provider;
 
 export function Modal(props: Props) {
-  const { children, onClose } = props;
+  const { children, onClose, className = "", top, ...others } = props;
 
-  // istanbul ignore next:
-  const id = props.id || "";
-
-  // istanbul ignore next:
-  const propClassName = props.className || "";
-
-  return (
-    <div
-      id={id}
-      className={trimClass(
-        `
-          ${propClassName}
+  const finalClassName = trimClass(
+    `
           eb-modal
           items-center
           flex-col
@@ -37,12 +33,14 @@ export function Modal(props: Props) {
           right-0
           top-0
           flex
+          ${className}
         `,
-      )}
-    >
-      <div
-        className={trimClass(
-          `
+  );
+
+  const backgroundEl = (
+    <div
+      className={trimClass(
+        `
             eb-modal-background
             bg-gray-900
             opacity-70
@@ -52,19 +50,63 @@ export function Modal(props: Props) {
             right-0
             top-0
           `,
-        )}
-      />
+      )}
+    />
+  );
 
-      <Provider value={{ onClose }}>{children}</Provider>
+  const makeProviderEl = (c: React.ReactNode) => {
+    return <Provider value={{ onClose }}>{c}</Provider>;
+  };
+
+  if (top) {
+    const single = children as JSX.Element;
+
+    const {
+      children: singleChildren,
+      className: singleClassName0 = "",
+      ...singleProps
+    } = single.props;
+
+    const singleClassName = finalClassName + " " + singleClassName0;
+
+    return Children.only(
+      cloneElement(
+        single,
+        {
+          ...singleProps,
+          className: singleClassName,
+        },
+        backgroundEl,
+        makeProviderEl(singleChildren),
+      ),
+    );
+  }
+
+  return (
+    <div className={finalClassName} {...others}>
+      {backgroundEl}
+
+      {makeProviderEl(children)}
     </div>
   );
 }
 
-function Card({ children, ...otherProps }: PropsWithChildren<Any>) {
+function Card({
+  children,
+  style,
+  className = "",
+  ...otherProps
+}: PropsWithChildren<Any>) {
+  style = {
+    maxWidth: "500px",
+    ...(style || {}),
+  };
+
   return (
     <div
       className={trimClass(
         `
+          ${className}
           eb-modal-card
           flex
           flex-col
@@ -76,9 +118,7 @@ function Card({ children, ...otherProps }: PropsWithChildren<Any>) {
           w-11/12
         `,
       )}
-      style={{
-        maxWidth: "500px",
-      }}
+      style={style}
       {...otherProps}
     >
       {children}
@@ -191,4 +231,5 @@ Modal.Footer = Footer;
 
 export type Props = ComponentProps & {
   onClose: (e: ReactMouseEvent) => void;
+  top?: boolean;
 };
