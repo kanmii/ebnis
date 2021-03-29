@@ -1,7 +1,10 @@
 import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import { UpdateExperiencesOnline } from "@eb/cm/src/graphql/apollo-types/UpdateExperiencesOnline";
-import { mockOnlineExperience1 } from "@eb/cm/src/__tests__/mock-data";
+import {
+  mockOnlineDataDefinitionInteger1Id,
+  mockOnlineExperience1,
+} from "@eb/cm/src/__tests__/mock-data";
 import {
   createExperiencesMswGql,
   updateExperiencesMswGql,
@@ -54,7 +57,7 @@ context("Entries MSW", () => {
           experienceId,
           dataObjects: [
             {
-              definitionId: experienceId,
+              definitionId: mockOnlineDataDefinitionInteger1Id,
               data: `{"integer":1}`,
             },
           ],
