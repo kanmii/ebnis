@@ -188,7 +188,7 @@ export function Entries(props: Props) {
       )}
 
       {entries.length === 0 ? (
-        <div
+        <a
           id={noEntryTriggerId}
           className={trimClass(
             `
@@ -207,7 +207,7 @@ export function Entries(props: Props) {
           }}
         >
           Click here to create your first entry
-        </div>
+        </a>
       ) : (
         <>
           <div id={entriesContainerId}>
