@@ -44,13 +44,13 @@ export function UpsertEntry(props: Props) {
   const onSubmit = useCallback((e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     dispatch({
-      type: ActionType.ON_SUBMIT,
+      type: ActionType.submit,
     });
   }, []);
 
   const onCloseNotification = useCallback(() => {
     dispatch({
-      type: ActionType.DISMISS_NOTIFICATION,
+      type: ActionType.dismiss_notification,
     });
   }, []);
 
@@ -151,7 +151,7 @@ const DataComponent = React.memo(
               const value = e.currentTarget.value;
 
               dispatch({
-                type: ActionType.ON_FORM_FIELD_CHANGED,
+                type: ActionType.on_form_field_changed,
                 fieldIndex: index,
                 value,
               });
@@ -249,7 +249,7 @@ function makeDateChangedFn(dispatch: DispatchType, index: number) {
     value: FormObjVal,
   ) {
     dispatch({
-      type: ActionType.ON_FORM_FIELD_CHANGED,
+      type: ActionType.on_form_field_changed,
       fieldIndex: index,
       value,
     });
