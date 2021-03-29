@@ -98,15 +98,13 @@ const persistor = {
   persist: mockPersistFn as any,
 } as AppPersistor;
 
-const globals = {
+const ebnisObject = {
   persistor,
   // client: null as any,
-  // logApolloQueries: true,
-  // logReducers: true,
 } as EbnisGlobals;
 
 beforeAll(() => {
-  window.____ebnis = globals;
+  window.____ebnis = ebnisObject;
 });
 
 afterAll(() => {
@@ -116,6 +114,8 @@ afterAll(() => {
 afterEach(() => {
   cleanup();
   jest.resetAllMocks();
+  ebnisObject.logApolloQueries = false;
+  ebnisObject.logReducers = false;
 });
 
 describe("component", () => {
@@ -136,6 +136,8 @@ describe("component", () => {
         },
       },
     });
+      // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
     render(ui);
     const inputEl = document.getElementById("1") as HTMLInputElement;
     const now = new Date();
