@@ -1340,11 +1340,18 @@ function processGetExperienceQuery(
     const unsynced = getUnsyncedExperience(id);
     const onlineStatus = getOnlineStatus(id, unsynced);
 
+    const dataDefinitionIdToNameMap = makeDataDefinitionIdToNameMap(
+      experience.dataDefinitions,
+    );
     const {
       data: entriesData,
       entriesErrors,
       processedSyncErrors,
-    } = processEntriesQuery(entriesQueryResult, syncErrors);
+    } = processEntriesQuery(
+      dataDefinitionIdToNameMap,
+      entriesQueryResult,
+      syncErrors,
+    );
 
     let errors = syncErrors as ExperienceSyncError;
 

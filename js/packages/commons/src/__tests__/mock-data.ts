@@ -1,5 +1,6 @@
 import { CommentFragment } from "../graphql/apollo-types/CommentFragment";
 import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
+import { DataObjectFragment } from "../graphql/apollo-types/DataObjectFragment";
 import { EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
 import { ExperienceCompleteFragment } from "../graphql/apollo-types/ExperienceCompleteFragment";
@@ -56,6 +57,16 @@ export const mockOnlineEntry1: EntryFragment = {
   ],
 };
 
+export const mockOnlineDataObject1: DataObjectFragment = {
+  id: mockOnlineDataObject1id,
+  definitionId: mockOnlineDataDefinitionInteger1Id,
+  data: `{"integer":1}`,
+  __typename: "DataObject",
+  clientId: "",
+  insertedAt: "2021-02-19T00:41:52.618Z",
+  updatedAt: "2021-02-19T00:41:52.618Z",
+};
+
 export const mockOnlineEntry2: EntryFragment = {
   __typename: "Entry",
   experienceId: mockOnlineExperienceId1,
@@ -63,17 +74,7 @@ export const mockOnlineEntry2: EntryFragment = {
   clientId: null,
   insertedAt: "2020-09-16T20:00:37Z",
   updatedAt: "2020-09-16T20:00:37Z",
-  dataObjects: [
-    {
-      id: mockOnlineDataObject1id,
-      definitionId: mockOnlineDataDefinitionInteger1Id,
-      data: `{"integer":1}`,
-      __typename: "DataObject",
-      clientId: "",
-      insertedAt: "2021-02-19T00:41:52.618Z",
-      updatedAt: "2021-02-19T00:41:52.618Z",
-    },
-  ],
+  dataObjects: [mockOnlineDataObject1],
 };
 
 export const mockEntry1Connection: EntryConnectionFragment = {
@@ -99,9 +100,10 @@ export const mockOnlineEntry1Success: GetEntriesUnionFragment = {
   entries: mockEntry1Connection,
 };
 
-export const mockOfflineEntry1 = {
+export const mockOfflineEntry1: EntryFragment = {
   __typename: "Entry",
   id: mockOfflineEntry1Id,
+  experienceId: mockOfflineExperienceId1,
   clientId: mockOfflineEntry1Id,
   insertedAt: "2020-09-16T20:00:37Z",
   updatedAt: "2020-09-16T20:00:37Z",
@@ -111,9 +113,12 @@ export const mockOfflineEntry1 = {
       id: "a",
       definitionId: "1",
       data: `{"integer":1}`,
+      clientId: "",
+      insertedAt: "2021-02-19T00:41:52.618Z",
+      updatedAt: "2021-02-19T00:41:52.618Z",
     },
   ],
-} as EntryFragment;
+};
 
 export const offlineEntrySuccess = {
   __typename: "GetEntriesSuccess",
@@ -149,7 +154,7 @@ export const mockDataDefinitionInteger1: DataDefinitionFragment = {
   __typename: "DataDefinition",
   id: mockOnlineDataDefinitionInteger1Id,
   clientId: "",
-  name: "start number",
+  name: "start value",
   type: DataTypes.INTEGER,
 };
 

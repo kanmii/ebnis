@@ -56,9 +56,10 @@ export function Entries(props: Props) {
     }
   }, [postActions]);
 
+  const { connected } = useWithSubscriptionContext();
+
   const { entries: state, menu, notification, upsertUi } = states.states;
 
-  // fail / success / fetchEntriesError
   if (state.value === StateValue.fail) {
     return (
       <div className={noTriggerDocumentEventClassName}>
@@ -80,8 +81,10 @@ export function Entries(props: Props) {
     );
   }
 
-  // will react complain?
-  const { connected } = useWithSubscriptionContext();
+  if (state.value === StateValue.loading) {
+    return <Loading />;
+  }
+
   const {
     context: {
       entries,
@@ -98,6 +101,8 @@ export function Entries(props: Props) {
   return (
     <>
       {(oldEditedEntryProps ||
+        // :TODO: we should not be able to insert new entry if there is sync
+        // error??????????
         /* !syncErrors && */
         upsertUi.value === StateValue.active) && (
         <Suspense fallback={<Loading />}>

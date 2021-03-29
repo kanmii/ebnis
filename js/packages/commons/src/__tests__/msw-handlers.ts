@@ -4,6 +4,7 @@ import { ApolloError } from "@apollo/client/core";
 import { graphql } from "msw";
 import { CreateExperiences } from "../graphql/apollo-types/CreateExperiences";
 import { DeleteExperiences } from "../graphql/apollo-types/DeleteExperiences";
+import { GetEntriesDetailView } from "../graphql/apollo-types/GetEntriesDetailView";
 import { GetExperienceAndEntriesDetailView } from "../graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import { GetExperienceComments } from "../graphql/apollo-types/GetExperienceComments";
 import { GetExperiencesConnectionListView } from "../graphql/apollo-types/GetExperiencesConnectionListView";
@@ -17,6 +18,12 @@ export function getExperienceAndEntriesDetailViewGqlMsw(
   data: Partial<GetExperienceAndEntriesDetailView> | ApolloError,
 ) {
   return execGraphqlOperation(query, "GetExperienceAndEntriesDetailView", data);
+}
+
+export function getEntriesDetailViewGqlMsw(
+  data: Partial<GetEntriesDetailView> | ApolloError,
+) {
+  return execGraphqlOperation(query, "GetEntriesDetailView", data);
 }
 
 export function getExperienceCommentsGqlMsw(

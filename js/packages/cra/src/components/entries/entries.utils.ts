@@ -1,5 +1,6 @@
 import { ApolloError } from "@apollo/client";
 import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
+import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
 import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
 import {
   EntryConnectionFragment,
@@ -31,6 +32,7 @@ import {
   IdToUpdateEntrySyncErrorMap,
   InActiveVal,
   KeyOfTimeouts,
+  LoadingVal,
   OfflineIdToCreateEntrySyncErrorMap,
   OnlineExperienceIdToOfflineEntriesMap,
   OnlineStatus,
@@ -166,14 +168,61 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 export function initState(props: Props): StateMachine {
   const { entriesData, experience } = props;
 
+  const dataDefinitionIdToNameMap = makeDataDefinitionIdToNameMap(
+    experience.dataDefinitions,
+  );
+
+  let effect: StateMachine["effects"]["general"] = {
+    value: StateValue.noEffect,
+  };
+
+  let entries: Data = {
+    value: StateValue.loading,
+  };
+
+  if (!entriesData) {
+    effect = {
+      value: StateValue.hasEffects,
+      hasEffects: {
+        context: {
+          effects: [
+            {
+              key: "fetchEffect",
+              ownArgs: {
+                dataDefinitionIdToNameMap,
+                reFetchFromCache: true,
+              },
+            },
+          ],
+        },
+      },
+    };
+  } else {
+    entries =
+      entriesData.key === StateValue.success
+        ? {
+            value: StateValue.success,
+            success: {
+              context: {
+                ...entriesData,
+              },
+            },
+          }
+        : {
+            value: StateValue.fail,
+            error: parseStringError(entriesData.error),
+          };
+  }
+
   const state: StateMachine = {
     id: "@entries",
-    context: { experience },
+    context: {
+      experience,
+      dataDefinitionIdToNameMap,
+    },
     timeouts: {},
     effects: {
-      general: {
-        value: StateValue.noEffect,
-      },
+      general: effect,
     },
     states: {
       notification: {
@@ -182,20 +231,7 @@ export function initState(props: Props): StateMachine {
       upsertUi: {
         value: StateValue.inactive,
       },
-      entries:
-        entriesData.key === StateValue.success
-          ? {
-              value: StateValue.success,
-              success: {
-                context: {
-                  ...entriesData,
-                },
-              },
-            }
-          : {
-              value: StateValue.fail,
-              error: parseStringError(entriesData.error),
-            },
+      entries,
       menu: {
         value: StateValue.inactive,
       },
@@ -276,7 +312,10 @@ function handleRecordTimeoutAction(
 }
 
 function handleRefetchAction(proxy: DraftState) {
-  const { states } = proxy;
+  const {
+    states,
+    context: { dataDefinitionIdToNameMap },
+  } = proxy;
 
   // istanbul ignore else
   if (states.entries.value !== StateValue.success) {
@@ -284,7 +323,9 @@ function handleRefetchAction(proxy: DraftState) {
 
     effects.push({
       key: "fetchEffect",
-      ownArgs: {},
+      ownArgs: {
+        dataDefinitionIdToNameMap,
+      },
     });
   }
 }
@@ -293,7 +334,10 @@ function handleOnFetchedAction(
   proxy: DraftState,
   payload: ProcessedEntriesQueryReturnVal | ReFetchOnlyPayload,
 ) {
-  const { states } = proxy;
+  const {
+    states,
+    context: { dataDefinitionIdToNameMap },
+  } = proxy;
 
   const entriesState = states.entries;
   const successState = states.entries as DataSuccess;
@@ -350,6 +394,7 @@ function handleOnFetchedAction(
       break;
 
     // state
+    case StateValue.loading:
     case StateValue.fail:
       switch (payload.key) {
         // fetch effect successful
@@ -371,6 +416,7 @@ function handleOnFetchedAction(
             const { entries } = payload;
 
             const { data } = processEntriesQuery(
+              dataDefinitionIdToNameMap,
               toGetEntriesSuccessQuery(entries),
             );
 
@@ -394,7 +440,10 @@ function handleOnFetchedAction(
 }
 
 function handleFetchNextAction(proxy: DraftState) {
-  const { states } = proxy;
+  const {
+    states,
+    context: { dataDefinitionIdToNameMap },
+  } = proxy;
 
   // istanbul ignore else
   if (states.entries.value === StateValue.success) {
@@ -407,6 +456,7 @@ function handleFetchNextAction(proxy: DraftState) {
       effects.push({
         key: "fetchEffect",
         ownArgs: {
+          dataDefinitionIdToNameMap,
           pagination: {
             first: 10,
             after: endCursor,
@@ -425,6 +475,7 @@ function handleOnUpsertSuccessAction(
 
   const {
     experience: { id: experienceId },
+    dataDefinitionIdToNameMap,
   } = context;
 
   const { upsertUi, notification, entries: entriesState } = states;
@@ -481,6 +532,7 @@ function handleOnUpsertSuccessAction(
 
           context.entries.unshift({
             entryData: upsertedEntry,
+            dataDefinitionIdToNameMap,
           });
         }
         break;
@@ -494,6 +546,7 @@ function handleOnUpsertSuccessAction(
               entries: [
                 {
                   entryData: upsertedEntry,
+                  dataDefinitionIdToNameMap,
                 },
               ],
               pageInfo: {} as PageInfoFragment,
@@ -776,12 +829,16 @@ function updateEntriesFn(
 
   if (state.value === StateValue.fail) {
     successState.value = StateValue.success;
+    const {
+      context: { dataDefinitionIdToNameMap },
+    } = proxy;
 
     successState.success = {
       context: {
         entries: [
           {
             entryData: upsertedEntry,
+            dataDefinitionIdToNameMap,
           },
         ],
         pageInfo: {} as PageInfoFragment,
@@ -795,7 +852,9 @@ function updateEntriesFn(
     const effects = getEffects(proxy);
     effects.push({
       key: "fetchEffect",
-      ownArgs: {},
+      ownArgs: {
+        dataDefinitionIdToNameMap,
+      },
     });
 
     return;
@@ -821,6 +880,17 @@ function updateEntriesFn(
   }
 }
 
+function makeDataDefinitionIdToNameMap(definitions: DataDefinitionFragment[]) {
+  return definitions.reduce((acc, d) => {
+    acc[d.id] = d.name;
+    return acc;
+  }, {} as DataDefinitionIdToNameMap);
+}
+
+type DataDefinitionIdToNameMap = {
+  [dataDefinitionId: string]: string;
+};
+
 // ====================================================
 // END STATE UPDATE HELPERS SECTION
 // ====================================================
@@ -830,7 +900,7 @@ function updateEntriesFn(
 // ====================================================
 
 const fetchEffect: DefFetchEffect["func"] = async (
-  { pagination, reFetchFromCache },
+  { pagination, reFetchFromCache, dataDefinitionIdToNameMap },
   props,
   effectArgs,
 ) => {
@@ -868,7 +938,10 @@ const fetchEffect: DefFetchEffect["func"] = async (
       ({} as GetEntriesDetailViewQueryResult);
 
     if (data) {
-      const { data: processedEntries } = processEntriesQuery(data.getEntries);
+      const { data: processedEntries } = processEntriesQuery(
+        dataDefinitionIdToNameMap,
+        data.getEntries,
+      );
 
       if (pagination) {
         const blätternZuId = appendToPreviousEntries(
@@ -905,6 +978,7 @@ const fetchEffect: DefFetchEffect["func"] = async (
 type DefFetchEffect = EffectDefinition<
   "fetchEffect",
   {
+    dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
     pagination?: PaginationInput;
     // if we have updated experience successfully, then we re-fetch entries
     // from cache
@@ -1111,6 +1185,7 @@ function getEffects(proxy: DraftState) {
 }
 
 export function processEntriesQuery(
+  dataDefinitionIdToNameMap: DataDefinitionIdToNameMap,
   entriesQueryResult?: GetEntriesUnionFragment | null,
   syncErrors?: SyncError,
 ): {
@@ -1164,6 +1239,7 @@ export function processEntriesQuery(
         return {
           entryData: entry,
           entrySyncError: createError || updateError,
+          dataDefinitionIdToNameMap,
         };
       },
     );
@@ -1389,6 +1465,7 @@ type DraftState = Draft<StateMachine>;
 export type StateMachine = GenericGeneralEffect<EffectType> & {
   context: {
     experience: ExperienceDetailViewFragment;
+    dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
   };
   timeouts: Timeouts;
   states: {
@@ -1451,7 +1528,11 @@ type MenuActive = {
   };
 };
 
-type Data = DataSuccess | DataFailure;
+type Data = DataSuccess | DataFailure | DataFetch;
+
+type DataFetch = {
+  value: LoadingVal;
+};
 
 type DataContextError = {
   value: "pagingError" | "fetchError";
@@ -1474,6 +1555,7 @@ type DataContext = DataContextEntry[];
 export type DataContextEntry = {
   entryData: EntryFragment;
   syncError?: EntryErrorsList;
+  dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
 };
 
 type DataFailure = {
