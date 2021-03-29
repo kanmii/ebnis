@@ -1,6 +1,9 @@
-import { ComponentProps, ReactMouseEvent } from "@eb/cm/src/utils/types/react";
-import { ReactComponent as DotsVerticalSvg } from "@eb/cm/src/styles/dots-vertical.svg";
-import { trimClass } from "@eb/cm/src/utils";
+import { ReactComponent as DotsVerticalSvg } from "@eb/shared/src/styles/dots-vertical.svg";
+import { trimClass } from "@eb/shared/src/utils";
+import {
+  ComponentProps,
+  ReactMouseEvent,
+} from "@eb/shared/src/utils/types/react";
 import React from "react";
 
 export const activeClassName = "is-active";

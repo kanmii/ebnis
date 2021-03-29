@@ -1,6 +1,6 @@
+import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
 import { DataContextEntry } from "../entries/entries.utils";
 import { UpdatingPayload } from "../UpsertEntry/upsert-entry.utils";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
 
 type UpdateEntryPayload = UpdatingPayload & {
   index: number;

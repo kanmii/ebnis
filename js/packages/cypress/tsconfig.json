@@ -1,0 +1,9 @@
+{
+  "extends": "../../_shared/_tsconfig.json",
+  "compilerOptions": {
+    "isolatedModules": false,
+    "types": ["cypress", "@cypress/skip-test"]
+  },
+  "include": ["./cypress/**/*.ts", "../shared/src/definitions.d.ts"],
+  "exclude": ["node_modules"]
+}

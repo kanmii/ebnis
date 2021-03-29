@@ -19,7 +19,7 @@ defmodule EbnisEmails do
   def send_welcome(email_address) do
     Task.start(fn ->
       try do
-        response = (@implementation()).send_welcome(email_address)
+        response = @implementation.send_welcome(email_address)
 
         Logger.info(fn ->
           """

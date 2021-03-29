@@ -1,10 +1,11 @@
-import { trimClass } from "@eb/cm/src/utils";
+import { trimClass } from "@eb/shared/src/utils";
 import {
+  ComponentColorStyle,
   ComponentColorType,
   ComponentProps,
   ReactMouseEvent,
-  ComponentColorStyle
-} from "@eb/cm/src/utils/types/react";
+} from "@eb/shared/src/utils/types/react";
+import React from "react";
 import { ButtonClose } from "../../components/Button/button.component";
 
 const notificationClasses: ComponentColorStyle = {

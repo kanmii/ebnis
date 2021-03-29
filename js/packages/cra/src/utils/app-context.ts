@@ -2,7 +2,7 @@ import {
   EbnisGlobals,
   OnSyncedData,
   RestoreCacheOrPurgeStorageFn,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import { createContext } from "react";
 import { DispatchType } from "../components/WithSubscriptions/with-subscriptions.utils";
 
@@ -16,15 +16,15 @@ export interface EbnisContextProps extends EbnisGlobals {
 
 export type AppPersistor = EbnisGlobals["persistor"];
 
-export const WithSubscriptionContext = createContext<WithSubscriptionContextProps>(
-  {
+export const WithSubscriptionContext =
+  createContext<WithSubscriptionContextProps>({
     connected: null,
-  } as WithSubscriptionContextProps,
-);
+  } as WithSubscriptionContextProps);
 
-export const WithSubscriptionsDispatchContext = createContext<WithSubscriptionsDispatchContextProps>(
-  {} as WithSubscriptionsDispatchContextProps,
-);
+export const WithSubscriptionsDispatchContext =
+  createContext<WithSubscriptionsDispatchContextProps>(
+    {} as WithSubscriptionsDispatchContextProps,
+  );
 
 export interface WithSubscriptionContextProps {
   connected: boolean | null;

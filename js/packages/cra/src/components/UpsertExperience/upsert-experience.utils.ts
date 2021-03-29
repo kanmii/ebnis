@@ -1,24 +1,35 @@
+import { createExperiencesManualUpdate } from "@eb/shared/src/apollo/create-experiences-manual-update";
+import {
+  CreateExperiencesMutationFn,
+  CreateExperiencesOnlineComponentProps,
+  getExperienceDetailView,
+  getGetDataObjects,
+} from "@eb/shared/src/apollo/experience.gql.types";
+import { getCachedEntriesDetailViewSuccess } from "@eb/shared/src/apollo/get-detailed-experience-query";
 import {
   CreateExperienceErrorsFragment,
   CreateExperienceErrorsFragment_errors,
-} from "@eb/cm/src/graphql/apollo-types/CreateExperienceErrorsFragment";
+} from "@eb/shared/src/graphql/apollo-types/CreateExperienceErrorsFragment";
 import {
   CreateExperiences_createExperiences_CreateExperienceErrors_errors,
   CreateExperiences_createExperiences_CreateExperienceErrors_errors_dataDefinitions,
-} from "@eb/cm/src/graphql/apollo-types/CreateExperiences";
-import { CreateExperienceSuccessFragment } from "@eb/cm/src/graphql/apollo-types/CreateExperienceSuccessFragment";
-import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
-import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
-import { EntryConnectionFragment_edges } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
+} from "@eb/shared/src/graphql/apollo-types/CreateExperiences";
+import { CreateExperienceSuccessFragment } from "@eb/shared/src/graphql/apollo-types/CreateExperienceSuccessFragment";
+import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
+import { DataObjectFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectFragment";
+import { EntryConnectionFragment_edges } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import {
   CreateDataDefinition,
   CreateExperienceInput,
   DataTypes,
   UpdateDefinitionInput,
   UpdateExperienceInput,
-} from "@eb/cm/src/graphql/apollo-types/globalTypes";
+} from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { wrapReducer } from "@eb/shared/src/logger";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { isOfflineId } from "@eb/shared/src/utils/offlines";
 import {
   ActiveVal,
   Any,
@@ -35,14 +46,11 @@ import {
   UpdateVal,
   ValidVal,
   WarningVal,
-} from "@eb/cm/src/utils/types";
-import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+} from "@eb/shared/src/utils/types";
+import { ReactMouseEvent } from "@eb/shared/src/utils/types/react";
 import immer from "immer";
 import { Dispatch, Reducer } from "react";
 import { v4 } from "uuid";
-import { createExperiencesManualUpdate } from "../../apollo/create-experiences-manual-update";
-import { getCachedEntriesDetailViewSuccess } from "../../apollo/get-detailed-experience-query";
-import { wrapReducer } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import {
   FieldError,
@@ -52,21 +60,13 @@ import {
   parseStringError,
   StringyErrorPayload,
 } from "../../utils/common-errors";
-import { getIsConnected } from "../../utils/connections";
 import {
   GenericEffectDefinition,
   GenericGeneralEffect,
   GenericHasEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import {
-  CreateExperiencesMutationFn,
-  CreateExperiencesOnlineComponentProps,
-  getExperienceDetailView,
-  getGetDataObjects,
-} from "../../utils/experience.gql.types";
 import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
-import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
@@ -674,17 +674,16 @@ function validateForm(
     description,
     dataDefinitions,
     id: experienceId,
-  } = (mode.value === StateValue.update
-    ? mode.update.context.experience
-    : {}) as ExperienceDetailViewFragment;
+  } = (
+    mode.value === StateValue.update ? mode.update.context.experience : {}
+  ) as ExperienceDetailViewFragment;
 
   const updateInput = {
     experienceId,
   } as UpdateExperienceInput;
 
-  const unchangedDefinitions = mapDefinitionIdToDefinitionHelper(
-    dataDefinitions,
-  );
+  const unchangedDefinitions =
+    mapDefinitionIdToDefinitionHelper(dataDefinitions);
 
   let formUpdated = false;
   let hasErrors = false;
@@ -771,90 +770,92 @@ function validateForm(
             fieldState as DataDefinitionFieldsMap,
           );
 
-          const [
-            insertDefinitionInputs,
-            updateDefinitionInputs,
-          ] = defsList.reduce(
-            (
-              [insertDataDefinitionInputs, updateDataDefinitionInputs],
-              { name: nameState, type: typeState, id },
-            ) => {
-              const [nameValue, hasNameErrors] = validateFormStringValuesHelper(
-                proxy,
-                "field name",
-                nameState.states,
-              );
+          const [insertDefinitionInputs, updateDefinitionInputs] =
+            defsList.reduce(
+              (
+                [insertDataDefinitionInputs, updateDataDefinitionInputs],
+                { name: nameState, type: typeState, id },
+              ) => {
+                const [nameValue, hasNameErrors] =
+                  validateFormStringValuesHelper(
+                    proxy,
+                    "field name",
+                    nameState.states,
+                  );
 
-              const insertDefinitionInput = {} as CreateDataDefinition;
-              const updateDefinitionInput = {} as UpdateDefinitionInput;
-              const unchangedDefinition = unchangedDefinitions[id];
+                const insertDefinitionInput = {} as CreateDataDefinition;
+                const updateDefinitionInput = {} as UpdateDefinitionInput;
+                const unchangedDefinition = unchangedDefinitions[id];
 
-              hasErrors = hasErrors || hasNameErrors;
+                hasErrors = hasErrors || hasNameErrors;
 
-              if (namesValuesMap[nameValue]) {
-                putFormFieldErrorHelper(nameState.states, [
-                  ["field name", "has already been taken"],
-                ]);
+                if (namesValuesMap[nameValue]) {
+                  putFormFieldErrorHelper(nameState.states, [
+                    ["field name", "has already been taken"],
+                  ]);
 
-                hasErrors = true;
-              } else {
-                namesValuesMap[nameValue] = true;
+                  hasErrors = true;
+                } else {
+                  namesValuesMap[nameValue] = true;
+
+                  if (unchangedDefinition) {
+                    if (unchangedDefinition.name !== nameValue) {
+                      formUpdated = true;
+                      updateDefinitionInput.name = nameValue;
+                    }
+                  } else if (nameValue) {
+                    formUpdated = true;
+                    insertDefinitionInput.name = nameValue;
+                  }
+                }
+
+                const typeFieldName = "data type";
+
+                const [typeValue, hasTypeErrors] =
+                  validateFormStringValuesHelper(
+                    proxy,
+                    typeFieldName,
+                    typeState.states,
+                    `${EMPTY_ERROR_TEXT}, please select one from dropdown`,
+                  );
+
+                hasErrors = hasErrors || hasTypeErrors;
 
                 if (unchangedDefinition) {
-                  if (unchangedDefinition.name !== nameValue) {
+                  const oldType = unchangedDefinition.type;
+
+                  if (oldType !== typeValue) {
                     formUpdated = true;
-                    updateDefinitionInput.name = nameValue;
+
+                    const isValid = validateDefinitionType(oldType, typeValue);
+
+                    if (isValid === true) {
+                      updateDefinitionInput.type = typeValue as DataTypes;
+                    } else {
+                      hasErrors = true;
+                      putFormFieldErrorHelper(typeState.states, [
+                        ["", isValid],
+                      ]);
+                    }
                   }
-                } else if (nameValue) {
+                } else if (typeValue) {
+                  insertDefinitionInput.type = typeValue as DataTypes;
                   formUpdated = true;
-                  insertDefinitionInput.name = nameValue;
                 }
-              }
 
-              const typeFieldName = "data type";
-
-              const [typeValue, hasTypeErrors] = validateFormStringValuesHelper(
-                proxy,
-                typeFieldName,
-                typeState.states,
-                `${EMPTY_ERROR_TEXT}, please select one from dropdown`,
-              );
-
-              hasErrors = hasErrors || hasTypeErrors;
-
-              if (unchangedDefinition) {
-                const oldType = unchangedDefinition.type;
-
-                if (oldType !== typeValue) {
-                  formUpdated = true;
-
-                  const isValid = validateDefinitionType(oldType, typeValue);
-
-                  if (isValid === true) {
-                    updateDefinitionInput.type = typeValue as DataTypes;
-                  } else {
-                    hasErrors = true;
-                    putFormFieldErrorHelper(typeState.states, [["", isValid]]);
-                  }
+                if (Object.keys(insertDefinitionInput).length) {
+                  insertDataDefinitionInputs.push(insertDefinitionInput);
                 }
-              } else if (typeValue) {
-                insertDefinitionInput.type = typeValue as DataTypes;
-                formUpdated = true;
-              }
 
-              if (Object.keys(insertDefinitionInput).length) {
-                insertDataDefinitionInputs.push(insertDefinitionInput);
-              }
+                if (Object.keys(updateDefinitionInput).length) {
+                  updateDefinitionInput.id = id;
+                  updateDataDefinitionInputs.push(updateDefinitionInput);
+                }
 
-              if (Object.keys(updateDefinitionInput).length) {
-                updateDefinitionInput.id = id;
-                updateDataDefinitionInputs.push(updateDefinitionInput);
-              }
-
-              return [insertDataDefinitionInputs, updateDataDefinitionInputs];
-            },
-            [[], []] as [CreateDataDefinition[], UpdateDefinitionInput[]],
-          );
+                return [insertDataDefinitionInputs, updateDataDefinitionInputs];
+              },
+              [[], []] as [CreateDataDefinition[], UpdateDefinitionInput[]],
+            );
 
           if (insertDefinitionInputs.length) {
             insertInput.dataDefinitions = insertDefinitionInputs;
@@ -1116,9 +1117,8 @@ function handleAddDefinitionAction(
 
   defsList.splice(nextIndex, 0, definitionElProperties);
 
-  proxy.states.form.fields.dataDefinitions = definitionFieldsListToMap(
-    defsList,
-  );
+  proxy.states.form.fields.dataDefinitions =
+    definitionFieldsListToMap(defsList);
 
   const effects = getGeneralEffects(proxy);
   effects.push({
@@ -1137,9 +1137,8 @@ function handleRemoveDefinitionAction(
   const defsList = definitionFieldsMapToList(fields.dataDefinitions);
   const { index } = payload.data;
   defsList.splice(index, 1);
-  proxy.states.form.fields.dataDefinitions = definitionFieldsListToMap(
-    defsList,
-  );
+  proxy.states.form.fields.dataDefinitions =
+    definitionFieldsListToMap(defsList);
 
   const len = defsList.length;
   const lastIndex = len - 1;
@@ -1171,13 +1170,11 @@ function handleDownDefinitionAction(
   defsList[index] = defsList[nextIndex];
   defsList[nextIndex] = downDefinition;
 
-  proxy.states.form.fields.dataDefinitions = definitionFieldsListToMap(
-    defsList,
-  );
+  proxy.states.form.fields.dataDefinitions =
+    definitionFieldsListToMap(defsList);
 
-  proxy.states.form.fields.dataDefinitions = definitionFieldsListToMap(
-    defsList,
-  );
+  proxy.states.form.fields.dataDefinitions =
+    definitionFieldsListToMap(defsList);
 
   const effects = getGeneralEffects(proxy);
   effects.push({
@@ -1201,13 +1198,11 @@ function handleUpDefinitionAction(
   defsList[index] = defsList[prevIndex];
   defsList[prevIndex] = upDefinition;
 
-  proxy.states.form.fields.dataDefinitions = definitionFieldsListToMap(
-    defsList,
-  );
+  proxy.states.form.fields.dataDefinitions =
+    definitionFieldsListToMap(defsList);
 
-  proxy.states.form.fields.dataDefinitions = definitionFieldsListToMap(
-    defsList,
-  );
+  proxy.states.form.fields.dataDefinitions =
+    definitionFieldsListToMap(defsList);
 
   const effects = getGeneralEffects(proxy);
   effects.push({
@@ -1266,7 +1261,8 @@ function handleOnServerErrorsAction(
 
   if (dataDefinitionsErrors) {
     dataDefinitionsErrors.forEach((d) => {
-      const defErrors = d as CreateExperiences_createExperiences_CreateExperienceErrors_errors_dataDefinitions;
+      const defErrors =
+        d as CreateExperiences_createExperiences_CreateExperienceErrors_errors_dataDefinitions;
 
       const index = defErrors.index;
       const nameError = defErrors.name;
@@ -1682,7 +1678,7 @@ export interface EffectArgs {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = Any
+  OwnArgs = Any,
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 type EffectType =

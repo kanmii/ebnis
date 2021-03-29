@@ -13,7 +13,12 @@ defmodule Ebnis.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_coverage: [tool: ExCoveralls]
+      test_coverage: [tool: ExCoveralls],
+      xref: [
+        exclude: [
+          Ecto.Migrator
+        ]
+      ]
     ]
   end
 

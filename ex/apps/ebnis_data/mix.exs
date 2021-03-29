@@ -48,7 +48,8 @@ defmodule EbnisData.MixProject do
       {:ebnis, in_umbrella: true},
       {:timex, "~> 3.6"},
       {:sequence, github: "kanmii/sequence", only: [:dev, :test]},
-      {:ecto_ulid, git: "https://github.com/kanmii/ecto-ulid.git", branch: "equal2"},
+      # {:ecto_ulid, git: "https://github.com/kanmii/ecto-ulid.git", branch: "equal2"},
+      {:ecto_ulid, "~> 0.3.0"},
       {:mox, "~> 1.0", only: :test}
     ]
   end

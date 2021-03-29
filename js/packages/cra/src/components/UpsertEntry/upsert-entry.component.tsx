@@ -1,10 +1,10 @@
-import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { trimClass } from "@eb/cm/src/utils";
-import { StateValue } from "@eb/cm/src/utils/types";
-import { ComponentColorType } from "@eb/cm/src/utils/types/react";
 import { Button } from "@eb/jsx/src/components/Button/button.component";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
+import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
+import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { trimClass } from "@eb/shared/src/utils";
+import { StateValue } from "@eb/shared/src/utils/types";
+import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import React, { ChangeEvent, FormEvent, useCallback, useReducer } from "react";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { errorClassName } from "../../utils/utils.dom";
@@ -13,11 +13,11 @@ import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
 import Loading from "../Loading/loading.component";
 import { componentFromDataType } from "./component-from-data-type";
 import {
+  closeId,
   domPrefix,
   fieldErrorSelector,
   notificationCloseId,
   submitBtnDomId,
-  closeId,
 } from "./upsert-entry.dom";
 import "./upsert-entry.styles.scss";
 import {

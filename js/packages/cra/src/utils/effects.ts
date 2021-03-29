@@ -3,14 +3,14 @@ import {
   HasEffectsVal,
   NoEffectVal,
   StateValue,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import { Draft } from "immer";
 
 export function getGeneralEffects<
   EffectType,
   T extends
     | GenericGeneralEffect<EffectType>
-    | Draft<GenericGeneralEffect<EffectType>>
+    | Draft<GenericGeneralEffect<EffectType>>,
 >(writeableStateMachine: T) {
   const generalEffects = writeableStateMachine.effects
     .general as GenericHasEffect<EffectType>;
@@ -56,7 +56,7 @@ export interface GenericEffectDefinition<
   EffectArgs,
   Props,
   Key,
-  OwnArgs = Any
+  OwnArgs = Any,
 > {
   key: Key;
   ownArgs: OwnArgs;

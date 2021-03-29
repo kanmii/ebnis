@@ -1,18 +1,18 @@
 import {
+  getCachedEntriesDetailViewSuccess,
+  writeCachedEntriesDetailView,
+} from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import {
   EntryConnectionFragment,
   EntryConnectionFragment_edges,
   EntryConnectionFragment_edges_node,
-} from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { GetEntriesUnionFragment } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
-import { entryToEdge } from "@eb/cm/src/graphql/utils.gql";
+} from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
+import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { GetEntriesUnionFragment } from "@eb/shared/src/graphql/apollo-types/GetEntriesUnionFragment";
+import { entryToEdge } from "@eb/shared/src/graphql/utils.gql";
 import immer from "immer";
-import {
-  getCachedEntriesDetailViewSuccess,
-  writeCachedEntriesDetailView,
-} from "../../apollo/get-detailed-experience-query";
-import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../../apollo/update-get-experiences-list-view-query";
 
 /**
  * Upsert the entry into the experience and updates the Get full experience

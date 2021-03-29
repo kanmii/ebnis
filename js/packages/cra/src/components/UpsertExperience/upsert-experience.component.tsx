@@ -1,9 +1,9 @@
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { StateValue } from "@eb/cm/src/utils/types";
+import { useCreateExperiencesMutation } from "@eb/shared/src/apollo/experience.gql.types";
+import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { StateValue } from "@eb/shared/src/utils/types";
 import makeClassNames from "classnames";
 import React, { ChangeEvent, FormEvent, useCallback, useReducer } from "react";
 import { FieldError } from "../../utils/common-errors";
-import { useCreateExperiencesMutation } from "../../utils/experience.gql.types";
 import { InputChangeEvent } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { errorClassName, warningClassName } from "../../utils/utils.dom";

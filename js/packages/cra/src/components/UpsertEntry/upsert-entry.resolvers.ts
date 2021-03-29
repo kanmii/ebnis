@@ -1,20 +1,20 @@
-import { EntryConnectionFragment_edges } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { CreateEntryInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import {
+  getCachedEntriesDetailViewSuccess,
+  readExperienceCompleteFragment,
+} from "@eb/shared/src/apollo/get-detailed-experience-query";
+import {
+  getUnsyncedExperience,
+  writeUnsyncedExperience,
+} from "@eb/shared/src/apollo/unsynced-ledger";
+import { EntryConnectionFragment_edges } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
+import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { CreateEntryInput } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import {
   isOfflineId,
   makeOfflineDataObjectIdFromEntry,
   makeOfflineEntryIdFromExperience,
-} from "@eb/cm/src/utils/offlines";
-import {
-  getCachedEntriesDetailViewSuccess,
-  readExperienceCompleteFragment,
-} from "../../apollo/get-detailed-experience-query";
-import {
-  getUnsyncedExperience,
-  writeUnsyncedExperience,
-} from "../../apollo/unsynced-ledger";
+} from "@eb/shared/src/utils/offlines";
 import { UnsyncedModifiedExperience } from "../../utils/unsynced-ledger.types";
 import {
   upsertNewEntry,
@@ -38,8 +38,10 @@ export async function createOfflineEntryMutation(
   let id = variables.id as string;
 
   if (!id) {
-    const entryIndex = (getCachedEntriesDetailViewSuccess(experienceId)
-      .edges as EntryConnectionFragment_edges[]).length;
+    const entryIndex = (
+      getCachedEntriesDetailViewSuccess(experienceId)
+        .edges as EntryConnectionFragment_edges[]
+    ).length;
 
     id = makeOfflineEntryIdFromExperience(experienceId, entryIndex);
   }

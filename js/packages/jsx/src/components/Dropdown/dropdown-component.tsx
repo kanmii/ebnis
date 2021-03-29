@@ -191,8 +191,8 @@ export function Dropdown<Value = string | number>(props: Props<Value>) {
               key={currentText as string}
               className={makeClassNames({
                 dropdown__item: true,
-                ["dropdown__item--selected " +
-                selectedItemClassName]: isSelected,
+                ["dropdown__item--selected " + selectedItemClassName]:
+                  isSelected,
                 "dropdown__item--active": isActive,
               })}
               onClick={(e) => {

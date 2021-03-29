@@ -1,9 +1,14 @@
 {
-  "extends": "../../js-shared/_tsconfig.json",
-  "isolatedModules": true,
+  "extends": "../../_shared/_tsconfig.json",
   "include": [
-    "src",
-    "../commons/src/definitions.d.ts",
-    "../commons/src/logger.ts"
-  ]
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "../jsx/src",
+    "../shared/src/definitions.d.ts"
+  ],
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  },
+  "exclude": ["node_modules", "coverage", "public"]
 }

@@ -1,7 +1,7 @@
 version: "3.4"
 services:
   db:
-    image: "postgres:13.1"
+    image: "postgres:13.3"
     ports:
       - "${DOCKER_HOST_DATABASE_PORT}:5432"
     environment:
@@ -23,7 +23,7 @@ services:
       target: "${MIX_ENV}"
       args:
         IS_E2E: "${IS_E2E:-false}"
-    image: "ebnis-ex-${MIX_ENV}"
+    image: "ebnis-elixir:0.0.0"
     depends_on:
       - "db"
     # healthcheck:
@@ -41,51 +41,63 @@ services:
     ports:
       - "${DOCKER_HOST_API_PORT}:${PORT}"
     volumes:
-      - "./ex:/home/ebnis/app"
-      - "ex_not_used__build:/home/ebnis/app/_build/"
-      - "ex_not_used_deps:/home/ebnis/app/deps/"
-      - "ex_not_used_.elixir_ls:/home/ebnis/app/.elixir_ls/"
-  js-base:
+      - "./ex:/app"
+      - "ex_not_used__build:/app/_build/"
+      - "ex_not_used_deps:/app/deps/"
+      - "ex_not_used_.elixir_ls:/app/.elixir_ls/"
+  js: &js
     build:
       context: "./js"
-      dockerfile: "Dockerfile.base"
-    image: "ebnis-js-base"
-    env_file: "${DOCKER_ENV_FILE}"
-  js-cra:
-    build:
-      context: "./js/packages/cra"
-      dockerfile: "Dockerfile.cra"
+      dockerfile: "Dockerfile"
       args:
-        NODE_ENV: "${NODE_ENV}"
+        APT_FETCH: "true"
     stdin_open: true
-    image: "ebnis-js-cra-${NODE_ENV}"
+    image: "ebnis-js:0.0.0"
     entrypoint:
       - "/usr/local/bin/entrypoint.sh"
     env_file: "${DOCKER_ENV_FILE}"
     user: "node"
+  cra:
+    <<: *js
     ports:
       - "${DOCKER_HOST_WEB_PORT}:${PORT}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        /usr/local/bin/entrypoint.sh
+        yarn start cra.dev
     volumes:
-      - "./js:/home/node/app"
-      - "cra_not_used_node_modules:/home/node/app/node_modules/"
-      - "cra_not_used_netlify:/home/node/app/.netlify/"
-      - "cra_not_used_commons_node_modules:/home/node/app/packages/commons/node_modules/"
-      - "cra_not_used_commons_coverage:/home/node/app/packages/commons/coverage/"
-      - "cra_not_used_cra_node_modules:/home/node/app/packages/cra/node_modules/"
-      - "cra_not_used_cra_build:/home/node/app/packages/cra/build/"
-      - "cra_not_used_cra_coverage:/home/node/app/packages/cra/coverage/"
-      - "cra_not_used_jsx_node_modules:/home/node/app/packages/jsx/node_modules/"
-      - "cra_not_used_cy:/home/node/app/packages/cy/"
+      - "./js:/app"
+        # node_modules
+      - "cra_not_used_root_node_modules:/app/node_modules/"
+      - "cra_not_used_shared_node_modules:/app/packages/shared/node_modules/"
+      - "cra_not_used_jsx_node_modules:/app/packages/jsx/node_modules/"
+      - "cra_not_used_node_modules:/app/packages/cra/node_modules/"
+      # coverage folders
+      - "cra_not_used_coverage:/app/packages/cra/coverage/"
+      - "cra_not_used_jsx_coverage:/app/packages/jsx/coverage/"
+      # build folders
+      - "cra_not_used_build:/app/packages/cra/build/"
+      # excluded packages
+      - "cra_not_used_cypress:/app/packages/cy/"
+
 volumes:
+  # elixir
   ex_not_used__build:
   ex_not_used_deps:
   ex_not_used_.elixir_ls:
-  cra_not_used_node_modules:
-  cra_not_used_netlify:
-  cra_not_used_commons_node_modules:
-  cra_not_used_commons_coverage:
-  cra_not_used_cra_node_modules:
-  cra_not_used_cra_build:
-  cra_not_used_cra_coverage:
+  # cra
+  # node_modules
+  cra_not_used_root_node_modules:
+  cra_not_used_shared_node_modules:
   cra_not_used_jsx_node_modules:
-  cra_not_used_cy:
+  cra_not_used_node_modules:
+  # coverage folder
+  cra_not_used_coverage:
+  cra_not_used_jsx_coverage:
+  # build folders
+  cra_not_used_build:
+  # excluded packages
+  cra_not_used_cypress:
+  cra_not_used_express:
+  cra_not_used_nextjs:

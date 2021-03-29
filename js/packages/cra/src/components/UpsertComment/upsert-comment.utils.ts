@@ -1,5 +1,6 @@
-import { CommentFragment } from "@eb/cm/src/graphql/apollo-types/CommentFragment";
-import { CommentInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { CommentFragment } from "@eb/shared/src/graphql/apollo-types/CommentFragment";
+import { CommentInput } from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { wrapReducer } from "@eb/shared/src/logger";
 import {
   ChangedVal,
   ErrorsVal,
@@ -9,12 +10,11 @@ import {
   SubmissionVal,
   UnChangedVal,
   UpdateVal,
-} from "@eb/cm/src/utils/types";
-import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+} from "@eb/shared/src/utils/types";
+import { ReactMouseEvent } from "@eb/shared/src/utils/types/react";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
 import { DeepReadonly } from "utility-types";
-import { wrapReducer } from "@eb/cm/src/logger";
 import {
   GENERIC_SERVER_ERROR,
   parseStringError,
@@ -428,7 +428,7 @@ export type EffectArgs = {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = Record<string, unknown>
+  OwnArgs = Record<string, unknown>,
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 // ====================================================

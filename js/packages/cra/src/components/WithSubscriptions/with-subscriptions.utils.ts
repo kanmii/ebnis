@@ -1,5 +1,13 @@
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences } from "@eb/cm/src/graphql/apollo-types/OnExperiencesDeletedSubscription";
+import { readEntryFragment } from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { syncToServer } from "@eb/shared/src/apollo/sync-to-server";
+import {
+  purgeEntry,
+  purgeExperiencesFromCache1,
+} from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
+import { OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences } from "@eb/shared/src/graphql/apollo-types/OnExperiencesDeletedSubscription";
+import { wrapReducer } from "@eb/shared/src/logger";
+import { getUser } from "@eb/shared/src/utils/manage-user-auth";
 import {
   Any,
   EbnisGlobals,
@@ -8,16 +16,9 @@ import {
   OnlineExperienceIdToOfflineEntriesMap,
   OnSyncedData,
   StateValue,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import immer, { Draft } from "immer";
 import { Dispatch, PropsWithChildren, Reducer } from "react";
-import { readEntryFragment } from "../../apollo/get-detailed-experience-query";
-import { syncToServer } from "../../apollo/sync-to-server";
-import {
-  purgeEntry,
-  purgeExperiencesFromCache1,
-} from "../../apollo/update-get-experiences-list-view-query";
-import { wrapReducer } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import { WithSubscriptionContextProps } from "../../utils/app-context";
 import {
@@ -30,7 +31,6 @@ import {
   getLocation,
   windowChangeUrl,
 } from "../../utils/global-window";
-import { getUser } from "../../utils/manage-user-auth";
 import { MY_URL } from "../../utils/urls";
 import { subscribeToGraphqlEvents } from "./with-subscriptions.injectables";
 
@@ -133,8 +133,9 @@ const connectionChangedEffect: DefConnectionChangedEffect["func"] = (
         // istanbul ignore else:
         if (data) {
           const ids = data.experiences.map((experience) => {
-            return (experience as OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences)
-              .id;
+            return (
+              experience as OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences
+            ).id;
           });
 
           purgeExperiencesFromCache1(ids);
@@ -234,7 +235,7 @@ export interface EffectArgs {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = Any
+  OwnArgs = Any,
 > = GenericEffectDefinition<EffectArgs, CallerProps, Key, OwnArgs>;
 
 export type EffectType = DefConnectionChangedEffect;

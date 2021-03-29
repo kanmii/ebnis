@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { getUser } from "@eb/shared/src/utils/manage-user-auth";
 import { cleanup, render } from "@testing-library/react";
 import React, { ComponentType } from "react";
 import {
   AuthenticationRequired,
   Props,
 } from "../components/AuthenticationRequired/authentication-required.component";
-import { getUser } from "../utils/manage-user-auth";
 import { LOGIN_URL } from "../utils/urls";
 
-jest.mock("../utils/manage-user-auth");
+jest.mock("@eb/shared/src/utils/manage-user-auth");
 const mockGetUser = getUser as jest.Mock;
 
 const mockRedirectComponentId = "rr";

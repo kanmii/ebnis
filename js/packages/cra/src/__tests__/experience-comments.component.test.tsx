@@ -1,7 +1,14 @@
 import { ApolloError } from "@apollo/client";
-import { CommentFragment } from "@eb/cm/src/graphql/apollo-types/CommentFragment";
-import { UpdateExperiencesOnline } from "@eb/cm/src/graphql/apollo-types/UpdateExperiencesOnline";
-import { EbnisGlobals } from "@eb/cm/src/utils/types";
+import { getExperienceComments } from "@eb/shared/src/apollo/experience.gql.types";
+import {
+  readExperienceCompleteFragment,
+  writeCachedExperienceCompleteFragment,
+} from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { makeApolloClient } from "@eb/shared/src/client";
+import { CommentFragment } from "@eb/shared/src/graphql/apollo-types/CommentFragment";
+import { UpdateExperiencesOnline } from "@eb/shared/src/graphql/apollo-types/UpdateExperiencesOnline";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { EbnisGlobals } from "@eb/shared/src/utils/types";
 import {
   mockComment1,
   mockComment1Id,
@@ -11,22 +18,20 @@ import {
   mockComment3Id,
   mockOnlineExperience1,
   mockOnlineExperienceId1,
-} from "@eb/cm/src/__tests__/mock-data";
+} from "@eb/shared/src/__tests__/mock-data";
 import {
   getExperienceCommentsGqlMsw,
   updateExperiencesMswGql,
-} from "@eb/cm/src/__tests__/msw-handlers";
-import { mswServer, mswServerListen } from "@eb/cm/src/__tests__/msw-server";
-import { componentTimeoutsMs } from "@eb/cm/src/__tests__/wait-for-count";
+} from "@eb/shared/src/__tests__/msw-handlers";
+import {
+  mswServer,
+  mswServerListen,
+} from "@eb/shared/src/__tests__/msw-server";
+import { componentTimeoutsMs } from "@eb/shared/src/__tests__/wait-for-count";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { GraphQLError } from "graphql";
 import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
-import { makeApolloClient } from "../apollo/client";
-import {
-  readExperienceCompleteFragment,
-  writeCachedExperienceCompleteFragment,
-} from "../apollo/get-detailed-experience-query";
 import { ActionType as ParentActionType } from "../components/DetailExperience/detailed-experience-utils";
 import { Comments } from "../components/experience-comments/experience-comments.component";
 import {
@@ -57,21 +62,21 @@ import {
 import { Props as UpsertCommentProps } from "../components/UpsertComment/upsert-comment.utils";
 import { getAllByClass, getById, getEffects } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
-import { getIsConnected } from "../utils/connections";
-import { getExperienceComments } from "../utils/experience.gql.types";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { activeClassName } from "../utils/utils.dom";
 
-jest.mock("../apollo/update-get-experiences-list-view-query");
+jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
 
-jest.mock("../apollo/update-experiences-manual-cache-update");
+jest.mock("@eb/shared/src/apollo/update-experiences-manual-cache-update");
 
-jest.mock("../apollo/get-detailed-experience-query");
+jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
 // getCachedExperienceDetailView
-const mockReadExperienceCompleteFragment = readExperienceCompleteFragment as jest.Mock;
-const mockWriteCachedExperienceCompleteFragment = writeCachedExperienceCompleteFragment as jest.Mock;
+const mockReadExperienceCompleteFragment =
+  readExperienceCompleteFragment as jest.Mock;
+const mockWriteCachedExperienceCompleteFragment =
+  writeCachedExperienceCompleteFragment as jest.Mock;
 
-jest.mock("../utils/connections");
+jest.mock("@eb/shared/src/utils/connections");
 const mockGetIsConnected = getIsConnected as jest.Mock;
 
 const mockLoadingId = "@x/l";
@@ -119,14 +124,14 @@ afterEach(() => {
 });
 
 describe("components", () => {
-  const ebnisObject = {
+  const globals = {
     persistor: {
       persist: mockPersistFunc as any,
     },
   } as EbnisGlobals;
 
   beforeAll(() => {
-    window.____ebnis = ebnisObject;
+    window.____ebnis = globals;
     mswServerListen();
   });
 
@@ -136,16 +141,19 @@ describe("components", () => {
   });
 
   beforeEach(() => {
-    const { client, cache } = makeApolloClient(ebnisObject, { testing: true });
-    ebnisObject.cache = cache;
-    ebnisObject.client = client;
+    const { client, cache } = makeApolloClient({
+      ebnisGlobals: globals,
+      testing: true,
+    });
+    globals.cache = cache;
+    globals.client = client;
   });
 
   afterEach(() => {
     mswServer.resetHandlers();
     cleanup();
-    deleteObjectKey(ebnisObject, "client");
-    deleteObjectKey(ebnisObject, "cache");
+    deleteObjectKey(globals, "client");
+    deleteObjectKey(globals, "cache");
   });
 
   it("fetch online comments fails/no retries", async () => {
@@ -567,9 +575,9 @@ describe("reducers", () => {
     parentDispatch: mockParentDispatchFn as any,
   } as Props;
 
-  const effectArgs = ({
+  const effectArgs = {
     dispatch: mockDispatchFn,
-  } as unknown) as EffectArgs;
+  } as unknown as EffectArgs;
 
   it("no cached experience/online comments error timeout", async () => {
     // first time to fetch , there is not network
@@ -657,10 +665,8 @@ describe("reducers", () => {
       effectArgs,
     );
 
-    const {
-      onUpdateSuccess,
-      onError,
-    } = mockUpdateExperiencesMutation.mock.calls[0][0];
+    const { onUpdateSuccess, onError } =
+      mockUpdateExperiencesMutation.mock.calls[0][0];
     onUpdateSuccess();
 
     expect(typeof mockDispatchFn.mock.calls[0][0].error).toEqual("string");

@@ -1,6 +1,8 @@
 defmodule Ebnis do
   @stacktrace "\n\n---------------STACKTRACE---------\n\n"
 
+  @bad_request "bad request"
+
   def prettify_with_new_line(data, break_on \\ ~S(\n)) do
     data
     |> String.split(break_on)
@@ -17,5 +19,9 @@ defmodule Ebnis do
 
   def make_cache_key(:experience, user_id, experience_id) do
     "#{user_id}:#{experience_id}:experience"
+  end
+
+  def bad_request() do
+    @bad_request
   end
 end

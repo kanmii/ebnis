@@ -1,10 +1,32 @@
-import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { GetEntriesUnionFragment } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
-import { GetExperienceAndEntriesDetailView } from "@eb/cm/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
-import { wrapReducer, wrapState } from "@eb/cm/src/logger";
+import {
+  getDeleteExperienceLedger,
+  putOrRemoveDeleteExperienceLedger,
+} from "@eb/shared/src/apollo/delete-experience-cache";
+import {
+  GetExperienceAndEntriesDetailViewFn,
+  GetExperienceCommentsFn,
+} from "@eb/shared/src/apollo/experience.gql.types";
+import { getCachedExperienceAndEntriesDetailView } from "@eb/shared/src/apollo/get-detailed-experience-query";
+import {
+  getAndRemoveOfflineExperienceIdFromSyncFlag,
+  getSyncError,
+  putOfflineExperienceIdInSyncFlag,
+  putOrRemoveSyncError,
+} from "@eb/shared/src/apollo/sync-to-server-cache";
+import {
+  getOnlineStatus,
+  getUnsyncedExperience,
+  removeUnsyncedExperiences,
+} from "@eb/shared/src/apollo/unsynced-ledger";
+import { purgeEntry } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
+import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
+import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { GetEntriesUnionFragment } from "@eb/shared/src/graphql/apollo-types/GetEntriesUnionFragment";
+import { GetExperienceAndEntriesDetailView } from "@eb/shared/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
+import { wrapReducer, wrapState } from "@eb/shared/src/logger";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
 import {
   ActiveVal,
   DataVal,
@@ -22,28 +44,11 @@ import {
   SuccessVal,
   SyncError,
   Timeouts,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import immer from "immer";
 // import { original } from "immer";
 import { Dispatch, Reducer } from "react";
 import { match, RouteChildrenProps } from "react-router-dom";
-import {
-  getDeleteExperienceLedger,
-  putOrRemoveDeleteExperienceLedger,
-} from "../../apollo/delete-experience-cache";
-import { getCachedExperienceAndEntriesDetailView } from "../../apollo/get-detailed-experience-query";
-import {
-  getAndRemoveOfflineExperienceIdFromSyncFlag,
-  getSyncError,
-  putOfflineExperienceIdInSyncFlag,
-  putOrRemoveSyncError,
-} from "../../apollo/sync-to-server-cache";
-import {
-  getOnlineStatus,
-  getUnsyncedExperience,
-  removeUnsyncedExperiences,
-} from "../../apollo/unsynced-ledger";
-import { purgeEntry } from "../../apollo/update-get-experiences-list-view-query";
 import { deleteObjectKey } from "../../utils";
 import {
   DATA_FETCHING_FAILED,
@@ -52,17 +57,12 @@ import {
   GENERIC_SERVER_ERROR,
   parseStringError,
 } from "../../utils/common-errors";
-import { getIsConnected } from "../../utils/connections";
 import { DeleteExperiencesComponentProps } from "../../utils/delete-experiences.gql";
 import {
   GenericEffectDefinition,
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import {
-  GetExperienceAndEntriesDetailViewFn,
-  GetExperienceCommentsFn,
-} from "../../utils/experience.gql.types";
 import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
 import { UpdateExperiencesMutationProps } from "../../utils/update-experiences.gql";
 import {
@@ -924,7 +924,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
   }
 
   if (set) {
-    let timeoutCb = (undefined as unknown) as () => void;
+    let timeoutCb = undefined as unknown as () => void;
 
     switch (set) {
       case "set-close-update-experience-success-notification":
@@ -1228,33 +1228,31 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
 
 type DefFetchEffect = EffectDefinition<"fetchEffect">;
 
-const postOfflineExperiencesSyncEffect: DefPostOfflineExperiencesSyncEffect["func"] = async ({
-  data,
-  onlineIdToOfflineId,
-}) => {
-  // istanbul ignore else:
-  if (Object.keys(data).length) {
-    cleanUpOfflineExperiences(data);
-  }
+const postOfflineExperiencesSyncEffect: DefPostOfflineExperiencesSyncEffect["func"] =
+  async ({ data, onlineIdToOfflineId }) => {
+    // istanbul ignore else:
+    if (Object.keys(data).length) {
+      cleanUpOfflineExperiences(data);
+    }
 
-  const { persistor } = window.____ebnis;
+    const { persistor } = window.____ebnis;
 
-  // istanbul ignore else:
-  if (onlineIdToOfflineId) {
-    const [onlineId] = onlineIdToOfflineId;
+    // istanbul ignore else:
+    if (onlineIdToOfflineId) {
+      const [onlineId] = onlineIdToOfflineId;
 
-    putOfflineExperienceIdInSyncFlag(onlineIdToOfflineId);
+      putOfflineExperienceIdInSyncFlag(onlineIdToOfflineId);
 
-    setTimeout(() => {
-      windowChangeUrl(
-        makeDetailedExperienceRoute(onlineId),
-        ChangeUrlType.replace,
-      );
-    });
-  }
+      setTimeout(() => {
+        windowChangeUrl(
+          makeDetailedExperienceRoute(onlineId),
+          ChangeUrlType.replace,
+        );
+      });
+    }
 
-  await persistor.persist();
-};
+    await persistor.persist();
+  };
 
 type DefPostOfflineExperiencesSyncEffect = EffectDefinition<
   "postOfflineExperiencesSyncEffect",
@@ -1277,37 +1275,36 @@ type DefPostOfflineEntriesSyncEffect = EffectDefinition<
   }
 >;
 
-const deleteCreateEntrySyncErrorEffect: DefDeleteCreateEntrySyncErrorEffect["func"] = ({
-  data: { experienceId, createErrors },
-}) => {
-  const errors = getSyncError(experienceId);
+const deleteCreateEntrySyncErrorEffect: DefDeleteCreateEntrySyncErrorEffect["func"] =
+  ({ data: { experienceId, createErrors } }) => {
+    const errors = getSyncError(experienceId);
 
-  // istanbul ignore else:
-  if (errors) {
-    const fromImmer = immer(errors, (immerErrors) => {
-      const { createEntries } = immerErrors;
+    // istanbul ignore else:
+    if (errors) {
+      const fromImmer = immer(errors, (immerErrors) => {
+        const { createEntries } = immerErrors;
 
-      if (createEntries && createErrors) {
-        createErrors.forEach((entry) => {
-          delete createEntries[entry.id];
-          purgeEntry(entry);
-        });
+        if (createEntries && createErrors) {
+          createErrors.forEach((entry) => {
+            delete createEntries[entry.id];
+            purgeEntry(entry);
+          });
 
-        // istanbul ignore else:
-        if (!Object.keys(createEntries).length) {
-          delete immerErrors.createEntries;
+          // istanbul ignore else:
+          if (!Object.keys(createEntries).length) {
+            delete immerErrors.createEntries;
+          }
         }
-      }
-    });
+      });
 
-    const { persistor } = window.____ebnis;
+      const { persistor } = window.____ebnis;
 
-    const newError = Object.keys(fromImmer).length ? fromImmer : undefined;
-    putOrRemoveSyncError(experienceId, newError);
+      const newError = Object.keys(fromImmer).length ? fromImmer : undefined;
+      putOrRemoveSyncError(experienceId, newError);
 
-    persistor.persist();
-  }
-};
+      persistor.persist();
+    }
+  };
 
 type DefDeleteCreateEntrySyncErrorEffect = EffectDefinition<
   "deleteCreateEntrySyncErrorEffect",
@@ -1631,7 +1628,7 @@ export type EffectArgs = {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = Record<string, unknown>
+  OwnArgs = Record<string, unknown>,
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 export type EffectType =

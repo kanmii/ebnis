@@ -1,17 +1,17 @@
-import React, { useState, useMemo, ReactNode } from "react";
-import { Props, LABELS } from "./date-field.utils";
-import "./date-field.styles.scss";
 import getDaysInMonth from "date-fns/getDaysInMonth";
+import React, { ReactNode, useMemo, useState } from "react";
 import Dropdown from "../Dropdown/dropdown-component";
 import {
-  makeMonthItemSelector,
-  makeDayItemSelector,
-  selectedItemClassName,
-  makeYearItemSelector,
   dayDropdownSelector,
+  makeDayItemSelector,
+  makeMonthItemSelector,
+  makeYearItemSelector,
   monthDropdownSelector,
+  selectedItemClassName,
   yearDropdownSelector,
 } from "./date-field.dom";
+import "./date-field.styles.scss";
+import { LABELS, Props } from "./date-field.utils";
 
 const MONTHS_DROP_DOWN_OPTIONS = [
   "Jan",

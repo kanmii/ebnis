@@ -1,25 +1,39 @@
 import { ApolloError } from "@apollo/client";
-import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
-import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
+import {
+  GetEntriesDetailViewProps,
+  GetEntriesDetailViewQueryResult,
+} from "@eb/shared/src/apollo/experience.gql.types";
+import {
+  getCachedEntriesDetailView,
+  writeCachedEntriesDetailView,
+} from "@eb/shared/src/apollo/get-detailed-experience-query";
+import {
+  getSyncError,
+  putOrRemoveSyncError,
+} from "@eb/shared/src/apollo/sync-to-server-cache";
+import { purgeEntry } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { CreateEntryErrorFragment } from "@eb/shared/src/graphql/apollo-types/CreateEntryErrorFragment";
+import { DataObjectErrorFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectErrorFragment";
 import {
   EntryConnectionFragment,
   EntryConnectionFragment_edges,
-} from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
+} from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import {
   GetEntriesUnionFragment,
   GetEntriesUnionFragment_GetEntriesSuccess,
-} from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
-import { PaginationInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { PageInfoFragment } from "@eb/cm/src/graphql/apollo-types/PageInfoFragment";
+} from "@eb/shared/src/graphql/apollo-types/GetEntriesUnionFragment";
+import { PaginationInput } from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { PageInfoFragment } from "@eb/shared/src/graphql/apollo-types/PageInfoFragment";
 import {
   entryToEdge,
   toGetEntriesSuccessQuery,
-} from "@eb/cm/src/graphql/utils.gql";
-import { wrapReducer, wrapState } from "@eb/cm/src/logger";
-import { isOfflineId } from "@eb/cm/src/utils/offlines";
-import { ComponentTimeoutsMs } from "@eb/cm/src/utils/timers";
+} from "@eb/shared/src/graphql/utils.gql";
+import { wrapReducer, wrapState } from "@eb/shared/src/logger";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { isOfflineId } from "@eb/shared/src/utils/offlines";
+import { ComponentTimeoutsMs } from "@eb/shared/src/utils/timers";
 import {
   ActiveVal,
   CancelledVal,
@@ -41,21 +55,12 @@ import {
   SyncError,
   Timeouts,
   UpdateEntrySyncErrors,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
 import immer, { Draft } from "immer";
 // import { original } from "immer";
 import { Dispatch, Reducer } from "react";
-import {
-  getCachedEntriesDetailView,
-  writeCachedEntriesDetailView,
-} from "../../apollo/get-detailed-experience-query";
-import {
-  getSyncError,
-  putOrRemoveSyncError,
-} from "../../apollo/sync-to-server-cache";
-import { purgeEntry } from "../../apollo/update-get-experiences-list-view-query";
 import { deleteObjectKey } from "../../utils";
 import {
   FETCH_ENTRIES_FAIL_ERROR_MSG,
@@ -63,16 +68,11 @@ import {
   GENERIC_SERVER_ERROR,
   parseStringError,
 } from "../../utils/common-errors";
-import { getIsConnected } from "../../utils/connections";
 import {
   GenericEffectDefinition,
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import {
-  GetEntriesDetailViewProps,
-  GetEntriesDetailViewQueryResult,
-} from "../../utils/experience.gql.types";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { UpdateExperiencesMutationProps } from "../../utils/update-experiences.gql";
 import { nonsenseId } from "../../utils/utils.dom";
@@ -317,14 +317,13 @@ function handleOnFetchedAction(
           case StateValue.reFetchOnly:
             {
               const { entries } = payload;
-              const idToEntryMap = (entries.edges as EntryConnectionFragment_edges[]).reduce(
-                (acc, edge) => {
-                  const entry = edge.node as EntryFragment;
-                  acc[entry.id] = entry;
-                  return acc;
-                },
-                {} as { [entryId: string]: EntryFragment },
-              );
+              const idToEntryMap = (
+                entries.edges as EntryConnectionFragment_edges[]
+              ).reduce((acc, edge) => {
+                const entry = edge.node as EntryFragment;
+                acc[entry.id] = entry;
+                return acc;
+              }, {} as { [entryId: string]: EntryFragment });
 
               context.entries.forEach((val) => {
                 const oldEntry = val.entryData;
@@ -530,9 +529,10 @@ function handleOnUpsertSuccessAction(
 
     updateEntriesFn(proxy, entriesState, upsertedEntry, oldEntryId);
 
-    const cleanUpData: DefDeleteCreateEntrySyncErrorEffect["ownArgs"]["data"] = {
-      experienceId,
-    };
+    const cleanUpData: DefDeleteCreateEntrySyncErrorEffect["ownArgs"]["data"] =
+      {
+        experienceId,
+      };
 
     // offline entry synced
     // istanbul ignore else:
@@ -663,11 +663,10 @@ function handleDeleteAction(proxy: DraftState, payload: DeletePayload) {
         proxy.timeouts.genericTimeout = timeoutId;
 
         const entriesState = entries as DataSuccess;
-        entriesState.success.context.entries = entriesState.success.context.entries.filter(
-          (e) => {
+        entriesState.success.context.entries =
+          entriesState.success.context.entries.filter((e) => {
             return id !== e.entryData.id;
-          },
-        );
+          });
       }
       break;
 
@@ -927,7 +926,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
   }
 
   if (set) {
-    let timeoutCb = (undefined as unknown) as () => void;
+    let timeoutCb = undefined as unknown as () => void;
 
     switch (set) {
       case "set-close-upsert-entry-created-notification":
@@ -972,37 +971,36 @@ type DefPostOfflineEntriesSyncEffect = EffectDefinition<
   }
 >;
 
-const deleteCreateEntrySyncErrorEffect: DefDeleteCreateEntrySyncErrorEffect["func"] = ({
-  data: { experienceId, createErrors },
-}) => {
-  const errors = getSyncError(experienceId);
+const deleteCreateEntrySyncErrorEffect: DefDeleteCreateEntrySyncErrorEffect["func"] =
+  ({ data: { experienceId, createErrors } }) => {
+    const errors = getSyncError(experienceId);
 
-  // istanbul ignore else:
-  if (errors) {
-    const fromImmer = immer(errors, (immerErrors) => {
-      const { createEntries } = immerErrors;
+    // istanbul ignore else:
+    if (errors) {
+      const fromImmer = immer(errors, (immerErrors) => {
+        const { createEntries } = immerErrors;
 
-      if (createEntries && createErrors) {
-        createErrors.forEach((entry) => {
-          delete createEntries[entry.id];
-          purgeEntry(entry);
-        });
+        if (createEntries && createErrors) {
+          createErrors.forEach((entry) => {
+            delete createEntries[entry.id];
+            purgeEntry(entry);
+          });
 
-        // istanbul ignore else:
-        if (!Object.keys(createEntries).length) {
-          delete immerErrors.createEntries;
+          // istanbul ignore else:
+          if (!Object.keys(createEntries).length) {
+            delete immerErrors.createEntries;
+          }
         }
-      }
-    });
+      });
 
-    const { persistor } = window.____ebnis;
+      const { persistor } = window.____ebnis;
 
-    const newError = Object.keys(fromImmer).length ? fromImmer : undefined;
-    putOrRemoveSyncError(experienceId, newError);
+      const newError = Object.keys(fromImmer).length ? fromImmer : undefined;
+      putOrRemoveSyncError(experienceId, newError);
 
-    persistor.persist();
-  }
-};
+      persistor.persist();
+    }
+  };
 
 type DefDeleteCreateEntrySyncErrorEffect = EffectDefinition<
   "deleteCreateEntrySyncErrorEffect",
@@ -1239,8 +1237,9 @@ function appendToPreviousEntries(
   persistor.persist();
 
   if (previousEntryEdges.length) {
-    blätternZuId = (previousEntryEdges[previousEntryEdges.length - 1]
-      .node as EntryFragment).id;
+    blätternZuId = (
+      previousEntryEdges[previousEntryEdges.length - 1].node as EntryFragment
+    ).id;
   } else {
     blätternZuId = (newEntryEdges[0].node as EntryFragment).id;
   }
@@ -1651,7 +1650,7 @@ export type EffectArgs = {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = Record<string, unknown>
+  OwnArgs = Record<string, unknown>,
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 type DataObjectErrorsList = [string | number, [string, string][]][];

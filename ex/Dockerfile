@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.11.3-erlang-23.2.3-ubuntu-bionic-20200921 AS dev
+FROM hexpm/elixir:1.12.1-erlang-24.0.2-ubuntu-bionic-20210325 AS dev
 
 ENV APP_DEPS="openssl git ca-certificates inotify-tools curl iputils-ping"
 
@@ -13,12 +13,15 @@ ADD \
 RUN \
   groupadd ebnis && \
   useradd -m -g ebnis ebnis && \
-  mkdir -p /home/ebnis/app/apps && \
+  mkdir -p /app/apps/ebnis && \
+  mkdir -p /app/apps/ebnis_data && \
+  mkdir -p /app/apps/ebnis_emails && \
+  mkdir -p /app/apps/ebnis_web && \
   chmod 755 /usr/local/bin/entrypoint.sh && \
   chmod 755 /usr/local/bin/wait-until && \
   chown ebnis:ebnis /usr/local/bin/entrypoint.sh && \
   chown ebnis:ebnis /usr/local/bin/wait-until && \
-  chown -R ebnis:ebnis /home/ebnis/app && \
+  chown -R ebnis:ebnis /app && \
   apt-get update && \
   apt-get install -y ${APP_DEPS} --no-install-recommends && \
   rm -rf /var/lib/apt/lists/* && \
@@ -26,16 +29,44 @@ RUN \
   rm -rf /usr/share/man && \
   apt-get clean
 
-# run app as non root user to avoid volume mount problems
 USER ebnis
 
-WORKDIR /home/ebnis/app
+WORKDIR /app
 
-COPY . .
+COPY \
+  --chown=ebnis:ebnis \
+  ./mix.exs \
+  ./mix.lock \
+  ./
+
+COPY \
+  --chown=ebnis:ebnis \
+  ./apps/ebnis_data/mix.exs \
+  ./apps/ebnis_data
+
+COPY \
+  --chown=ebnis:ebnis \
+  ./apps/ebnis_emails/mix.exs \
+  ./apps/ebnis_emails
+
+
+COPY \
+  --chown=ebnis:ebnis \
+  ./apps/ebnis_web/mix.exs \
+  ./apps/ebnis_web
+
+COPY \
+  --chown=ebnis:ebnis \
+  ./apps/ebnis/mix.exs \
+  ./apps/ebnis
+
+COPY \
+  --chown=ebnis:ebnis \
+  . .
 
 # hex has to be installed as the user that will compile and run our app
 RUN \
-  mix local.hex --force && \
+  mix local.hex --force --if-missing && \
   mix local.rebar --force && \
   mix do deps.get, deps.compile
 
@@ -75,12 +106,12 @@ COPY --from=build /usr/local/bin/wait-until /usr/local/bin
 RUN \
   groupadd ebnis && \
   useradd -m -g ebnis ebnis && \
-  mkdir -p /home/ebnis/app/apps && \
+  mkdir -p /app/apps && \
   chmod 755 /usr/local/bin/entrypoint.sh && \
   chmod 755 /usr/local/bin/wait-until && \
-  chown ebnis:ebnis /usr/local/bin/entrypoint.sh && \
-  chown ebnis:ebnis /usr/local/bin/wait-until && \
-  chown -R ebnis:ebnis /home/ebnis/app && \
+  # chown ebnis:ebnis /usr/local/bin/entrypoint.sh && \
+  # chown ebnis:ebnis /usr/local/bin/wait-until && \
+  chown -R ebnis:ebnis /app && \
   apt-get update && \
   apt-get install -y ${APP_DEPS} --no-install-recommends && \
   rm -rf /var/lib/apt/lists/* && \
@@ -89,10 +120,10 @@ RUN \
 
 USER ebnis
 
-WORKDIR /home/ebnis/app
+WORKDIR /app
 
 COPY --from=build --chown=ebnis:ebnis \
-  /home/ebnis/app/_build/prod/rel/ebnis \
+  /app/_build/prod/rel/ebnis \
   ./
 
 CMD ["/bin/bash"]

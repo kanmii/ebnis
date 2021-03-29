@@ -1,7 +1,9 @@
-import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
-import errorImage from "@eb/cm/src/media/error-96.png";
-import { OnlineStatus, StateValue } from "@eb/cm/src/utils/types";
-import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+import { ExperienceData } from "@eb/shared/src/apollo/experience.gql.types";
+import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
+import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
+import errorImage from "@eb/shared/src/media/error-96.png";
+import { OnlineStatus, StateValue } from "@eb/shared/src/utils/types";
+import { ReactMouseEvent } from "@eb/shared/src/utils/types/react";
 import makeClassNames from "classnames";
 import React, {
   createContext,
@@ -15,8 +17,6 @@ import React, {
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { Link } from "react-router-dom";
-import { useWithSubscriptionContext } from "../../apollo/injectables";
-import { ExperienceData } from "../../utils/experience.gql.types";
 import { setUpRoutePage } from "../../utils/global-window";
 import { InputChangeEvent } from "../../utils/types";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
@@ -328,11 +328,8 @@ function ExperienceComponent(props: ExperienceProps) {
   const { title, description, id } = experience;
   const detailPath = makeDetailedExperienceRoute(id);
 
-  const {
-    showingDescription,
-    showingOptionsMenu,
-    showingUpdateSuccess,
-  } = state;
+  const { showingDescription, showingOptionsMenu, showingUpdateSuccess } =
+    state;
 
   return (
     <article
@@ -575,7 +572,7 @@ const SearchComponent = () => {
       </div>
 
       <div className="table-container search__results">
-        <table className="table table is-bordered is-striped is-fullwidth">
+        <table className="table is-bordered is-striped is-fullwidth">
           <tbody>
             {stateValue === StateValue.active ? (
               hasResults ? (

@@ -1,12 +1,15 @@
-import { EbnisGlobals } from "@eb/cm/src/utils/types";
-import { mockComment1 } from "@eb/cm/src/__tests__/mock-data";
-import { updateExperiencesMswGql } from "@eb/cm/src/__tests__/msw-handlers";
-import { mswServer, mswServerListen } from "@eb/cm/src/__tests__/msw-server";
-import { waitForCount } from "@eb/cm/src/__tests__/wait-for-count";
+import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { makeApolloClient } from "@eb/shared/src/client";
+import { EbnisGlobals } from "@eb/shared/src/utils/types";
+import { mockComment1 } from "@eb/shared/src/__tests__/mock-data";
+import { updateExperiencesMswGql } from "@eb/shared/src/__tests__/msw-handlers";
+import {
+  mswServer,
+  mswServerListen,
+} from "@eb/shared/src/__tests__/msw-server";
+import { waitForCount } from "@eb/shared/src/__tests__/wait-for-count";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";
-import { makeApolloClient } from "../apollo/client";
-import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
 import UpsertComment from "../components/UpsertComment/upsert-comment.component";
 import {
   closeId,
@@ -29,15 +32,16 @@ import { fillField, getById, getEffects } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 
-jest.mock("../apollo/update-get-experiences-list-view-query");
-const mockFloatExperienceToTheTopInGetExperiencesMiniQuery = floatExperienceToTheTopInGetExperiencesMiniQuery as jest.Mock;
+jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
+const mockFloatExperienceToTheTopInGetExperiencesMiniQuery =
+  floatExperienceToTheTopInGetExperiencesMiniQuery as jest.Mock;
 
 const mockOnSuccess = jest.fn();
 const mockOnClose = jest.fn();
 
 const mockPersistFunc = jest.fn();
 
-const ebnisObject = {
+const globals = {
   persistor: {
     persist: mockPersistFunc as any,
   },
@@ -45,7 +49,7 @@ const ebnisObject = {
 
 describe("UpsertComment", () => {
   beforeAll(() => {
-    window.____ebnis = ebnisObject;
+    window.____ebnis = globals;
     mswServerListen();
   });
 
@@ -55,16 +59,19 @@ describe("UpsertComment", () => {
   });
 
   beforeEach(() => {
-    const { client, cache } = makeApolloClient(ebnisObject, { testing: true });
-    ebnisObject.cache = cache;
-    ebnisObject.client = client;
+    const { client, cache } = makeApolloClient({
+      ebnisGlobals: globals,
+      testing: true,
+    });
+    globals.cache = cache;
+    globals.client = client;
   });
 
   afterEach(() => {
     mswServer.resetHandlers();
     cleanup();
-    deleteObjectKey(ebnisObject, "client");
-    deleteObjectKey(ebnisObject, "cache");
+    deleteObjectKey(globals, "client");
+    deleteObjectKey(globals, "cache");
   });
 
   describe("component", () => {
@@ -203,13 +210,13 @@ describe("UpsertComment", () => {
 
     const mockUpdateExperiencesMutation = jest.fn();
 
-    const props = ({
+    const props = {
       association: {
         id: "a",
       },
       onSuccess: mockOnSuccess,
       updateExperiencesMutation,
-    } as unknown) as Props;
+    } as unknown as Props;
 
     it("errors on create", async () => {
       mswServer.use(
@@ -283,9 +290,8 @@ describe("UpsertComment", () => {
       mockDispatch.mockClear();
       await effectFunctions[key](ownArgs, props, effectArgs);
 
-      const {
-        onUpdateSuccess,
-      } = mockUpdateExperiencesMutation.mock.calls[0][0];
+      const { onUpdateSuccess } =
+        mockUpdateExperiencesMutation.mock.calls[0][0];
 
       onUpdateSuccess({ comments: null });
 

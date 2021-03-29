@@ -34,7 +34,7 @@ else
   echo -e "-------------------------------------------------\n"
 
   # An easy way to attach to a running iex session in this container
-  echo 'alias conn-iex="iex --sname console --cookie ${DEV_COOKIE} --remsh ${DEV_NODE_NAME}@${HOSTNAME}"' >> $HOME/.bashrc
+  echo 'alias conn-iex="iex --sname console --cookie ${DEV_COOKIE} --remsh ${DEV_NODE_NAME}@${HOSTNAME}"' >> "$HOME/.bashrc"
 
   elixir --sname $node_name --cookie $cookie -S mix phx.server
 fi

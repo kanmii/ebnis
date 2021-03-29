@@ -1,16 +1,16 @@
-import React, { useState, useMemo } from "react";
-import Dropdown from "../Dropdown/dropdown-component";
+import React, { useMemo, useState } from "react";
 import { DateField } from "../DateField/date-field.component";
-import { FormObjVal } from "../DateField/date-field.utils";
-import { Props } from "./date-time-field.utils";
-import "../DateField/date-field.styles.scss";
 import {
-  selectedItemClassName,
+  hourDropdownSelector,
   makeHourItemSelector,
   makeMinuteItemSelector,
-  hourDropdownSelector,
   minuteDropdownSelector,
+  selectedItemClassName,
 } from "../DateField/date-field.dom";
+import "../DateField/date-field.styles.scss";
+import { FormObjVal } from "../DateField/date-field.utils";
+import Dropdown from "../Dropdown/dropdown-component";
+import { Props } from "./date-time-field.utils";
 
 interface DropdownOptions {
   key: number;

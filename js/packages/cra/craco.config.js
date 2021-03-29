@@ -1,7 +1,9 @@
-const path = require("path");
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 const { getLoader, loaderByName } = require("@craco/craco");
+const { packagesPath } = require("../../_shared/_package-scripts");
 
-const absolutePath = path.join(__dirname, "../components");
+const jsxPackagePath = `${packagesPath}/jsx`;
 
 module.exports = {
   style: {
@@ -33,7 +35,7 @@ module.exports = {
         const include = Array.isArray(match.loader.include)
           ? match.loader.include
           : [match.loader.include];
-        match.loader.include = include.concat[absolutePath];
+        match.loader.include = include.concat[jsxPackagePath];
       }
       return webpackConfig;
     },

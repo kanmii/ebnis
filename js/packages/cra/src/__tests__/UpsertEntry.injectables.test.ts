@@ -1,18 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
 import {
   getCachedEntriesDetailViewSuccess,
   writeCachedEntriesDetailView,
-} from "../apollo/get-detailed-experience-query";
-import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
+} from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { upsertNewEntry } from "../components/UpsertEntry/upsert-entry.injectables";
 
-jest.mock("../apollo/get-detailed-experience-query");
-const mockGetEntriesQuerySuccess = getCachedEntriesDetailViewSuccess as jest.Mock;
+jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
+const mockGetEntriesQuerySuccess =
+  getCachedEntriesDetailViewSuccess as jest.Mock;
 const mockWriteGetEntriesQuery = writeCachedEntriesDetailView as jest.Mock;
 
-jest.mock("../apollo/update-get-experiences-list-view-query");
-const mockFloatExperienceToTheTopInGetExperiencesMiniQuery = floatExperienceToTheTopInGetExperiencesMiniQuery as jest.Mock;
+jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
+const mockFloatExperienceToTheTopInGetExperiencesMiniQuery =
+  floatExperienceToTheTopInGetExperiencesMiniQuery as jest.Mock;
 
 afterEach(() => {
   jest.resetAllMocks();

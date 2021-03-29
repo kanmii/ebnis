@@ -1,5 +1,4 @@
 {
-  "extends": "../../js-shared/_tsconfig.json",
-  "isolatedModules": true,
-  "include": ["src", "../commons/src/definitions.d.ts"]
+  "extends": "../../_shared/_tsconfig.json",
+  "include": ["**/*.ts", "**/*.tsx", "**/*.js", "../cra/src/react-app-env.d.ts"]
 }

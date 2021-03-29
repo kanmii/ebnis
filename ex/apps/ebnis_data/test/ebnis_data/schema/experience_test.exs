@@ -2530,6 +2530,13 @@ defmodule EbnisData.Schema.ExperienceTest do
           ]
         )
 
+      variables = %{
+        "ids" => [experience_id],
+        "entryPagination" => %{
+          "first" => 1
+        }
+      }
+
       assert {:ok,
               %{
                 data: %{
@@ -2554,12 +2561,7 @@ defmodule EbnisData.Schema.ExperienceTest do
                Absinthe.run(
                  Query.vorholen_erfahrungen(),
                  Schema,
-                 variables: %{
-                   "ids" => [experience_id],
-                   "entryPagination" => %{
-                     "first" => 1
-                   }
-                 },
+                 variables: variables,
                  context: context(user)
                )
     end

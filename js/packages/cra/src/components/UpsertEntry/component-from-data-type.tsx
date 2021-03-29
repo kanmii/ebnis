@@ -1,9 +1,9 @@
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { ReactInput, ReactTextarea } from "@eb/cm/src/utils/types/react";
 import { DateField } from "@eb/jsx/src/components/DateField/date-field.component";
 import { Props as DateFieldProps } from "@eb/jsx/src/components/DateField/date-field.utils";
 import { DateTimeField } from "@eb/jsx/src/components/DateTimeField/date-time-field.component";
 import { Props as DateTimeFieldProps } from "@eb/jsx/src/components/DateTimeField/date-time-field.utils";
+import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { ReactInput, ReactTextarea } from "@eb/shared/src/utils/types/react";
 import {
   dateComponentDomSelector,
   datetimeComponentDomSelector,

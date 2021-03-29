@@ -1,11 +1,16 @@
-import { ReactComponent as ExclamationErrorSvg } from "@eb/cm/src/styles/exclamation-error.svg";
-import { trimClass } from "@eb/cm/src/utils";
-import { componentTimeoutsMs } from "@eb/cm/src/utils/timers";
-import { StateValue } from "@eb/cm/src/utils/types";
-import { ComponentColorType } from "@eb/cm/src/utils/types/react";
 import Button from "@eb/jsx/src/components/Button/button.component";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import Notification from "@eb/jsx/src/components/Notification/notification.component";
+import {
+  getExperienceAndEntriesDetailView,
+  getExperienceComments,
+} from "@eb/shared/src/apollo/experience.gql.types";
+import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
+import { ReactComponent as ExclamationErrorSvg } from "@eb/shared/src/styles/exclamation-error.svg";
+import { trimClass } from "@eb/shared/src/utils";
+import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
+import { StateValue } from "@eb/shared/src/utils/types";
+import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import React, {
   Fragment,
   Suspense,
@@ -15,12 +20,7 @@ import React, {
   useMemo,
   useReducer,
 } from "react";
-import { useWithSubscriptionContext } from "../../apollo/injectables";
 import { deleteExperiences } from "../../utils/delete-experiences.gql";
-import {
-  getExperienceAndEntriesDetailView,
-  getExperienceComments,
-} from "../../utils/experience.gql.types";
 import { setUpRoutePage } from "../../utils/global-window";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
@@ -180,7 +180,7 @@ export function DetailExperience(props: Props) {
           type: ActionType.re_fetch,
         });
       },
-      commentCb(e, action) {
+      commentCb(_e, action) {
         dispatch({
           type: ActionType.comment_action,
           action,
@@ -334,7 +334,7 @@ function ExperienceComponent() {
                 <Button
                   id={deleteOkId}
                   type="button"
-                btnType={ComponentColorType.is_danger}
+                  btnType={ComponentColorType.is_danger}
                   onClick={onDeleteConfirmed}
                 >
                   Ok
@@ -714,11 +714,8 @@ function PromptToFixSyncErrorNotificationComponent() {
     context: { syncErrors },
   } = useContext(DataStateContext);
 
-  const {
-    definitionsErrors,
-    entriesErrors,
-    ownFieldsErrors,
-  } = syncErrors as ExperienceSyncError;
+  const { definitionsErrors, entriesErrors, ownFieldsErrors } =
+    syncErrors as ExperienceSyncError;
 
   const hasDefOrOwnFieldsErrors =
     definitionsErrors ||
@@ -750,7 +747,7 @@ function PromptToFixSyncErrorNotificationComponent() {
               id={fixSyncErrorsId}
               type="button"
               onClick={requestUpdateUiCb}
-            btnType={ComponentColorType.is_success }
+              btnType={ComponentColorType.is_success}
             >
               Fix errors
             </Button>

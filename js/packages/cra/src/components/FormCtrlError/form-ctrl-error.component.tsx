@@ -1,5 +1,5 @@
 /* istanbul ignore file */
-import { ComponentProps } from "@eb/cm/src/utils/types/react";
+import { ComponentProps } from "@eb/shared/src/utils/types/react";
 import { formCtrlErrorClassName } from "../../utils/utils.dom";
 
 export function FormCtrlError(props: Props) {

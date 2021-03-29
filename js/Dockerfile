@@ -1,35 +1,61 @@
-FROM node:14.15.3-buster-slim AS web
+FROM node:14.17.0-buster-slim AS web
 
-ARG NODE_ENV
+ARG APT_FETCH
 
-ENV BUILD_DEPS="build-essential" \
-  APP_DEPS="curl iputils-ping" \
-  NODE_ENV=$NODE_ENV
+ADD \
+  https://raw.githubusercontent.com/humpangle/wait-until/v0.1.1/wait-until \
+  /usr/local/bin
 
-RUN apt-get update \
-  && apt-get install -y ${BUILD_DEPS} \
-  ${APP_DEPS} --no-install-recommends \
-  && rm -rf /var/lib/apt/lists/* \
-  && rm -rf /usr/share/doc && rm -rf /usr/share/man \
-  && apt-get purge -y --auto-remove ${BUILD_DEPS} \
-  && apt-get clean \
-  && mkdir -p /home/node/app/packages
+COPY \
+  ./entrypoint.sh \
+  /usr/local/bin
 
-COPY ./entrypoint.sh /usr/local/bin
-
-ADD https://raw.githubusercontent.com/humpangle/wait-until/v0.1.1/wait-until /usr/local/bin/
-
-WORKDIR /home/node/app
-
-# COPY ./package.json ./yarn.lock ./package-scripts.js ./
-COPY . .
-
-RUN chown -R node:node /home/node \
-  && chmod 755 /usr/local/bin/entrypoint.sh \
-  && chmod 755 /usr/local/bin/wait-until
+RUN \
+  mkdir -p /app/_shared &&  \
+  mkdir -p /app/packages/shared &&  \
+  mkdir -p /app/packages/cra &&  \
+  mkdir -p /app/packages/jsx && \
+  chown -R node:node /app && \
+  chmod 755 /usr/local/bin/wait-until && \
+  chmod 755 /usr/local/bin/entrypoint.sh && \
+  if [ -n "$APT_FETCH" ]; then \
+   apt-get update && \
+   apt-get install -y --no-install-recommends iputils-ping && \
+   rm -rf /var/lib/apt/lists/* && \
+   rm -rf /usr/share/doc && \
+   rm -rf /usr/share/man && \
+   apt-get autoremove -y && \
+   apt-get clean;  \
+  fi
 
 USER node
+WORKDIR /app
 
-RUN yarn install
+######### ROOT FILES ##########
+COPY  \
+  --chown=node:node \
+  ./package-scripts.js \
+  ./package.json \
+  ./yarn.lock \
+  ./
 
-CMD ["/bin/bash"]
+COPY  \
+  --chown=node:node \
+  ./packages/shared/package.json \
+  ./packages/shared/
+
+COPY  \
+  --chown=node:node \
+  ./packages/cra/package.json \
+  ./packages/cra/
+
+COPY  \
+  --chown=node:node \
+  ./packages/jsx/package.json \
+  ./packages/jsx/
+
+RUN yarn install --frozen-lockfile
+
+COPY --chown=node:node . .
+
+CMD ["/bin/sh"]

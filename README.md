@@ -20,12 +20,12 @@ there can be only one `.env` file in the root of our project.
 
 ## Start docker
 
-```
+```sh
 set -a; . .env-e2e; set +a;
 
-docker-compose build js-base js-cra ex
+docker-compose build js ex
 
-docker-compose up js-cra ex
+docker-compose up cra ex
 ```
 
 ## Attach to running iex session in another shell
@@ -43,7 +43,7 @@ See the file `ex/entrypoint.sh`
 3. Attach to the running container
 
 ```
-set -a; . .env-e2e; set +a; docker-compose exec ex bash
+set -a; . .env-e2e; set +a; docker-compose exec ex /bin/bash
 ```
 
 4. Inside the container:
@@ -69,7 +69,7 @@ service container running in development mode:
 ```
 set -a; . .env-e2e; set +a;
 
-docker-compose exec ex bash
+docker-compose exec ex /bin/bash
 ```
 
 Once inside the container,
@@ -78,10 +78,11 @@ Once inside the container,
 MIX_ENV=test iex -S mix
 ```
 
-Since we are using [cortex](https://github.com/urbint/cortex) as test runner,
-tests will be automatically ran on file changes. You may also manually run
-tests. See the [cortex](https://github.com/urbint/cortex) project for how
-to do this.
+Run test in watch mode:
+
+```
+mix test.watch
+```
 
 # Production
 
@@ -106,21 +107,22 @@ set -a; . .env-prod; set +a; docker build --build-arg DOCKER_HOST_USER_NAME -t e
 
 A docker image named `ebnis-be-release` will be built
 
-### Connect to a local postgres server running on your docker host
+# Connect to a local postgres server running on your docker host
 
-in `path/to/data/postgresql.conf`, set `listen_addresses`:
+in `path/to/data/postgresql.conf` on your host, set `listen_addresses`:
 
 ```
 listen_addresses = '*'
 ```
 
-in `path/to/data/pg_hba.conf` put:
+in `path/to/data/pg_hba.conf` on your host put:
 
 ```
 host    all             all             172.17.0.0/16           trust
 ```
 
-assuming `172.17.0.1` is the `inet` when you run `ifconfig docker0`
+assuming `172.17.0.1` is the `inet` when you run
+`ip route show | awk '/docker/ {print $9}'`
 
 Restart postgres server
 
@@ -166,7 +168,7 @@ docker run -it --rm \
   ebnis-be-release /usr/local/bin/entrypoint.sh
 ```
 
-## Javascript App
+# Javascript App
 
 `cd` into `js` folder
 
@@ -185,5 +187,5 @@ yarn start cra.t
 ### test coverage
 
 ```
-yarn start cra.tc
+yarn start cra.t.c
 ```

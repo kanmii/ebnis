@@ -1,15 +1,15 @@
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { UpdateExperienceInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { UpdateExperienceSomeSuccessFragment } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
+import { getCachedExperienceDetailView } from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { updateExperiencesManualCacheUpdate } from "@eb/shared/src/apollo/update-experiences-manual-cache-update";
+import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { UpdateExperienceInput } from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { UpdateExperienceSomeSuccessFragment } from "@eb/shared/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
 import {
   UpdateExperiencesOnline,
   UpdateExperiencesOnlineVariables,
-} from "@eb/cm/src/graphql/apollo-types/UpdateExperiencesOnline";
-import { UPDATE_EXPERIENCES_ONLINE_MUTATION } from "@eb/cm/src/graphql/experience.gql";
-import { CommonError } from "@eb/cm/src/utils/types";
-import { getCachedExperienceDetailView } from "../apollo/get-detailed-experience-query";
-import { updateExperiencesManualCacheUpdate } from "../apollo/update-experiences-manual-cache-update";
-import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "../apollo/update-get-experiences-list-view-query";
+} from "@eb/shared/src/graphql/apollo-types/UpdateExperiencesOnline";
+import { UPDATE_EXPERIENCES_ONLINE_MUTATION } from "@eb/shared/src/graphql/experience.gql";
+import { CommonError } from "@eb/shared/src/utils/types";
 
 export async function updateExperiencesMutation({
   input,

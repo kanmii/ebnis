@@ -1,4 +1,4 @@
-@import "../../../commons//src//styles//extensions.css";
+@import "../../../shared//src//styles//extensions.css";
 
 body {
   @extend %scroll-bar;

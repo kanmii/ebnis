@@ -1,4 +1,4 @@
-import { StateValue } from "@eb/cm/src/utils/types";
+import { StateValue } from "@eb/shared/src/utils/types";
 import makeClassNames from "classnames";
 import React, { MouseEvent, useCallback, useContext, useReducer } from "react";
 import { EbnisAppContext } from "../../utils/app-context";

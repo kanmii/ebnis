@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { LoginMutationVariables } from "@eb/cm/src/graphql/apollo-types/LoginMutation";
+import { LoginMutationVariables } from "@eb/shared/src/graphql/apollo-types/LoginMutation";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { manageUserAuthentication } from "@eb/shared/src/utils/manage-user-auth";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";
 import { Login } from "../components/Login/login.component";
@@ -26,9 +28,7 @@ import {
 } from "../components/Login/login.utils";
 import { fillField } from "../tests.utils";
 import { AppPersistor } from "../utils/app-context";
-import { getIsConnected } from "../utils/connections";
 import { windowChangeUrl } from "../utils/global-window";
-import { manageUserAuthentication } from "../utils/manage-user-auth";
 import { scrollIntoView } from "../utils/scroll-into-view";
 import { LoginMutationResult } from "../utils/user.gql.types";
 import { errorClassName, warningClassName } from "../utils/utils.dom";
@@ -38,13 +38,13 @@ jest.mock("../components/Header/header.component", () => () => null);
 jest.mock("../utils/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
 
-jest.mock("../utils/connections");
+jest.mock("@eb/shared/src/utils/connections");
 const mockIsConnected = getIsConnected as jest.Mock;
 
 jest.mock("../utils/global-window");
 const mockWindowReplaceUrl = windowChangeUrl as jest.Mock;
 
-jest.mock("../utils/manage-user-auth");
+jest.mock("@eb/shared/src/utils/manage-user-auth");
 const mockManageUserAuth = manageUserAuthentication as jest.Mock;
 
 const mockLoginFn = jest.fn();
@@ -54,7 +54,7 @@ const persistor = {
   persist: mockPersistFn as any,
 } as AppPersistor;
 
-let stateMachineOnDispatch = (null as unknown) as StateMachine;
+let stateMachineOnDispatch = null as unknown as StateMachine;
 
 afterEach(() => {
   cleanup();
@@ -173,7 +173,7 @@ async function reducerSubmissionHelper() {
 
   const { key, ownArgs } = getEffects(stateMachineOnDispatch)[0];
   const func = effectFunctions[key];
-  const props = ({ login: mockLoginFn } as unknown) as Props;
+  const props = { login: mockLoginFn } as unknown as Props;
   const effectArgs = {
     dispatch: mockDispatch as any,
   } as EffectArgs;
@@ -272,9 +272,9 @@ function getNotification() {
 }
 
 function closeNotification(notificationEl: HTMLElement) {
-  (notificationEl
-    .getElementsByClassName("delete")
-    .item(0) as HTMLElement).click();
+  (
+    notificationEl.getElementsByClassName("delete").item(0) as HTMLElement
+  ).click();
 }
 
 function getReset() {

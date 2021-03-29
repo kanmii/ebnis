@@ -1,27 +1,33 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
-import {
-  GetExperiencesConnectionListView_getExperiences,
-  GetExperiencesConnectionListView_getExperiences_edges,
-} from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
-import {
-  BroadcastMessageType,
-  EbnisGlobals,
-  StateValue,
-} from "@eb/cm/src/utils/types";
-import { cleanup, render, waitFor } from "@testing-library/react";
-import { ComponentType } from "react";
-import { act } from "react-dom/test-utils";
-import { getCachedExperiencesConnectionListView } from "../apollo/cached-experiences-list-view";
+import { getCachedExperiencesConnectionListView } from "@eb/shared/src/apollo/cached-experiences-list-view";
 import {
   DeletedExperienceLedger,
   getDeleteExperienceLedger,
   putOrRemoveDeleteExperienceLedger,
-} from "../apollo/delete-experience-cache";
-import { useWithSubscriptionContext } from "../apollo/injectables";
-import { getOnlineStatus } from "../apollo/unsynced-ledger";
-import { purgeExperiencesFromCache1 } from "../apollo/update-get-experiences-list-view-query";
+} from "@eb/shared/src/apollo/delete-experience-cache";
+import {
+  getExperienceConnectionListView,
+  GetExperiencesConnectionListViewQueryResult,
+} from "@eb/shared/src/apollo/experience.gql.types";
+import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
+import { getOnlineStatus } from "@eb/shared/src/apollo/unsynced-ledger";
+import { purgeExperiencesFromCache1 } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
+import {
+  GetExperiencesConnectionListView_getExperiences,
+  GetExperiencesConnectionListView_getExperiences_edges,
+} from "@eb/shared/src/graphql/apollo-types/GetExperiencesConnectionListView";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { makeOfflineId } from "@eb/shared/src/utils/offlines";
+import {
+  BroadcastMessageType,
+  EbnisGlobals,
+  StateValue,
+} from "@eb/shared/src/utils/types";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import { ComponentType } from "react";
+import { act } from "react-dom/test-utils";
 import { My } from "../components/My/my.component";
 import {
   activateInsertExperienceDomId,
@@ -52,39 +58,36 @@ import {
   reducer,
 } from "../components/My/my.utils";
 import { cleanUpOfflineExperiences } from "../components/WithSubscriptions/with-subscriptions.utils";
-import { fillField } from "../tests.utils";
+import { fillField, getById } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { AppPersistor } from "../utils/app-context";
-import { getIsConnected } from "../utils/connections";
 import { GenericHasEffect } from "../utils/effects";
-import {
-  getExperienceConnectionListView,
-  GetExperiencesConnectionListViewQueryResult,
-} from "../utils/experience.gql.types";
-import { makeOfflineId } from "@eb/cm/src/utils/offlines";
 import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
 
 jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
 const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
 
-jest.mock("../apollo/sync-to-server-cache");
+jest.mock("@eb/shared/src/apollo/sync-to-server-cache");
 
 jest.mock("../components/My/my.injectables");
 const mockHandlePreFetchExperiences = handlePreFetchExperiences as jest.Mock;
 
-jest.mock("../apollo/update-get-experiences-list-view-query");
+jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
 const mockPurgeExperiencesFromCache1 = purgeExperiencesFromCache1 as jest.Mock;
 
-jest.mock("../apollo/delete-experience-cache");
-const mockPutOrRemoveDeleteExperienceLedger = putOrRemoveDeleteExperienceLedger as jest.Mock;
+jest.mock("@eb/shared/src/apollo/delete-experience-cache");
+const mockPutOrRemoveDeleteExperienceLedger =
+  putOrRemoveDeleteExperienceLedger as jest.Mock;
 
-jest.mock("../utils/experience.gql.types");
-const mockManuallyFetchExperienceConnectionMini = getExperienceConnectionListView as jest.Mock;
+jest.mock("@eb/shared/src/apollo/experience.gql.types");
+const mockManuallyFetchExperienceConnectionMini =
+  getExperienceConnectionListView as jest.Mock;
 
-jest.mock("../apollo/cached-experiences-list-view");
-const mockGetExperiencesMiniQuery = getCachedExperiencesConnectionListView as jest.Mock;
+jest.mock("@eb/shared/src/apollo/cached-experiences-list-view");
+const mockGetExperiencesMiniQuery =
+  getCachedExperiencesConnectionListView as jest.Mock;
 
-jest.mock("../apollo/delete-experience-cache");
+jest.mock("@eb/shared/src/apollo/delete-experience-cache");
 jest.mock("../components/Header/header.component", () => () => null);
 jest.mock("../utils/global-window");
 
@@ -131,7 +134,7 @@ const offlineExperience = {
   title: "a",
 } as ExperienceListViewFragment;
 
-jest.mock("../apollo/unsynced-ledger");
+jest.mock("@eb/shared/src/apollo/unsynced-ledger");
 const mockGetOnlineStatus = getOnlineStatus as jest.Mock;
 
 jest.mock("react-router-dom", () => ({
@@ -146,20 +149,20 @@ jest.mock("react-router-dom", () => ({
   },
 }));
 
-jest.mock("../utils/connections");
+jest.mock("@eb/shared/src/utils/connections");
 const mockGetIsConnected = getIsConnected as jest.Mock;
 
-jest.mock("../apollo/delete-experience-cache");
+jest.mock("@eb/shared/src/apollo/delete-experience-cache");
 const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
 
-jest.mock("../apollo/update-get-experiences-list-view-query");
+jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
 
 const mockLoadingId = "l-o-a-d-i-n-g";
 jest.mock("../components/Loading/loading.component", () => {
   return () => <div id={mockLoadingId}></div>;
 });
 
-jest.mock("../apollo/injectables");
+jest.mock("@eb/shared/src/apollo/injectables");
 const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
 
 const mockHistoryPush = jest.fn();
@@ -207,40 +210,43 @@ describe("component", () => {
     } as GetExperiencesConnectionListViewQueryResult);
 
     const { ui } = makeComp();
-    render(ui);
-    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-    expect(document.getElementById(mockLoadingId)).not.toBeNull();
-    expect(getFetchErrorRetry()).toBeNull();
+    await act(async () => {
+      render(ui);
+      jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-    await waitFor(() => true);
-    const reFetchEl = getFetchErrorRetry();
+      expect(document.getElementById(mockLoadingId)).not.toBeNull();
+      expect(getFetchErrorRetry()).toBeNull();
 
-    mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
-      data: {
-        getExperiences: {
-          edges: [] as any,
+      await waitFor(() => true);
+      const reFetchEl = getFetchErrorRetry();
+
+      mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
+        data: {
+          getExperiences: {
+            edges: [] as any,
+          },
         },
-      },
-    } as GetExperiencesConnectionListViewQueryResult);
+      } as GetExperiencesConnectionListViewQueryResult);
 
-    reFetchEl.click();
+      reFetchEl.click();
 
-    expect(getNoExperiencesActivateNew()).toBeNull();
-    jest.runTimersToTime(MAX_TIMEOUT_MS);
+      expect(getNoExperiencesActivateNew()).toBeNull();
+      jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-    await waitFor(() => true);
-    const activateInsertExperienceBtnEl = getNoExperiencesActivateNew();
+      await waitFor(() => true);
+      const activateInsertExperienceBtnEl = getNoExperiencesActivateNew();
 
-    expect(getMockCloseUpsertExperienceUi()).toBeNull();
+      expect(getMockCloseUpsertExperienceUi()).toBeNull();
 
-    activateInsertExperienceBtnEl.click();
+      activateInsertExperienceBtnEl.click();
 
-    getMockCloseUpsertExperienceUi().click(); // exists
+      getMockCloseUpsertExperienceUi().click(); // exists
 
-    jest.runTimersToTime(MAX_TIMEOUT_MS);
+      jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-    expect(getMockCloseUpsertExperienceUi()).toBeNull();
+      expect(getMockCloseUpsertExperienceUi()).toBeNull();
+    });
   });
 
   it("throws errors while fetching experiences/fetches cached experiences/re-fetch experiences request", async () => {
@@ -252,97 +258,100 @@ describe("component", () => {
     mockManuallyFetchExperienceConnectionMini.mockRejectedValue(new Error("a"));
 
     const { ui } = makeComp();
-    render(ui);
-    jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-    expect(document.getElementById(mockLoadingId)).not.toBeNull();
+    await act(async () => {
+      render(ui);
+      jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-    expect(getFetchErrorRetry()).toBeNull();
+      expect(document.getElementById(mockLoadingId)).not.toBeNull();
 
-    await waitFor(() => true);
-    const reFetchEl = getFetchErrorRetry();
+      expect(getFetchErrorRetry()).toBeNull();
 
-    mockManuallyFetchExperienceConnectionMini.mockResolvedValueOnce({
-      data: {
-        getExperiences: {
-          edges: [
-            {
-              node: {
-                id: mockOnlineId,
-                title: "a",
+      await waitFor(() => true);
+      const reFetchEl = getFetchErrorRetry();
+
+      mockManuallyFetchExperienceConnectionMini.mockResolvedValueOnce({
+        data: {
+          getExperiences: {
+            edges: [
+              {
+                node: {
+                  id: mockOnlineId,
+                  title: "a",
+                },
               },
+            ] as GetExperiencesConnectionListView_getExperiences_edges[],
+            pageInfo: {
+              hasNextPage: true,
             },
-          ] as GetExperiencesConnectionListView_getExperiences_edges[],
-          pageInfo: {
-            hasNextPage: true,
           },
         },
-      },
-    } as GetExperiencesConnectionListViewQueryResult);
+      } as GetExperiencesConnectionListViewQueryResult);
 
-    reFetchEl.click();
-    jest.runTimersToTime(MAX_TIMEOUT_MS);
+      reFetchEl.click();
+      jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-    expect(getNoExperiencesActivateNew()).toBeNull();
+      expect(getNoExperiencesActivateNew()).toBeNull();
 
-    expect(getFetchNextExperience()).toBeNull();
+      expect(getFetchNextExperience()).toBeNull();
 
-    await waitFor(() => true);
-    const fetchMoreExperiencesBtnEl = getFetchNextExperience();
+      await waitFor(() => true);
+      const fetchMoreExperiencesBtnEl = getFetchNextExperience();
 
-    expect(getExperienceEl).not.toBeNull();
-    expect(getExperienceEl("b")).toBeNull();
-    jest.runTimersToTime(MAX_TIMEOUT_MS);
-    expect(mockHandlePreFetchExperiences.mock.calls[0]).toEqual([
-      [mockOnlineId],
-      {
-        [mockOnlineId]: {
-          id: mockOnlineId,
-          title: "a",
-        },
-      },
-    ]);
-
-    mockGetExperiencesMiniQuery.mockReturnValue({
-      edges: [
+      expect(getExperienceEl).not.toBeNull();
+      expect(getExperienceEl("b")).toBeNull();
+      jest.runTimersToTime(MAX_TIMEOUT_MS);
+      expect(mockHandlePreFetchExperiences.mock.calls[0]).toEqual([
+        [mockOnlineId],
         {
-          node: {
+          [mockOnlineId]: {
             id: mockOnlineId,
             title: "a",
           },
         },
-      ] as GetExperiencesConnectionListView_getExperiences_edges[],
-      pageInfo: {
-        hasNextPage: true,
-      },
-    } as GetExperiencesConnectionListView_getExperiences);
+      ]);
 
-    mockManuallyFetchExperienceConnectionMini.mockResolvedValueOnce({
-      data: {
-        getExperiences: {
-          edges: [
-            {
-              node: {
-                id: "b",
-                title: "b",
-              },
+      mockGetExperiencesMiniQuery.mockReturnValue({
+        edges: [
+          {
+            node: {
+              id: mockOnlineId,
+              title: "a",
             },
-          ] as GetExperiencesConnectionListView_getExperiences_edges[],
-          pageInfo: {},
+          },
+        ] as GetExperiencesConnectionListView_getExperiences_edges[],
+        pageInfo: {
+          hasNextPage: true,
         },
-      },
-    } as GetExperiencesConnectionListViewQueryResult);
+      } as GetExperiencesConnectionListView_getExperiences);
 
-    fetchMoreExperiencesBtnEl.click();
-    jest.runTimersToTime(MAX_TIMEOUT_MS);
+      mockManuallyFetchExperienceConnectionMini.mockResolvedValueOnce({
+        data: {
+          getExperiences: {
+            edges: [
+              {
+                node: {
+                  id: "b",
+                  title: "b",
+                },
+              },
+            ] as GetExperiencesConnectionListView_getExperiences_edges[],
+            pageInfo: {},
+          },
+        },
+      } as GetExperiencesConnectionListViewQueryResult);
 
-    await waitFor(() => {
-      return getExperienceEl("b");
+      fetchMoreExperiencesBtnEl.click();
+      jest.runTimersToTime(MAX_TIMEOUT_MS);
+
+      await waitFor(() => {
+        return getExperienceEl("b");
+      });
+
+      expect(getFetchNextExperience()).toBeNull();
+
+      expect(getExperienceEl()).not.toBeNull();
     });
-
-    expect(getFetchNextExperience()).toBeNull();
-
-    expect(getExperienceEl()).not.toBeNull();
   });
 
   it("interacts with description / offline Erfahrungen / teilweise online Erfahrungen", async () => {
@@ -372,47 +381,62 @@ describe("component", () => {
     } as GetExperiencesConnectionListView_getExperiences);
 
     const { ui } = makeComp();
-    render(ui);
 
-    await waitFor(() => true);
+    await act(async () => {
+      render(ui);
 
-    const partOfflineExperienceEl = getExperienceEl(mockPartOfflineId);
+      const partOfflineExperienceEl = await waitFor(() => {
+        const x = getExperienceEl(mockPartOfflineId);
+        expect(x).not.toBeNull();
+        return x;
+      });
 
-    expect(partOfflineExperienceEl.className).toContain(isPartOfflineClassName);
-    expect(partOfflineExperienceEl.className).not.toContain(isOfflineClassName);
+      expect(partOfflineExperienceEl.className).toContain(
+        isPartOfflineClassName,
+      );
+      expect(partOfflineExperienceEl.className).not.toContain(
+        isOfflineClassName,
+      );
 
-    const experiencesEls2 = getExperienceEl(offlineId);
-    expect(experiencesEls2.className).toContain(isOfflineClassName);
-    expect(experiencesEls2.className).not.toContain(isPartOfflineClassName);
+      const experiencesEls2 = getExperienceEl(offlineId);
+      expect(experiencesEls2.className).toContain(isOfflineClassName);
+      expect(experiencesEls2.className).not.toContain(isPartOfflineClassName);
 
-    // do not show description UI if no description
-    expect((getDescriptionEl(partOfflineExperienceEl) as any).length).toBe(0);
+      // do not show description UI if no description
+      expect((getDescriptionEl(partOfflineExperienceEl) as any).length).toBe(0);
 
-    // zweite Erfahrung besitz Beschreibung
-    const descriptionEl2 = getDescriptionEl(experiencesEls2, 0) as HTMLElement;
+      // zweite Erfahrung besitz Beschreibung
+      const descriptionEl2 = getDescriptionEl(
+        experiencesEls2,
+        0,
+      ) as HTMLElement;
 
-    // aber nur übersicht
-    expect((getDescriptionEl(experiencesEls2) as any).length).toBe(1);
+      // aber nur übersicht
+      expect((getDescriptionEl(experiencesEls2) as any).length).toBe(1);
 
-    // nicht vollständig Beschreibung
-    expect(
-      descriptionEl2.getElementsByClassName(descriptionFullClassName).length,
-    ).toBe(0);
+      // nicht vollständig Beschreibung
+      expect(
+        descriptionEl2.getElementsByClassName(descriptionFullClassName).length,
+      ).toBe(0);
 
-    // wir möchten vollständige Beschreibung anzeigen
-    (descriptionEl2
-      .getElementsByClassName(descriptionControlClassName)
-      .item(0) as HTMLElement).click();
+      // wir möchten vollständige Beschreibung anzeigen
+      (
+        descriptionEl2
+          .getElementsByClassName(descriptionControlClassName)
+          .item(0) as HTMLElement
+      ).click();
 
-    // also zussamenfassende Beschreibung ist versteckt
-    expect(
-      descriptionEl2.getElementsByClassName(descriptionSummaryClassName).length,
-    ).toBe(0);
+      // also zussamenfassende Beschreibung ist versteckt
+      expect(
+        descriptionEl2.getElementsByClassName(descriptionSummaryClassName)
+          .length,
+      ).toBe(0);
 
-    // und vollständig Beschreibung ist gezeigt
-    expect(
-      descriptionEl2.getElementsByClassName(descriptionFullClassName).length,
-    ).toBe(1);
+      // und vollständig Beschreibung ist gezeigt
+      expect(
+        descriptionEl2.getElementsByClassName(descriptionFullClassName).length,
+      ).toBe(1);
+    });
   });
 
   it("interacts with options menu", async () => {
@@ -430,39 +454,48 @@ describe("component", () => {
     } as GetExperiencesConnectionListView_getExperiences);
 
     const { ui } = makeComp();
-    render(ui);
 
-    await waitFor(() => true);
+    await act(async () => {
+      render(ui);
 
-    const experiencesEls0 = getExperienceEl(mockPartOfflineId);
+      const experiencesEls0 = await waitFor(() => {
+        const el = getExperienceEl(mockPartOfflineId);
+        expect(el).not.toBeNull();
+        return el;
+      });
 
-    const dropdownMenuEl0 = getDropdownMenu(experiencesEls0);
+      const dropdownMenuEl0 = getDropdownMenu(experiencesEls0);
 
-    expect(dropdownMenuEl0.classList).not.toContain(dropdownIsActiveClassName);
+      expect(dropdownMenuEl0.classList).not.toContain(
+        dropdownIsActiveClassName,
+      );
 
-    const dropdownTriggerEl = experiencesEls0
-      .getElementsByClassName(dropdownTriggerClassName)
-      .item(0) as HTMLElement;
+      const dropdownTriggerEl = experiencesEls0
+        .getElementsByClassName(dropdownTriggerClassName)
+        .item(0) as HTMLElement;
 
-    dropdownTriggerEl.click();
+      dropdownTriggerEl.click();
 
-    // clear experiences menu
-    const containerEl = getContainer();
-    containerEl.click();
+      // clear experiences menu
+      const containerEl = getContainer();
+      containerEl.click();
 
-    expect(dropdownMenuEl0.classList).not.toContain(dropdownIsActiveClassName);
+      expect(dropdownMenuEl0.classList).not.toContain(
+        dropdownIsActiveClassName,
+      );
 
-    dropdownTriggerEl.click();
+      dropdownTriggerEl.click();
 
-    getDeleteExperienceMenu().click();
+      getDeleteExperienceMenu().click();
 
-    await waitFor(() => true);
+      await waitFor(() => true);
 
-    expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0].id).toBe(
-      mockPartOfflineId,
-    );
+      expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0].id).toBe(
+        mockPartOfflineId,
+      );
 
-    expect(mockHistoryPush).toHaveBeenCalled();
+      expect(mockHistoryPush).toHaveBeenCalled();
+    });
   });
 
   it("Searches", async () => {
@@ -480,33 +513,37 @@ describe("component", () => {
     } as GetExperiencesConnectionListView_getExperiences);
 
     const { ui } = makeComp();
-    render(ui);
 
-    await waitFor(() => {
-      return document.getElementById(mockOnlineId) as HTMLElement;
+    await act(async () => {
+      render(ui);
+
+      await waitFor(() => {
+        const el = getById(mockOnlineId);
+        expect(el).not.toBeNull();
+      });
+
+      expect((getSearchLinks() as any).length).toBe(0);
+
+      const searchInputEl = getSearchInputEl();
+
+      fillField(searchInputEl, "a");
+
+      const searchLinkEl = getSearchLinks(0) as HTMLAnchorElement;
+
+      expect(searchLinkEl.href).toContain(mockOnlineId);
+
+      expect(getSearchNoResultsEl().length).toBe(0);
+
+      fillField(searchInputEl, "aaaaa");
+
+      expect(getSearchNoResultsEl().length).toBe(1);
+
+      expect((getSearchLinks() as any).length).toBe(0);
+
+      getContainer().click();
+
+      expect(getSearchNoResultsEl().length).toBe(0);
     });
-
-    expect((getSearchLinks() as any).length).toBe(0);
-
-    const searchInputEl = getSearchInputEl();
-
-    fillField(searchInputEl, "a");
-
-    const searchLinkEl = getSearchLinks(0) as HTMLAnchorElement;
-
-    expect(searchLinkEl.href).toContain(mockOnlineId);
-
-    expect(getSearchNoResultsEl().length).toBe(0);
-
-    fillField(searchInputEl, "aaaaa");
-
-    expect(getSearchNoResultsEl().length).toBe(1);
-
-    expect((getSearchLinks() as any).length).toBe(0);
-
-    getContainer().click();
-
-    expect(getSearchNoResultsEl().length).toBe(0);
   });
 
   it("deletes experience successfully", async () => {
@@ -588,7 +625,8 @@ describe("component", () => {
 
     await waitFor(() => true);
 
-    const deleteExperienceCancelledEl = getDeleteExperienceCancelledNotification();
+    const deleteExperienceCancelledEl =
+      getDeleteExperienceCancelledNotification();
 
     expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
 

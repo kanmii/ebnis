@@ -1,3 +1,4 @@
+import { cleanCachedMutations } from "@eb/shared/src/apollo/clean-cached-mutations";
 import {
   BroadcastMessageType,
   EmitAction,
@@ -5,9 +6,8 @@ import {
   EmitActionType,
   OnSyncedData,
   StateValue,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import React, { useEffect, useReducer } from "react";
-import { cleanCachedMutations } from "../../apollo/clean-cached-mutations";
 import {
   ChangeUrlType,
   getLocation,

@@ -1,13 +1,13 @@
-import { trimClass } from "@eb/cm/src/utils";
-import { componentTimeoutsMs } from "@eb/cm/src/utils/timers";
-import { StateValue } from "@eb/cm/src/utils/types";
-import { ComponentColorType } from "@eb/cm/src/utils/types/react";
 import Button from "@eb/jsx/src/components/Button/button.component";
 import DropdownMenu from "@eb/jsx/src/components/dropdown-menu/dropdown-menu.component";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import Notification from "@eb/jsx/src/components/Notification/notification.component";
+import { getExperienceComments } from "@eb/shared/src/apollo/experience.gql.types";
+import { trimClass } from "@eb/shared/src/utils";
+import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
+import { StateValue } from "@eb/shared/src/utils/types";
+import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import React, { Fragment, Suspense, useEffect, useReducer } from "react";
-import { getExperienceComments } from "../../utils/experience.gql.types";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { noTriggerDocumentEventClassName } from "../DetailExperience/detail-experience.dom";

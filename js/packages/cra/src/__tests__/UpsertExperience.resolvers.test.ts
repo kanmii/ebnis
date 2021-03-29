@@ -1,28 +1,28 @@
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { GetExperiencesConnectionListView_getExperiences } from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import {
-  entriesToConnection,
-  toGetEntriesSuccessQuery,
-} from "@eb/cm/src/graphql/utils.gql";
-import { isOfflineId, makeOfflineId } from "@eb/cm/src/utils/offlines";
-import { EbnisGlobals } from "@eb/cm/src/utils/types";
-import { getCachedExperiencesConnectionListView } from "../apollo/cached-experiences-list-view";
+import { getCachedExperiencesConnectionListView } from "@eb/shared/src/apollo/cached-experiences-list-view";
 import {
   getCachedEntriesDetailViewSuccess,
   readExperienceCompleteFragment,
   writeCachedEntriesDetailView,
   writeCachedExperienceCompleteFragment,
-} from "../apollo/get-detailed-experience-query";
+} from "@eb/shared/src/apollo/get-detailed-experience-query";
 import {
   getUnsyncedExperience,
   writeUnsyncedExperience,
-} from "../apollo/unsynced-ledger";
+} from "@eb/shared/src/apollo/unsynced-ledger";
 import {
   floatExperienceToTheTopInGetExperiencesMiniQuery,
   upsertExperiencesInGetExperiencesMiniQuery,
-} from "../apollo/update-get-experiences-list-view-query";
+} from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { GetExperiencesConnectionListView_getExperiences } from "@eb/shared/src/graphql/apollo-types/GetExperiencesConnectionListView";
+import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import {
+  entriesToConnection,
+  toGetEntriesSuccessQuery,
+} from "@eb/shared/src/graphql/utils.gql";
+import { isOfflineId, makeOfflineId } from "@eb/shared/src/utils/offlines";
+import { EbnisGlobals } from "@eb/shared/src/utils/types";
 import { createOfflineEntryMutation } from "../components/UpsertEntry/upsert-entry.resolvers";
 import {
   createOfflineExperience,
@@ -34,22 +34,27 @@ import { AppPersistor } from "../utils/app-context";
 jest.mock("../components/UpsertEntry/upsert-entry.resolvers");
 const mockCreateOfflineEntryMutation = createOfflineEntryMutation as jest.Mock;
 
-jest.mock("../apollo/get-detailed-experience-query");
+jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
 const mockReadExperienceFragment = readExperienceCompleteFragment as jest.Mock;
-const mockGetEntriesQuerySuccess = getCachedEntriesDetailViewSuccess as jest.Mock;
+const mockGetEntriesQuerySuccess =
+  getCachedEntriesDetailViewSuccess as jest.Mock;
 const mockWriteGetEntriesQuery = writeCachedEntriesDetailView as jest.Mock;
-const mockWriteExperienceFragmentToCache = writeCachedExperienceCompleteFragment as jest.Mock;
+const mockWriteExperienceFragmentToCache =
+  writeCachedExperienceCompleteFragment as jest.Mock;
 
-jest.mock("../apollo/cached-experiences-list-view");
-const mockGetExperiencesMiniQuery = getCachedExperiencesConnectionListView as jest.Mock;
+jest.mock("@eb/shared/src/apollo/cached-experiences-list-view");
+const mockGetExperiencesMiniQuery =
+  getCachedExperiencesConnectionListView as jest.Mock;
 
-jest.mock("../apollo/unsynced-ledger");
+jest.mock("@eb/shared/src/apollo/unsynced-ledger");
 const mockWriteUnsyncedExperience = writeUnsyncedExperience as jest.Mock;
 const mockGetUnsyncedExperience = getUnsyncedExperience as jest.Mock;
 
-jest.mock("../apollo/update-get-experiences-list-view-query");
-const mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery = upsertExperiencesInGetExperiencesMiniQuery as jest.Mock;
-const mockFloatExperienceToTheTopInGetExperiencesMiniQuery = floatExperienceToTheTopInGetExperiencesMiniQuery as jest.Mock;
+jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
+const mockInsertOrReplaceOrRemoveExperiencesInGetExperiencesMiniQuery =
+  upsertExperiencesInGetExperiencesMiniQuery as jest.Mock;
+const mockFloatExperienceToTheTopInGetExperiencesMiniQuery =
+  floatExperienceToTheTopInGetExperiencesMiniQuery as jest.Mock;
 
 const mockWriteQueryFn = jest.fn();
 

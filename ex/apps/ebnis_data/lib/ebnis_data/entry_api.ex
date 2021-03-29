@@ -560,8 +560,16 @@ defmodule EbnisData.EntryApi do
     end
   end
 
-  @spec get_paginated_entries(experience_ids :: [binary()], map(), list()) ::
-          [Connection.t()]
+  @spec get_paginated_entries(
+          experience_ids :: [binary()],
+          pagination :: %{
+            optional(:after) => any,
+            optional(:before) => any,
+            optional(:first) => nil | pos_integer,
+            optional(:last) => nil | pos_integer
+          },
+          repo_opts :: list()
+        ) :: {list(), non_neg_integer, non_neg_integer}
   def get_paginated_entries(experience_ids, pagination, repo_opts) do
     {
       :ok,
@@ -603,7 +611,7 @@ defmodule EbnisData.EntryApi do
             user_id: binary(),
             pagination: map()
           }
-        ) :: [Connection.t()]
+        ) :: {:error, binary()} | {:ok, %{edges: list(), page_info: map()}}
   def get_entries(args) do
     experience_id = args.experience_id
     pagination = args.pagination

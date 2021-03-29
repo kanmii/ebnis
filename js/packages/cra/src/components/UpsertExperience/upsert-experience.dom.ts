@@ -1,4 +1,4 @@
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 
 export const domPrefix = "upsert-experience-component";
 

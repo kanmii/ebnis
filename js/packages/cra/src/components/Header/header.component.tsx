@@ -1,4 +1,4 @@
-import logo from "@eb/cm/src/media/logo.png";
+import logo from "@eb/shared/src/media/logo.png";
 import makeClassNames from "classnames";
 import React, { useContext } from "react";
 import { Link, useLocation } from "react-router-dom";

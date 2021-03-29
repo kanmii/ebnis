@@ -1,7 +1,9 @@
-import { Any } from "@eb/cm/src/utils/types";
+import { wrapReducer } from "@eb/shared/src/logger";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { manageUserAuthentication } from "@eb/shared/src/utils/manage-user-auth";
+import { Any } from "@eb/shared/src/utils/types";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
-import { wrapReducer } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import { EbnisContextProps } from "../../utils/app-context";
 import {
@@ -13,9 +15,7 @@ import {
   parseStringError,
   StringyErrorPayload,
 } from "../../utils/common-errors";
-import { getIsConnected } from "../../utils/connections";
 import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
-import { manageUserAuthentication } from "../../utils/manage-user-auth";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { MY_URL } from "../../utils/urls";
 import { LoginMutationComponentProps } from "../../utils/user.gql.types";
@@ -302,7 +302,9 @@ function validateForm(proxy: DraftState): FormInput {
     formUpdated = true;
 
     /* eslint-disable-next-line no-useless-escape*/
-    const regex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    const regex =
+      // eslint-disable-next-line no-useless-escape
+      /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
     if (!regex.test(value)) {
       validateFormPutFieldErrorHelper(submissionErrorState, validityState0, [
@@ -563,7 +565,7 @@ export interface EffectArgs {
 
 interface EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = Any
+  OwnArgs = Any,
 > {
   key: Key;
   ownArgs: OwnArgs;

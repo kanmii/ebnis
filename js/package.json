@@ -9,13 +9,10 @@
     "start": "nps"
   },
   "devDependencies": {
-    "netlify": "6.1.6",
-    "netlify-cli": "3.4.6",
-    "nps": "5.10.0",
-    "nps-utils": "1.7.0",
-    "prettier": "2.2.1",
+    "nps": "^5.10.0",
+    "nps-utils": "^1.7.0",
+    "prettier": "^2.3.1",
     "shelljs": "0.8.4",
-    "sort-package-json": "1.48.1",
-    "start-server-and-test": "1.11.7"
+    "sort-package-json": "^1.50.0"
   }
 }

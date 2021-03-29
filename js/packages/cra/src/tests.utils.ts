@@ -1,7 +1,7 @@
 /* istanbul ignore file */
-import { EntryConnectionFragment } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { EntryConnectionFragment } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
+import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import { fireEvent } from "@testing-library/react";
 import { GenericGeneralEffect, GenericHasEffect } from "./utils/effects";
 

@@ -14,7 +14,6 @@ defmodule EbnisData.ExperienceApi do
   alias EbnisData.DataType
 
   @get_experience_exception_header "\n\nException while getting experience with:"
-  @bad_request "bad request"
   @update_definitions_exception_header "\n\nException while updating definitions with:"
   @experience_can_not_be_created_exception_header "\n\nsomething is wrong - experience can not be created"
   @update_experience_exception_header "\n\nException while updating experience with:"
@@ -193,7 +192,7 @@ defmodule EbnisData.ExperienceApi do
         result
 
       _ ->
-        {:error, @bad_request}
+        {:error, Ebnis.bad_request()}
     end
   end
 
@@ -556,7 +555,7 @@ defmodule EbnisData.ExperienceApi do
           :error,
           %{
             id: id,
-            error: @bad_request
+            error: Ebnis.bad_request()
           }
         }
 
@@ -622,7 +621,7 @@ defmodule EbnisData.ExperienceApi do
         :error,
         %{
           id: input.id,
-          error: @bad_request
+          error: Ebnis.bad_request()
         }
       }
 
@@ -733,7 +732,13 @@ defmodule EbnisData.ExperienceApi do
 
         experience
         |> create_entry(attrs)
-        |> create_comment(attrs)
+        |> case do
+          %{} = experience ->
+            create_comment(experience, attrs)
+
+          experience_and_or_entries_errors ->
+            experience_and_or_entries_errors
+        end
 
       {:error, changeset} ->
         {:error, changeset}
@@ -750,7 +755,7 @@ defmodule EbnisData.ExperienceApi do
         ]
       end)
 
-      {:error, @bad_request}
+      {:error, Ebnis.bad_request()}
   end
 
   defp validate_create_entries([], _, _) do
@@ -934,7 +939,10 @@ defmodule EbnisData.ExperienceApi do
     experience
   end
 
-  defp create_comment(experience, %{comment_text: text}) do
+  defp create_comment(
+         experience,
+         %{comment_text: text}
+       ) do
     comment =
       EbnisData.create_experience_comment(%{
         text: text,
@@ -1027,6 +1035,6 @@ defmodule EbnisData.ExperienceApi do
         ]
       end)
 
-      {:error, @bad_request}
+      {:error, Ebnis.bad_request()}
   end
 end

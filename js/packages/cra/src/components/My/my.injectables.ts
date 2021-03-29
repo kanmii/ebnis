@@ -1,12 +1,12 @@
-import { preFetchExperiences } from "../../utils/experience.gql.types";
+import { preFetchExperiences } from "@eb/shared/src/apollo/experience.gql.types";
 import {
   writeCachedEntriesDetailView,
   writeGetExperienceDetailViewQueryToCache,
-} from "../../apollo/get-detailed-experience-query";
-import { toGetEntriesSuccessQuery } from "@eb/cm/src/graphql/utils.gql";
-import { EntryConnectionFragment } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
+} from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { EntryConnectionFragment } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
+import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
+import { toGetEntriesSuccessQuery } from "@eb/shared/src/graphql/utils.gql";
 
 // istanbul ignore next:
 export function handlePreFetchExperiences(
@@ -42,7 +42,7 @@ export function handlePreFetchExperiences(
       const entryConnection = experience.entries as EntryConnectionFragment;
 
       writeGetExperienceDetailViewQueryToCache(
-        (combinedExperienceData as unknown) as ExperienceCompleteFragment,
+        combinedExperienceData as unknown as ExperienceCompleteFragment,
       );
 
       writeCachedEntriesDetailView(

@@ -1,40 +1,40 @@
-import React, {
-  useEffect,
-  useReducer,
-  useCallback,
-  MouseEvent,
-  useContext,
-  useLayoutEffect,
-} from "react";
-import Header from "../Header/header.component";
-import "./login.styles.scss";
-import {
-  Props,
-  effectFunctions,
-  reducer,
-  initState,
-  StateValue,
-  ActionType,
-  CallerProps,
-} from "./login.utils";
-import { FieldError } from "../../utils/common-errors";
-import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
-import {
-  emailInputId,
-  passwordInputId,
-  passwordErrorId,
-  emailErrorId,
-  submitId,
-  resetId,
-  notificationId,
-  LOGIN_PAGE_TITLE,
-} from "./login.dom";
-import { useLoginMutation } from "../../utils/user.gql.types";
 import makeClassNames from "classnames";
-import { warningClassName, errorClassName } from "../../utils/utils.dom";
+import React, {
+  MouseEvent,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+} from "react";
 import { EbnisAppContext } from "../../utils/app-context";
+import { FieldError } from "../../utils/common-errors";
 import { setUpRoutePage } from "../../utils/global-window";
 import { SIGN_UP_URL } from "../../utils/urls";
+import { useLoginMutation } from "../../utils/user.gql.types";
+import { errorClassName, warningClassName } from "../../utils/utils.dom";
+import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
+import Header from "../Header/header.component";
+import {
+  emailErrorId,
+  emailInputId,
+  LOGIN_PAGE_TITLE,
+  notificationId,
+  passwordErrorId,
+  passwordInputId,
+  resetId,
+  submitId,
+} from "./login.dom";
+import "./login.styles.scss";
+import {
+  ActionType,
+  CallerProps,
+  effectFunctions,
+  initState,
+  Props,
+  reducer,
+  StateValue,
+} from "./login.utils";
 
 export function Login(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);

@@ -1,8 +1,8 @@
 import {
   DeleteExperiences,
   DeleteExperiencesVariables,
-} from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
-import { DELETE_EXPERIENCES_MUTATION } from "@eb/cm/src/graphql/experience.gql";
+} from "@eb/shared/src/graphql/apollo-types/DeleteExperiences";
+import { DELETE_EXPERIENCES_MUTATION } from "@eb/shared/src/graphql/experience.gql";
 import { ExecutionResult } from "graphql/execution/execute";
 
 export async function deleteExperiences(variables: DeleteExperiencesVariables) {
@@ -27,4 +27,5 @@ export interface DeleteExperiencesComponentProps {
 }
 
 // used to type check test fake mutation function return value e.g. {data: {result: {}}}
-export type DeleteExperiencesMutationResult = ExecutionResult<DeleteExperiences>;
+export type DeleteExperiencesMutationResult =
+  ExecutionResult<DeleteExperiences>;

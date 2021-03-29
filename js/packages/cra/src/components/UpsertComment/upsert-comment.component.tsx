@@ -1,8 +1,8 @@
-import { ReactComponent as ExclamationErrorSvg } from "@eb/cm/src/styles/exclamation-error.svg";
-import { StateValue } from "@eb/cm/src/utils/types";
-import { ComponentColorType } from "@eb/cm/src/utils/types/react";
 import Button from "@eb/jsx/src/components/Button/button.component";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
+import { ReactComponent as ExclamationErrorSvg } from "@eb/shared/src/styles/exclamation-error.svg";
+import { StateValue } from "@eb/shared/src/utils/types";
+import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import { ChangeEvent, useCallback, useReducer } from "react";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";

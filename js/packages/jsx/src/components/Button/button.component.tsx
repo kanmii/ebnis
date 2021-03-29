@@ -1,12 +1,12 @@
-import { ReactComponent as XCircleFilledSvg } from "@eb/cm/src/styles/x-circle-filled.svg";
+import { ReactComponent as XCircleFilledSvg } from "@eb/shared/src/styles/x-circle-filled.svg";
+import { trimClass } from "@eb/shared/src/utils";
 import {
+  ComponentColorStyle,
+  ComponentColorType,
   ComponentProps,
   ReactMouseEvent,
-  ComponentColorType,
-  ComponentColorStyle,
-} from "@eb/cm/src/utils/types/react";
-import { trimClass } from "@eb/cm/src/utils";
-import { DetailedHTMLProps } from "react";
+} from "@eb/shared/src/utils/types/react";
+import React, { DetailedHTMLProps } from "react";
 
 const classes: ComponentColorStyle = {
   [ComponentColorType.is_danger]: `

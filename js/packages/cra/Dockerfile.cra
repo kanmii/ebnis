@@ -55,8 +55,8 @@ COPY \
 ########## SHARED FOLDER 1 ##########
 COPY \
   --from=ebnis-js-base --chown=node:node  \
-  /ebnis-app/js-shared \
-  ./js-shared/
+  /ebnis-app/_shared \
+  ./_shared/
 
 ####### COMMONS #########
 COPY \

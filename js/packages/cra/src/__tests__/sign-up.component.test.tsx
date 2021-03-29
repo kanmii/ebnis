@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { manageUserAuthentication } from "@eb/shared/src/utils/manage-user-auth";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";
 import { SignUp } from "../components/SignUp/sign-up.component";
@@ -15,7 +16,6 @@ import { Props } from "../components/SignUp/sign-up.utils";
 import { fillField } from "../tests.utils";
 import { AppPersistor } from "../utils/app-context";
 import { windowChangeUrl } from "../utils/global-window";
-import { manageUserAuthentication } from "../utils/manage-user-auth";
 import { scrollIntoView } from "../utils/scroll-into-view";
 import { RegisterUserMutationResult } from "../utils/user.gql.types";
 import {
@@ -29,7 +29,7 @@ import {
 jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
 
-jest.mock("../utils/manage-user-auth");
+jest.mock("@eb/shared/src/utils/manage-user-auth");
 const mockManageUserAuthentication = manageUserAuthentication as jest.Mock;
 
 jest.mock("../components/Header/header.component", () => {
@@ -268,9 +268,9 @@ function getSubmitEl() {
 }
 
 function closeNotification(notificationEl: HTMLElement) {
-  (notificationEl
-    .getElementsByClassName("delete")
-    .item(0) as HTMLElement).click();
+  (
+    notificationEl.getElementsByClassName("delete").item(0) as HTMLElement
+  ).click();
 }
 
 function getNotificationEl() {

@@ -1,20 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
-import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { makeOfflineId } from "@eb/cm/src/utils/offlines";
-import { EbnisGlobals, StateValue } from "@eb/cm/src/utils/types";
+import { CreateEntryErrorFragment } from "@eb/shared/src/graphql/apollo-types/CreateEntryErrorFragment";
+import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
+import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { makeOfflineId } from "@eb/shared/src/utils/offlines";
+import { EbnisGlobals, StateValue } from "@eb/shared/src/utils/types";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import React, { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
 import { UpsertEntry } from "../components/UpsertEntry/upsert-entry.component";
 import {
+  closeId,
   fieldErrorSelector,
   notificationCloseId,
   submitBtnDomId,
-  closeId,
 } from "../components/UpsertEntry/upsert-entry.dom";
 import { createOfflineEntryMutation } from "../components/UpsertEntry/upsert-entry.resolvers";
 import {
@@ -37,14 +38,13 @@ import {
 import { deleteObjectKey } from "../utils";
 import { AppPersistor } from "../utils/app-context";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
-import { getIsConnected } from "../utils/connections";
 import { scrollIntoView } from "../utils/scroll-into-view";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 
 jest.mock("../utils/update-experiences.gql");
 const mockUpdateExperiencesMutation = updateExperiencesMutation as jest.Mock;
 
-jest.mock("../apollo/get-detailed-experience-query");
+jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
 
 jest.mock("../components/UpsertEntry/upsert-entry.resolvers");
 const mockCreateOfflineEntry = createOfflineEntryMutation as jest.Mock;
@@ -52,7 +52,7 @@ const mockCreateOfflineEntry = createOfflineEntryMutation as jest.Mock;
 jest.mock("../utils/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
 
-jest.mock("../utils/connections");
+jest.mock("@eb/shared/src/utils/connections");
 const mockIsConnected = getIsConnected as jest.Mock;
 
 jest.mock("../components/UpsertEntry/upsert-entry.injectables");
@@ -558,11 +558,11 @@ describe("reducer", () => {
     dispatch: mockDispatch,
   };
 
-  const props = ({
+  const props = {
     experience: onlineExperience,
     onSuccess: mockOnSuccess,
     onClose: mockOnClose,
-  } as unknown) as Props;
+  } as unknown as Props;
 
   it("sets decimal to default zero/connected/success", async () => {
     mockIsConnected.mockResolvedValue(true);
@@ -579,8 +579,8 @@ describe("reducer", () => {
       type: ActionType.submit,
     });
 
-    const { key, ownArgs } = (state.effects
-      .general as GeneralEffect).hasEffects.context.effects[0];
+    const { key, ownArgs } = (state.effects.general as GeneralEffect).hasEffects
+      .context.effects[0];
 
     expect(mockPersistFn).not.toHaveBeenCalled();
 
@@ -612,8 +612,8 @@ describe("reducer", () => {
       type: ActionType.submit,
     });
 
-    const { key, ownArgs } = (state.effects
-      .general as GeneralEffect).hasEffects.context.effects[0];
+    const { key, ownArgs } = (state.effects.general as GeneralEffect).hasEffects
+      .context.effects[0];
 
     expect(mockDispatch).not.toHaveBeenCalled();
 
@@ -672,8 +672,8 @@ describe("reducer", () => {
       type: ActionType.submit,
     });
 
-    const { key, ownArgs } = (state.effects
-      .general as GeneralEffect).hasEffects.context.effects[0];
+    const { key, ownArgs } = (state.effects.general as GeneralEffect).hasEffects
+      .context.effects[0];
 
     mockCreateOfflineEntry.mockReturnValue({
       entry: {},

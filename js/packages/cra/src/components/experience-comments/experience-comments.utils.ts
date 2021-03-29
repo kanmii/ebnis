@@ -1,8 +1,18 @@
-import { CommentFragment } from "@eb/cm/src/graphql/apollo-types/CommentFragment";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { GetExperienceCommentsErrorsFragment_errors } from "@eb/cm/src/graphql/apollo-types/GetExperienceCommentsErrorsFragment";
-import { ComponentTimeoutsMs } from "@eb/cm/src/utils/timers";
+import {
+  GetExperienceCommentsFn,
+  GetExperienceCommentsQueryResult,
+} from "@eb/shared/src/apollo/experience.gql.types";
+import {
+  readExperienceCompleteFragment,
+  writeCachedExperienceCompleteFragment,
+} from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { CommentFragment } from "@eb/shared/src/graphql/apollo-types/CommentFragment";
+import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { GetExperienceCommentsErrorsFragment_errors } from "@eb/shared/src/graphql/apollo-types/GetExperienceCommentsErrorsFragment";
+import { wrapReducer, wrapState } from "@eb/shared/src/logger";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { ComponentTimeoutsMs } from "@eb/shared/src/utils/timers";
 import {
   ActiveVal,
   DataVal,
@@ -14,32 +24,22 @@ import {
   StateValue,
   SuccessVal,
   Timeouts,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
-import {
-  readExperienceCompleteFragment,
-  writeCachedExperienceCompleteFragment,
-} from "../../apollo/get-detailed-experience-query";
-import { wrapReducer, wrapState } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import { DATA_FETCHING_FAILED, ErrorType } from "../../utils/common-errors";
-import { getIsConnected } from "../../utils/connections";
 import {
   GenericEffectDefinition,
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import {
-  GetExperienceCommentsFn,
-  GetExperienceCommentsQueryResult,
-} from "../../utils/experience.gql.types";
 import { UpdateExperiencesMutationProps } from "../../utils/update-experiences.gql";
 import { scrollDocumentToTop } from "../DetailExperience/detail-experience.injectables";
 import {
+  Action as ParentAction,
   ActionType as ParentActionType,
   DispatchType as ParentDispatchType,
-  Action as ParentAction,
 } from "../DetailExperience/detailed-experience-utils";
 
 export enum CommentRemoteActionType {
@@ -594,7 +594,8 @@ const fetchEffect: DefFetchEffect["func"] = async (_, props, effectArgs) => {
 
               scrollDocumentToTop();
 
-              const cachedExperience = maybeCachedExperience as ExperienceCompleteFragment;
+              const cachedExperience =
+                maybeCachedExperience as ExperienceCompleteFragment;
 
               writeCachedExperienceCompleteFragment({
                 ...cachedExperience,
@@ -771,7 +772,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
     componentTimeoutsMs: { closeNotification: closeNotificationTimeout },
   } = props;
 
-  let timeoutCb = (undefined as unknown) as () => void;
+  let timeoutCb = undefined as unknown as () => void;
 
   switch (set) {
     case "set-close-comment-notification":
@@ -1039,7 +1040,7 @@ export type EffectArgs = {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = Record<string, unknown>
+  OwnArgs = Record<string, unknown>,
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 type ReceivedPayload =

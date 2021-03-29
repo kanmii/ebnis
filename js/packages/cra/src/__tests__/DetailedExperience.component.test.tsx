@@ -1,13 +1,34 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
-import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
-import { DeleteExperiences } from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
+import {
+  getDeleteExperienceLedger,
+  putOrRemoveDeleteExperienceLedger,
+} from "@eb/shared/src/apollo/delete-experience-cache";
+import {
+  getExperienceAndEntriesDetailView,
+  GetExperienceAndEntriesDetailViewQueryResult,
+} from "@eb/shared/src/apollo/experience.gql.types";
+import {
+  // getCachedEntriesDetailView,
+  getCachedExperienceAndEntriesDetailView,
+} from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
+import {
+  getAndRemoveOfflineExperienceIdFromSyncFlag,
+  getSyncError,
+  putOfflineExperienceIdInSyncFlag,
+} from "@eb/shared/src/apollo/sync-to-server-cache";
+import { removeUnsyncedExperiences } from "@eb/shared/src/apollo/unsynced-ledger";
+import { makeApolloClient } from "@eb/shared/src/client";
+import { CreateEntryErrorFragment } from "@eb/shared/src/graphql/apollo-types/CreateEntryErrorFragment";
+import { DataObjectErrorFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectErrorFragment";
+import { DeleteExperiences } from "@eb/shared/src/graphql/apollo-types/DeleteExperiences";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
 import {
   EbnisGlobals,
   OnSyncedData,
   StateValue,
   SyncErrors,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import {
   mockOfflineEntry1,
   mockOfflineEntry1Id,
@@ -21,36 +42,23 @@ import {
   mockOnlineEntry2Id,
   mockOnlineExperience1,
   mockOnlineExperienceId1,
-} from "@eb/cm/src/__tests__/mock-data";
+} from "@eb/shared/src/__tests__/mock-data";
 import {
   deleteExperiencesMswGql,
   // updateMswExperiencesGql,
   getExperienceAndEntriesDetailViewGqlMsw,
-} from "@eb/cm/src/__tests__/msw-handlers";
-import { mswServer, mswServerListen } from "@eb/cm/src/__tests__/msw-server";
+} from "@eb/shared/src/__tests__/msw-handlers";
+import {
+  mswServer,
+  mswServerListen,
+} from "@eb/shared/src/__tests__/msw-server";
 import {
   componentTimeoutsMs,
   waitForCount,
-} from "@eb/cm/src/__tests__/wait-for-count";
+} from "@eb/shared/src/__tests__/wait-for-count";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
-import { makeApolloClient } from "../apollo/client";
-import {
-  getDeleteExperienceLedger,
-  putOrRemoveDeleteExperienceLedger,
-} from "../apollo/delete-experience-cache";
-import {
-  // getCachedEntriesDetailView,
-  getCachedExperienceAndEntriesDetailView,
-} from "../apollo/get-detailed-experience-query";
-import { useWithSubscriptionContext } from "../apollo/injectables";
-import {
-  getAndRemoveOfflineExperienceIdFromSyncFlag,
-  getSyncError,
-  putOfflineExperienceIdInSyncFlag,
-} from "../apollo/sync-to-server-cache";
-import { removeUnsyncedExperiences } from "../apollo/unsynced-ledger";
 import { DetailExperience } from "../components/DetailExperience/detail-experience.component";
 import {
   closeSyncErrorsMsgBtnId,
@@ -102,12 +110,7 @@ import {
 import { getById, getEffects, getOneByClass } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
-import { getIsConnected } from "../utils/connections";
 import { deleteExperiences } from "../utils/delete-experiences.gql";
-import {
-  getExperienceAndEntriesDetailView,
-  GetExperienceAndEntriesDetailViewQueryResult,
-} from "../utils/experience.gql.types";
 import { ChangeUrlType, windowChangeUrl } from "../utils/global-window";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { MY_URL } from "../utils/urls";
@@ -121,10 +124,10 @@ const mockActionType = ActionType;
 jest.mock("../utils/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
 
-jest.mock("../apollo/injectables");
+jest.mock("@eb/shared/src/apollo/injectables");
 const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
 
-jest.mock("../apollo/unsynced-ledger");
+jest.mock("@eb/shared/src/apollo/unsynced-ledger");
 const mockRemoveUnsyncedExperiences = removeUnsyncedExperiences as jest.Mock;
 
 const mockUpsertSuccessId = "@t/upsert-success";
@@ -153,9 +156,10 @@ jest.mock("../components/My/my.lazy", () => ({
   },
 }));
 
-jest.mock("../apollo/delete-experience-cache");
+jest.mock("@eb/shared/src/apollo/delete-experience-cache");
 const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
-const mockPutOrRemoveDeleteExperienceLedger = putOrRemoveDeleteExperienceLedger as jest.Mock;
+const mockPutOrRemoveDeleteExperienceLedger =
+  putOrRemoveDeleteExperienceLedger as jest.Mock;
 
 const mockLoadingId = "@t/loading";
 jest.mock("../components/Loading/loading.component", () => {
@@ -194,21 +198,25 @@ jest.mock("../components/entries/entries.component", () => {
   };
 });
 
-jest.mock("../utils/connections");
+jest.mock("@eb/shared/src/utils/connections");
 const mockGetIsConnected = getIsConnected as jest.Mock;
 
-jest.mock("../apollo/get-detailed-experience-query");
-const mockGetCachedExperienceAndEntriesDetailView = getCachedExperienceAndEntriesDetailView as jest.Mock;
+jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
+const mockGetCachedExperienceAndEntriesDetailView =
+  getCachedExperienceAndEntriesDetailView as jest.Mock;
 
-jest.mock("../apollo/sync-to-server-cache");
+jest.mock("@eb/shared/src/apollo/sync-to-server-cache");
 const mockGetSyncError = getSyncError as jest.Mock;
-const mockgetAndRemoveOfflineExperienceIdFromSyncFlag = getAndRemoveOfflineExperienceIdFromSyncFlag as jest.Mock;
-const mockPutOfflineExperienceIdInSyncFlag = putOfflineExperienceIdInSyncFlag as jest.Mock;
+const mockgetAndRemoveOfflineExperienceIdFromSyncFlag =
+  getAndRemoveOfflineExperienceIdFromSyncFlag as jest.Mock;
+const mockPutOfflineExperienceIdInSyncFlag =
+  putOfflineExperienceIdInSyncFlag as jest.Mock;
 // const mockPutOrRemoveSyncError = putOrRemoveSyncError as jest.Mock;
 
 jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
 const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
-const mockCleanUpSyncedOfflineEntries = cleanUpSyncedOfflineEntries as jest.Mock;
+const mockCleanUpSyncedOfflineEntries =
+  cleanUpSyncedOfflineEntries as jest.Mock;
 
 const mockUpsertCommentsId = "@t/upsert-comments";
 const mockCloseUpsertCommentsId = "@t/close-comments";
@@ -281,14 +289,14 @@ const history = {
   push: mockHistoryPushFn,
 } as any;
 
-const ebnisObject = {
+const globals = {
   persistor: {
     persist: mockPersistFunc as any,
   },
 } as EbnisGlobals;
 
 beforeAll(() => {
-  window.____ebnis = ebnisObject;
+  window.____ebnis = globals;
 });
 
 afterAll(() => {
@@ -297,8 +305,8 @@ afterAll(() => {
 
 afterEach(() => {
   jest.clearAllMocks();
-  ebnisObject.logApolloQueries = false;
-  ebnisObject.logReducers = false;
+  globals.logApolloQueries = false;
+  globals.logReducers = false;
 });
 
 describe("components", () => {
@@ -313,16 +321,19 @@ describe("components", () => {
   beforeEach(() => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    const { client, cache } = makeApolloClient(ebnisObject, { testing: true });
-    ebnisObject.cache = cache;
-    ebnisObject.client = client;
+    const { client, cache } = makeApolloClient({
+      ebnisGlobals: globals,
+      testing: true,
+    });
+    globals.cache = cache;
+    globals.client = client;
   });
 
   afterEach(() => {
     mswServer.resetHandlers();
     cleanup();
-    deleteObjectKey(ebnisObject, "client");
-    deleteObjectKey(ebnisObject, "cache");
+    deleteObjectKey(globals, "client");
+    deleteObjectKey(globals, "cache");
   });
 
   it("fetch experience succeeds / connected / no retry", async () => {
@@ -549,11 +560,10 @@ describe("components", () => {
 
       // When deletion succeeds
       // User should be navigated away from the page
-      const calls = await waitForCount(() => {
+      await waitFor(() => {
         const calls = mockHistoryPushFn.mock.calls[0];
-        return calls;
+        expect(calls[0]).toBe(MY_URL);
       });
-      expect(calls[0]).toBe(MY_URL);
 
       // Code to clean up deleted experience from cache should be called
       expect(mockPutOrRemoveDeleteExperienceLedger).toBeCalled();
@@ -581,14 +591,14 @@ describe("components", () => {
     mswServer.use(deleteExperiencesMswGql(deleteExperience2Data));
 
     const { ui } = makeComp();
-    let unmount1: any;
+    let unMount1: any;
 
     await act(async () => {
       // ebnisObject.logReducers = true;
       // ebnisObject.logApolloQueries = true;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { unmount } = render(ui);
-      unmount1 = unmount;
+      unMount1 = unmount;
 
       const triggerDeleteUiEl = await waitFor(() => {
         const el = getById(deleteMenuItemId);
@@ -622,7 +632,7 @@ describe("components", () => {
 
     // timeouts should be cleared after component unmount
     expect(mockClearTimeoutFn).not.toBeCalled();
-    unmount1();
+    unMount1();
     expect(mockClearTimeoutFn).toBeCalled();
   });
 
@@ -1007,7 +1017,8 @@ describe("reducers", () => {
         experienceId: mockOnlineExperienceId1,
       },
     },
-    getExperienceAndEntriesDetailView: mockGetExperienceAndEntriesDetailView as any,
+    getExperienceAndEntriesDetailView:
+      mockGetExperienceAndEntriesDetailView as any,
     deleteExperiences: mockDeleteExperiences as any,
     history,
   } as Props;

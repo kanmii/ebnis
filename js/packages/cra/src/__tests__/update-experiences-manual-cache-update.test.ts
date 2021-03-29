@@ -1,37 +1,40 @@
 import { DataProxy } from "@apollo/client";
-import { EntryConnectionFragment } from "@eb/cm/src/graphql/apollo-types/EntryConnectionFragment";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "@eb/cm/src/graphql/apollo-types/GetEntriesUnionFragment";
-import { UpdateExperienceSomeSuccessFragment } from "@eb/cm/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
-import { entryToEdge } from "@eb/cm/src/graphql/utils.gql";
+import { UpdateExperiencesOnlineMutationResult } from "@eb/shared/src/apollo/experience.gql.types";
 import {
   getCachedEntriesDetailViewSuccess,
   readExperienceCompleteFragment,
   writeCachedEntriesDetailView,
   writeCachedExperienceCompleteFragment,
-} from "../apollo/get-detailed-experience-query";
+} from "@eb/shared/src/apollo/get-detailed-experience-query";
 import {
   getUnsyncedExperience,
   removeUnsyncedExperiences,
   writeUnsyncedExperience,
-} from "../apollo/unsynced-ledger";
-import { updateExperiencesManualCacheUpdate } from "../apollo/update-experiences-manual-cache-update";
-import { UpdateExperiencesOnlineMutationResult } from "../utils/experience.gql.types";
+} from "@eb/shared/src/apollo/unsynced-ledger";
+import { updateExperiencesManualCacheUpdate } from "@eb/shared/src/apollo/update-experiences-manual-cache-update";
+import { EntryConnectionFragment } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
+import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
+import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "@eb/shared/src/graphql/apollo-types/GetEntriesUnionFragment";
+import { UpdateExperienceSomeSuccessFragment } from "@eb/shared/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
+import { entryToEdge } from "@eb/shared/src/graphql/utils.gql";
 import { UnsyncedModifiedExperience } from "../utils/unsynced-ledger.types";
 
 const mockWriteGetEntriesQuery = writeCachedEntriesDetailView as jest.Mock;
 
-const mockGetEntriesQuerySuccess = getCachedEntriesDetailViewSuccess as jest.Mock;
+const mockGetEntriesQuerySuccess =
+  getCachedEntriesDetailViewSuccess as jest.Mock;
 
-jest.mock("../apollo/unsynced-ledger");
+jest.mock("@eb/shared/src/apollo/unsynced-ledger");
 const mockGetUnsyncedExperience = getUnsyncedExperience as jest.Mock;
 const mockRemoveUnsyncedExperience = removeUnsyncedExperiences as jest.Mock;
 const mockWriteUnsyncedExperience = writeUnsyncedExperience as jest.Mock;
 
-jest.mock("../apollo/get-detailed-experience-query");
-const mockWriteExperienceFragmentToCache = writeCachedExperienceCompleteFragment as jest.Mock;
-const mockReadExperienceCompleteFragment = readExperienceCompleteFragment as jest.Mock;
+jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
+const mockWriteExperienceFragmentToCache =
+  writeCachedExperienceCompleteFragment as jest.Mock;
+const mockReadExperienceCompleteFragment =
+  readExperienceCompleteFragment as jest.Mock;
 
 const dataProxy = {} as DataProxy;
 

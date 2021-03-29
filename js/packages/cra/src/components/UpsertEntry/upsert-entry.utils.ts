@@ -1,18 +1,19 @@
 import {
   CreateEntryErrorFragment,
   CreateEntryErrorFragment_dataObjects,
-} from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
-import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefinitionFragment";
-import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
-import { EntryFragment } from "@eb/cm/src/graphql/apollo-types/EntryFragment";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
+} from "@eb/shared/src/graphql/apollo-types/CreateEntryErrorFragment";
+import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
+import { DataObjectFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectFragment";
+import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
+import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import {
   CreateDataObject,
   CreateEntryInput,
   DataTypes,
-} from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { wrapReducer } from "@eb/cm/src/logger";
-import { isOfflineId } from "@eb/cm/src/utils/offlines";
+} from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { wrapReducer } from "@eb/shared/src/logger";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { isOfflineId } from "@eb/shared/src/utils/offlines";
 import {
   ActiveVal,
   Any,
@@ -21,7 +22,7 @@ import {
   InActiveVal,
   OnlineStatus,
   StateValue,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
 import immer, { Draft } from "immer";
@@ -33,7 +34,6 @@ import {
   parseStringError,
   StringyErrorPayload,
 } from "../../utils/common-errors";
-import { getIsConnected } from "../../utils/connections";
 import {
   GenericEffectDefinition,
   GenericGeneralEffect,
@@ -301,27 +301,26 @@ export function initState(props: Props): StateMachine {
 
   const definitionIdToDataMap = mapDefinitionIdToDataHelper(entry);
 
-  const formFields = (experience.dataDefinitions as DataDefinitionFragment[]).reduce(
-    (acc, definition, index) => {
-      const { id } = definition;
-      let value = definitionIdToDataMap[id];
+  const formFields = (
+    experience.dataDefinitions as DataDefinitionFragment[]
+  ).reduce((acc, definition, index) => {
+    const { id } = definition;
+    let value = definitionIdToDataMap[id];
 
-      if (value === undefined) {
-        value =
-          definition.type === DataTypes.DATE ||
-          definition.type === DataTypes.DATETIME
-            ? new Date()
-            : "";
-      }
+    if (value === undefined) {
+      value =
+        definition.type === DataTypes.DATE ||
+        definition.type === DataTypes.DATETIME
+          ? new Date()
+          : "";
+    }
 
-      acc[index] = {
-        context: { definition, value },
-      };
+    acc[index] = {
+      context: { definition, value },
+    };
 
-      return acc;
-    },
-    {} as FormFields,
-  );
+    return acc;
+  }, {} as FormFields);
 
   const stateMachine = {
     id: "@upsert-entry",
@@ -642,5 +641,5 @@ interface EffectArgs {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = Any
+  OwnArgs = Any,
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;

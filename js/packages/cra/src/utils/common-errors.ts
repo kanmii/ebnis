@@ -1,15 +1,47 @@
 import { ApolloError } from "@apollo/client";
-import { CommonError, CommonErrorsVal } from "@eb/cm/src/utils/types";
+import { CommonError, CommonErrorsVal } from "@eb/shared/src/utils/types";
+import { GraphQLError } from "graphql";
 
-export function parseStringError(error: string | Error): string {
-  if (error instanceof ApolloError) {
-    const { graphQLErrors, networkError } = error;
-    return networkError ? networkError.message : graphQLErrors[0].message;
+type EbnisApolloError = {
+  graphQLErrors: GraphQLError[];
+  networkError: Error;
+};
+
+export function parseStringError(
+  error: EbnisApolloError | string | Error,
+): string {
+  if ("string" === typeof error) {
+    return error;
   } else if (error instanceof Error) {
     return error.message;
-  } else {
-    return error;
+  } else if (
+    error instanceof ApolloError ||
+    error.graphQLErrors ||
+    error.networkError
+  ) {
+    const { graphQLErrors, networkError } = error;
+
+    if (networkError) {
+      const { message } = networkError;
+
+      // There is a weird bug in Apollo where error instances are passed
+      // into networkError as string. In this instances, the error message
+      // will contain the string "'[object Object]'". And since this error
+      // is not meaningful, we simply return our own error.
+      // :TODO: should we not be logging javascript errors in our code???
+      if (message.includes("'[object Object]'")) {
+        return GENERIC_SERVER_ERROR;
+      }
+
+      return message;
+    }
+
+    return GENERIC_SERVER_ERROR;
+
+    return graphQLErrors[0].message;
   }
+
+  return GENERIC_SERVER_ERROR;
 }
 
 export const FORM_CONTAINS_ERRORS_MESSAGE =

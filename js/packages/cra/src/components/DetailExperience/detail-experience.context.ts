@@ -1,6 +1,6 @@
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { OnlineStatus } from "@eb/cm/src/utils/types";
-import { ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { OnlineStatus } from "@eb/shared/src/utils/types";
+import { ReactMouseEvent } from "@eb/shared/src/utils/types/react";
 import { createContext } from "react";
 import { CommentRemoteAction } from "../experience-comments/experience-comments.utils";
 import { DataState, DispatchType } from "./detailed-experience-utils";

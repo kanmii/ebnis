@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+  makeApolloClient,
+  restoreCacheOrPurgeStorage,
+} from "@eb/shared/src/client";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";
-import { buildClientCache, restoreCacheOrPurgeStorage } from "../apollo/setup";
 import { App } from "../components/App/app.component";
 
 const mockLoadingId = "a";
@@ -14,8 +17,8 @@ jest.mock("../components/App/app-inner.component", () => {
   return () => <div id={mockChildId} />;
 });
 
-jest.mock("../apollo/setup");
-const mockBuildClientCache = buildClientCache as jest.Mock;
+jest.mock("@eb/shared/src/client");
+const mockBuildClientCache = makeApolloClient as jest.Mock;
 const mockRestoreCacheOrPurgeStorage = restoreCacheOrPurgeStorage as jest.Mock;
 
 afterEach(() => {

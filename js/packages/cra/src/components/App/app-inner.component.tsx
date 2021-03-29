@@ -1,9 +1,9 @@
 /* istanbul ignore file */
 import { ApolloProvider } from "@apollo/client";
-import { EbnisGlobals } from "@eb/cm/src/utils/types";
+import { restoreCacheOrPurgeStorage } from "@eb/shared/src/client";
+import { EbnisGlobals } from "@eb/shared/src/utils/types";
 import React, { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
-import { restoreCacheOrPurgeStorage } from "../../apollo/setup";
 import {
   EXPERIENCE_DETAIL_URL,
   LOGIN_URL,
@@ -15,7 +15,6 @@ import AuthenticationRequired from "../AuthenticationRequired/authentication-req
 import Loading from "../Loading/loading.component";
 import WithSubscriptions from "../WithSubscriptions/with-subscriptions.component";
 import { EbnisAppProvider } from "./app.injectables";
-import { useMsw } from "../../utils/env-variables";
 
 const Login = lazy(() => import("../Login/login.component"));
 const My = lazy(() => import("../My/my.component"));
@@ -40,7 +39,6 @@ export function AppInner({ obj }: Props) {
             <WithSubscriptions
               bcBroadcaster={bcBroadcaster}
               observable={observable}
-              useMsw={!!useMsw}
             >
               <Switch>
                 <AuthenticationRequired

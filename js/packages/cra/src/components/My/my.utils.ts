@@ -1,9 +1,34 @@
-import { ExperienceListViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceListViewFragment";
+import { getCachedExperiencesConnectionListView } from "@eb/shared/src/apollo/cached-experiences-list-view";
+import {
+  DeletedExperienceLedger,
+  getDeleteExperienceLedger,
+  putOrRemoveDeleteExperienceLedger,
+} from "@eb/shared/src/apollo/delete-experience-cache";
+import {
+  ExperienceData,
+  ExperiencesData,
+  EXPERIENCES_MINI_FETCH_COUNT,
+  getExperienceConnectionListView,
+} from "@eb/shared/src/apollo/experience.gql.types";
+import { getSyncErrors } from "@eb/shared/src/apollo/sync-to-server-cache";
+import {
+  getOnlineStatus,
+  getUnsyncedExperience,
+} from "@eb/shared/src/apollo/unsynced-ledger";
+import {
+  purgeExperiencesFromCache1,
+  writeGetExperiencesMiniQuery,
+} from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { broadcastMessage } from "@eb/shared/src/broadcast-channel-manager";
+import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
 import {
   GetExperiencesConnectionListViewVariables,
   GetExperiencesConnectionListView_getExperiences,
   GetExperiencesConnectionListView_getExperiences_edges,
-} from "@eb/cm/src/graphql/apollo-types/GetExperiencesConnectionListView";
+} from "@eb/shared/src/graphql/apollo-types/GetExperiencesConnectionListView";
+import { wrapReducer } from "@eb/shared/src/logger";
+import { deleteObjectKey } from "@eb/shared/src/utils";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
 import {
   ActiveVal,
   Any,
@@ -21,45 +46,20 @@ import {
   OnSyncedData,
   StateValue,
   Timeouts,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import fuzzysort from "fuzzysort";
 import immer from "immer";
 import { Dispatch, Reducer } from "react";
 import { RouteChildrenProps } from "react-router-dom";
-import { getCachedExperiencesConnectionListView } from "../../apollo/cached-experiences-list-view";
-import {
-  DeletedExperienceLedger,
-  getDeleteExperienceLedger,
-  putOrRemoveDeleteExperienceLedger,
-} from "../../apollo/delete-experience-cache";
-import { getSyncErrors } from "../../apollo/sync-to-server-cache";
-import {
-  getOnlineStatus,
-  getUnsyncedExperience,
-} from "../../apollo/unsynced-ledger";
-import {
-  purgeExperiencesFromCache1,
-  writeGetExperiencesMiniQuery,
-} from "../../apollo/update-get-experiences-list-view-query";
-import { wrapReducer } from "@eb/cm/src/logger";
-import { deleteObjectKey } from "../../utils";
-import { broadcastMessage } from "@eb/cm/src/broadcast-channel-manager";
 import {
   DATA_FETCHING_FAILED,
   parseStringError,
 } from "../../utils/common-errors";
-import { getIsConnected } from "../../utils/connections";
 import {
   GenericEffectDefinition,
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import {
-  ExperienceData,
-  ExperiencesData,
-  EXPERIENCES_MINI_FETCH_COUNT,
-  getExperienceConnectionListView,
-} from "../../utils/experience.gql.types";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { FETCH_EXPERIENCES_TIMEOUTS } from "../../utils/timers";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
@@ -93,7 +93,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
     (prevState, { type, ...payload }) => {
       return immer(prevState, (proxy) => {
         proxy.effects.general.value = StateValue.noEffect;
-        deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
+        deleteObjectKey<Any>(proxy.effects.general, StateValue.hasEffects);
         const state = proxy as StateMachine;
 
         switch (type) {
@@ -388,12 +388,8 @@ function handleOnDataReceivedAction(
   switch (payload.key) {
     case StateValue.data:
       {
-        const {
-          data,
-          deletedExperience,
-          paginating,
-          preparedExperiences,
-        } = payload;
+        const { data, deletedExperience, paginating, preparedExperiences } =
+          payload;
         const { experiences, pageInfo } = data;
 
         const state = {
@@ -541,7 +537,7 @@ function handleOnUpdateExperienceSuccessAction(
       });
 
       const len = experiences.length;
-      let updatedExperienceData = (undefined as unknown) as ExperienceData;
+      let updatedExperienceData = undefined as unknown as ExperienceData;
       const newExperiences: ExperienceData[] = [updatedExperienceData];
       context.experiences = newExperiences;
 
@@ -711,17 +707,15 @@ function prepareExperienceForSearch({ id, title }: ExperienceListViewFragment) {
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
 
-const deletedExperienceRequestEffect: DefDeleteExperienceRequestEffect["func"] = (
-  { id },
-  props,
-) => {
-  putOrRemoveDeleteExperienceLedger({
-    key: StateValue.requested,
-    id,
-  });
+const deletedExperienceRequestEffect: DefDeleteExperienceRequestEffect["func"] =
+  ({ id }, props) => {
+    putOrRemoveDeleteExperienceLedger({
+      key: StateValue.requested,
+      id,
+    });
 
-  props.history.push(makeDetailedExperienceRoute(id));
-};
+    props.history.push(makeDetailedExperienceRoute(id));
+  };
 
 type DefDeleteExperienceRequestEffect = EffectDefinition<
   "deletedExperienceRequestEffect",
@@ -814,13 +808,11 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
         const fetchedExperiences = (data &&
           data.getExperiences) as GetExperiencesConnectionListView_getExperiences;
 
-        const [
-          processedResults,
-          preparedExperiences,
-        ] = processGetExperiencesQuery(fetchedExperiences, {
-          isPaginating: !!paginationInput,
-          existingData: cachedExperiencesResult || null,
-        });
+        const [processedResults, preparedExperiences] =
+          processGetExperiencesQuery(fetchedExperiences, {
+            isPaginating: !!paginationInput,
+            existingData: cachedExperiencesResult || null,
+          });
 
         dispatch({
           type: ActionType.ON_DATA_RECEIVED,
@@ -883,7 +875,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
 
   if (set) {
     const timeout = 10 * 1000;
-    let timeoutCb = (undefined as unknown) as () => void;
+    let timeoutCb = undefined as unknown as () => void;
 
     switch (set.key) {
       case "set-close-upsert-experience-success-notification":
@@ -979,7 +971,8 @@ function processGetExperiencesQuery(
   const previousEdges = ((existingData && existingData.edges) ||
     []) as GetExperiencesConnectionListView_getExperiences_edges[];
 
-  const newEdges = edges as GetExperiencesConnectionListView_getExperiences_edges[];
+  const newEdges =
+    edges as GetExperiencesConnectionListView_getExperiences_edges[];
 
   const allEdges = [...previousEdges, ...newEdges];
 
@@ -1254,7 +1247,7 @@ export type EffectType =
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = Any
+  OwnArgs = Any,
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 type PreparedExperience = {

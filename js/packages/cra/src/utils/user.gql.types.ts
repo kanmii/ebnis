@@ -1,23 +1,23 @@
 /* eslint-disable react-hooks/rules-of-hooks*/
 import {
+  MutationFunction,
   MutationFunctionOptions,
   MutationResult,
-  MutationFunction,
   useMutation,
 } from "@apollo/client";
-import { ExecutionResult } from "graphql/execution/execute";
 import {
   LoginMutation,
   LoginMutationVariables,
-} from "@eb/cm/src/graphql/apollo-types/LoginMutation";
+} from "@eb/shared/src/graphql/apollo-types/LoginMutation";
 import {
   RegisterUserMutation,
   RegisterUserMutationVariables,
-} from "@eb/cm/src/graphql/apollo-types/RegisterUserMutation";
+} from "@eb/shared/src/graphql/apollo-types/RegisterUserMutation";
 import {
-  LOGIN_MUTATION, //
+  LOGIN_MUTATION,
   REGISTER_USER_MUTATION,
-} from "@eb/cm/src/graphql/user.gql";
+} from "@eb/shared/src/graphql/user.gql";
+import { ExecutionResult } from "graphql/execution/execute";
 
 ////////////////////////// LOGIN ////////////////////////////
 

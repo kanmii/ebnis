@@ -1,9 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { readEntryFragment } from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { syncToServer } from "@eb/shared/src/apollo/sync-to-server";
+import {
+  purgeEntry,
+  purgeExperiencesFromCache1,
+} from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
 import {
   broadcastMessage,
   makeBChannel,
-} from "@eb/cm/src/broadcast-channel-manager";
-import { makeObservable } from "@eb/cm/src/observable-manager";
+} from "@eb/shared/src/broadcast-channel-manager";
+import { makeObservable } from "@eb/shared/src/observable-manager";
+import { getUser } from "@eb/shared/src/utils/manage-user-auth";
 import {
   Any,
   BroadcastMessageExperienceDeleted,
@@ -11,17 +18,11 @@ import {
   BroadcastMessageType,
   EbnisGlobals,
   EmitActionType,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import { cleanup, render } from "@testing-library/react";
 // import { clearNodeFolder } from "broadcast-channel";
 import React, { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
-import { readEntryFragment } from "../apollo/get-detailed-experience-query";
-import { syncToServer } from "../apollo/sync-to-server";
-import {
-  purgeEntry,
-  purgeExperiencesFromCache1,
-} from "../apollo/update-get-experiences-list-view-query";
 import { WithSubscriptions } from "../components/WithSubscriptions/with-subscriptions.component";
 import {
   cleanupWithSubscriptions,
@@ -42,21 +43,20 @@ import {
   getLocation,
   windowChangeUrl,
 } from "../utils/global-window";
-import { getUser } from "../utils/manage-user-auth";
 import { MAX_TIMEOUT_MS } from "../utils/timers";
 import { MY_URL } from "../utils/urls";
 
-jest.mock("../utils/manage-user-auth");
+jest.mock("@eb/shared/src/utils/manage-user-auth");
 const mockGetUser = getUser as jest.Mock;
 
-jest.mock("../apollo/update-get-experiences-list-view-query");
+jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
 const mockPurgeExperiencesFromCache1 = purgeExperiencesFromCache1 as jest.Mock;
 const mockPurgeEntry = purgeEntry as jest.Mock;
 
-jest.mock("../apollo/get-detailed-experience-query");
+jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
 const mockReadEntryFragment = readEntryFragment as jest.Mock;
 
-jest.mock("../apollo/sync-to-server");
+jest.mock("@eb/shared/src/apollo/sync-to-server");
 const mockSyncToServer = syncToServer as jest.Mock;
 
 jest.mock("../utils/global-window");

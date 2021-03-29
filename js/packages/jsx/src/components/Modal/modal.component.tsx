@@ -1,6 +1,9 @@
-import { trimClass } from "@eb/cm/src/utils";
-import { Any } from "@eb/cm/src/utils/types";
-import { ComponentProps, ReactMouseEvent } from "@eb/cm/src/utils/types/react";
+import { trimClass } from "@eb/shared/src/utils";
+import { Any } from "@eb/shared/src/utils/types";
+import {
+  ComponentProps,
+  ReactMouseEvent,
+} from "@eb/shared/src/utils/types/react";
 import React, {
   Children,
   cloneElement,

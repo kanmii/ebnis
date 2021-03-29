@@ -1,19 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "@eb/cm/src/graphql/apollo-types/CreateExperiences";
-import { ExperienceDetailViewFragment } from "@eb/cm/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import {
-  CreateExperienceInput,
-  DataTypes,
-} from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { makeOfflineId } from "@eb/cm/src/utils/offlines";
-import { Any, EbnisGlobals, StateValue } from "@eb/cm/src/utils/types";
-import { cleanup, render, waitFor } from "@testing-library/react";
-import { ComponentType } from "react";
-import { act } from "react-dom/test-utils";
+  CreateExperiencesMutationResult,
+  getExperienceDetailView,
+  GetExperienceQueryResult,
+  getGetDataObjects,
+} from "@eb/shared/src/apollo/experience.gql.types";
 import {
   getCachedEntriesDetailViewSuccess,
   getCachedExperienceDetailView,
-} from "../apollo/get-detailed-experience-query";
+} from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "@eb/shared/src/graphql/apollo-types/CreateExperiences";
+import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import {
+  CreateExperienceInput,
+  DataTypes,
+} from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { makeOfflineId } from "@eb/shared/src/utils/offlines";
+import { Any, EbnisGlobals, StateValue } from "@eb/shared/src/utils/types";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import { ComponentType } from "react";
+import { act } from "react-dom/test-utils";
 import { UpsertExperience } from "../components/UpsertExperience/upsert-experience.component";
 import {
   addDefinitionSelector,
@@ -53,13 +60,6 @@ import {
 import { fillField } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { AppPersistor } from "../utils/app-context";
-import { getIsConnected } from "../utils/connections";
-import {
-  CreateExperiencesMutationResult,
-  getExperienceDetailView,
-  GetExperienceQueryResult,
-  getGetDataObjects,
-} from "../utils/experience.gql.types";
 import { windowChangeUrl } from "../utils/global-window";
 import { scrollIntoView } from "../utils/scroll-into-view";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
@@ -69,18 +69,19 @@ jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
 const mockCreateOfflineExperience = createOfflineExperience as jest.Mock;
 const mockUpdateExperienceOfflineFn = updateExperienceOfflineFn as jest.Mock;
 
-jest.mock("../apollo/get-detailed-experience-query");
+jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
 const mockGetEntriesQuery = getCachedExperienceDetailView as jest.Mock;
-const mockGetEntriesQuerySuccess = getCachedEntriesDetailViewSuccess as jest.Mock;
+const mockGetEntriesQuerySuccess =
+  getCachedEntriesDetailViewSuccess as jest.Mock;
 
-jest.mock("../utils/experience.gql.types");
+jest.mock("@eb/shared/src/apollo/experience.gql.types");
 const mockFetchExperienceDetailView = getExperienceDetailView as jest.Mock;
 
 jest.mock("../utils/update-experiences.gql");
 const mockUpdateExperiencesMutation = updateExperiencesMutation as jest.Mock;
 const mockManuallyGetDataObjects = getGetDataObjects as jest.Mock;
 
-jest.mock("../utils/connections");
+jest.mock("@eb/shared/src/utils/connections");
 const mockIsConnected = getIsConnected as jest.Mock;
 
 jest.mock("../utils/global-window");
@@ -366,9 +367,11 @@ describe("components", () => {
 
     // add
     mockScrollIntoView.mockReset();
-    (definition0El
-      .getElementsByClassName(addDefinitionSelector)
-      .item(0) as HTMLElement).click();
+    (
+      definition0El
+        .getElementsByClassName(addDefinitionSelector)
+        .item(0) as HTMLElement
+    ).click();
 
     await waitFor(() => true);
 
@@ -378,9 +381,11 @@ describe("components", () => {
 
     // up
     mockScrollIntoView.mockReset();
-    (definition1El
-      .getElementsByClassName(moveUpDefinitionSelector)
-      .item(0) as HTMLElement).click();
+    (
+      definition1El
+        .getElementsByClassName(moveUpDefinitionSelector)
+        .item(0) as HTMLElement
+    ).click();
 
     await waitFor(() => true);
     definitionsEls = getDefinitionContainerEls();
@@ -390,9 +395,11 @@ describe("components", () => {
 
     // down
     mockScrollIntoView.mockReset();
-    (definition1El
-      .getElementsByClassName(moveDownDefinitionSelector)
-      .item(0) as HTMLElement).click();
+    (
+      definition1El
+        .getElementsByClassName(moveDownDefinitionSelector)
+        .item(0) as HTMLElement
+    ).click();
 
     await waitFor(() => true);
     definitionsEls = getDefinitionContainerEls();
@@ -402,9 +409,11 @@ describe("components", () => {
 
     // remove
     mockScrollIntoView.mockReset();
-    (definition1El
-      .getElementsByClassName(removeDefinitionSelector)
-      .item(0) as HTMLElement).click();
+    (
+      definition1El
+        .getElementsByClassName(removeDefinitionSelector)
+        .item(0) as HTMLElement
+    ).click();
 
     await waitFor(() => true);
     expect(mockScrollIntoView.mock.calls[0][0]).toEqual(definition0El.id);
@@ -514,10 +523,8 @@ describe("components", () => {
     submitEl.click();
     await waitFor(() => true);
 
-    const {
-      onUpdateSuccess,
-      onError,
-    } = mockUpdateExperiencesMutation.mock.calls[0][0];
+    const { onUpdateSuccess, onError } =
+      mockUpdateExperiencesMutation.mock.calls[0][0];
 
     const updatedExperience = { id: "a" };
     mockGetEntriesQuery.mockReturnValue(updatedExperience);
@@ -931,8 +938,9 @@ describe("reducer", () => {
       type: ActionType.SUBMISSION,
     });
 
-    let dataState = (state.states.form.fields.dataDefinitions[0].type
-      .states as ChangedState).changed.states;
+    let dataState = (
+      state.states.form.fields.dataDefinitions[0].type.states as ChangedState
+    ).changed.states;
 
     expect(dataState.value).toEqual(StateValue.valid);
 
@@ -942,8 +950,9 @@ describe("reducer", () => {
       type: ActionType.SUBMISSION,
     });
 
-    dataState = (state.states.form.fields.dataDefinitions[0].type
-      .states as ChangedState).changed.states;
+    dataState = (
+      state.states.form.fields.dataDefinitions[0].type.states as ChangedState
+    ).changed.states;
 
     expect(dataState.value).toEqual(StateValue.invalid);
 
@@ -953,8 +962,9 @@ describe("reducer", () => {
       type: ActionType.SUBMISSION,
     });
 
-    dataState = (state.states.form.fields.dataDefinitions[0].type
-      .states as ChangedState).changed.states;
+    dataState = (
+      state.states.form.fields.dataDefinitions[0].type.states as ChangedState
+    ).changed.states;
 
     expect(dataState.value).toEqual(StateValue.valid);
 
@@ -993,8 +1003,9 @@ describe("reducer", () => {
       type: ActionType.SUBMISSION,
     });
 
-    const dataState = (state.states.form.fields.dataDefinitions[0].type
-      .states as ChangedState).changed.states;
+    const dataState = (
+      state.states.form.fields.dataDefinitions[0].type.states as ChangedState
+    ).changed.states;
 
     expect(dataState.value).toEqual(StateValue.valid);
 

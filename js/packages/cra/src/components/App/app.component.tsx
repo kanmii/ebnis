@@ -1,20 +1,13 @@
-import { EbnisGlobals } from "@eb/cm/src/utils/types";
-import React, { useEffect, useState } from "react";
 import {
-  buildClientCache,
+  makeApolloClient,
   restoreCacheOrPurgeStorage,
-} from "../../apollo/setup";
+} from "@eb/shared/src/client";
+import React, { useEffect, useState } from "react";
 import Loading from "../Loading/loading.component";
 import AppInner from "./app-inner.component";
-import { useMsw } from "../../utils/env-variables";
-
-const connected = useMsw ? true : undefined;
 
 export function App() {
-  const obj = buildClientCache({
-    appHydrated: true,
-    useMsw: connected,
-  }) as EbnisGlobals;
+  const obj = makeApolloClient({});
 
   const [state, setState] = useState<State>({
     renderChildren: false,
@@ -25,7 +18,7 @@ export function App() {
 
     (async function () {
       // istanbul ignore next:
-      if (cache && restoreCacheOrPurgeStorage) {
+      if (cache) {
         try {
           await restoreCacheOrPurgeStorage(persistor);
           setState((oldState) => {

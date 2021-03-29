@@ -1,5 +1,7 @@
-import { RegisterUserInput } from "@eb/cm/src/graphql/apollo-types/globalTypes";
-import { RegisterUserErrorFragment } from "@eb/cm/src/graphql/apollo-types/RegisterUserErrorFragment";
+import { RegisterUserInput } from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { RegisterUserErrorFragment } from "@eb/shared/src/graphql/apollo-types/RegisterUserErrorFragment";
+import { wrapReducer } from "@eb/shared/src/logger";
+import { manageUserAuthentication } from "@eb/shared/src/utils/manage-user-auth";
 import {
   Any,
   ChangedVal,
@@ -11,10 +13,9 @@ import {
   UnChangedVal,
   ValidVal,
   WarningVal,
-} from "@eb/cm/src/utils/types";
+} from "@eb/shared/src/utils/types";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
-import { wrapReducer } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import { EbnisContextProps } from "../../utils/app-context";
 import {
@@ -33,7 +34,6 @@ import {
   getGeneralEffects,
 } from "../../utils/effects";
 import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
-import { manageUserAuthentication } from "../../utils/manage-user-auth";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { MY_URL } from "../../utils/urls";
 import { RegisterUserMutationComponentProps } from "../../utils/user.gql.types";
@@ -254,7 +254,9 @@ function validateForm(proxy: DraftState): RegisterUserInput {
     formUpdated = true;
 
     /* eslint-disable-next-line no-useless-escape*/
-    const regex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    const regex =
+      // eslint-disable-next-line no-useless-escape
+      /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
     if (!regex.test(value)) {
       validateFormPutFieldErrorHelper(submissionErrorState, validityState0, [
@@ -669,7 +671,7 @@ export interface EffectArgs {
 
 type EffectDefinition<
   Key extends keyof typeof effectFunctions,
-  OwnArgs = Any
+  OwnArgs = Any,
 > = GenericEffectDefinition<EffectArgs, Props, Key, OwnArgs>;
 
 type EffectType = DefRegisterUserEffect | DefScrollToTopEffect;
