@@ -13,6 +13,7 @@ import {
   fieldErrorSelector,
   notificationCloseId,
   submitBtnDomId,
+  domPrefix,
 } from "./upsert-entry.dom";
 import "./upsert-entry.styles.scss";
 import {
@@ -58,6 +59,7 @@ export function UpsertEntry(props: Props) {
   return (
     <>
       <form
+        id={domPrefix}
         className={trimClass(`
           modal
           is-active
