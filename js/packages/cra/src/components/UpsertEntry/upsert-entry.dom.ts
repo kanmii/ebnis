@@ -10,3 +10,4 @@ export const dateComponentDomSelector = `js-${domPrefix}-date-component`;
 export const datetimeComponentDomSelector = `js-${domPrefix}-datetime-component`;
 export const notificationCloseId = `${domPrefix}-notification`;
 export const fieldErrorSelector = `js-${domPrefix}-field-error`;
+export const closeId = `${domPrefix}-close`;

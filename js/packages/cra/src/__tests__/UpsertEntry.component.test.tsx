@@ -14,6 +14,7 @@ import {
   fieldErrorSelector,
   notificationCloseId,
   submitBtnDomId,
+  closeId,
 } from "../components/UpsertEntry/upsert-entry.dom";
 import { createOfflineEntryMutation } from "../components/UpsertEntry/upsert-entry.resolvers";
 import {
@@ -27,7 +28,12 @@ import {
   toISODateString,
   toISODatetimeString,
 } from "../components/UpsertEntry/upsert-entry.utils";
-import { defaultExperience, fillField } from "../tests.utils";
+import {
+  defaultExperience,
+  fillField,
+  getById,
+  getOneByClass,
+} from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { AppPersistor } from "../utils/app-context";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
@@ -113,7 +119,7 @@ afterAll(() => {
 
 afterEach(() => {
   cleanup();
-  jest.resetAllMocks();
+  jest.clearAllMocks();
   ebnisObject.logApolloQueries = false;
   ebnisObject.logReducers = false;
 });
@@ -136,43 +142,58 @@ describe("component", () => {
         },
       },
     });
+
+    await act(async () => {
       // ebnisObject.logReducers = true;
       // ebnisObject.logApolloQueries = true;
-    render(ui);
-    const inputEl = document.getElementById("1") as HTMLInputElement;
-    const now = new Date();
-    fillField(inputEl, now.toJSON());
 
-    expect(getNotificationEl()).toBeNull();
-    expect(mockScrollIntoView).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { debug } = render(ui);
 
-    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
-    submitEl.click();
+      const inputEl = document.getElementById("1") as HTMLInputElement;
+      const now = new Date();
+      fillField(inputEl, now.toJSON());
 
-    await waitFor(() => true);
+      expect(getNotificationEl()).toBeNull();
+      expect(mockScrollIntoView).not.toHaveBeenCalled();
 
-    const { onError, input } = mockUpdateExperiencesMutation.mock.calls[0][0];
+      const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
+      submitEl.click();
 
-    expect(input[0].addEntries[0]).toEqual({
-      dataObjects: [
-        {
-          data: `{"date":"${toISODateString(now)}"}`,
-          definitionId: "1",
-        },
-      ],
-      experienceId: "1",
-    });
+      const args = await waitFor(() => {
+        const c = mockUpdateExperiencesMutation.mock.calls[0][0];
+        expect(c).toBeDefined();
+        return c;
+      });
 
-    act(() => {
+      const { onError, input } = args;
+
+      expect(input[0].addEntries[0]).toEqual({
+        dataObjects: [
+          {
+            data: `{"date":"${toISODateString(now)}"}`,
+            definitionId: "1",
+          },
+        ],
+        experienceId: "1",
+      });
+
       onError();
+
+      // const notificationEl = getNotificationEl();
+      const notificationEl = await waitFor(() => {
+        const el = getNotificationEl();
+        expect(el).not.toBeNull();
+        return el;
+      });
+
+      await waitFor(() => {
+        expect(mockScrollIntoView).toHaveBeenCalled();
+      });
+
+      notificationEl.click();
+      expect(getNotificationEl()).toBeNull();
     });
-
-    // const notificationEl = getNotificationEl();
-    const notificationEl = await waitFor(getNotificationEl);
-    expect(mockScrollIntoView).toHaveBeenCalled();
-
-    notificationEl.click();
-    expect(getNotificationEl()).toBeNull();
   });
 
   it("connected/renders datetime field/javascript exception", async () => {
@@ -192,35 +213,40 @@ describe("component", () => {
         },
       },
     });
-    render(ui);
-    const inputEl = document.getElementById("1") as HTMLInputElement;
-    const now = new Date().toJSON();
-    fillField(inputEl, now);
-    expect(getNotificationEl()).toBeNull();
 
-    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
-    submitEl.click();
+    await act(async () => {
+      render(ui);
+      const inputEl = document.getElementById("1") as HTMLInputElement;
+      const now = new Date().toJSON();
+      fillField(inputEl, now);
+      expect(getNotificationEl()).toBeNull();
 
-    await waitFor(() => true);
+      const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
+      submitEl.click();
 
-    const { onError, input } = mockUpdateExperiencesMutation.mock.calls[0][0];
+      const args = await waitFor(() => {
+        const c = mockUpdateExperiencesMutation.mock.calls[0][0];
+        expect(c).toBeDefined();
+        return c;
+      });
 
-    expect(input[0].addEntries[0]).toEqual({
-      dataObjects: [
-        {
-          data: `{"datetime":"${toISODatetimeString(now)}"}`,
-          definitionId: "1",
-        },
-      ],
-      experienceId: "1",
-    });
+      const { onError, input } = args;
 
-    act(() => {
+      expect(input[0].addEntries[0]).toEqual({
+        dataObjects: [
+          {
+            data: `{"datetime":"${toISODatetimeString(now)}"}`,
+            definitionId: "1",
+          },
+        ],
+        experienceId: "1",
+      });
+
       onError("a");
-    });
 
-    const notificationEl = await waitFor(getNotificationEl);
-    expect(notificationEl).not.toBeNull();
+      const notificationEl = await waitFor(getNotificationEl);
+      expect(notificationEl).not.toBeNull();
+    });
   });
 
   it("connected/renders integer/server field errors/closes component", async () => {
@@ -241,35 +267,36 @@ describe("component", () => {
       },
     });
 
-    render(ui);
+    await act(async () => {
+      render(ui);
 
-    const inputEl = document.getElementById("1") as HTMLInputElement;
-    fillField(inputEl, "1");
+      const inputEl = document.getElementById("1") as HTMLInputElement;
+      fillField(inputEl, "1");
 
-    expect(getNotificationEl()).toBeNull();
-    expect(getFieldError()).toBeNull();
+      expect(getNotificationEl()).toBeNull();
+      expect(getFieldError()).toBeNull();
 
-    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
-    submitEl.click();
+      const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
+      submitEl.click();
 
-    await waitFor(() => true);
+      const args = await waitFor(() => {
+        const c = mockUpdateExperiencesMutation.mock.calls[0][0];
+        expect(c).toBeDefined();
+        return c;
+      });
 
-    const {
-      onUpdateSuccess,
-      input,
-    } = mockUpdateExperiencesMutation.mock.calls[0][0];
+      const { onUpdateSuccess, input } = args;
 
-    expect(input[0].addEntries[0]).toEqual({
-      dataObjects: [
-        {
-          data: `{"integer":"1"}`,
-          definitionId: "1",
-        },
-      ],
-      experienceId: "1",
-    });
+      expect(input[0].addEntries[0]).toEqual({
+        dataObjects: [
+          {
+            data: `{"integer":"1"}`,
+            definitionId: "1",
+          },
+        ],
+        experienceId: "1",
+      });
 
-    act(() => {
       onUpdateSuccess({
         entries: {
           newEntries: [
@@ -290,14 +317,14 @@ describe("component", () => {
           ],
         },
       });
+
+      const notificationEl = await waitFor(getNotificationEl);
+      expect(notificationEl).not.toBeNull();
+
+      expect(getFieldError()).not.toBeNull();
+
+      getCloseComponentEl().click();
     });
-
-    const notificationEl = await waitFor(getNotificationEl);
-    expect(notificationEl).not.toBeNull();
-
-    expect(getFieldError()).not.toBeNull();
-
-    getCloseComponentEl().click();
   });
 
   it("unconnected/renders single line text/javascript exception", async () => {
@@ -443,25 +470,27 @@ describe("component", () => {
       },
     });
 
-    render(ui);
+    await act(async () => {
+      render(ui);
 
-    const inputEl = document.getElementById("1") as HTMLInputElement;
-    expect(inputEl.value).toBe("1");
+      const inputEl = document.getElementById("1") as HTMLInputElement;
+      expect(inputEl.value).toBe("1");
 
-    fillField(inputEl, "2");
-    expect(getNotificationEl()).toBeNull();
-    expect(getFieldError()).toBeNull();
+      fillField(inputEl, "2");
+      expect(getNotificationEl()).toBeNull();
+      expect(getFieldError()).toBeNull();
 
-    const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
-    submitEl.click();
-    await waitFor(() => true);
+      const submitEl = document.getElementById(submitBtnDomId) as HTMLElement;
+      submitEl.click();
 
-    const {
-      onUpdateSuccess,
-      input,
-    } = mockUpdateExperiencesMutation.mock.calls[0][0];
+      const args = await waitFor(() => {
+        const c = mockUpdateExperiencesMutation.mock.calls[0][0];
+        expect(c).toBeDefined();
+        return c;
+      });
 
-    act(() => {
+      const { onUpdateSuccess, input } = args;
+
       onUpdateSuccess({
         entries: {
           newEntries: [
@@ -482,26 +511,26 @@ describe("component", () => {
           ],
         },
       });
+
+      expect(input[0].addEntries[0]).toEqual({
+        clientId: "a",
+        dataObjects: [
+          {
+            data: `{"integer":"2"}`,
+            definitionId: "1",
+          },
+          {
+            data: `{"date":"${toISODateString(now)}"}`,
+            definitionId: "2",
+          },
+        ],
+        experienceId: "1",
+      });
+
+      expect(getFieldError()).not.toBeNull();
+
+      getCloseComponentEl().click();
     });
-
-    expect(input[0].addEntries[0]).toEqual({
-      clientId: "a",
-      dataObjects: [
-        {
-          data: `{"integer":"2"}`,
-          definitionId: "1",
-        },
-        {
-          data: `{"date":"${toISODateString(now)}"}`,
-          definitionId: "2",
-        },
-      ],
-      experienceId: "1",
-    });
-
-    expect(getFieldError()).not.toBeNull();
-
-    getCloseComponentEl().click();
   });
 });
 
@@ -676,17 +705,13 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
 }
 
 function getNotificationEl() {
-  return document.getElementById(notificationCloseId) as HTMLElement;
+  return getById(notificationCloseId);
 }
 
 function getFieldError() {
-  return document
-    .getElementsByClassName(fieldErrorSelector)
-    .item(0) as HTMLElement;
+  return getOneByClass(fieldErrorSelector);
 }
 
 function getCloseComponentEl() {
-  return document
-    .getElementsByClassName("upsert-entry__delete")
-    .item(0) as HTMLElement;
+  return getById(closeId);
 }

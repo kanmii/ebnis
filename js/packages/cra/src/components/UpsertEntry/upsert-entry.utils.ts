@@ -11,6 +11,8 @@ import {
   CreateEntryInput,
   DataTypes,
 } from "@eb/cm/src/graphql/apollo-types/globalTypes";
+import { wrapReducer } from "@eb/cm/src/logger";
+import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import {
   ActiveVal,
   Any,
@@ -24,7 +26,6 @@ import dateFnFormat from "date-fns/format";
 import parseISO from "date-fns/parseISO";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
-import { wrapReducer } from "@eb/cm/src/logger";
 import { deleteObjectKey } from "../../utils";
 import {
   FORM_CONTAINS_ERRORS_MESSAGE,
@@ -38,7 +39,6 @@ import {
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { scrollIntoViewNonFieldErrorDomId } from "./upsert-entry.dom";
@@ -114,10 +114,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             break;
 
           case ActionType.on_upsert_errors:
-            handleOnUpsertErrors(
-              proxy,
-              payload as CreateEntryErrorFragment,
-            );
+            handleOnUpsertErrors(proxy, payload as CreateEntryErrorFragment);
             break;
 
           case ActionType.dismiss_notification:
@@ -274,10 +271,7 @@ interface CreateEntryEffectArgs {
   createEntryClientId?: string;
 }
 
-type DefUpsertEffect = EffectDefinition<
-  "upsertEffect",
-  CreateEntryEffectArgs
->;
+type DefUpsertEffect = EffectDefinition<"upsertEffect", CreateEntryEffectArgs>;
 
 const scrollToViewEffect: DefScrollToViewEffect["func"] = ({ id }) => {
   scrollIntoView(id, {
