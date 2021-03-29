@@ -1,7 +1,6 @@
 import { ApolloError } from "@apollo/client";
 import { CommentFragment } from "@eb/cm/src/graphql/apollo-types/CommentFragment";
 import { UpdateExperiencesOnline } from "@eb/cm/src/graphql/apollo-types/UpdateExperiencesOnline";
-import { ComponentTimeoutsMs } from "@eb/cm/src/utils/timers";
 import { EbnisGlobals } from "@eb/cm/src/utils/types";
 import {
   mockComment1,
@@ -18,6 +17,7 @@ import {
   updateExperiencesMswGql,
 } from "@eb/cm/src/__tests__/msw-handlers";
 import { mswServer, mswServerListen } from "@eb/cm/src/__tests__/msw-server";
+import { componentTimeoutsMs } from "@eb/cm/src/__tests__/wait-for-count";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { GraphQLError } from "graphql";
 import { ComponentType } from "react";
@@ -117,11 +117,6 @@ const mockPersistFunc = jest.fn();
 afterEach(() => {
   jest.resetAllMocks();
 });
-
-const componentTimeoutsMs: ComponentTimeoutsMs = {
-  fetchRetries: [0],
-  closeNotification: 0,
-};
 
 describe("components", () => {
   const ebnisObject = {

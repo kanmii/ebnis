@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { clearTimeoutFn } from "../components/DetailExperience/detail-experience.injectables";
 import { CreateEntryErrorFragment } from "@eb/cm/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataObjectErrorFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectErrorFragment";
 import { DeleteExperiences } from "@eb/cm/src/graphql/apollo-types/DeleteExperiences";
-import { ComponentTimeoutsMs } from "@eb/cm/src/utils/timers";
 import {
   EbnisGlobals,
   OnSyncedData,
@@ -30,7 +28,10 @@ import {
   getExperienceAndEntriesDetailViewGqlMsw,
 } from "@eb/cm/src/__tests__/msw-handlers";
 import { mswServer, mswServerListen } from "@eb/cm/src/__tests__/msw-server";
-import { waitForCount } from "@eb/cm/src/__tests__/wait-for-count";
+import {
+  componentTimeoutsMs,
+  waitForCount,
+} from "@eb/cm/src/__tests__/wait-for-count";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
@@ -68,6 +69,7 @@ import {
   updateMenuItemId,
   updateSuccessNotificationId,
 } from "../components/DetailExperience/detail-experience.dom";
+import { clearTimeoutFn } from "../components/DetailExperience/detail-experience.injectables";
 import {
   ActionType,
   EffectArgs,
@@ -274,11 +276,6 @@ const mockHistoryPushFn = jest.fn();
 
 const mockPersistFunc = jest.fn();
 const mockDeleteExperiences = jest.fn();
-
-const componentTimeoutsMs: ComponentTimeoutsMs = {
-  fetchRetries: [0],
-  closeNotification: 0,
-};
 
 const history = {
   push: mockHistoryPushFn,

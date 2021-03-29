@@ -1,3 +1,5 @@
+import { ComponentTimeoutsMs } from "../utils/timers";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function waitForCount<T>(
   callbackfn: (...t: any) => T | Promise<T>,
@@ -43,3 +45,8 @@ function deferred<T>() {
 
   return { promise, resolve, reject };
 }
+
+export const componentTimeoutsMs: ComponentTimeoutsMs = {
+  fetchRetries: [0],
+  closeNotification: 0,
+};
