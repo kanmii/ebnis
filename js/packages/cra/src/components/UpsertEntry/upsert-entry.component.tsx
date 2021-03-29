@@ -2,6 +2,9 @@ import { DataDefinitionFragment } from "@eb/cm/src/graphql/apollo-types/DataDefi
 import { DataTypes } from "@eb/cm/src/graphql/apollo-types/globalTypes";
 import { trimClass } from "@eb/cm/src/utils";
 import { StateValue } from "@eb/cm/src/utils/types";
+import { ComponentColorType } from "@eb/cm/src/utils/types/react";
+import { Button } from "@eb/jsx/src/components/Button/button.component";
+import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import React, { ChangeEvent, FormEvent, useCallback, useReducer } from "react";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { errorClassName } from "../../utils/utils.dom";
@@ -10,10 +13,11 @@ import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
 import Loading from "../Loading/loading.component";
 import { componentFromDataType } from "./component-from-data-type";
 import {
+  domPrefix,
   fieldErrorSelector,
   notificationCloseId,
   submitBtnDomId,
-  domPrefix,
+  closeId,
 } from "./upsert-entry.dom";
 import "./upsert-entry.styles.scss";
 import {
@@ -58,70 +62,64 @@ export function UpsertEntry(props: Props) {
 
   return (
     <>
-      <form
-        id={domPrefix}
-        className={trimClass(`
-          modal
-          is-active
+      <Modal onClose={onClose} top={true}>
+        <form
+          id={domPrefix}
+          className={trimClass(`
           component-upsert-entry
           ${submissionState.value === StateValue.active ? "submitting" : ""},
           ${className}
           ${noTriggerDocumentEventClassName}
         `)}
-        onSubmit={onSubmit}
-      >
-        <div className="modal-background"></div>
-
-        <div className="modal-card">
-          <header className="modal-card-head">
-            <div className="modal-card-title">
+          onSubmit={onSubmit}
+        >
+          <Modal.Card
+            style={{
+              minHeight: "min(600px, 85vh)",
+              maxWidth: "400px",
+            }}
+          >
+            <Modal.Header id={closeId}>
               <strong>New Entry</strong>
               <div className="experience-title">{title}</div>
-            </div>
+            </Modal.Header>
 
-            <button
-              className="delete upsert-entry__delete"
-              aria-label="close"
-              type="button"
-              onClick={onClose}
-            ></button>
-          </header>
+            <Modal.Body>
+              <span className="modal-scroll-into-view" />
 
-          <div className="modal-card-body">
-            <span className="modal-scroll-into-view" />
+              <NotificationComponent
+                submissionState={submissionState}
+                onCloseNotification={onCloseNotification}
+              />
 
-            <NotificationComponent
-              submissionState={submissionState}
-              onCloseNotification={onCloseNotification}
-            />
+              {dataDefinitions.map((obj, index) => {
+                const definition = obj as DataDefinitionFragment;
 
-            {dataDefinitions.map((obj, index) => {
-              const definition = obj as DataDefinitionFragment;
+                return (
+                  <DataComponent
+                    key={definition.id}
+                    definition={definition}
+                    index={index}
+                    fieldState={form.fields[index]}
+                    dispatch={dispatch}
+                  />
+                );
+              })}
+            </Modal.Body>
 
-              return (
-                <DataComponent
-                  key={definition.id}
-                  definition={definition}
-                  index={index}
-                  fieldState={form.fields[index]}
-                  dispatch={dispatch}
-                />
-              );
-            })}
-          </div>
-
-          <footer className="modal-card-foot">
-            <button
-              className="button submit-btn"
-              id={submitBtnDomId}
-              type="submit"
-            >
-              Submit
-            </button>
-          </footer>
-        </div>
-      </form>
-
+            <Modal.Footer>
+              <Button
+                className="submit-btn"
+                id={submitBtnDomId}
+                type="submit"
+                btnType={ComponentColorType.is_success}
+              >
+                Submit
+              </Button>
+            </Modal.Footer>
+          </Modal.Card>
+        </form>
+      </Modal>
       {submissionState.value === StateValue.active && <Loading />}
     </>
   );
