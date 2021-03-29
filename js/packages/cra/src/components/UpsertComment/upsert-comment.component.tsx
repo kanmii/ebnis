@@ -1,5 +1,6 @@
 import { ReactComponent as ExclamationErrorSvg } from "@eb/cm/src/styles/exclamation-error.svg";
 import { StateValue } from "@eb/cm/src/utils/types";
+import { ComponentColorType } from "@eb/cm/src/utils/types/react";
 import Button from "@eb/jsx/src/components/Button/button.component";
 import Modal from "@eb/jsx/src/components/Modal/modal.component";
 import { ChangeEvent, useCallback, useReducer } from "react";
@@ -137,7 +138,7 @@ export function UpsertComment(props: Props) {
           <>
             <Button
               className="mr-4"
-              btnType="is-success"
+              btnType={ComponentColorType.is_success}
               type="submit"
               id={submitId}
               onClick={(e) => {
@@ -152,7 +153,7 @@ export function UpsertComment(props: Props) {
 
             <Button
               id={resetId}
-              btnType="is-danger"
+              btnType={ComponentColorType.is_danger}
               onClick={(e) => {
                 e.preventDefault();
                 dispatch({

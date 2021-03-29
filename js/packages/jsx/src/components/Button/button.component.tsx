@@ -3,12 +3,13 @@ import {
   ComponentProps,
   ReactMouseEvent,
   ComponentColorType,
+  ComponentColorStyle,
 } from "@eb/cm/src/utils/types/react";
 import { trimClass } from "@eb/cm/src/utils";
 import { DetailedHTMLProps } from "react";
 
-const classes = {
-  "is-danger": `
+const classes: ComponentColorStyle = {
+  [ComponentColorType.is_danger]: `
     border-transparent
     text-white
     bg-red-400
@@ -16,7 +17,7 @@ const classes = {
     active:bg-red-500
     focus:bg-red-500
   `,
-  "is-success": `
+  [ComponentColorType.is_success]: `
     bg-green-400
     border-transparent
     text-white
@@ -24,7 +25,7 @@ const classes = {
     active:bg-green-500
     focus:bg-green-500
   `,
-  default: `
+  [ComponentColorType.default]: `
     bg-white
     text-gray-800
     border-gray-200
@@ -32,15 +33,22 @@ const classes = {
     active:border-gray-400
     focus:border-gray-400
   `,
+  [ComponentColorType.is_light_success]: "",
+  [ComponentColorType.is_light_danger]: "",
 };
 
-export function Button({ children, className, btnType, ...props }: Props) {
+export function Button({
+  children,
+  className,
+  btnType = ComponentColorType.default,
+  ...props
+}: Props) {
   return (
     <button
       {...props}
       className={trimClass(
         `
-          ${classes[btnType || "default"]}
+          ${classes[btnType]}
           ${className || ""}
           border
           cursor-pointer
@@ -60,7 +68,7 @@ export function Button({ children, className, btnType, ...props }: Props) {
 // istanbul ignore next:
 export default Button;
 
-const closeClasses: Record<ComponentColorType, string> = {
+const closeClasses: ComponentColorStyle = {
   [ComponentColorType.is_success]: `
       text-green-300
       hover:text-green-500
@@ -117,7 +125,7 @@ export function ButtonClose({
 }
 
 type Props = {
-  btnType?: keyof typeof classes;
+  btnType?: ComponentColorType;
 } & DetailedHTMLProps<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
   HTMLButtonElement

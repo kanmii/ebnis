@@ -66,7 +66,7 @@ export function Entries(props: Props) {
 
         <Button
           id={refetchEntriesId}
-          btnType="is-success"
+          btnType={ComponentColorType.is_success}
           className="mt-2"
           onClick={() => {
             dispatch({

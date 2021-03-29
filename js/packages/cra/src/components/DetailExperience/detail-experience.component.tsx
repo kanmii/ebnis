@@ -334,7 +334,7 @@ function ExperienceComponent() {
                 <Button
                   id={deleteOkId}
                   type="button"
-                  btnType="is-danger"
+                btnType={ComponentColorType.is_danger}
                   onClick={onDeleteConfirmed}
                 >
                   Ok
@@ -343,7 +343,7 @@ function ExperienceComponent() {
                   id={deleteFooterCloseId}
                   type="button"
                   onClick={onDeleteDeclined}
-                  btnType="is-success"
+                  btnType={ComponentColorType.is_success}
                   className="ml-5"
                 >
                   Cancel
@@ -750,7 +750,7 @@ function PromptToFixSyncErrorNotificationComponent() {
               id={fixSyncErrorsId}
               type="button"
               onClick={requestUpdateUiCb}
-              btnType="is-success"
+            btnType={ComponentColorType.is_success }
             >
               Fix errors
             </Button>
@@ -759,7 +759,7 @@ function PromptToFixSyncErrorNotificationComponent() {
             id={closeSyncErrorsMsgId}
             type="button"
             onClick={closeSyncErrorsMsg}
-            btnType="is-danger"
+            btnType={ComponentColorType.is_danger}
           >
             Cancel
           </Button>

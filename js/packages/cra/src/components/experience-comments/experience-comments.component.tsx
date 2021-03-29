@@ -118,7 +118,7 @@ export function Comments(props: Props) {
                     <Button
                       id={deleteCommentPromptOkId}
                       className="mr-4"
-                      btnType="is-danger"
+                      btnType={ComponentColorType.is_danger}
                       onClick={() => {
                         dispatch({
                           type: ActionType.yes_delete,
