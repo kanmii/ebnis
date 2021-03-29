@@ -1,6 +1,6 @@
 import { Notification } from "@eb/jsx/src/components/Notification/notification.component";
 import { DataObjectFragment } from "@eb/cm/src/graphql/apollo-types/DataObjectFragment";
-import { trimClass } from "@eb/cm/src/utils";
+import { trimClass, capitalize } from "@eb/cm/src/utils";
 import { isOfflineId } from "@eb/cm/src/utils/offlines";
 import { Button } from "@eb/jsx/src/components/Button/button.component";
 import DropdownMenu from "@eb/jsx/src/components/dropdown-menu/dropdown-menu.component";
@@ -110,7 +110,7 @@ export function Entry(props: Props) {
 
             return (
               <div key={id}>
-                <div>{dataDefinitionIdToNameMap[definitionId]}</div>
+                <div>{capitalize(dataDefinitionIdToNameMap[definitionId])}</div>
                 <div>{data}</div>
               </div>
             );
