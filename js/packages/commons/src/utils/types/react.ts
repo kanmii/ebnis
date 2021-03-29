@@ -40,3 +40,5 @@ export enum ComponentColorType {
   is_light_danger = "is-light-danger",
   default = "default",
 }
+
+export type ComponentColorStyle = Record<ComponentColorType, string>;
