@@ -149,7 +149,7 @@ export const mockDataDefinitionInteger1: DataDefinitionFragment = {
   __typename: "DataDefinition",
   id: mockOnlineDataDefinitionInteger1Id,
   clientId: "",
-  name: "aa",
+  name: "start number",
   type: DataTypes.INTEGER,
 };
 
