@@ -541,13 +541,13 @@ describe("reducer", () => {
     let state = initState(props);
 
     state = reducer(state, {
-      type: ActionType.ON_FORM_FIELD_CHANGED,
+      type: ActionType.on_form_field_changed,
       fieldIndex: 0,
       value: "", // form value is empty
     });
 
     state = reducer(state, {
-      type: ActionType.ON_SUBMIT,
+      type: ActionType.submit,
     });
 
     const { key, ownArgs } = (state.effects
@@ -580,7 +580,7 @@ describe("reducer", () => {
     let state = initState(props);
 
     state = reducer(state, {
-      type: ActionType.ON_SUBMIT,
+      type: ActionType.submit,
     });
 
     const { key, ownArgs } = (state.effects
@@ -602,14 +602,14 @@ describe("reducer", () => {
       },
     });
 
-    expect(mockDispatch.mock.calls[0][0].type).toBe(ActionType.ON_COMMON_ERROR);
+    expect(mockDispatch.mock.calls[0][0].type).toBe(ActionType.on_common_error);
   });
 
   it("server field errors no data objects errors", async () => {
     let state = initState(props);
 
     state = reducer(state, {
-      type: ActionType.ON_CREATE_ENTRY_ERRORS,
+      type: ActionType.on_upsert_errors,
     } as any);
 
     expect(
@@ -640,7 +640,7 @@ describe("reducer", () => {
     let state = initState(thisProps);
 
     state = reducer(state, {
-      type: ActionType.ON_SUBMIT,
+      type: ActionType.submit,
     });
 
     const { key, ownArgs } = (state.effects

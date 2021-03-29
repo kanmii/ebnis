@@ -49,11 +49,11 @@ export const ISO_DATE_FORMAT = "yyyy-MM-dd";
 const ISO_DATE_TIME_FORMAT = ISO_DATE_FORMAT + "'T'HH:mm:ssXXX";
 
 export enum ActionType {
-  ON_FORM_FIELD_CHANGED = "@upsert-entry/on-form-field-changed",
-  ON_CREATE_ENTRY_ERRORS = "@upsert-entry/set-create-entry-errors",
-  DISMISS_NOTIFICATION = "@upsert-entry/unset-server-errors",
-  ON_SUBMIT = "@upsert-entry/on-submit",
-  ON_COMMON_ERROR = "@upsert-entry/on-common-error",
+  on_form_field_changed = "@upsert-entry/on-form-field-changed",
+  on_upsert_errors = "@upsert-entry/set-upsert-errors",
+  dismiss_notification = "@upsert-entry/dismiss-notification",
+  submit = "@upsert-entry/submit",
+  on_common_error = "@upsert-entry/on-common-error",
 }
 
 export function toISODateString(date: Date) {
@@ -105,26 +105,26 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
         deleteObjectKey(proxy.effects.general, StateValue.hasEffects);
 
         switch (type) {
-          case ActionType.ON_FORM_FIELD_CHANGED:
+          case ActionType.on_form_field_changed:
             handleFormFieldChangedAction(proxy, payload as FieldChangedPayload);
             break;
 
-          case ActionType.ON_SUBMIT:
+          case ActionType.submit:
             handleSubmissionAction(proxy);
             break;
 
-          case ActionType.ON_CREATE_ENTRY_ERRORS:
-            handleOnCreateEntryErrors(
+          case ActionType.on_upsert_errors:
+            handleOnUpsertErrors(
               proxy,
               payload as CreateEntryErrorFragment,
             );
             break;
 
-          case ActionType.DISMISS_NOTIFICATION:
+          case ActionType.dismiss_notification:
             proxy.states.submission.value = StateValue.inactive;
             break;
 
-          case ActionType.ON_COMMON_ERROR:
+          case ActionType.on_common_error:
             handleOnCommonErrorAction(proxy, payload as StringyErrorPayload);
             break;
         }
@@ -134,7 +134,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
 ////////////////////////// EFFECTS SECTION ////////////////////////////
 
-const upsertEntryEffect: DefUpsertEntryEffect["func"] = (
+const upsertEffect: DefUpsertEffect["func"] = (
   { input, createEntryClientId },
   props,
   effectArgs,
@@ -207,7 +207,7 @@ async function upsertOnlineEntryEffectHelper(
         if (entry0.__typename === "CreateEntryErrors") {
           const { errors } = entry0;
           dispatch({
-            type: ActionType.ON_CREATE_ENTRY_ERRORS,
+            type: ActionType.on_upsert_errors,
             ...errors,
           });
 
@@ -221,13 +221,13 @@ async function upsertOnlineEntryEffectHelper(
       }
 
       dispatch({
-        type: ActionType.ON_COMMON_ERROR,
+        type: ActionType.on_common_error,
         error: GENERIC_SERVER_ERROR,
       });
     },
     onError: (error) => {
       dispatch({
-        type: ActionType.ON_COMMON_ERROR,
+        type: ActionType.on_common_error,
         error: error || GENERIC_SERVER_ERROR,
       });
     },
@@ -254,7 +254,7 @@ async function upsertOfflineEntryEffectHelper(
 
   if (!validResponse) {
     dispatch({
-      type: ActionType.ON_COMMON_ERROR,
+      type: ActionType.on_common_error,
       error: GENERIC_SERVER_ERROR,
     });
 
@@ -274,8 +274,8 @@ interface CreateEntryEffectArgs {
   createEntryClientId?: string;
 }
 
-type DefUpsertEntryEffect = EffectDefinition<
-  "upsertEntryEffect",
+type DefUpsertEffect = EffectDefinition<
+  "upsertEffect",
   CreateEntryEffectArgs
 >;
 
@@ -293,7 +293,7 @@ type DefScrollToViewEffect = EffectDefinition<
 >;
 
 export const effectFunctions = {
-  upsertEntryEffect,
+  upsertEffect,
   scrollToViewEffect,
 };
 
@@ -350,7 +350,7 @@ export function initState(props: Props): StateMachine {
   };
 
   if (errors) {
-    handleOnCreateEntryErrors(stateMachine, errors);
+    handleOnUpsertErrors(stateMachine, errors);
   }
 
   return stateMachine;
@@ -417,7 +417,7 @@ function handleSubmissionAction(proxy: DraftState) {
   }
 
   effects.push({
-    key: "upsertEntryEffect",
+    key: "upsertEffect",
     ownArgs: {
       input: {
         experienceId,
@@ -428,7 +428,7 @@ function handleSubmissionAction(proxy: DraftState) {
   });
 }
 
-function handleOnCreateEntryErrors(
+function handleOnUpsertErrors(
   proxy: DraftState,
   payload: CreateEntryErrorFragment,
 ) {
@@ -615,21 +615,21 @@ export type SubmissionErrors = Readonly<{
 }>;
 
 type Action =
-  | { type: ActionType.ON_SUBMIT }
-  | { type: ActionType.DISMISS_NOTIFICATION }
+  | { type: ActionType.submit }
+  | { type: ActionType.dismiss_notification }
   | ({
-      type: ActionType.ON_CREATE_ENTRY_ERRORS;
+      type: ActionType.on_upsert_errors;
     } & CreateEntryErrorFragment)
   | ({
-      type: ActionType.ON_FORM_FIELD_CHANGED;
+      type: ActionType.on_form_field_changed;
     } & FieldChangedPayload)
   | ({
-      type: ActionType.ON_COMMON_ERROR;
+      type: ActionType.on_common_error;
     } & StringyErrorPayload);
 
 export type DispatchType = Dispatch<Action>;
 
-type EffectType = DefScrollToViewEffect | DefUpsertEntryEffect;
+type EffectType = DefScrollToViewEffect | DefUpsertEffect;
 
 type EffectsList = EffectType[];
 
