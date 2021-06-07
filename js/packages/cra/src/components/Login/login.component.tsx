@@ -1,16 +1,13 @@
-import makeClassNames from "classnames";
-import React, {
-  MouseEvent,
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useReducer,
-} from "react";
+import Button from "@eb/jsx/src/components/Button/button.component";
+import Input from "@eb/jsx/src/Input";
+import { ComponentColorType } from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
+import React, { useContext, useEffect, useReducer } from "react";
 import { EbnisAppContext } from "../../utils/app-context";
 import { FieldError } from "../../utils/common-errors";
 import { setUpRoutePage } from "../../utils/global-window";
 import { SIGN_UP_URL } from "../../utils/urls";
+import { useRunEffects } from "../../utils/use-run-effects";
 import { useLoginMutation } from "../../utils/user.gql.types";
 import { errorClassName, warningClassName } from "../../utils/utils.dom";
 import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
@@ -25,7 +22,6 @@ import {
   resetId,
   submitId,
 } from "./login.dom";
-import "./login.styles.scss";
 import {
   ActionType,
   CallerProps,
@@ -49,40 +45,12 @@ export function Login(props: Props) {
     effects: { general: generalEffects },
   } = stateMachine;
 
+  useRunEffects(generalEffects, effectFunctions, props, { dispatch });
+
   useEffect(() => {
-    if (generalEffects.value !== StateValue.hasEffects) {
-      return;
-    }
-
-    for (const { key, ownArgs } of generalEffects.hasEffects.context.effects) {
-      effectFunctions[key](
-        /* eslint-disable-next-line @typescript-eslint/no-explicit-any*/
-        ownArgs as any,
-        props,
-        { dispatch },
-      );
-    }
-
-    /* eslint-disable-next-line react-hooks/exhaustive-deps*/
-  }, [generalEffects]);
-
-  useLayoutEffect(() => {
     setUpRoutePage({
       title: LOGIN_PAGE_TITLE,
       // rootClassName: "login-component",
-    });
-  }, []);
-
-  const onSubmit = useCallback((e: MouseEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    dispatch({
-      type: ActionType.SUBMISSION,
-    });
-  }, []);
-
-  const onCloseNotification = useCallback(() => {
-    dispatch({
-      type: ActionType.CLOSE_SUBMIT_NOTIFICATION,
     });
   }, []);
 
@@ -130,38 +98,53 @@ export function Login(props: Props) {
   }
 
   return (
-    <div className="login-component">
+    <div className="eb-auth-form">
       <Header />
 
-      <form onSubmit={onSubmit} className="form">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          dispatch({
+            type: ActionType.SUBMISSION,
+          });
+        }}
+        className="form"
+        style={{
+          maxWidth: "400px",
+        }}
+      >
         <div className="form__caption">Login with email</div>
 
         {(warningText || errorText) && (
           <div
             id={notificationId}
-            className={makeClassNames({
-              notification: true,
-              [warningClassName]: !!warningText,
-              [errorClassName]: !!errorText,
-            })}
+            className={cn(
+              "notification",
+              { [warningClassName]: !!warningText },
+              { [errorClassName]: !!errorText },
+            )}
           >
             <button
               type="button"
               className="delete"
-              onClick={onCloseNotification}
+              onClick={() => {
+                dispatch({
+                  type: ActionType.CLOSE_SUBMIT_NOTIFICATION,
+                });
+              }}
             />
             {warningText || errorText}
           </div>
         )}
 
-        <div className="field">
-          <label htmlFor={emailInputId} className="label form__label">
+        <div className="field outer_field">
+          <label htmlFor={emailInputId} className="form__label">
             Email
           </label>
 
           <div className="control">
-            <input
-              className="input is-rounded"
+            <Input
+              isRounded
               type="text"
               id={emailInputId}
               value={emailValue}
@@ -191,14 +174,14 @@ export function Login(props: Props) {
           )}
         </div>
 
-        <div className="field">
-          <label htmlFor={passwordInputId} className="label form__label">
+        <div className="field outer_field">
+          <label htmlFor={passwordInputId} className="form__label">
             Password
           </label>
 
           <div className="control">
-            <input
-              className="input is-rounded"
+            <Input
+              isRounded
               type="password"
               id={passwordInputId}
               value={passwordValue}
@@ -228,20 +211,22 @@ export function Login(props: Props) {
         </div>
 
         <div className="form__submit">
-          <button
+          <Button
             type="submit"
             id={submitId}
-            className="button is-rounded is-primary"
+            isRounded
+            btnType={ComponentColorType.is_primary}
           >
             Login
-          </button>
+          </Button>
         </div>
 
         <div className="form__submit">
-          <button
+          <Button
+            isRounded
+            btnType={ComponentColorType.is_warning}
             id={resetId}
             type="button"
-            className="button is-rounded is-warning"
             onClick={() => {
               dispatch({
                 type: ActionType.RESET_FORM_FIELDS,
@@ -249,10 +234,15 @@ export function Login(props: Props) {
             }}
           >
             Reset
-          </button>
+          </Button>
         </div>
 
-        <div className="other-auth">
+        <div
+          className="other-auth"
+          style={{
+            marginTop: "80px",
+          }}
+        >
           <div>Don&apos;t have an account?</div>
           <a href={SIGN_UP_URL} className="other-auth__other-link">
             Sign Up!

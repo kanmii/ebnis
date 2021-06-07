@@ -22,7 +22,7 @@ import {
   errorClassName,
   formCtrlErrorClassName,
   formFieldErrorClass,
-  outerFieldClassName,
+  outerFieldSelector,
   warningClassName,
 } from "../utils/utils.dom";
 
@@ -278,7 +278,7 @@ function getNotificationEl() {
 }
 
 function getInputElParentField(el: HTMLElement) {
-  return el.closest(`.${outerFieldClassName}`) as HTMLElement;
+  return el.closest(`.${outerFieldSelector}`) as HTMLElement;
 }
 
 function getErrorEl(fieldEl: HTMLElement) {

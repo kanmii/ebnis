@@ -1,14 +1,13 @@
 /* istanbul ignore file */
 import "@fortawesome/fontawesome-free/css/all.css";
+// import "bulma/bulma.sass";
 import React from "react";
 import ReactDOM from "react-dom";
+import "tailwindcss/tailwind.css";
 import App from "./components/App/app.component";
 import reportWebVitals from "./reportWebVitals";
 import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 import "./styles/globals.css";
-import "./styles/globals.scss";
-import "./styles/tailwind-after.css";
-import "./styles/tailwind-before.css";
 
 ReactDOM.render(
   <React.StrictMode>

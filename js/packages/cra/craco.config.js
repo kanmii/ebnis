@@ -3,19 +3,22 @@
 const { getLoader, loaderByName } = require("@craco/craco");
 const { packagesPath } = require("../../_shared/_package-scripts");
 
+const sharedPackagePath = `${packagesPath}/shared`;
 const jsxPackagePath = `${packagesPath}/jsx`;
+
+const _postcss = require(`${sharedPackagePath}/postcss.config.js`);
+const postcss = {
+  ..._postcss,
+};
+
+postcss.plugins = postcss.pluginStrings.reduce((acc, plugin) => {
+  acc.push(require(plugin));
+  return acc;
+}, []);
 
 module.exports = {
   style: {
-    postcss: {
-      plugins: [
-        require("postcss-advanced-variables"),
-        require("postcss-extend-rule"),
-        require("postcss-nested"),
-        require("tailwindcss"),
-        require("autoprefixer"),
-      ],
-    },
+    postcss,
   },
   typescript: {
     enableTypeChecking: false,
@@ -35,7 +38,11 @@ module.exports = {
         const include = Array.isArray(match.loader.include)
           ? match.loader.include
           : [match.loader.include];
-        match.loader.include = include.concat[jsxPackagePath];
+
+        match.loader.include = include.concat(
+          sharedPackagePath,
+          jsxPackagePath,
+        );
       }
       return webpackConfig;
     },

@@ -1,5 +1,8 @@
+import Button from "@eb/jsx/src/components/Button/button.component";
+import Input from "@eb/jsx/src/Input";
 import { StateValue } from "@eb/shared/src/utils/types";
-import makeClassNames from "classnames";
+import { ComponentColorType } from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
 import React, { MouseEvent, useCallback, useContext, useReducer } from "react";
 import { EbnisAppContext } from "../../utils/app-context";
 import { FieldError } from "../../utils/common-errors";
@@ -10,7 +13,7 @@ import { registerUserMutation } from "../../utils/user.gql.types";
 import {
   errorClassName,
   formFieldErrorClass,
-  outerFieldClassName,
+  outerFieldSelector,
   warningClassName,
 } from "../../utils/utils.dom";
 import FormCtrlError from "../FormCtrlError/form-ctrl-error.component";
@@ -38,7 +41,6 @@ import {
   Props,
   reducer,
 } from "./sign-up.utils";
-import "./styles.scss";
 
 export function SignUp(props: Props) {
   const [stateMachine, dispatch] = useReducer(reducer, undefined, initState);
@@ -121,7 +123,7 @@ export function SignUp(props: Props) {
   }
 
   return (
-    <div className="sign-up-component ">
+    <div className="eb-auth-form">
       <Header />
 
       <span className="scroll-into-view" id={scrollIntoViewDomId} />
@@ -132,7 +134,7 @@ export function SignUp(props: Props) {
         {(warningText || errorText) && (
           <div
             id={notificationId}
-            className={makeClassNames({
+            className={cn({
               notification: true,
               [warningClassName]: !!warningText,
               [errorClassName]: !!errorText,
@@ -156,20 +158,22 @@ export function SignUp(props: Props) {
         />
 
         <div className="form__submit">
-          <button
+          <Button
             type="submit"
             id={submitId}
-            className="button is-rounded is-primary"
+            isRounded
+            btnType={ComponentColorType.is_primary}
           >
             Sign up
-          </button>
+          </Button>
         </div>
 
         <div className="form__submit">
-          <button
+          <Button
+            isRounded
+            btnType={ComponentColorType.is_warning}
             type="button"
             id={resetId}
-            className="button is-rounded is-warning"
             onClick={() => {
               dispatch({
                 type: ActionType.RESET_FORM_FIELDS,
@@ -177,7 +181,7 @@ export function SignUp(props: Props) {
             }}
           >
             Reset
-          </button>
+          </Button>
         </div>
 
         <div className="other-auth">
@@ -211,24 +215,22 @@ function Name(props: FieldComponentProps) {
 
   return (
     <div
-      className={makeClassNames({
-        [outerFieldClassName]: true,
-        [nameFieldId]: true,
+      className={cn("outer_field", outerFieldSelector, nameFieldId, {
         [formFieldErrorClass]: !!nameErrors,
       })}
     >
-      <label htmlFor={nameInputId} className="label form__label">
+      <label htmlFor={nameInputId} className="form__label">
         Your name
       </label>
 
       <div
-        className={makeClassNames({
+        className={cn({
           "field form__field has-addons": true,
         })}
       >
         <div className="control form__control-wrapper">
-          <input
-            className="input is-rounded"
+          <Input
+            isRounded
             type="text"
             id={nameInputId}
             value={nameValue}
@@ -273,24 +275,22 @@ function Email(props: FieldComponentProps) {
 
   return (
     <div
-      className={makeClassNames({
-        [outerFieldClassName]: true,
-        [emailFieldId]: true,
+      className={cn("outer_field", outerFieldSelector, emailFieldId, {
         [formFieldErrorClass]: !!emailErrors,
       })}
     >
-      <label htmlFor={emailInputId} className="label form__label">
+      <label htmlFor={emailInputId} className="form__label">
         Email
       </label>
 
       <div
-        className={makeClassNames({
+        className={cn({
           "field form__field has-addons": true,
         })}
       >
         <div className="control form__control-wrapper">
-          <input
-            className="input is-rounded"
+          <Input
+            isRounded
             type="text"
             id={emailInputId}
             value={emailValue}
@@ -335,24 +335,22 @@ function Password(props: FieldComponentProps) {
 
   return (
     <div
-      className={makeClassNames({
-        [outerFieldClassName]: true,
-        [passwordFieldId]: true,
+      className={cn("outer_field", outerFieldSelector, passwordFieldId, {
         [formFieldErrorClass]: !!passwordErrors,
       })}
     >
-      <label htmlFor={passwordInputId} className="label form__label">
+      <label htmlFor={passwordInputId} className="form__label">
         Password
       </label>
 
       <div
-        className={makeClassNames({
+        className={cn({
           "field form__field has-addons": true,
         })}
       >
         <div className="control form__control-wrapper">
-          <input
-            className="input is-rounded"
+          <Input
+            isRounded
             type="password"
             id={passwordInputId}
             value={passwordValue}
@@ -397,27 +395,27 @@ function PasswordConfirmation(props: FieldComponentProps) {
 
   return (
     <div
-      className={makeClassNames({
-        [outerFieldClassName]: true,
-        [passwordConfirmationFieldId]: true,
-        [formFieldErrorClass]: !!passwordConfirmationErrors,
-      })}
+      className={cn(
+        "outer_field",
+        outerFieldSelector,
+        passwordConfirmationFieldId,
+        {
+          [formFieldErrorClass]: !!passwordConfirmationErrors,
+        },
+      )}
     >
-      <label
-        htmlFor={passwordConfirmationInputId}
-        className="label form__label"
-      >
+      <label htmlFor={passwordConfirmationInputId} className="form__label">
         Password Confirmation
       </label>
 
       <div
-        className={makeClassNames({
+        className={cn({
           "field form__field has-addons": true,
         })}
       >
         <div className="control form__control-wrapper">
-          <input
-            className="input is-rounded"
+          <Input
+            isRounded
             type="password"
             id={passwordConfirmationInputId}
             value={passwordConfirmationValue}

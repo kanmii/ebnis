@@ -33,7 +33,7 @@ module.exports = (on, config) => {
   config.port = null;
 
   if (CYPRESS_BROWSER) {
-    config.browsers = [CYPRESS_BROWSER];
+    config.browsers = config.browsers.filter((b) => b.name === CYPRESS_BROWSER);
   }
 
   const envs = config.env;

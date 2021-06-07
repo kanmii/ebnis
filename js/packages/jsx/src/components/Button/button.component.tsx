@@ -1,5 +1,4 @@
 import { ReactComponent as XCircleFilledSvg } from "@eb/shared/src/styles/x-circle-filled.svg";
-import { trimClass } from "@eb/shared/src/utils";
 import {
   ComponentColorStyle,
   ComponentColorType,
@@ -7,8 +6,9 @@ import {
   ReactMouseEvent,
 } from "@eb/shared/src/utils/types/react";
 import React, { DetailedHTMLProps } from "react";
+import cn from "classnames";
 
-const classes: ComponentColorStyle = {
+const buttonClasses: ComponentColorStyle = {
   [ComponentColorType.is_danger]: `
     border-transparent
     text-white
@@ -33,31 +33,46 @@ const classes: ComponentColorStyle = {
     active:border-gray-400
     focus:border-gray-400
   `,
-  [ComponentColorType.is_light_success]: "",
-  [ComponentColorType.is_light_danger]: "",
+  [ComponentColorType.is_light_success]: ``,
+  [ComponentColorType.is_light_danger]: ``,
+  [ComponentColorType.is_warning]: `
+    border-transparent
+    bg-yellow-300
+    hover:bg-yellow-400
+    active:bg-yellow-400
+    focus:bg-yellow-400
+  `,
+  [ComponentColorType.is_primary]: `
+    bg-green-300
+    border-transparent
+    text-white
+    hover:bg-green-400
+    active:bg-green-400
+    focus:bg-green-400
+  `,
 };
 
 export function Button({
   children,
   className,
   btnType = ComponentColorType.default,
+  isRounded,
   ...props
 }: Props) {
   return (
     <button
       {...props}
-      className={trimClass(
-        `
-          ${classes[btnType]}
-          ${className || ""}
-          border
-          cursor-pointer
-          justify-center
-          px-4
-          py-2
-          text-center
-          whitespace-nowrap
-        `,
+      className={cn(
+        buttonClasses[btnType],
+        className || "",
+        "border",
+        "cursor-pointer",
+        "justify-center",
+        "!px-5",
+        "!py-2",
+        "text-center",
+        "whitespace-nowrap",
+        isRounded ? "rounded-full" : "",
       )}
     >
       {children}
@@ -85,7 +100,9 @@ const closeClasses: ComponentColorStyle = {
       text-red-300
       hover:text-red-500
   `,
-  [ComponentColorType.default]: "",
+  [ComponentColorType.default]: ``,
+  [ComponentColorType.is_primary]: ``,
+  [ComponentColorType.is_warning]: ``,
 };
 
 export function ButtonClose({
@@ -100,19 +117,17 @@ export function ButtonClose({
     <a
       onClick={onClose}
       id={id}
-      className={trimClass(
-        `
-            absolute
-            h-7
-            w-7
-            cursor-pointer
-            box-content
-            pl-4
-            pr-2
-            pb-4
-            pt-1
-            ${closeClasses[type] || ""}
-          `,
+      className={cn(
+        "absolute",
+        "h-7",
+        "w-7",
+        "cursor-pointer",
+        "box-content",
+        "pl-4",
+        "pr-2",
+        "pb-4",
+        "pt-1",
+        closeClasses[type] || "",
       )}
       style={{
         right: ".5rem",
@@ -126,6 +141,7 @@ export function ButtonClose({
 
 type Props = {
   btnType?: ComponentColorType;
+  isRounded?: true;
 } & DetailedHTMLProps<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
   HTMLButtonElement
