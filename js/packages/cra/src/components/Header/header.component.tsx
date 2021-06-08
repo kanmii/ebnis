@@ -4,7 +4,11 @@ import React, { useContext } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { WithSubscriptionContext } from "../../utils/app-context";
 import { MY_URL } from "../../utils/urls";
-import { domPrefix } from "./header.dom";
+import {
+  connectedSelector,
+  domPrefix,
+  unConnectedSelector,
+} from "./header.dom";
 
 export function Header(props: Props) {
   const { connected } = props;
@@ -22,6 +26,7 @@ export function Header(props: Props) {
         "m-0",
         "bg-white",
         "w-full",
+        connected ? connectedSelector : unConnectedSelector,
       )}
       style={{
         ["--part-shadow" as any]: "0 1px 4px",

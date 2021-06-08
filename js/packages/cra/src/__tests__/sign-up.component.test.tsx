@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { notificationCloseSelector } from "@eb/jsx/src/components/Notification/notification.component";
 import { manageUserAuthentication } from "@eb/shared/src/utils/manage-user-auth";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";
@@ -269,7 +270,9 @@ function getSubmitEl() {
 
 function closeNotification(notificationEl: HTMLElement) {
   (
-    notificationEl.getElementsByClassName("delete").item(0) as HTMLElement
+    notificationEl
+      .getElementsByClassName(notificationCloseSelector)
+      .item(0) as HTMLElement
   ).click();
 }
 

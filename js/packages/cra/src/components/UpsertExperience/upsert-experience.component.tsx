@@ -1,7 +1,13 @@
+import { ChevronDown, ChevronUp } from "@eb/jsx/src/components";
+import Button from "@eb/jsx/src/components/Button/button.component";
+import Modal from "@eb/jsx/src/components/Modal/modal.component";
+import Notification from "@eb/jsx/src/components/Notification/notification.component";
+import { Input, Label, Select, Textarea } from "@eb/jsx/src/Input";
 import { useCreateExperiencesMutation } from "@eb/shared/src/apollo/experience.gql.types";
 import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import { StateValue } from "@eb/shared/src/utils/types";
-import makeClassNames from "classnames";
+import { ComponentColorType } from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
 import React, { ChangeEvent, FormEvent, useCallback, useReducer } from "react";
 import { FieldError } from "../../utils/common-errors";
 import { InputChangeEvent } from "../../utils/types";
@@ -17,21 +23,27 @@ import {
   definitionNameInputDomId,
   definitionTypeFormControlSelector,
   definitionTypeInputDomId,
+  descriptionHideSelector,
   descriptionInputDomId,
+  descriptionShowSelector,
+  descriptionToggleSelector,
   disposeComponentDomId,
   domPrefix,
+  fieldErrorIndicatorSelector,
   fieldErrorSelector,
+  fieldSelector,
+  hiddenSelector,
   makeDefinitionTypeOptionDomId,
   moveDownDefinitionSelector,
   moveUpDefinitionSelector,
   notificationCloseId,
+  notificationElementSelector,
   removeDefinitionSelector,
   resetDomId,
   scrollIntoViewDomId,
   submitDomId,
   titleInputDomId,
 } from "./upsert-experience.dom";
-import "./upsert-experience.styles.scss";
 import {
   ActionType,
   CallerProps,
@@ -128,86 +140,81 @@ export function UpsertExperience(props: Props) {
   );
 
   return (
-    <form
-      className={makeClassNames({
-        "form component-upsert-experience modal is-active": true,
-        [className]: true,
-      })}
-      onSubmit={onSubmit}
-      id={domPrefix}
-    >
-      <div className="modal-background"></div>
+    <Modal top onClose={onClose}>
+      <form
+        className={cn("component-upsert-experience", className || "")}
+        onSubmit={onSubmit}
+        id={domPrefix}
+      >
+        <Modal.Card>
+          <Modal.Header id={disposeComponentDomId}>
+            <div>
+              <p className={cn("font-bold text-xl")}>{header}</p>
+              {title && <p className={cn("mt-3 text-xs italic")}>{title}</p>}
+            </div>
+          </Modal.Header>
 
-      <div className="modal-card">
-        <header className="modal-card-head">
-          <div className="modal-card-title">
-            <p>{header}</p>
-            {title && <p className="upsert-experience__title-small">{title}</p>}
-          </div>
+          <Modal.Body>
+            <span className="modal-scroll-into-view" id={scrollIntoViewDomId} />
 
-          <button
-            type="button"
-            className="delete"
-            aria-label="close"
-            id={disposeComponentDomId}
-            onClick={onClose}
-          />
-        </header>
-
-        <section className="modal-card-body">
-          <span className="modal-scroll-into-view" id={scrollIntoViewDomId} />
-
-          <ErrorOrWarning
-            formValidity={formValidity}
-            submissionState={submissionState}
-            onCloseNotification={onCloseNotification}
-          />
-
-          <TitleComponent state={titleState} onTitleChanged={onTitleChanged} />
-
-          <DescriptionComponent
-            state={descriptionState}
-            onToggleDescription={onToggleDescription}
-            onDescriptionChanged={onDescriptionChanged}
-          />
-
-          <DataDefinitionsComponent
-            states={dataDefinitionsStates}
-            dispatch={dispatch}
-          />
-
-          {mode.value === StateValue.insert && (
-            <CommentComponent
-              state={commentState}
-              onCommentChanged={onCommentChanged}
+            <ErrorOrWarning
+              formValidity={formValidity}
+              submissionState={submissionState}
+              onCloseNotification={onCloseNotification}
             />
-          )}
-        </section>
 
-        <footer className="modal-card-foot">
-          <button
-            type="submit"
-            id={submitDomId}
-            className="button is-rounded is-primary"
-          >
-            Save changes
-          </button>
+            <TitleComponent
+              state={titleState}
+              onTitleChanged={onTitleChanged}
+            />
 
-          <button
-            id={resetDomId}
-            type="button"
-            className="button is-rounded is-warning"
-            onClick={() => {
-              dispatch({
-                type: ActionType.RESET_FORM_FIELDS,
-              });
-            }}
-          >
-            Reset
-          </button>
-        </footer>
-      </div>
-    </form>
+            <DescriptionComponent
+              state={descriptionState}
+              onToggleDescription={onToggleDescription}
+              onDescriptionChanged={onDescriptionChanged}
+            />
+
+            <DataDefinitionsComponent
+              states={dataDefinitionsStates}
+              dispatch={dispatch}
+            />
+
+            {mode.value === StateValue.insert && (
+              <CommentComponent
+                state={commentState}
+                onCommentChanged={onCommentChanged}
+              />
+            )}
+          </Modal.Body>
+
+          <Modal.Footer>
+            <Button
+              type="submit"
+              id={submitDomId}
+              isRounded
+              btnType={ComponentColorType.is_primary}
+              className={cn("mr-5")}
+            >
+              Save changes
+            </Button>
+
+            <Button
+              isRounded
+              btnType={ComponentColorType.is_warning}
+              id={resetDomId}
+              type="button"
+              onClick={() => {
+                dispatch({
+                  type: ActionType.RESET_FORM_FIELDS,
+                });
+              }}
+            >
+              Reset
+            </Button>
+          </Modal.Footer>
+        </Modal.Card>
+      </form>
+    </Modal>
   );
 }
 
@@ -248,21 +255,21 @@ function ErrorOrWarning({
   }
 
   return warningText || errorText ? (
-    <div
-      className={makeClassNames({
-        notification: true,
-        [warningClassName]: !!warningText,
-        [errorClassName]: !!errorText,
-      })}
+    <Notification
+      className={cn(
+        notificationElementSelector,
+        warningText ? warningClassName : errorClassName,
+      )}
+      id={notificationCloseId}
+      onClose={onCloseNotification}
+      type={
+        warningClassName
+          ? ComponentColorType.is_warning
+          : ComponentColorType.is_danger
+      }
     >
-      <button
-        id={notificationCloseId}
-        type="button"
-        className="delete"
-        onClick={onCloseNotification}
-      />
       {warningText || errorText}
-    </div>
+    </Notification>
   ) : null;
 }
 
@@ -286,21 +293,18 @@ function TitleComponent(props: TitleProps) {
 
   return (
     <div
-      className={makeClassNames({
-        "field form__field": true,
-        "form__field--errors": !!titleErrors,
-      })}
+      className={cn(
+        fieldSelector,
+        titleErrors ? fieldErrorIndicatorSelector : "",
+      )}
     >
-      <label htmlFor={titleInputDomId} className="form__label">
+      <Label htmlFor={titleInputDomId} className="form__label">
         Title
-      </label>
+      </Label>
 
       <div className="control">
-        <input
-          className={makeClassNames({
-            "form__control input is-rounded": true,
-            "is-danger": !!titleErrors,
-          })}
+        <Input
+          isRounded
           type="text"
           id={titleInputDomId}
           value={titleValue}
@@ -337,21 +341,15 @@ function CommentComponent(props: CommentProps) {
   }
 
   return (
-    <div
-      className={makeClassNames({
-        "field form__field": true,
-      })}
-    >
-      <label htmlFor={commentInputDomId} className="form__label">
+    <div>
+      <Label htmlFor={commentInputDomId} className="form__label">
         Comment
-      </label>
+      </Label>
 
       <div className="control">
-        <textarea
+        <Textarea
           rows={7}
-          className={makeClassNames({
-            "form__control textarea": true,
-          })}
+          className={cn("w-full")}
           id={commentInputDomId}
           value={commentValue}
           onChange={onCommentChanged}
@@ -376,31 +374,27 @@ function DescriptionComponent(props: DescriptionProps) {
   }
 
   return (
-    <div className="field form__field">
-      <label
-        htmlFor={descriptionInputDomId}
-        className="form__label form__label-description"
-      >
+    <div className="mb-4">
+      <Label htmlFor={descriptionInputDomId}>
         <span>Description</span>
 
         <div
-          className="form__label-description-toggle"
+          className={cn(descriptionToggleSelector, "py-3 pl-3 inline-block")}
           onClick={onToggleDescription}
         >
           {descriptionActive ? (
-            <span className="form__label-description-hide" />
+            <ChevronDown className={descriptionHideSelector} />
           ) : (
-            <span className="form__label-description-show" />
+            <ChevronUp className={descriptionShowSelector} />
           )}
         </div>
-      </label>
+      </Label>
 
       <div className="control">
-        <textarea
+        <Textarea
           rows={7}
-          className={makeClassNames({
-            "form__control textarea": true,
-            "form__control--hidden": !descriptionActive,
+          className={cn({
+            [`${hiddenSelector} hidden`]: !descriptionActive,
           })}
           id={descriptionInputDomId}
           value={descriptionValue}
@@ -456,30 +450,32 @@ function DataDefinitionsComponent(props: DataDefinitionsProps) {
         return (
           <div
             key={id}
-            className={makeClassNames({
-              "data-definition": true,
-              [definitionContainerDomSelector]: true,
-            })}
+            className={cn(
+              "data-definition mb-4 border-2 rounded-sm p-3",
+              definitionContainerDomSelector,
+            )}
             id={id}
             data-id={id}
           >
             <div
-              className={makeClassNames({
-                "field form__field": true,
-                "form__field--errors": !!nameErrors,
-              })}
+              className={cn(
+                "mb-4",
+                fieldSelector,
+                nameErrors ? fieldErrorIndicatorSelector : "",
+              )}
             >
-              <label
+              <Label
                 htmlFor={definitionNameInputDomId + id}
                 className="form__label"
               >
                 Field name
-              </label>
+              </Label>
 
               <div className="control">
-                <input
+                <Input
+                  isRounded
                   type="text"
-                  className={makeClassNames({
+                  className={cn({
                     "input form__control is-rounded": true,
                     [definitionNameFormControlSelector]: true,
                   })}
@@ -513,53 +509,53 @@ function DataDefinitionsComponent(props: DataDefinitionsProps) {
             </div>
 
             <div
-              className={makeClassNames({
-                "field form__field": true,
-                "form__field--errors": !!typeErrors,
-              })}
+              className={cn(
+                "mb-4",
+                fieldSelector,
+                typeErrors ? fieldErrorIndicatorSelector : "",
+              )}
             >
-              <label
+              <Label
                 htmlFor={definitionTypeInputDomId + id}
-                className="form__label"
+                className={cn("form__label")}
               >
                 Data type
-              </label>
+              </Label>
 
               <div className="control">
-                <div className="select is-rounded">
-                  <select
-                    className={makeClassNames({
-                      "form__control form__control--select": true,
-                      [definitionTypeFormControlSelector]: true,
-                    })}
-                    id={definitionTypeInputDomId + id}
-                    value={typeValue}
-                    onChange={(e) => {
-                      const node = e.currentTarget;
-                      dispatch({
-                        type: ActionType.FORM_CHANGED,
-                        key: "def",
-                        index,
-                        value: node.value,
-                        fieldName: "type",
-                      });
-                    }}
-                  >
-                    <option value="">Click to select</option>
+                <Select
+                  parentProps={{ className: cn("w-full") }}
+                  isRounded
+                  className={cn({
+                    [definitionTypeFormControlSelector]: true,
+                  })}
+                  id={definitionTypeInputDomId + id}
+                  value={typeValue}
+                  onChange={(e) => {
+                    const node = e.currentTarget;
+                    dispatch({
+                      type: ActionType.FORM_CHANGED,
+                      key: "def",
+                      index,
+                      value: node.value,
+                      fieldName: "type",
+                    });
+                  }}
+                >
+                  <option value="">Click to select</option>
 
-                    {fieldTypeKeys.map((fieldType) => {
-                      return (
-                        <option
-                          key={fieldType}
-                          value={fieldType}
-                          id={makeDefinitionTypeOptionDomId(fieldType)}
-                        >
-                          {fieldType}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
+                  {fieldTypeKeys.map((fieldType) => {
+                    return (
+                      <option
+                        key={fieldType}
+                        value={fieldType}
+                        id={makeDefinitionTypeOptionDomId(fieldType)}
+                      >
+                        {fieldType}
+                      </option>
+                    );
+                  })}
+                </Select>
               </div>
 
               {typeErrors && (
@@ -576,82 +572,107 @@ function DataDefinitionsComponent(props: DataDefinitionsProps) {
               )}
             </div>
 
-            <div className="data-definition-controls">
-              <button
-                type="button"
-                className={`button is-rounded data-definition-control ${addDefinitionSelector}`}
+            <div className={cn("data-definition-controls", "flex justify-end")}>
+              <DefinitionCrudComponent
+                direction="add"
+                className={addDefinitionSelector}
                 onClick={() => {
                   dispatch({
                     type: ActionType.ADD_DEFINITION,
                     data: definitionProperties,
                   });
                 }}
-              >
-                <span className="icon is-small">
-                  <i className="fas fa-plus"></i>
-                </span>
-              </button>
+              />
 
               {definitionsLen !== 1 && (
-                <button
-                  type="button"
-                  className={`button is-rounded data-definition-control ${removeDefinitionSelector}`}
+                <DefinitionCrudComponent
+                  className={removeDefinitionSelector}
                   onClick={() => {
                     dispatch({
                       type: ActionType.REMOVE_DEFINITION,
                       data: definitionProperties,
                     });
                   }}
-                >
-                  <span className="icon is-small">
-                    <i className="fas fa-minus"></i>
-                  </span>
-                </button>
+                  direction="remove"
+                />
               )}
 
               {index !== 0 && (
-                <button
-                  type="button"
-                  className={`button is-rounded data-definition-control ${moveUpDefinitionSelector}`}
+                <DefinitionCrudComponent
                   onClick={() => {
                     dispatch({
                       type: ActionType.UP_DEFINITION,
                       data: definitionProperties,
                     });
                   }}
-                >
-                  <span className="icon is-small">
-                    <i className="fas fa-chevron-up"></i>
-                  </span>
-                </button>
+                  direction="up"
+                  className={moveUpDefinitionSelector}
+                />
               )}
 
               {definitionsLen > 1 && index + 1 !== definitionsLen && (
-                <button
-                  type="button"
-                  className={makeClassNames({
-                    "button is-rounded": true,
-                    "data-definition-control": true,
-                    "data-definition-control--down": true,
-                    [moveDownDefinitionSelector]: true,
-                  })}
+                <DefinitionCrudComponent
+                  className={moveDownDefinitionSelector}
                   onClick={() => {
                     dispatch({
                       type: ActionType.DOWN_DEFINITION,
                       data: definitionProperties,
                     });
                   }}
-                >
-                  <span className="icon is-small">
-                    <i className="fas fa-chevron-down"></i>
-                  </span>
-                </button>
+                  direction="down"
+                />
               )}
             </div>
           </div>
         );
       })}
     </div>
+  );
+}
+
+function DefinitionCrudComponent(props: {
+  direction: "up" | "down" | "add" | "remove";
+  onClick: () => void;
+  className: string;
+}) {
+  const { onClick, direction, className } = props;
+
+  let directionEl: React.ReactNode = "";
+  let hasIconClass = false;
+
+  switch (direction) {
+    case "add":
+      directionEl = "+";
+      hasIconClass = true;
+      break;
+    case "remove":
+      hasIconClass = true;
+      directionEl = "-";
+      break;
+
+    case "up":
+      directionEl = <i className="fas fa-chevron-up"></i>;
+      break;
+
+    case "down":
+      directionEl = <i className="fas fa-chevron-down"></i>;
+      break;
+  }
+
+  return (
+    <Button
+      isRounded
+      type="button"
+      className={cn("mr-3 !p-0 w-11 h-11", className)}
+      onClick={onClick}
+      style={{
+        color: "var(--app-color)",
+      }}
+    >
+      <span className={cn(hasIconClass ? "font-bold text-2xl" : "")}>
+        {directionEl}
+      </span>
+    </Button>
   );
 }
 

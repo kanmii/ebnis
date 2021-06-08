@@ -41,6 +41,7 @@ export enum ComponentColorType {
   is_primary = "is-primary",
   is_warning = "is-warning",
   default = "default",
+  info = "info",
 }
 
 export type ComponentColorStyle = Record<ComponentColorType, string>;

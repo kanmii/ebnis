@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { notificationCloseSelector } from "@eb/jsx/src/components/Notification/notification.component";
 import { LoginMutationVariables } from "@eb/shared/src/graphql/apollo-types/LoginMutation";
 import { getIsConnected } from "@eb/shared/src/utils/connections";
 import { manageUserAuthentication } from "@eb/shared/src/utils/manage-user-auth";
@@ -273,7 +274,9 @@ function getNotification() {
 
 function closeNotification(notificationEl: HTMLElement) {
   (
-    notificationEl.getElementsByClassName("delete").item(0) as HTMLElement
+    notificationEl
+      .getElementsByClassName(notificationCloseSelector)
+      .item(0) as HTMLElement
   ).click();
 }
 

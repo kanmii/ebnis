@@ -37,21 +37,3 @@
     border-color: var(--danger-color);
   }
 }
-
-%chevron-down {
-  display: inline-block;
-  width: 0;
-  height: 0;
-  border-bottom: 10px solid black;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-}
-
-%chevron-up {
-  display: inline-block;
-  width: 0;
-  height: 0;
-  border-top: 10px solid black;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-}

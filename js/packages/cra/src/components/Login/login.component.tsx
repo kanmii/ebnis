@@ -1,4 +1,5 @@
 import Button from "@eb/jsx/src/components/Button/button.component";
+import Notification from "@eb/jsx/src/components/Notification/notification.component";
 import Input from "@eb/jsx/src/Input";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import cn from "classnames";
@@ -116,25 +117,25 @@ export function Login(props: Props) {
         <div className="form__caption">Login with email</div>
 
         {(warningText || errorText) && (
-          <div
-            id={notificationId}
+          <Notification
+            type={
+              warningText
+                ? ComponentColorType.is_warning
+                : ComponentColorType.is_danger
+            }
+            elId={notificationId}
             className={cn(
-              "notification",
-              { [warningClassName]: !!warningText },
-              { [errorClassName]: !!errorText },
+              warningText ? warningClassName : errorClassName,
+              "!mb-4",
             )}
+            onClose={() => {
+              dispatch({
+                type: ActionType.CLOSE_SUBMIT_NOTIFICATION,
+              });
+            }}
           >
-            <button
-              type="button"
-              className="delete"
-              onClick={() => {
-                dispatch({
-                  type: ActionType.CLOSE_SUBMIT_NOTIFICATION,
-                });
-              }}
-            />
             {warningText || errorText}
-          </div>
+          </Notification>
         )}
 
         <div className="field outer_field">

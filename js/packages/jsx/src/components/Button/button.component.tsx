@@ -35,6 +35,7 @@ const buttonClasses: ComponentColorStyle = {
   `,
   [ComponentColorType.is_light_success]: ``,
   [ComponentColorType.is_light_danger]: ``,
+  [ComponentColorType.info]: ``,
   [ComponentColorType.is_warning]: `
     border-transparent
     bg-yellow-300
@@ -63,16 +64,11 @@ export function Button({
     <button
       {...props}
       className={cn(
-        buttonClasses[btnType],
         className || "",
-        "border",
-        "cursor-pointer",
-        "justify-center",
-        "!px-5",
-        "!py-2",
-        "text-center",
+        "border cursor-pointer justify-center px-5 py-2 text-center",
         "whitespace-nowrap",
         isRounded ? "rounded-full" : "",
+        buttonClasses[btnType],
       )}
     >
       {children}
@@ -102,13 +98,18 @@ const closeClasses: ComponentColorStyle = {
   `,
   [ComponentColorType.default]: ``,
   [ComponentColorType.is_primary]: ``,
-  [ComponentColorType.is_warning]: ``,
+  [ComponentColorType.info]: ``,
+  [ComponentColorType.is_warning]: `
+      text-yellow-500
+      hover:text-yellow-700
+  `,
 };
 
 export function ButtonClose({
   onClose,
   id = "",
   type = ComponentColorType.default,
+  className,
 }: ComponentProps & {
   onClose: (e: ReactMouseEvent) => void;
   type?: ComponentColorType;
@@ -123,11 +124,12 @@ export function ButtonClose({
         "w-7",
         "cursor-pointer",
         "box-content",
-        "pl-4",
-        "pr-2",
-        "pb-4",
-        "pt-1",
+        "!pl-4",
+        "!pr-2",
+        "!pb-4",
+        "!pt-1",
         closeClasses[type] || "",
+        className || "",
       )}
       style={{
         right: ".5rem",

@@ -28,12 +28,19 @@ import {
   definitionContainerDomSelector,
   definitionNameFormControlSelector,
   definitionTypeFormControlSelector,
+  descriptionHideSelector,
   descriptionInputDomId,
+  descriptionShowSelector,
+  descriptionToggleSelector,
   disposeComponentDomId,
+  fieldErrorIndicatorSelector,
   fieldErrorSelector,
+  fieldSelector,
+  hiddenSelector,
   moveDownDefinitionSelector,
   moveUpDefinitionSelector,
   notificationCloseId,
+  notificationElementSelector,
   removeDefinitionSelector,
   resetDomId,
   submitDomId,
@@ -118,12 +125,6 @@ afterEach(() => {
   jest.resetAllMocks();
 });
 
-const formFieldErrorClass = "form__field--errors";
-const formControlHiddenClass = "form__control--hidden";
-const descriptionToggleClassName = "form__label-description-toggle";
-const descriptionHideClass = "form__label-description-hide";
-const descriptionShowClass = "form__label-description-show";
-
 const onlineExperienceId = "1";
 const onlineTitle = "aa";
 const nameValue = "bb";
@@ -153,41 +154,53 @@ describe("components", () => {
 
     const descriptionInputEl = getDescriptionInputEl();
     // description control is initially revealed
-    expect(descriptionInputEl.classList).not.toContain(formControlHiddenClass);
+    expect(descriptionInputEl.classList).not.toContain(hiddenSelector);
     const descriptionToggleEl = getDescriptionToggleEl();
 
     expect(
-      descriptionToggleEl.getElementsByClassName(descriptionShowClass).item(0),
+      descriptionToggleEl
+        .getElementsByClassName(descriptionShowSelector)
+        .item(0),
     ).toBeNull();
 
     expect(
-      descriptionToggleEl.getElementsByClassName(descriptionHideClass).item(0),
+      descriptionToggleEl
+        .getElementsByClassName(descriptionHideSelector)
+        .item(0),
     ).not.toBeNull();
 
     // hide
     descriptionToggleEl.click();
 
-    expect(descriptionInputEl.classList).toContain(formControlHiddenClass);
+    expect(descriptionInputEl.classList).toContain(hiddenSelector);
 
     // we are hiding already, hide icon should not be visible
     expect(
-      descriptionToggleEl.getElementsByClassName(descriptionHideClass).item(0),
+      descriptionToggleEl
+        .getElementsByClassName(descriptionHideSelector)
+        .item(0),
     ).toBeNull();
 
     // show description icon should be visible
     expect(
-      descriptionToggleEl.getElementsByClassName(descriptionShowClass).item(0),
+      descriptionToggleEl
+        .getElementsByClassName(descriptionShowSelector)
+        .item(0),
     ).not.toBeNull();
 
     // show - so we can complete it
     descriptionToggleEl.click();
     // we are already showing, so show icon is not visible
     expect(
-      descriptionToggleEl.getElementsByClassName(descriptionShowClass).item(0),
+      descriptionToggleEl
+        .getElementsByClassName(descriptionShowSelector)
+        .item(0),
     ).toBeNull();
     // hide icon should be visible so we can hide
     expect(
-      descriptionToggleEl.getElementsByClassName(descriptionShowClass).item(0),
+      descriptionToggleEl
+        .getElementsByClassName(descriptionShowSelector)
+        .item(0),
     ).toBeNull();
 
     expect(getNotificationCloseEl()).toBeNull();
@@ -197,7 +210,7 @@ describe("components", () => {
     const titleInputParentFieldEl = getParentFieldEl(titleInputEl);
 
     expect(titleInputParentFieldEl.classList).not.toContain(
-      formFieldErrorClass,
+      fieldErrorIndicatorSelector,
     );
 
     expect(getFieldErrorEl(titleInputParentFieldEl)).toBeNull();
@@ -212,8 +225,12 @@ describe("components", () => {
     expect(getFieldErrorEl(definition0NameFieldEl)).toBeNull();
     expect(getFieldErrorEl(definition0TypeFieldEl)).toBeNull();
 
-    expect(definition0NameFieldEl.classList).not.toContain(formFieldErrorClass);
-    expect(definition0TypeFieldEl.classList).not.toContain(formFieldErrorClass);
+    expect(definition0NameFieldEl.classList).not.toContain(
+      fieldErrorIndicatorSelector,
+    );
+    expect(definition0TypeFieldEl.classList).not.toContain(
+      fieldErrorIndicatorSelector,
+    );
 
     // we submit an empty form
     const submitEl = getSubmitEl();
@@ -223,12 +240,18 @@ describe("components", () => {
     expect(notificationEl.classList).toContain(warningClassName);
 
     // form field errors
-    expect(titleInputParentFieldEl.classList).toContain(formFieldErrorClass);
+    expect(titleInputParentFieldEl.classList).toContain(
+      fieldErrorIndicatorSelector,
+    );
     expect(getFieldErrorEl(titleInputParentFieldEl)).not.toBeNull();
     expect(getFieldErrorEl(definition0NameFieldEl)).not.toBeNull();
     expect(getFieldErrorEl(definition0TypeFieldEl)).not.toBeNull();
-    expect(definition0NameFieldEl.classList).toContain(formFieldErrorClass);
-    expect(definition0TypeFieldEl.classList).toContain(formFieldErrorClass);
+    expect(definition0NameFieldEl.classList).toContain(
+      fieldErrorIndicatorSelector,
+    );
+    expect(definition0TypeFieldEl.classList).toContain(
+      fieldErrorIndicatorSelector,
+    );
 
     // we should be able to fill form even when there are errors
     fillField(titleInputEl, "tt");
@@ -243,7 +266,7 @@ describe("components", () => {
 
     // hide - it should be revealed when reset button is invoked
     descriptionToggleEl.click();
-    expect(descriptionInputEl.classList).toContain(formControlHiddenClass);
+    expect(descriptionInputEl.classList).toContain(hiddenSelector);
 
     const resetEl = getResetEl();
     resetEl.click();
@@ -255,16 +278,20 @@ describe("components", () => {
     expect(definition0TypeEl.value).toBe("");
 
     expect(titleInputParentFieldEl.classList).not.toContain(
-      formFieldErrorClass,
+      fieldErrorIndicatorSelector,
     );
 
     expect(getFieldErrorEl(titleInputParentFieldEl)).toBeNull();
     expect(getFieldErrorEl(definition0NameFieldEl)).toBeNull();
     expect(getFieldErrorEl(definition0TypeFieldEl)).toBeNull();
-    expect(definition0NameFieldEl.classList).not.toContain(formFieldErrorClass);
-    expect(definition0TypeFieldEl.classList).not.toContain(formFieldErrorClass);
+    expect(definition0NameFieldEl.classList).not.toContain(
+      fieldErrorIndicatorSelector,
+    );
+    expect(definition0TypeFieldEl.classList).not.toContain(
+      fieldErrorIndicatorSelector,
+    );
     // description should be revealed
-    expect(descriptionInputEl.classList).not.toContain(formControlHiddenClass);
+    expect(descriptionInputEl.classList).not.toContain(hiddenSelector);
     // and close notification should be hidden
     expect(getNotificationCloseEl()).toBeNull();
 
@@ -313,12 +340,18 @@ describe("components", () => {
     expect(getNotificationCloseEl()).toBeNull();
 
     // form field errors
-    expect(titleInputParentFieldEl.classList).toContain(formFieldErrorClass);
+    expect(titleInputParentFieldEl.classList).toContain(
+      fieldErrorIndicatorSelector,
+    );
     expect(getFieldErrorEl(titleInputParentFieldEl)).not.toBeNull();
     expect(getFieldErrorEl(definition0NameFieldEl)).not.toBeNull();
     expect(getFieldErrorEl(definition0TypeFieldEl)).not.toBeNull();
-    expect(definition0NameFieldEl.classList).toContain(formFieldErrorClass);
-    expect(definition0TypeFieldEl.classList).toContain(formFieldErrorClass);
+    expect(definition0NameFieldEl.classList).toContain(
+      fieldErrorIndicatorSelector,
+    );
+    expect(definition0TypeFieldEl.classList).toContain(
+      fieldErrorIndicatorSelector,
+    );
 
     //  javascript exceptions during submission
     mockCreateExperiencesOnline.mockRejectedValue(new Error("a"));
@@ -425,14 +458,32 @@ describe("components", () => {
     expect(mockOnClose).toHaveBeenCalled();
   });
 
+  const getExperienceQueryResult1 = {
+    data: {
+      getExperience: onlineExperience,
+    },
+  } as GetExperienceQueryResult;
+
+  const getEntriesQuerySuccess1 = {
+    edges: [
+      {
+        node: {
+          dataObjects: [
+            {
+              id: "xx",
+            },
+          ],
+        },
+      },
+    ],
+  };
+
   it("updates experience online, submit empty form, reset form, change integer to decimal", async () => {
     mockIsConnected.mockReturnValue(true);
 
-    mockFetchExperienceDetailView.mockResolvedValueOnce({
-      data: {
-        getExperience: onlineExperience,
-      },
-    } as GetExperienceQueryResult);
+    mockFetchExperienceDetailView.mockResolvedValueOnce(
+      getExperienceQueryResult1,
+    );
 
     const { ui } = makeComp({
       props: {
@@ -440,124 +491,118 @@ describe("components", () => {
       },
     });
 
-    render(ui);
+    await act(async () => {
+      render(ui);
 
-    const titleInputEl = getTitleInputEl();
-    const descriptionInputEl = getDescriptionInputEl();
+      const titleInputEl = getTitleInputEl();
+      const descriptionInputEl = getDescriptionInputEl();
 
-    let definitionsEls = getDefinitionContainerEls();
-    let definition0El = definitionsEls.item(0) as HTMLElement;
-    let definition0NameEl = getDefinitionNameControlEl(definition0El);
-    let definition0TypeEl = getDefinitionTypeControlEl(definition0El);
+      let definitionsEls = getDefinitionContainerEls();
+      let definition0El = definitionsEls.item(0) as HTMLElement;
+      let definition0NameEl = getDefinitionNameControlEl(definition0El);
+      let definition0TypeEl = getDefinitionTypeControlEl(definition0El);
 
-    // we initially render an empty form
-    expect(titleInputEl.value).toBe("");
-    expect(definition0NameEl.value).toBe("");
-    expect(definition0TypeEl.value).toBe("");
+      // we initially render an empty form
+      expect(titleInputEl.value).toBe("");
+      expect(definition0NameEl.value).toBe("");
+      expect(definition0TypeEl.value).toBe("");
 
-    await waitFor(() => true);
+      // We should not be able to input comment when updating experience
+      await waitFor(() => {
+        const el = getCommentInputEl();
+        expect(el).toBeNull();
+      });
 
-    // We should not be able to input comment when updating experience
-    expect(getCommentInputEl()).toBeNull();
+      // form is now pre filled with values from experience we wish to update
+      expect(titleInputEl.value).toBe(onlineTitle);
+      expect(descriptionInputEl.value).toEqual("");
 
-    // form is now pre filled with values from experience we wish to update
-    expect(titleInputEl.value).toBe(onlineTitle);
-    expect(descriptionInputEl.value).toEqual("");
+      definitionsEls = getDefinitionContainerEls();
+      definition0El = definitionsEls.item(0) as HTMLElement;
+      definition0NameEl = getDefinitionNameControlEl(definition0El);
+      definition0TypeEl = getDefinitionTypeControlEl(definition0El);
 
-    definitionsEls = getDefinitionContainerEls();
-    definition0El = definitionsEls.item(0) as HTMLElement;
-    definition0NameEl = getDefinitionNameControlEl(definition0El);
-    definition0TypeEl = getDefinitionTypeControlEl(definition0El);
+      expect(definition0NameEl.value).toBe(nameValue);
+      expect(definition0TypeEl.value).toBe(DataTypes.INTEGER);
 
-    expect(definition0NameEl.value).toBe(nameValue);
-    expect(definition0TypeEl.value).toBe(DataTypes.INTEGER);
+      // we submit an unmodified form
+      const submitEl = getSubmitEl();
+      submitEl.click();
 
-    // we submit an unmodified form
-    const submitEl = getSubmitEl();
-    submitEl.click();
+      // get a warning
+      let notificationCloseEl = getNotificationCloseEl();
+      const notificationEl = getNotificationEl(notificationCloseEl);
+      expect(notificationEl.classList).toContain(warningClassName);
 
-    // get a warning
-    let notificationCloseEl = getNotificationCloseEl();
-    const notificationEl = getNotificationEl(notificationCloseEl);
-    expect(notificationEl.classList).toContain(warningClassName);
+      notificationCloseEl.click();
+      expect(getNotificationCloseEl()).toBeNull();
 
-    notificationCloseEl.click();
-    expect(getNotificationCloseEl()).toBeNull();
+      // let's update the form
+      fillField(titleInputEl, "tt");
+      fillField(descriptionInputEl, "dd");
+      fillField(definition0NameEl, "nn");
+      fillField(definition0TypeEl, DataTypes.DATE);
 
-    // let's update the form
-    fillField(titleInputEl, "tt");
-    fillField(descriptionInputEl, "dd");
-    fillField(definition0NameEl, "nn");
-    fillField(definition0TypeEl, DataTypes.DATE);
+      // confirm update
+      expect(titleInputEl.value).toBe("tt");
+      expect(descriptionInputEl.value).toBe("dd");
+      expect(definition0NameEl.value).toBe("nn");
+      expect(definition0TypeEl.value).toBe(DataTypes.DATE);
 
-    // confirm update
-    expect(titleInputEl.value).toBe("tt");
-    expect(descriptionInputEl.value).toBe("dd");
-    expect(definition0NameEl.value).toBe("nn");
-    expect(definition0TypeEl.value).toBe(DataTypes.DATE);
+      const resetEl = getResetEl();
+      resetEl.click();
 
-    const resetEl = getResetEl();
-    resetEl.click();
+      expect(titleInputEl.value).toBe(onlineTitle);
+      expect(descriptionInputEl.value).toEqual("");
+      expect(definition0NameEl.value).toBe(nameValue);
+      expect(definition0TypeEl.value).toBe(DataTypes.INTEGER);
 
-    expect(titleInputEl.value).toBe(onlineTitle);
-    expect(descriptionInputEl.value).toEqual("");
-    expect(definition0NameEl.value).toBe(nameValue);
-    expect(definition0TypeEl.value).toBe(DataTypes.INTEGER);
+      // update with error (integer can only be changed to decimal) and submit
+      fillField(titleInputEl, "tt");
+      fillField(descriptionInputEl, "dd");
+      fillField(definition0NameEl, "nn");
+      fillField(definition0TypeEl, DataTypes.DATE);
+      const definition0TypeFieldEl = getParentFieldEl(definition0TypeEl);
+      expect(getFieldErrorEl(definition0TypeFieldEl)).toBeNull();
+      submitEl.click();
 
-    // update with error (integer can only be changed to decimal) and submit
-    fillField(titleInputEl, "tt");
-    fillField(descriptionInputEl, "dd");
-    fillField(definition0NameEl, "nn");
-    fillField(definition0TypeEl, DataTypes.DATE);
-    const definition0TypeFieldEl = getParentFieldEl(definition0TypeEl);
-    expect(getFieldErrorEl(definition0TypeFieldEl)).toBeNull();
-    submitEl.click();
+      notificationCloseEl = await waitFor(getNotificationCloseEl);
+      expect(getFieldErrorEl(definition0TypeFieldEl)).not.toBeNull();
+      notificationCloseEl.click();
+      expect(getNotificationCloseEl()).toBeNull();
 
-    notificationCloseEl = await waitFor(getNotificationCloseEl);
-    expect(getFieldErrorEl(definition0TypeFieldEl)).not.toBeNull();
-    notificationCloseEl.click();
-    expect(getNotificationCloseEl()).toBeNull();
+      // update form correctly and submit
+      fillField(definition0TypeEl, DataTypes.DECIMAL);
+      submitEl.click();
 
-    // update form correctly and submit
-    fillField(definition0TypeEl, DataTypes.DECIMAL);
-    submitEl.click();
-    await waitFor(() => true);
+      const calls = await waitFor(() => {
+        const c = mockUpdateExperiencesMutation.mock.calls;
+        expect(c.length).not.toBe(0);
+        return c;
+      });
 
-    const { onUpdateSuccess, onError } =
-      mockUpdateExperiencesMutation.mock.calls[0][0];
+      const { onUpdateSuccess, onError } = calls[0][0];
 
-    const updatedExperience = { id: "a" };
-    mockGetEntriesQuery.mockReturnValue(updatedExperience);
-    mockGetEntriesQuerySuccess.mockReturnValue({
-      edges: [
+      const updatedExperience = { id: "a" };
+      mockGetEntriesQuery.mockReturnValue(updatedExperience);
+
+      mockGetEntriesQuerySuccess.mockReturnValue(getEntriesQuerySuccess1);
+
+      await onUpdateSuccess(
         {
-          node: {
-            dataObjects: [
-              {
-                id: "xx",
-              },
-            ],
+          experience: {
+            experienceId: onlineExperienceId,
           },
         },
-      ],
-    });
+        updatedExperience,
+      );
 
-    await onUpdateSuccess(
-      {
-        experience: {
-          experienceId: onlineExperienceId,
-        },
-      },
-      updatedExperience,
-    );
+      expect(mockManuallyGetDataObjects.mock.calls[0][0].ids[0]).toBe("xx");
+      expect(mockOnSuccess).toHaveBeenCalledWith(
+        updatedExperience,
+        StateValue.online,
+      );
 
-    expect(mockManuallyGetDataObjects.mock.calls[0][0].ids[0]).toBe("xx");
-    expect(mockOnSuccess).toHaveBeenCalledWith(
-      updatedExperience,
-      StateValue.online,
-    );
-
-    act(() => {
       onError("a");
     });
   });
@@ -1051,7 +1096,9 @@ function getNotificationCloseEl() {
 }
 
 function getNotificationEl(notificationCloseEl: HTMLElement) {
-  return notificationCloseEl.closest(".notification") as HTMLElement;
+  return notificationCloseEl.closest(
+    `.${notificationElementSelector}`,
+  ) as HTMLElement;
 }
 
 function getTitleInputEl() {
@@ -1063,7 +1110,7 @@ function getCommentInputEl() {
 }
 
 function getParentFieldEl(childEl: HTMLElement) {
-  return childEl.closest(".field") as HTMLElement;
+  return childEl.closest(`.${fieldSelector}`) as HTMLElement;
 }
 
 function getFieldErrorEl(container: HTMLElement) {
@@ -1094,7 +1141,7 @@ function getDescriptionInputEl() {
 
 function getDescriptionToggleEl() {
   return document
-    .getElementsByClassName(descriptionToggleClassName)
+    .getElementsByClassName(descriptionToggleSelector)
     .item(0) as HTMLElement;
 }
 

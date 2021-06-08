@@ -3,7 +3,11 @@ import { cleanup, render } from "@testing-library/react";
 import { ComponentType } from "react";
 import { useLocation } from "react-router-dom";
 import { Header, Props } from "../components/Header/header.component";
-import { domPrefix } from "../components/Header/header.dom";
+import {
+  connectedSelector,
+  domPrefix,
+  unConnectedSelector,
+} from "../components/Header/header.dom";
 import { MY_URL } from "../utils/urls";
 
 jest.mock("react-router-dom", () => ({
@@ -29,8 +33,6 @@ afterEach(() => {
 
 const logoLinkClassName = "js-logo-link";
 const logoTextClassName = "js-logo-text";
-const connectedClassName = "app-header--connected";
-const unConnectedClassName = "app-header--unconnected";
 
 it("renders in non-My route/connected", () => {
   mockUseLocation.mockReturnValue({
@@ -46,8 +48,8 @@ it("renders in non-My route/connected", () => {
   const headerEl = document.getElementById(domPrefix) as HTMLElement;
   expect(headerEl.getElementsByClassName(logoLinkClassName).length).toBe(1);
   expect(headerEl.getElementsByClassName(logoTextClassName).length).toBe(0);
-  expect(headerEl.classList).toContain(connectedClassName);
-  expect(headerEl.classList).not.toContain(unConnectedClassName);
+  expect(headerEl.classList).toContain(connectedSelector);
+  expect(headerEl.classList).not.toContain(unConnectedSelector);
 });
 
 it("renders in My route", () => {
@@ -60,8 +62,8 @@ it("renders in My route", () => {
   const headerEl = document.getElementById(domPrefix) as HTMLElement;
   expect(headerEl.getElementsByClassName(logoLinkClassName).length).toBe(0);
   expect(headerEl.getElementsByClassName(logoTextClassName).length).toBe(1);
-  expect(headerEl.classList).not.toContain(connectedClassName);
-  expect(headerEl.classList).toContain(unConnectedClassName);
+  expect(headerEl.classList).not.toContain(connectedSelector);
+  expect(headerEl.classList).toContain(unConnectedSelector);
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////

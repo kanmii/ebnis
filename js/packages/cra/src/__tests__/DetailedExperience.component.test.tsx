@@ -429,57 +429,42 @@ describe("components", () => {
     await act(async () => {
       // ebnisObject.logReducers = true;
       render(ui);
-
       const triggerUpdateUiEl = await waitFor(() => {
         const el = getById(updateMenuItemId);
         expect(el).not.toBeNull();
         return el;
       });
-
       // Update UI should not be visible
       expect(getById(mockUpsertCancelId)).toBeNull();
-
       // When Update UI is requested
       triggerUpdateUiEl.click();
-
       // Update UI should be visible
       // When Update UI is cancelled
       getById(mockUpsertCancelId).click();
-
       // Update UI should not be visible
       expect(getById(mockUpsertCancelId)).toBeNull();
       expect(getById(mockUpsertSuccessId)).toBeNull();
-
       // When Update UI is requested
       triggerUpdateUiEl.click();
-
       // Notification should not be visible
       expect(getById(updateSuccessNotificationId)).toBeNull();
-
       // Update UI should be visible
       // When update succeeds
       getById(mockUpsertSuccessId).click();
-
       // Update UI should not be visible
       expect(getById(mockUpsertSuccessId)).toBeNull();
-
       // Notification should be visible
       // When notification is closed
       getById(updateSuccessNotificationId).click();
-
       // Notification should not be visible
       expect(getById(updateSuccessNotificationId)).toBeNull();
-
       // When Update UI is requested
       triggerUpdateUiEl.click();
-
       // Update UI should be visible
       // When update succeeds
       getById(mockUpsertSuccessId).click();
-
       // Notification should be visible
       expect(getById(updateSuccessNotificationId)).not.toBeNull();
-
       // Notification should auto close
       await waitFor(() => {
         expect(getById(updateSuccessNotificationId)).toBeNull();

@@ -188,6 +188,28 @@ function makeCache() {
           syncErrors: syncErrorsPolicy,
         },
       },
+
+      Mutation: {
+        fields: {
+          login: {
+            read() {
+              return {};
+            },
+            merge() {
+              return {};
+            },
+          },
+
+          registerUser: {
+            read() {
+              return {};
+            },
+            merge() {
+              return {};
+            },
+          },
+        },
+      },
     },
   });
 

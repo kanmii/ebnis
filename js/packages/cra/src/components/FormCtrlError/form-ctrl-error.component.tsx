@@ -1,5 +1,6 @@
 /* istanbul ignore file */
 import { ComponentProps } from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
 import { formCtrlErrorClassName } from "../../utils/utils.dom";
 
 export function FormCtrlError(props: Props) {
@@ -7,12 +8,14 @@ export function FormCtrlError(props: Props) {
 
   return children || error ? (
     <div
-      className={`
-        is-danger
-        help
-        ${className}
-        ${formCtrlErrorClassName}
-      `}
+      className={cn(
+        "block",
+        "text-xs",
+        "mt-1",
+        "text-red-400",
+        className,
+        formCtrlErrorClassName,
+      )}
       id={id}
       {...others}
     >

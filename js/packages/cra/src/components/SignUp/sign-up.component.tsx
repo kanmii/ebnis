@@ -1,9 +1,10 @@
 import Button from "@eb/jsx/src/components/Button/button.component";
+import Notification from "@eb/jsx/src/components/Notification/notification.component";
 import Input from "@eb/jsx/src/Input";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import cn from "classnames";
-import React, { MouseEvent, useCallback, useContext, useReducer } from "react";
+import React, { useContext, useReducer } from "react";
 import { EbnisAppContext } from "../../utils/app-context";
 import { FieldError } from "../../utils/common-errors";
 import { InputChangeEvent } from "../../utils/types";
@@ -62,55 +63,6 @@ export function SignUp(props: Props) {
 
   useRunEffects(generalEffects, effectFunctions, props, { dispatch });
 
-  const onSubmit = useCallback((e: MouseEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    dispatch({
-      type: ActionType.SUBMISSION,
-    });
-  }, []);
-
-  const onCloseNotification = useCallback(() => {
-    dispatch({
-      type: ActionType.CLOSE_SUBMIT_NOTIFICATION,
-    });
-  }, []);
-
-  const onNameChanged = useCallback((e: InputChangeEvent) => {
-    const node = e.currentTarget;
-    dispatch({
-      type: ActionType.FORM_CHANGED,
-      value: node.value,
-      fieldName: "name",
-    });
-  }, []);
-
-  const onEmailChanged = useCallback((e: InputChangeEvent) => {
-    const node = e.currentTarget;
-    dispatch({
-      type: ActionType.FORM_CHANGED,
-      value: node.value,
-      fieldName: "email",
-    });
-  }, []);
-
-  const onPasswordChanged = useCallback((e: InputChangeEvent) => {
-    const node = e.currentTarget;
-    dispatch({
-      type: ActionType.FORM_CHANGED,
-      value: node.value,
-      fieldName: "password",
-    });
-  }, []);
-
-  const onPasswordConfirmationChanged = useCallback((e: InputChangeEvent) => {
-    const node = e.currentTarget;
-    dispatch({
-      type: ActionType.FORM_CHANGED,
-      value: node.value,
-      fieldName: "passwordConfirmation",
-    });
-  }, []);
-
   let warningText = "";
 
   if (submissionState.value === StateValue.warning) {
@@ -128,33 +80,82 @@ export function SignUp(props: Props) {
 
       <span className="scroll-into-view" id={scrollIntoViewDomId} />
 
-      <form onSubmit={onSubmit} className="form">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          dispatch({
+            type: ActionType.SUBMISSION,
+          });
+        }}
+        className="form"
+      >
         <div className="form__caption">Sign up with email</div>
 
         {(warningText || errorText) && (
-          <div
-            id={notificationId}
-            className={cn({
-              notification: true,
-              [warningClassName]: !!warningText,
-              [errorClassName]: !!errorText,
-            })}
+          <Notification
+            elId={notificationId}
+            className={cn(
+              "!mb-6",
+              errorText ? errorClassName : warningClassName,
+            )}
+            onClose={() => {
+              dispatch({
+                type: ActionType.CLOSE_SUBMIT_NOTIFICATION,
+              });
+            }}
+            type={
+              errorText
+                ? ComponentColorType.is_danger
+                : ComponentColorType.is_warning
+            }
           >
-            <button
-              type="button"
-              className="delete"
-              onClick={onCloseNotification}
-            />
             {warningText || errorText}
-          </div>
+          </Notification>
         )}
 
-        <Name state={nameState} onFieldChanged={onNameChanged} />
-        <Email state={emailState} onFieldChanged={onEmailChanged} />
-        <Password state={passwordState} onFieldChanged={onPasswordChanged} />
+        <Name
+          state={nameState}
+          onFieldChanged={(e) => {
+            const node = e.currentTarget;
+            dispatch({
+              type: ActionType.FORM_CHANGED,
+              value: node.value,
+              fieldName: "name",
+            });
+          }}
+        />
+        <Email
+          state={emailState}
+          onFieldChanged={(e) => {
+            const node = e.currentTarget;
+            dispatch({
+              type: ActionType.FORM_CHANGED,
+              value: node.value,
+              fieldName: "email",
+            });
+          }}
+        />
+        <Password
+          state={passwordState}
+          onFieldChanged={(e) => {
+            const node = e.currentTarget;
+            dispatch({
+              type: ActionType.FORM_CHANGED,
+              value: node.value,
+              fieldName: "password",
+            });
+          }}
+        />
         <PasswordConfirmation
           state={passwordConfirmationState}
-          onFieldChanged={onPasswordConfirmationChanged}
+          onFieldChanged={(e) => {
+            const node = e.currentTarget;
+            dispatch({
+              type: ActionType.FORM_CHANGED,
+              value: node.value,
+              fieldName: "passwordConfirmation",
+            });
+          }}
         />
 
         <div className="form__submit">

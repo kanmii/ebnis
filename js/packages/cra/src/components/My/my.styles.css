@@ -23,11 +23,6 @@
     padding-top: 60px;
 
     .no-experiences {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-top: 10px;
-
       &__notification {
         width: 90%;
         max-width: 400px;

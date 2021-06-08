@@ -1,10 +1,15 @@
+import Button from "@eb/jsx/src/components/Button/button.component";
+import Notification from "@eb/jsx/src/components/Notification/notification.component";
 import { ExperienceData } from "@eb/shared/src/apollo/experience.gql.types";
 import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
 import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
 import errorImage from "@eb/shared/src/media/error-96.png";
 import { OnlineStatus, StateValue } from "@eb/shared/src/utils/types";
-import { ReactMouseEvent } from "@eb/shared/src/utils/types/react";
-import makeClassNames from "classnames";
+import {
+  ComponentColorType,
+  ReactMouseEvent,
+} from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
 import React, {
   createContext,
   Suspense,
@@ -252,18 +257,31 @@ function MyExperiences() {
         )}
 
         {noExperiences ? (
-          <div className="no-experiences">
-            <div className="notification is-info is-light no-experiences__notification">
+          <div
+            className={cn(
+              "no-experiences",
+              "flex",
+              "justify-center",
+              "items-center",
+              "!mt-3",
+            )}
+          >
+            <Notification
+              type={ComponentColorType.is_light_success}
+              style={{
+                width: "min(95vw, 500px)",
+              }}
+            >
               <div className="no-experiences__title">No experiences!</div>
-              <button
+              <Button
                 id={noExperiencesActivateNewDomId}
                 onClick={onUpsertExperienceActivated}
-                className="button is-success"
                 type="button"
+                btnType={ComponentColorType.is_success}
               >
                 Create New
-              </button>
-            </div>
+              </Button>
+            </Notification>
           </div>
         ) : (
           <>
@@ -334,7 +352,7 @@ function ExperienceComponent(props: ExperienceProps) {
   return (
     <article
       id={id}
-      className={makeClassNames({
+      className={cn({
         "experience box media": true,
         [isOfflineClassName]: onlineStatus === StateValue.offline,
         [isPartOfflineClassName]: onlineStatus === StateValue.partOffline,
@@ -350,7 +368,7 @@ function ExperienceComponent(props: ExperienceProps) {
 
           {showingUpdateSuccess && (
             <div
-              className={makeClassNames({
+              className={cn({
                 "notification is-success": true,
                 [noTriggerDocumentEventClassName]: true,
               })}
@@ -390,14 +408,14 @@ function ExperienceComponent(props: ExperienceProps) {
                 <a className="icon neutral-link" href="*">
                   {showingDescription ? (
                     <i
-                      className={makeClassNames({
+                      className={cn({
                         "fas fa-minus": true,
                         [descriptionLessClassName]: true,
                       })}
                     ></i>
                   ) : (
                     <i
-                      className={makeClassNames({
+                      className={cn({
                         "fas fa-plus": true,
                         [descriptionMoreClassName]: true,
                       })}
@@ -409,7 +427,7 @@ function ExperienceComponent(props: ExperienceProps) {
               </div>
 
               <pre
-                className={makeClassNames({
+                className={cn({
                   description__text: true,
                   [descriptionFullClassName]: showingDescription,
                   [descriptionSummaryClassName]: !showingDescription,
@@ -423,20 +441,20 @@ function ExperienceComponent(props: ExperienceProps) {
       </div>
 
       <div
-        className={makeClassNames({
+        className={cn({
           "dropdown is-right": true,
           [dropdownIsActiveClassName]: showingOptionsMenu,
         })}
       >
         <div
-          className={makeClassNames({
+          className={cn({
             "dropdown-menu": true,
           })}
           role="menu"
         >
           <div className="dropdown-content">
             <a
-              className={makeClassNames({
+              className={cn({
                 "neutral-link edit-experience-menu-item": true,
                 [updateExperienceMenuItemSelector]: true,
               })}
@@ -482,7 +500,7 @@ function ExperienceComponent(props: ExperienceProps) {
       </div>
 
       <a
-        className={makeClassNames({
+        className={cn({
           [dropdownTriggerClassName]: true,
           "media-right dropdown-trigger": true,
           [noTriggerDocumentEventClassName]: true,
