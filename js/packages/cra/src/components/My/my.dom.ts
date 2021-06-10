@@ -10,19 +10,24 @@ export const fetchErrorRetryDomId = `${domPrefix}-fetch-error-retry`;
 
 export const isOfflineClassName = "experience--is-danger";
 export const isPartOfflineClassName = "experience--is-warning";
-export const descriptionMoreClassName = "description__control--more";
-export const descriptionSummaryClassName = "description__text--summary";
-export const descriptionFullClassName = "description__text--full";
-export const descriptionLessClassName = "description__control--less";
-export const descriptionControlClassName = "description__control";
-export const dropdownTriggerClassName = `js-${domPrefix}-experience-menu-trigger`;
-export const dropdownIsActiveClassName = "is-active";
-export const onDeleteExperienceSuccessNotificationId = `${domPrefix}-on-delete-experience-success-notification`;
-export const onDeleteExperienceCancelledNotificationId = `${domPrefix}-on-delete-experience-cancelled-notification`;
+export const descriptionTextSelector = "js-${domPrefix}-description-text";
+export const descriptionHideSelector = "js-${domPrefix}-description-hide";
+export const descriptionShowSelector = "js-${domPrefix}-description-show";
+export const descriptionShowHideSelector =
+  "js-${domPrefix}-description-show-hide";
+export const descriptionContainerSelector =
+  "js-${domPrefix}-description-container";
+export const dropdownTriggerSelector = `js-${domPrefix}-experience-menu-trigger`;
+export const dropdownMenuMenuSelector = `js-${domPrefix}-dropdown-menu-menu`;
+export const onDeleteExperienceSuccessNotificationId = `js-${domPrefix}-on-delete-experience-success-notification`;
+export const onDeleteExperienceCancelledNotificationId = `js-${domPrefix}-on-delete-experience-cancelled-notification`;
 export const updateExperienceMenuItemSelector = `js-${domPrefix}-update-experience-menu-item`;
-export const updateExperienceSuccessNotificationCloseClassName = `js-${domPrefix}-update-experience-success-notification-delete`;
+export const updateExperienceSuccessNotificationSelector = `js-${domPrefix}-update-experience-success-notification-close`;
 export const experienceContainerSelector = `js-${domPrefix}-experience`;
 export const noTriggerDocumentEventClassName = `js-${domPrefix}-no-trigger-document`;
+export const searchLinkSelector = `js-${domPrefix}-search-link`;
+export const noSearchResultSelector = `js-${domPrefix}-no-search-result`;
+export const fetchNextSelector = `js-${domPrefix}-fetch-next`;
 
 export function makeScrollToDomId(id: string) {
   return `${id}-${domPrefix}-scroll-to`;

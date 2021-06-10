@@ -14,13 +14,13 @@ export function App() {
   });
 
   useEffect(() => {
-    const { cache, persistor } = obj;
+    const { cache } = obj;
 
     (async function () {
       // istanbul ignore next:
       if (cache) {
         try {
-          await restoreCacheOrPurgeStorage(persistor);
+          await restoreCacheOrPurgeStorage();
           setState((oldState) => {
             return { ...oldState, renderChildren: true };
           });

@@ -1,9 +1,9 @@
-import { trimClass } from "@eb/shared/src/utils";
 import { Any } from "@eb/shared/src/utils/types";
 import {
   ComponentProps,
   ReactMouseEvent,
 } from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
 import React, {
   Children,
   cloneElement,
@@ -11,6 +11,7 @@ import React, {
   PropsWithChildren,
   useContext,
 } from "react";
+import { ButtonClose } from "./Button";
 
 type ContextValue = {
   onClose: (e: ReactMouseEvent) => void;
@@ -22,37 +23,16 @@ const Provider = Context.Provider;
 export function Modal(props: Props) {
   const { children, onClose, className = "", top, ...others } = props;
 
-  const finalClassName = trimClass(
-    `
-          eb-modal
-          items-center
-          flex-col
-          justify-center
-          overflow-hidden
-          fixed
-          z-40
-          bottom-0
-          left-0
-          right-0
-          top-0
-          flex
-          ${className}
-        `,
+  const finalClassName = cn(
+    "eb-modal items-center flex-col justify-center overflow-hidden fixed z-40",
+    "bottom-0 left-0 right-0 top-0 flex",
+    className,
   );
 
   const backgroundEl = (
     <div
-      className={trimClass(
-        `
-            eb-modal-background
-            bg-gray-900
-            opacity-70
-            absolute
-            bottom-0
-            left-0
-            right-0
-            top-0
-          `,
+      className={cn(
+        "eb-modal-background bg-gray-900 opacity-70 absolute bottom-0 left-0 right-0 top-0",
       )}
     />
   );
@@ -107,19 +87,9 @@ function Card({
 
   return (
     <div
-      className={trimClass(
-        `
-          ${className}
-          eb-modal-card
-          flex
-          flex-col
-          overflow-hidden
-          relative
-          border
-          border-gray-200
-          rounded
-          w-11/12
-        `,
+      className={cn(
+        "eb-modal-card flex flex-col overflow-hidden relative border border-gray-200 rounded w-11/12",
+        className,
       )}
       style={style}
       {...otherProps}
@@ -132,16 +102,8 @@ function Card({
 function Body({ children }: PropsWithChildren<Any>) {
   return (
     <section
-      className={trimClass(
-        `
-          eb-modal-card-body
-          eb-tiny-scroll
-          bg-white
-          flex-grow
-          flex-shrink
-          overflow-auto
-          p-4
-        `,
+      className={cn(
+        "eb-modal-card-body eb-tiny-scroll bg-white flex-grow flex-shrink overflow-auto p-4",
       )}
     >
       {children}
@@ -152,21 +114,9 @@ function Body({ children }: PropsWithChildren<Any>) {
 function Footer({ children }: PropsWithChildren<Any>) {
   return (
     <footer
-      className={trimClass(
-        `
-          eb-modal-card-footer
-          border-t
-          rounded-b
-          border-gray-100
-          border-solid
-          items-center
-          bg-gray-100
-          flex
-          flex-shrink-0
-          justify-start
-          p-5
-          relative
-        `,
+      className={cn(
+        "eb-modal-card-footer border-t rounded-b border-gray-100 border-solid items-center",
+        "bg-gray-100 flex flex-shrink-0 justify-start p-5 relative",
       )}
     >
       {children}
@@ -189,38 +139,16 @@ function Header({
 
   return (
     <header
-      className={trimClass(
-        `
-          border
-          bg-gray-100
-          flex
-          flex-shrink-0
-          justify-start
-          relative
-          p-4
-        `,
+      className={cn(
+        "border bg-gray-100 flex flex-shrink-0 justify-start relative p-4",
       )}
     >
-      <div
-        className={trimClass(
-          `
-            text-black
-            flex-grow
-            flex-shrink-0
-            text-base
-          `,
-        )}
-      >
+      <div className={cn("text-black flex-grow flex-shrink-0 text-base")}>
         {contentOrChildren}
       </div>
-      <button
-        id={id}
-        className="eb-delete"
-        aria-label="close"
-        onClick={onClose}
-      >
+      <ButtonClose id={id} onClose={onClose}>
         x
-      </button>
+      </ButtonClose>
     </header>
   );
 }

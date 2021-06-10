@@ -2,13 +2,11 @@
 
 # How to develop
 
-**change .env-e2e to .env-test/prod as the case may be**
-
 ```
-cp .env.example .env-e2e
+cp .env.example .env
 ```
 
-Edit `.env-e2e` to set up the environment variables to appropriate values
+Edit `.env` to set up the environment variables to appropriate values
 
 ## Start the containers with docker-compose
 
@@ -21,6 +19,7 @@ there can be only one `.env` file in the root of our project.
 ## Start docker
 
 ```sh
+# If you have named your `env` file anything other than `.env`
 set -a; . .env-e2e; set +a;
 
 docker-compose build js ex

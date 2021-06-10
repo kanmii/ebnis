@@ -1,16 +1,16 @@
-import Button from "@eb/jsx/src/components/Button/button.component";
-import Modal from "@eb/jsx/src/components/Modal/modal.component";
-import Notification from "@eb/jsx/src/components/Notification/notification.component";
+import { Button } from "@eb/jsx/src/Button";
+import Modal from "@eb/jsx/src/Modal";
+import { Notification } from "@eb/jsx/src/Notification";
 import {
   getExperienceAndEntriesDetailView,
   getExperienceComments,
 } from "@eb/shared/src/apollo/experience.gql.types";
 import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
 import { ReactComponent as ExclamationErrorSvg } from "@eb/shared/src/styles/exclamation-error.svg";
-import { trimClass } from "@eb/shared/src/utils";
 import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
 import React, {
   Fragment,
   Suspense,
@@ -113,7 +113,7 @@ export function DetailExperience(props: Props) {
     };
   }, [genericTimeout]);
 
-  const contextVal: DispatchContextValue = useMemo(() => {
+  const dispatchContextVal: DispatchContextValue = useMemo(() => {
     return {
       dispatch,
       onDeleteDeclined() {
@@ -189,52 +189,46 @@ export function DetailExperience(props: Props) {
     };
   }, []);
 
-  function render() {
-    switch (states.value) {
-      case StateValue.loading:
-        return <Loading />;
-
-      case StateValue.errors:
-        return (
-          <div>
-            {states.errors.context.error}
-
-            <Button
-              id={refetchId}
-              className={trimClass(`
-                block
-              `)}
-              style={{
-                marginTop: "25px",
-                minWidth: "150px",
-              }}
-              onClick={contextVal.refetchCb}
-            >
-              Refetch
-            </Button>
-          </div>
-        );
-
-      case StateValue.data: {
-        return (
-          <>
-            <DispatchProvider value={contextVal}>
-              <DataStateProvider value={states.data}>
-                <ExperienceComponent />
-                <MenuComponent />
-              </DataStateProvider>
-            </DispatchProvider>
-          </>
-        );
-      }
-    }
-  }
-
   return (
     <>
       <Header />
 
-      {render()}
+      <div>
+        <DispatchProvider value={dispatchContextVal}>
+          {(function renderDetailExperience() {
+            switch (states.value) {
+              case StateValue.loading:
+                return <Loading />;
+
+              case StateValue.errors:
+                return (
+                  <>
+                    {states.errors.context.error}
+
+                    <Button
+                      id={refetchId}
+                      className="block mt-[25px] min-w-[150px]"
+                      onClick={dispatchContextVal.refetchCb}
+                    >
+                      Refetch
+                    </Button>
+                  </>
+                );
+
+              case StateValue.data: {
+                return (
+                  <>
+                    <DataStateProvider value={states.data}>
+                      <ExperienceComponent />
+                      <MenuComponent />
+                    </DataStateProvider>
+                  </>
+                );
+              }
+            }
+          })()}
+        </DispatchProvider>
+      </div>
     </>
   );
 }
@@ -359,12 +353,9 @@ function ExperienceComponent() {
 
       <div
         id={domPrefix}
-        className={trimClass(`
-          container
-          detailed-experience-component
-        `)}
+        className={cn("detailed-experience-component")}
         style={{
-          paddingBottom: "calc(var(--floating-circular-bottom) * 2.66)",
+          paddingBottom: "calc(var(--floatingCircularBottom) * 2.66)",
           paddingTop: "10px",
         }}
       >
@@ -372,8 +363,10 @@ function ExperienceComponent() {
 
         {updateUiActive.value === StateValue.success && (
           <Notification
-            onClose={requestUpdateUiCb}
-            id={updateSuccessNotificationId}
+            close={{
+              onClose: requestUpdateUiCb,
+              id: updateSuccessNotificationId,
+            }}
             type={ComponentColorType.is_success}
           >
             Update was successful
@@ -383,30 +376,19 @@ function ExperienceComponent() {
         {deleteState.value === StateValue.active &&
           deleteState.active.states.value === StateValue.errors && (
             <Notification
-              onClose={() => {
-                dispatch({
-                  type: ActionType.delete,
-                  value: "closeNotification",
-                });
+              close={{
+                onClose: () => {
+                  dispatch({
+                    type: ActionType.delete,
+                    value: "closeNotification",
+                  });
+                },
+                id: deleteFailNotificationCloseId,
               }}
-              id={deleteFailNotificationCloseId}
               type={ComponentColorType.is_danger}
-              className={trimClass(`
-                mb-5
-                ${noTriggerDocumentEventClassName}
-              `)}
+              className={cn("mb-5", noTriggerDocumentEventClassName)}
             >
-              <div
-                className={trimClass(
-                  `
-                    flex
-                    mb-2
-                    pl-1
-                    pr-2
-                    font-semibold
-                  `,
-                )}
-              >
+              <div className="flex mb-2 pl-1 pr-2 font-semibold">
                 <div
                   className="flex-shrink-0"
                   style={{
@@ -415,25 +397,11 @@ function ExperienceComponent() {
                 >
                   <ExclamationErrorSvg />
                 </div>
-                <div
-                  className={trimClass(
-                    `
-                      flex-grow
-                      ml-2
-                    `,
-                  )}
-                >
+                <div className="flex-grow ml-2">
                   Errors while deleting experience
                 </div>
               </div>
-              <ul
-                className={trimClass(
-                  `
-                      ml-5
-                      mt-2
-                  `,
-                )}
-              >
+              <ul className="ml-5 mt-2">
                 {deleteState.active.states.errors.map(([key, error]) => {
                   return (
                     <li
@@ -479,10 +447,8 @@ function SyncErrorsNotificationComponent(props: {
   return (
     <Notification
       type={ComponentColorType.is_danger}
+      className={noTriggerDocumentEventClassName}
       id={syncErrorsNotificationId}
-      className={trimClass(`
-        ${noTriggerDocumentEventClassName}
-      `)}
     >
       <p>There were errors while uploading changes for this item</p>
 
@@ -514,9 +480,7 @@ function SyncErrorsNotificationComponent(props: {
                 <strong>Entry #{entryIndex + 1}</strong>
 
                 <div
-                  className={trimClass(`
-                     relative
-                  `)}
+                  className="relative"
                   style={{
                     left: "10px",
                   }}
@@ -540,9 +504,7 @@ function SyncErrorsNotificationComponent(props: {
                             return (
                               <div
                                 key={k}
-                                className={trimClass(`
-                                  relative
-                                `)}
+                                className="relative"
                                 style={{
                                   left: "10px",
                                 }}
@@ -592,20 +554,13 @@ function MenuComponent() {
   }
 
   return (
-    <div
-      className={trimClass(`
-        floating-circular
-        ${noTriggerDocumentEventClassName}
-      `)}
-    >
+    <div className={cn("floating-circular", noTriggerDocumentEventClassName)}>
       <div
-        className={trimClass(`
-          ebnis-drop-up
-          animation
-          drop-up-animate-up
-          ${state.value === StateValue.active ? activeClassName : ""}
-          ${menuSelector}
-        `)}
+        className={cn(
+          "ebnis-drop-up animation drop-up-animate-up",
+          state.value === StateValue.active ? activeClassName : "",
+          menuSelector,
+        )}
       >
         <a
           id={updateMenuItemId}
@@ -628,10 +583,7 @@ function MenuComponent() {
             {hideCommentLabel && (
               <a
                 id={hideCommentsMenuId}
-                className={trimClass(`
-                  content
-                  ${noTriggerDocumentEventClassName}
-                `)}
+                className={cn("content", noTriggerDocumentEventClassName)}
                 onClick={(e) => {
                   commentCb(e, {
                     type: CommentRemoteActionType.hide,
@@ -645,10 +597,7 @@ function MenuComponent() {
             {showCommentLabel && (
               <a
                 id={showCommentsMenuId}
-                className={trimClass(`
-                  content
-                  ${noTriggerDocumentEventClassName}
-                `)}
+                className={cn("content", noTriggerDocumentEventClassName)}
                 onClick={(e) => {
                   commentCb(e, {
                     type: CommentRemoteActionType.show,
@@ -662,10 +611,7 @@ function MenuComponent() {
             {createCommentLabel && (
               <a
                 id={createCommentsMenuId}
-                className={trimClass(`
-                  content
-                  ${noTriggerDocumentEventClassName}
-                `)}
+                className={cn("content", noTriggerDocumentEventClassName)}
                 onClick={(e) => {
                   commentCb(e, {
                     type: CommentRemoteActionType.upsert,
@@ -679,10 +625,7 @@ function MenuComponent() {
         )}
 
         <a
-          className={trimClass(`
-            content
-            ${newEntryMenuItemSelector}
-          `)}
+          className={cn("content", newEntryMenuItemSelector)}
           onClick={() => {
             dispatch({
               type: ActionType.entries_actions,
@@ -695,10 +638,7 @@ function MenuComponent() {
       </div>
 
       <div
-        className={trimClass(`
-           circular
-           ${menuTriggerSelector}
-        `)}
+        className={cn("circular", menuTriggerSelector)}
         onClick={toggleMenuCb}
       >
         <a className="text-white">+</a>

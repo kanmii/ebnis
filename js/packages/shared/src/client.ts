@@ -8,12 +8,9 @@ import {
 import { onError } from "@apollo/client/link/error";
 import * as AbsintheSocket from "@kanmii/socket";
 import { createAbsintheSocketLink } from "@kanmii/socket-apollo-link";
-import { CachePersistor } from "apollo-cache-persist-dev";
-import {
-  PersistedData,
-  PersistentStorage,
-} from "apollo-cache-persist-dev/types";
+import { CachePersistor, LocalStorageWrapper } from "apollo3-cache-persist";
 import { deleteExperienceVar } from "./apollo/delete-experience-cache";
+import { getCachedExperiencesConnectionListFieldPolicy } from "./apollo/get-experiences-connection-list.gql";
 import {
   SCHEMA_KEY,
   SCHEMA_VERSION,
@@ -41,7 +38,7 @@ export function makeApolloClient({
   testing,
   ebnisGlobals,
   useMsw,
-  resolvers,
+  cache: initializedCache,
 }: MakeApolloClientArgs) {
   const globals = ebnisGlobals || getOrMakeGlobals();
 
@@ -90,19 +87,15 @@ export function makeApolloClient({
   link = middlewareErrorLink(link);
   link = middlewareLoggerLink(link);
 
-  const cache = makeCache();
+  const cache = initializedCache || makeApolloCache();
 
   const client: EbnisGlobals["client"] = new ApolloClient({
     cache,
     link,
-    queryDeduplication: false,
-    assumeImmutableResults: true,
-    ssrMode: true,
+    // queryDeduplication: false,
+    // assumeImmutableResults: true,
+    // ssrMode: true,
   });
-
-  if (resolvers) {
-    client.addResolvers(resolvers);
-  }
 
   if (!testing) {
     globals.persistor = makePersistor(cache);
@@ -119,13 +112,8 @@ export function makeApolloClient({
   return globals;
 }
 
-export async function restoreCacheOrPurgeStorage(
-  persistor: CachePersistor<Any>,
-) {
-  // globals from cypress???
-  if (persistor === getOrMakeGlobals().persistor) {
-    return persistor;
-  }
+export async function restoreCacheOrPurgeStorage() {
+  const persistor = getOrMakeGlobals().persistor;
 
   const currentVersion = localStorage.getItem(SCHEMA_VERSION_KEY);
 
@@ -146,13 +134,13 @@ export async function restoreCacheOrPurgeStorage(
 function makePersistor(cache: InMemoryCache) {
   return new CachePersistor({
     cache,
-    storage: localStorage as PersistentStorage<PersistedData<Any>>,
+    storage: new LocalStorageWrapper(window.localStorage),
     key: SCHEMA_KEY,
     maxSize: false,
   }) as CachePersistor<Any>;
 }
 
-function makeCache() {
+export function makeApolloCache() {
   const cache: EbnisGlobals["cache"] = new InMemoryCache({
     addTypename: true,
     possibleTypes,
@@ -186,6 +174,8 @@ function makeCache() {
 
           unsyncedLedger: unsyncedLedgerPolicy,
           syncErrors: syncErrorsPolicy,
+
+          getExperiences: getCachedExperiencesConnectionListFieldPolicy,
         },
       },
 
@@ -347,7 +337,7 @@ type MakeApolloClientArgs = {
   apiUrl?: string;
   testing?: true;
   useMsw?: boolean;
-  resolvers?: Any;
+  cache?: EbnisGlobals["cache"];
 };
 
 type MakeSocketLinkFn = (arg: {

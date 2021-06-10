@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getCachedExperiencesConnectionListView } from "@eb/shared/src/apollo/cached-experiences-list-view";
+import { activeClassName } from "@eb/jsx/src/DropdownMenu";
 import {
   DeletedExperienceLedger,
   getDeleteExperienceLedger,
@@ -8,7 +8,7 @@ import {
 import {
   getExperienceConnectionListView,
   GetExperiencesConnectionListViewQueryResult,
-} from "@eb/shared/src/apollo/experience.gql.types";
+} from "@eb/shared/src/apollo/get-experiences-connection-list.gql";
 import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
 import { getOnlineStatus } from "@eb/shared/src/apollo/unsynced-ledger";
 import { purgeExperiencesFromCache1 } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
@@ -31,21 +31,24 @@ import { act } from "react-dom/test-utils";
 import { My } from "../components/My/my.component";
 import {
   activateInsertExperienceDomId,
-  descriptionControlClassName,
-  descriptionFullClassName,
-  descriptionSummaryClassName,
+  descriptionContainerSelector,
+  descriptionShowHideSelector,
+  descriptionTextSelector,
   domPrefix,
-  dropdownIsActiveClassName,
-  dropdownTriggerClassName,
+  dropdownMenuMenuSelector,
+  dropdownTriggerSelector,
   fetchErrorRetryDomId,
+  fetchNextSelector,
   isOfflineClassName,
   isPartOfflineClassName,
   noExperiencesActivateNewDomId,
+  noSearchResultSelector,
   onDeleteExperienceCancelledNotificationId,
   onDeleteExperienceSuccessNotificationId,
   searchInputDomId,
+  searchLinkSelector,
   updateExperienceMenuItemSelector,
-  updateExperienceSuccessNotificationCloseClassName,
+  updateExperienceSuccessNotificationSelector,
 } from "../components/My/my.dom";
 import { handlePreFetchExperiences } from "../components/My/my.injectables";
 import {
@@ -79,13 +82,11 @@ jest.mock("@eb/shared/src/apollo/delete-experience-cache");
 const mockPutOrRemoveDeleteExperienceLedger =
   putOrRemoveDeleteExperienceLedger as jest.Mock;
 
-jest.mock("@eb/shared/src/apollo/experience.gql.types");
+jest.mock("@eb/shared/src/apollo/get-experiences-connection-list.gql");
 const mockManuallyFetchExperienceConnectionMini =
   getExperienceConnectionListView as jest.Mock;
 
-jest.mock("@eb/shared/src/apollo/cached-experiences-list-view");
-const mockGetExperiencesMiniQuery =
-  getCachedExperiencesConnectionListView as jest.Mock;
+const mockGetExperiencesConnectionListView = jest.fn();
 
 jest.mock("@eb/shared/src/apollo/delete-experience-cache");
 jest.mock("../components/Header/header.component", () => () => null);
@@ -311,7 +312,7 @@ describe("component", () => {
         },
       ]);
 
-      mockGetExperiencesMiniQuery.mockReturnValue({
+      mockGetExperiencesConnectionListView.mockReturnValue({
         edges: [
           {
             node: {
@@ -361,7 +362,7 @@ describe("component", () => {
       .mockReturnValueOnce(StateValue.partOffline)
       .mockReturnValueOnce(StateValue.offline);
 
-    mockGetExperiencesMiniQuery.mockReturnValue({
+    mockGetExperiencesConnectionListView.mockReturnValue({
       edges: [
         {
           node: {
@@ -398,7 +399,7 @@ describe("component", () => {
         isOfflineClassName,
       );
 
-      const experiencesEls2 = getExperienceEl(offlineId);
+      const experiencesEls2 = getById(offlineId);
       expect(experiencesEls2.className).toContain(isOfflineClassName);
       expect(experiencesEls2.className).not.toContain(isPartOfflineClassName);
 
@@ -411,37 +412,30 @@ describe("component", () => {
         0,
       ) as HTMLElement;
 
-      // aber nur übersicht
       expect((getDescriptionEl(experiencesEls2) as any).length).toBe(1);
 
-      // nicht vollständig Beschreibung
+      // Beschreibung ist versteck
       expect(
-        descriptionEl2.getElementsByClassName(descriptionFullClassName).length,
+        descriptionEl2.getElementsByClassName(descriptionTextSelector).length,
       ).toBe(0);
 
-      // wir möchten vollständige Beschreibung anzeigen
+      // wir möchten Beschreibung anzeigen
       (
         descriptionEl2
-          .getElementsByClassName(descriptionControlClassName)
+          .getElementsByClassName(descriptionShowHideSelector)
           .item(0) as HTMLElement
       ).click();
 
-      // also zussamenfassende Beschreibung ist versteckt
+      // Beschreibung ist gezeigt
       expect(
-        descriptionEl2.getElementsByClassName(descriptionSummaryClassName)
-          .length,
-      ).toBe(0);
-
-      // und vollständig Beschreibung ist gezeigt
-      expect(
-        descriptionEl2.getElementsByClassName(descriptionFullClassName).length,
+        descriptionEl2.getElementsByClassName(descriptionTextSelector).length,
       ).toBe(1);
     });
   });
 
   it("interacts with options menu", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
-    mockGetExperiencesMiniQuery.mockReturnValue({
+    mockGetExperiencesConnectionListView.mockReturnValue({
       edges: [
         {
           node: {
@@ -466,12 +460,10 @@ describe("component", () => {
 
       const dropdownMenuEl0 = getDropdownMenu(experiencesEls0);
 
-      expect(dropdownMenuEl0.classList).not.toContain(
-        dropdownIsActiveClassName,
-      );
+      expect(dropdownMenuEl0.classList).not.toContain(activeClassName);
 
       const dropdownTriggerEl = experiencesEls0
-        .getElementsByClassName(dropdownTriggerClassName)
+        .getElementsByClassName(dropdownTriggerSelector)
         .item(0) as HTMLElement;
 
       dropdownTriggerEl.click();
@@ -480,11 +472,10 @@ describe("component", () => {
       const containerEl = getContainer();
       containerEl.click();
 
-      expect(dropdownMenuEl0.classList).not.toContain(
-        dropdownIsActiveClassName,
-      );
+      expect(dropdownMenuEl0.classList).not.toContain(activeClassName);
 
       dropdownTriggerEl.click();
+      expect(dropdownMenuEl0.classList).toContain(activeClassName);
 
       getDeleteExperienceMenu().click();
 
@@ -498,19 +489,23 @@ describe("component", () => {
     });
   });
 
+  const mockGetExperiencesMiniQuery2 = {
+    edges: [
+      {
+        node: {
+          id: mockOnlineId,
+          title: "aa",
+        },
+      },
+    ] as GetExperiencesConnectionListView_getExperiences_edges[],
+    pageInfo: {},
+  } as GetExperiencesConnectionListView_getExperiences;
+
   it("Searches", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
-    mockGetExperiencesMiniQuery.mockReturnValue({
-      edges: [
-        {
-          node: {
-            id: mockOnlineId,
-            title: "aa",
-          },
-        },
-      ] as GetExperiencesConnectionListView_getExperiences_edges[],
-      pageInfo: {},
-    } as GetExperiencesConnectionListView_getExperiences);
+    mockGetExperiencesConnectionListView.mockReturnValue(
+      mockGetExperiencesMiniQuery2,
+    );
 
     const { ui } = makeComp();
 
@@ -549,7 +544,7 @@ describe("component", () => {
   it("deletes experience successfully", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockGetExperiencesMiniQuery.mockReturnValue({
+    mockGetExperiencesConnectionListView.mockReturnValue({
       edges: [
         {
           node: {
@@ -603,7 +598,7 @@ describe("component", () => {
   it("cancels experience deletion", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockGetExperiencesMiniQuery.mockReturnValue({
+    mockGetExperiencesConnectionListView.mockReturnValue({
       edges: [
         {
           node: {
@@ -643,7 +638,7 @@ describe("component", () => {
 
   it("updates experience", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
-    mockGetExperiencesMiniQuery.mockReturnValue({
+    mockGetExperiencesConnectionListView.mockReturnValue({
       edges: [
         {
           node: {
@@ -712,7 +707,7 @@ describe("component", () => {
     });
 
     // And there is 1 offline and 1 part offline experiences in the system
-    mockGetExperiencesMiniQuery.mockReturnValue({
+    mockGetExperiencesConnectionListView.mockReturnValue({
       edges: [
         {
           node: offlineExperience,
@@ -811,7 +806,7 @@ describe("reducer", () => {
     let state = initState();
 
     state = reducer(state, {
-      type: ActionType.ON_DATA_RECEIVED,
+      type: ActionType.on_data_received,
       key: StateValue.data,
       preparedExperiences: [],
       data: {
@@ -835,7 +830,7 @@ describe("reducer", () => {
     });
 
     state = reducer(state, {
-      type: ActionType.ON_SYNC,
+      type: ActionType.on_sync,
       data: {
         offlineIdToOnlineExperienceMap: {
           [offlineId]: mockOnlineExperience,
@@ -864,7 +859,14 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   } as any;
 
   return {
-    ui: <MyP {...props} location={location} history={history} />,
+    ui: (
+      <MyP
+        getExperienceConnectionListView={mockGetExperiencesConnectionListView}
+        {...props}
+        location={location}
+        history={history}
+      />
+    ),
   };
 }
 
@@ -886,7 +888,7 @@ function getMockCloseUpsertExperienceUi() {
 
 function getFetchNextExperience(index = 0) {
   return document
-    .getElementsByClassName("my-experiences__next")
+    .getElementsByClassName(fetchNextSelector)
     .item(index) as HTMLElement;
 }
 
@@ -895,7 +897,9 @@ function getExperienceEl(id: string = mockOnlineId) {
 }
 
 function getDropdownMenu(parentEl: HTMLElement, index = 0) {
-  return parentEl.getElementsByClassName("dropdown").item(index) as HTMLElement;
+  return parentEl
+    .getElementsByClassName(dropdownMenuMenuSelector)
+    .item(index) as HTMLElement;
 }
 
 function getDeleteExperienceMenu(index = 0) {
@@ -905,14 +909,14 @@ function getDeleteExperienceMenu(index = 0) {
 }
 
 function getSearchLinks(index?: number) {
-  const parentEl = document.getElementsByClassName("search__link  ");
+  const parentEl = document.getElementsByClassName(searchLinkSelector);
   return index === undefined
     ? parentEl
     : (parentEl.item(index) as HTMLAnchorElement);
 }
 
 function getSearchNoResultsEl() {
-  return document.getElementsByClassName("search__no-results");
+  return document.getElementsByClassName(noSearchResultSelector);
 }
 
 function getSearchInputEl() {
@@ -945,12 +949,12 @@ function getMockOnUpsertExperienceSuccessUi() {
 
 function getUpdateExperienceSuccessNotificationCloseEl(index = 0) {
   return document
-    .getElementsByClassName(updateExperienceSuccessNotificationCloseClassName)
+    .getElementsByClassName(updateExperienceSuccessNotificationSelector)
     .item(index) as HTMLElement;
 }
 
 function getDescriptionEl(parentEl: HTMLElement, index?: number) {
-  const els = parentEl.getElementsByClassName("description");
+  const els = parentEl.getElementsByClassName(descriptionContainerSelector);
 
   return index === undefined ? els : (els.item(index) as HTMLElement);
 }

@@ -8,17 +8,14 @@ import {
   ExperienceData,
   ExperiencesData,
   EXPERIENCES_MINI_FETCH_COUNT,
-  getExperienceConnectionListView,
 } from "@eb/shared/src/apollo/experience.gql.types";
+import { GetExperienceConnectionListViewFunction } from "@eb/shared/src/apollo/get-experiences-connection-list.gql";
 import { getSyncErrors } from "@eb/shared/src/apollo/sync-to-server-cache";
 import {
   getOnlineStatus,
   getUnsyncedExperience,
 } from "@eb/shared/src/apollo/unsynced-ledger";
-import {
-  purgeExperiencesFromCache1,
-  writeGetExperiencesMiniQuery,
-} from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { purgeExperiencesFromCache1 } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
 import { broadcastMessage } from "@eb/shared/src/broadcast-channel-manager";
 import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
 import {
@@ -69,21 +66,21 @@ import { makeScrollToDomId } from "./my.dom";
 import { handlePreFetchExperiences } from "./my.injectables";
 
 export enum ActionType {
-  ACTIVATE_UPSERT_EXPERIENCE = "@my/activate-upsert-experience",
-  CANCEL_UPSERT_EXPERIENCE = "@my/deactivate-upsert-experience",
-  ON_UPDATE_EXPERIENCE_SUCCESS = "@my/on-update-experience-success",
-  TOGGLE_SHOW_DESCRIPTION = "@my/toggle-show-description",
-  TOGGLE_SHOW_OPTIONS_MENU = "@my/toggle-show-options-menu",
-  CLOSE_ALL_OPTIONS_MENU = "@my/close-all-options-menu",
-  SEARCH = "@my/search",
-  CLEAR_SEARCH = "@my/clear-search",
-  CLOSE_DELETE_EXPERIENCE_NOTIFICATION = "@my/close-delete-experience-notification",
-  DELETE_EXPERIENCE_REQUEST = "@my/delete-experience-request",
-  ON_DATA_RECEIVED = "@my/on-data-received",
-  DATA_RE_FETCH_REQUEST = "@my/data-re-fetch-request",
-  FETCH_NEXT_EXPERIENCES_PAGE = "@my/fetch-next=experiences-page",
-  RECORD_TIMEOUT = "@my/record-timeout",
-  ON_SYNC = "@my/on-sync",
+  activate_upsert_experience = "@my/activate-upsert-experience",
+  cancel_upsert_experience = "@my/deactivate-upsert-experience",
+  on_update_experience_success = "@my/on-update-experience-success",
+  toggle_show_description = "@my/toggle-show-description",
+  toggle_show_options_menu = "@my/toggle-show-options-menu",
+  close_all_options_menu = "@my/close-all-options-menu",
+  search = "@my/search",
+  clear_search = "@my/clear-search",
+  close_delete_experience_notification = "@my/close-delete-experience-notification",
+  delete_experience_request = "@my/delete-experience-request",
+  on_data_received = "@my/on-data-received",
+  data_re_fetch_request = "@my/data-re-fetch-request",
+  fetch_next_experiences_page = "@my/fetch-next=experiences-page",
+  record_timeout = "@my/record-timeout",
+  on_sync = "@my/on-sync",
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -97,78 +94,78 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
         const state = proxy as StateMachine;
 
         switch (type) {
-          case ActionType.ACTIVATE_UPSERT_EXPERIENCE:
+          case ActionType.activate_upsert_experience:
             handleActivateUpsertExperienceAction(
               state,
               payload as UpsertExperiencePayload,
             );
             break;
 
-          case ActionType.CANCEL_UPSERT_EXPERIENCE:
+          case ActionType.cancel_upsert_experience:
             handleDeactivateNewExperienceAction(state);
             break;
 
-          case ActionType.TOGGLE_SHOW_DESCRIPTION:
+          case ActionType.toggle_show_description:
             handleToggleShowDescriptionAction(
               state,
               payload as WithExperienceIdPayload,
             );
             break;
 
-          case ActionType.TOGGLE_SHOW_OPTIONS_MENU:
+          case ActionType.toggle_show_options_menu:
             handleToggleShowOptionsMenuAction(
               state,
               payload as WithExperienceIdPayload,
             );
             break;
 
-          case ActionType.CLOSE_ALL_OPTIONS_MENU:
+          case ActionType.close_all_options_menu:
             handleCloseAllOptionsMenuAction(state);
             break;
 
-          case ActionType.SEARCH:
+          case ActionType.search:
             handleSearchAction(state, payload as SetSearchTextPayload);
             break;
 
-          case ActionType.CLEAR_SEARCH:
+          case ActionType.clear_search:
             handleClearSearchAction(state);
             break;
 
-          case ActionType.CLOSE_DELETE_EXPERIENCE_NOTIFICATION:
+          case ActionType.close_delete_experience_notification:
             handleDeleteExperienceNotificationAction(state);
             break;
 
-          case ActionType.DELETE_EXPERIENCE_REQUEST:
+          case ActionType.delete_experience_request:
             handleDeleteExperienceRequestAction(
               state,
               payload as WithExperienceIdPayload,
             );
             break;
 
-          case ActionType.ON_DATA_RECEIVED:
+          case ActionType.on_data_received:
             handleOnDataReceivedAction(state, payload as OnDataReceivedPayload);
             break;
 
-          case ActionType.DATA_RE_FETCH_REQUEST:
+          case ActionType.data_re_fetch_request:
             handleDataReFetchRequestAction(state);
             break;
 
-          case ActionType.FETCH_NEXT_EXPERIENCES_PAGE:
+          case ActionType.fetch_next_experiences_page:
             handleFetchPrevNextExperiencesPageAction(state);
             break;
 
-          case ActionType.ON_UPDATE_EXPERIENCE_SUCCESS:
+          case ActionType.on_update_experience_success:
             handleOnUpdateExperienceSuccessAction(
               state,
               payload as WithExperiencePayload,
             );
             break;
 
-          case ActionType.RECORD_TIMEOUT:
+          case ActionType.record_timeout:
             handleRecordTimeoutAction(state, payload as SetTimeoutPayload);
             break;
 
-          case ActionType.ON_SYNC:
+          case ActionType.on_sync:
             handleOnSyncAction(state, payload as OnSycPayload);
             break;
         }
@@ -388,47 +385,41 @@ function handleOnDataReceivedAction(
   switch (payload.key) {
     case StateValue.data:
       {
-        const { data, deletedExperience, paginating, preparedExperiences } =
-          payload;
+        const {
+          data,
+          deletedExperience,
+          // paginating,
+          preparedExperiences,
+        } = payload;
         const { experiences, pageInfo } = data;
 
         const state = {
           value: StateValue.data,
         } as DataState;
 
-        if (paginating) {
-          const { context } = (proxy.states as DataState).data;
-          context.experiences = [...context.experiences, ...experiences];
-          context.pageInfo = pageInfo;
-          context.experiencesPrepared = [
-            ...context.experiencesPrepared,
-            ...preparedExperiences,
-          ];
-        } else {
-          state.data = {
-            context: {
-              experiencesPrepared: preparedExperiences,
-              experiences,
-              pageInfo,
-            },
+        state.data = {
+          context: {
+            experiencesPrepared: preparedExperiences,
+            experiences,
+            pageInfo,
+          },
 
-            states: {
-              upsertExperienceActivated: {
-                value: StateValue.inactive,
-              },
-              experiences: {},
-              search: {
-                value: StateValue.inactive,
-              },
-              deletedExperience: {
-                value: StateValue.inactive,
-              },
+          states: {
+            upsertExperienceActivated: {
+              value: StateValue.inactive,
             },
-          };
+            experiences: {},
+            search: {
+              value: StateValue.inactive,
+            },
+            deletedExperience: {
+              value: StateValue.inactive,
+            },
+          },
+        };
 
-          proxy.states = state;
-          handleOnDeleteExperienceProcessedHelper(state, deletedExperience);
-        }
+        proxy.states = state;
+        handleOnDeleteExperienceProcessedHelper(state, deletedExperience);
       }
       break;
 
@@ -724,9 +715,10 @@ type DefDeleteExperienceRequestEffect = EffectDefinition<
 
 const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
   { paginationInput, previousLastId },
-  _,
+  props,
   effectArgs,
 ) => {
+  const { getExperienceConnectionListView } = props;
   const { dispatch } = effectArgs;
   let timeoutId: null | NodeJS.Timeout = null;
   let fetchExperiencesAttemptsCount = 0;
@@ -752,7 +744,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
     );
 
     dispatch({
-      type: ActionType.ON_DATA_RECEIVED,
+      type: ActionType.on_data_received,
       key: StateValue.data,
       data: experiences,
       preparedExperiences,
@@ -762,9 +754,10 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
     return;
   }
 
-  function fetchExperiencesAfter() {
+  function mayBeScheduleFetch() {
     // we are connected
     if (getIsConnected()) {
+      // fetch from network
       fetchExperiences();
       return;
     }
@@ -773,7 +766,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
     // isConnected === null
     if (fetchExperiencesAttemptsCount > timeoutsLen) {
       dispatch({
-        type: ActionType.ON_DATA_RECEIVED,
+        type: ActionType.on_data_received,
         key: StateValue.errors,
         error: DATA_FETCHING_FAILED,
       });
@@ -782,12 +775,14 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
     }
 
     timeoutId = setTimeout(
-      fetchExperiencesAfter,
+      mayBeScheduleFetch,
       FETCH_EXPERIENCES_TIMEOUTS[fetchExperiencesAttemptsCount++],
     );
   }
 
   async function fetchExperiences() {
+    debugger;
+
     try {
       const networkFetchResult = await getExperienceConnectionListView(
         "network-only",
@@ -800,7 +795,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 
       if (error) {
         dispatch({
-          type: ActionType.ON_DATA_RECEIVED,
+          type: ActionType.on_data_received,
           key: StateValue.errors,
           error,
         });
@@ -809,13 +804,10 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
           data.getExperiences) as GetExperiencesConnectionListView_getExperiences;
 
         const [processedResults, preparedExperiences] =
-          processGetExperiencesQuery(fetchedExperiences, {
-            isPaginating: !!paginationInput,
-            existingData: cachedExperiencesResult || null,
-          });
+          processGetExperiencesQuery(fetchedExperiences, {});
 
         dispatch({
-          type: ActionType.ON_DATA_RECEIVED,
+          type: ActionType.on_data_received,
           key: StateValue.data,
           data: processedResults,
           preparedExperiences,
@@ -829,7 +821,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
       }
     } catch (error) {
       dispatch({
-        type: ActionType.ON_DATA_RECEIVED,
+        type: ActionType.on_data_received,
         key: StateValue.errors,
         error,
       });
@@ -840,7 +832,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
     }
   }
 
-  fetchExperiencesAfter();
+  mayBeScheduleFetch();
 };
 
 type DefFetchExperiencesEffect = EffectDefinition<
@@ -881,7 +873,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
       case "set-close-upsert-experience-success-notification":
         timeoutCb = () => {
           dispatch({
-            type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
+            type: ActionType.on_update_experience_success,
             experience: set.experience,
           });
         };
@@ -892,7 +884,7 @@ const timeoutsEffect: DefTimeoutsEffect["func"] = (
     const timeoutId = setTimeout(timeoutCb, timeout);
 
     dispatch({
-      type: ActionType.RECORD_TIMEOUT,
+      type: ActionType.record_timeout,
       genericTimeout: timeoutId,
     });
   }
@@ -957,32 +949,21 @@ async function deleteExperienceProcessedEffectHelper() {
 function processGetExperiencesQuery(
   { edges, pageInfo }: GetExperiencesConnectionListView_getExperiences,
   {
-    isPaginating,
-    existingData,
     deletedExperience,
   }: {
-    isPaginating?: boolean;
     deletedExperience?: DeletedExperienceLedger;
-    existingData?: GetExperiencesConnectionListView_getExperiences | null;
   },
 ): [ExperiencesData, PreparedExperience[]] {
   const deletedId = deletedExperience ? deletedExperience.id : "";
 
-  const previousEdges = ((existingData && existingData.edges) ||
-    []) as GetExperiencesConnectionListView_getExperiences_edges[];
-
   const newEdges =
     edges as GetExperiencesConnectionListView_getExperiences_edges[];
-
-  const allEdges = [...previousEdges, ...newEdges];
 
   const syncErrors = getSyncErrors() || {};
 
   const preparedExperiences: PreparedExperience[] = [];
 
-  const idToExperienceMap: {
-    [experienceId: string]: ExperienceListViewFragment;
-  } = {};
+  const idToExperienceMap: Record<string, ExperienceListViewFragment> = {};
 
   const [experiences, erfahrungenIds] = newEdges.reduce(
     (acc, edge) => {
@@ -1012,15 +993,10 @@ function processGetExperiencesQuery(
     [[], []] as [ExperienceData[], string[]],
   );
 
-  if (isPaginating) {
-    writeGetExperiencesMiniQuery({
-      edges: allEdges,
-      pageInfo,
-    });
-  }
-
-  if (existingData !== undefined && erfahrungenIds.length) {
+  if (erfahrungenIds.length) {
     setTimeout(() => {
+      // TODO(kanmii): how not to pre fetch data already pre-fetched since
+      // apollo is merging both incoming and existing data
       handlePreFetchExperiences(erfahrungenIds, idToExperienceMap);
     });
   }
@@ -1121,49 +1097,49 @@ interface MySearchResult {
 
 type Action =
   | ({
-      type: ActionType.ACTIVATE_UPSERT_EXPERIENCE;
+      type: ActionType.activate_upsert_experience;
     } & UpsertExperiencePayload)
   | {
-      type: ActionType.CANCEL_UPSERT_EXPERIENCE;
+      type: ActionType.cancel_upsert_experience;
     }
   | ({
-      type: ActionType.TOGGLE_SHOW_DESCRIPTION;
+      type: ActionType.toggle_show_description;
     } & WithExperienceIdPayload)
   | ({
-      type: ActionType.TOGGLE_SHOW_OPTIONS_MENU;
+      type: ActionType.toggle_show_options_menu;
     } & WithExperienceIdPayload)
   | {
-      type: ActionType.CLOSE_ALL_OPTIONS_MENU;
+      type: ActionType.close_all_options_menu;
     }
   | {
-      type: ActionType.CLEAR_SEARCH;
+      type: ActionType.clear_search;
     }
   | ({
-      type: ActionType.SEARCH;
+      type: ActionType.search;
     } & SetSearchTextPayload)
   | {
-      type: ActionType.CLOSE_DELETE_EXPERIENCE_NOTIFICATION;
+      type: ActionType.close_delete_experience_notification;
     }
   | ({
-      type: ActionType.DELETE_EXPERIENCE_REQUEST;
+      type: ActionType.delete_experience_request;
     } & WithExperienceIdPayload)
   | ({
-      type: ActionType.ON_DATA_RECEIVED;
+      type: ActionType.on_data_received;
     } & OnDataReceivedPayload)
   | {
-      type: ActionType.DATA_RE_FETCH_REQUEST;
+      type: ActionType.data_re_fetch_request;
     }
   | {
-      type: ActionType.FETCH_NEXT_EXPERIENCES_PAGE;
+      type: ActionType.fetch_next_experiences_page;
     }
   | ({
-      type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS;
+      type: ActionType.on_update_experience_success;
     } & WithExperiencePayload)
   | ({
-      type: ActionType.RECORD_TIMEOUT;
+      type: ActionType.record_timeout;
     } & SetTimeoutPayload)
   | ({
-      type: ActionType.ON_SYNC;
+      type: ActionType.on_sync;
     } & OnSycPayload);
 
 type OnSycPayload = {
@@ -1216,7 +1192,7 @@ export type CallerProps = RouteChildrenProps<
   }
 >;
 
-export type Props = CallerProps;
+export type Props = CallerProps & GetExperienceConnectionListViewFunction;
 
 export interface ExperiencesMap {
   [experienceId: string]: ExperienceState;

@@ -1,9 +1,14 @@
-import Button from "@eb/jsx/src/components/Button/button.component";
-import Notification from "@eb/jsx/src/components/Notification/notification.component";
+import { Button } from "@eb/jsx/src/Button";
+import { Card } from "@eb/jsx/src/Card";
+import { DropdownMenu } from "@eb/jsx/src/DropdownMenu";
+import { Input, Textarea } from "@eb/jsx/src/Input";
+import { Notification } from "@eb/jsx/src/Notification";
 import { ExperienceData } from "@eb/shared/src/apollo/experience.gql.types";
+import { getExperienceConnectionListView } from "@eb/shared/src/apollo/get-experiences-connection-list.gql";
 import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
 import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
 import errorImage from "@eb/shared/src/media/error-96.png";
+import { ReactComponent as SearchIconSvg } from "@eb/shared/src/styles/search-solid.svg";
 import { OnlineStatus, StateValue } from "@eb/shared/src/utils/types";
 import {
   ComponentColorType,
@@ -13,51 +18,51 @@ import cn from "classnames";
 import React, {
   createContext,
   Suspense,
-  useCallback,
   useContext,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useReducer,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { Link } from "react-router-dom";
 import { setUpRoutePage } from "../../utils/global-window";
-import { InputChangeEvent } from "../../utils/types";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { useRunEffects } from "../../utils/use-run-effects";
 import Header from "../Header/header.component";
 import Loading from "../Loading/loading.component";
 import {
   activateInsertExperienceDomId,
-  descriptionControlClassName,
-  descriptionFullClassName,
-  descriptionLessClassName,
-  descriptionMoreClassName,
-  descriptionSummaryClassName,
+  descriptionContainerSelector,
+  descriptionHideSelector,
+  descriptionShowHideSelector,
+  descriptionShowSelector,
+  descriptionTextSelector,
   domPrefix,
-  dropdownIsActiveClassName,
-  dropdownTriggerClassName,
+  dropdownMenuMenuSelector,
+  dropdownTriggerSelector,
   experienceContainerSelector,
   experiencesDomId,
   fetchErrorRetryDomId,
   fetchExperiencesErrorsDomId,
+  fetchNextSelector,
   isOfflineClassName,
   isPartOfflineClassName,
   makeScrollToDomId,
   MY_TITLE,
   noExperiencesActivateNewDomId,
+  noSearchResultSelector,
   noTriggerDocumentEventClassName,
   onDeleteExperienceCancelledNotificationId,
   onDeleteExperienceSuccessNotificationId,
   searchInputDomId,
+  searchLinkSelector,
   updateExperienceMenuItemSelector,
-  updateExperienceSuccessNotificationCloseClassName,
+  updateExperienceSuccessNotificationSelector,
 } from "./my.dom";
 import { UpsertExperience } from "./my.lazy";
-import "./my.styles.css";
 import {
   ActionType,
+  CallerProps,
   DataState,
   DispatchType,
   effectFunctions,
@@ -69,18 +74,6 @@ import {
   SearchActive,
 } from "./my.utils";
 
-type DispatchContextValue = Readonly<{
-  dispatch: DispatchType;
-  onUpsertExperienceActivated: (e: ReactMouseEvent) => void;
-  onCloseDeleteExperienceNotification: () => void;
-  deactivateUpsertExperienceUiCb: (e: ReactMouseEvent) => void;
-  onExperienceUpsertSuccess: (
-    e: ExperienceListViewFragment,
-    o: OnlineStatus,
-  ) => void;
-  fetchMoreExperiences: () => void;
-  onUpdateExperienceError: (error: string) => void;
-}>;
 const DispatchContext = createContext<DispatchContextValue>(
   {} as DispatchContextValue,
 );
@@ -109,7 +102,7 @@ export function My(props: Props) {
   useEffect(() => {
     if (onSyncData && stateValue === StateValue.data) {
       dispatch({
-        type: ActionType.ON_SYNC,
+        type: ActionType.on_sync,
         data: onSyncData,
       });
     }
@@ -123,7 +116,7 @@ export function My(props: Props) {
     };
   }, [genericTimeout]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     setUpRoutePage({
       title: MY_TITLE,
     });
@@ -140,11 +133,11 @@ export function My(props: Props) {
 
       unstable_batchedUpdates(() => {
         dispatch({
-          type: ActionType.CLOSE_ALL_OPTIONS_MENU,
+          type: ActionType.close_all_options_menu,
         });
 
         dispatch({
-          type: ActionType.CLEAR_SEARCH,
+          type: ActionType.clear_search,
         });
       });
     }
@@ -156,43 +149,43 @@ export function My(props: Props) {
     };
   }, []);
 
-  const contextVal: DispatchContextValue = useMemo(() => {
+  const dispatchContextVal: DispatchContextValue = useMemo(() => {
     return {
       dispatch,
       onUpsertExperienceActivated(e) {
         e.preventDefault();
 
         dispatch({
-          type: ActionType.ACTIVATE_UPSERT_EXPERIENCE,
+          type: ActionType.activate_upsert_experience,
         });
       },
       onCloseDeleteExperienceNotification() {
         dispatch({
-          type: ActionType.CLOSE_DELETE_EXPERIENCE_NOTIFICATION,
+          type: ActionType.close_delete_experience_notification,
         });
       },
       deactivateUpsertExperienceUiCb(e) {
         e.preventDefault();
 
         dispatch({
-          type: ActionType.CANCEL_UPSERT_EXPERIENCE,
+          type: ActionType.cancel_upsert_experience,
         });
       },
       onExperienceUpsertSuccess(experience, onlineStatus) {
         dispatch({
-          type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
+          type: ActionType.on_update_experience_success,
           experience,
           onlineStatus,
         });
       },
       fetchMoreExperiences() {
         dispatch({
-          type: ActionType.FETCH_NEXT_EXPERIENCES_PAGE,
+          type: ActionType.fetch_next_experiences_page,
         });
       },
       onUpdateExperienceError() {
         dispatch({
-          type: ActionType.CANCEL_UPSERT_EXPERIENCE,
+          type: ActionType.cancel_upsert_experience,
         });
       },
     };
@@ -202,109 +195,152 @@ export function My(props: Props) {
     <>
       <Header />
 
-      {states.value === StateValue.errors ? (
-        <FetchExperiencesFail
-          error={states.error}
-          onReFetch={() => {
-            dispatch({
-              type: ActionType.DATA_RE_FETCH_REQUEST,
-            });
-          }}
-        />
-      ) : states.value === StateValue.loading ? (
-        <Loading />
-      ) : (
-        <DispatchProvider value={contextVal}>
-          <DataStateProvider value={states.data}>
-            <MyExperiences />
-          </DataStateProvider>
-        </DispatchProvider>
-      )}
-    </>
-  );
-}
-
-export default My;
-
-function MyExperiences() {
-  const {
-    onUpsertExperienceActivated,
-    deactivateUpsertExperienceUiCb,
-    onExperienceUpsertSuccess,
-    onUpdateExperienceError,
-  } = useContext(DispatchContext);
-
-  const {
-    states: { upsertExperienceActivated },
-    context: { experiences },
-  } = useContext(DataStateContextC);
-
-  const noExperiences = experiences.length === 0;
-
-  return (
-    <>
-      <div id={domPrefix} className="container my-component">
-        {upsertExperienceActivated.value === StateValue.active && (
-          <Suspense fallback={<Loading />}>
-            <UpsertExperience
-              experience={upsertExperienceActivated.active.context.experience}
-              onClose={deactivateUpsertExperienceUiCb}
-              onSuccess={onExperienceUpsertSuccess}
-              onError={onUpdateExperienceError}
-              className={noTriggerDocumentEventClassName}
-            />
-          </Suspense>
+      <div
+        id={domPrefix}
+        className={cn(
+          "flex-1 my-0 mx-auto relative w-auto pt-16",
+          "pb-[calc(var(--floatingCircularBottom)*1.5)]",
         )}
-
-        {noExperiences ? (
-          <div
-            className={cn(
-              "no-experiences",
-              "flex",
-              "justify-center",
-              "items-center",
-              "!mt-3",
-            )}
-          >
-            <Notification
-              type={ComponentColorType.is_light_success}
-              style={{
-                width: "min(95vw, 500px)",
-              }}
-            >
-              <div className="no-experiences__title">No experiences!</div>
-              <Button
-                id={noExperiencesActivateNewDomId}
-                onClick={onUpsertExperienceActivated}
-                type="button"
-                btnType={ComponentColorType.is_success}
-              >
-                Create New
-              </Button>
-            </Notification>
-          </div>
-        ) : (
-          <>
-            <SearchComponent />
-
-            <DeletedExperienceNotification />
-
-            <ExperiencesComponent />
-          </>
-        )}
-      </div>
-
-      <a
-        href="*"
-        id={activateInsertExperienceDomId}
-        className="floating-circular"
-        onClick={onUpsertExperienceActivated}
       >
-        <span>+</span>
-      </a>
+        <DispatchProvider value={dispatchContextVal}>
+          {(function renderMy() {
+            switch (states.value) {
+              case StateValue.loading:
+                return <Loading />;
+
+              case StateValue.errors:
+                return (
+                  <Card
+                    className={cn("my-0 mx-auto pt-3 mt-10 !max-w-xs")}
+                    id={fetchExperiencesErrorsDomId}
+                  >
+                    <Card.Image
+                      size="64x64"
+                      figureProps={{
+                        className: "my-0 mx-auto",
+                      }}
+                    >
+                      <img src={errorImage} alt="error loading experiences" />
+                    </Card.Image>
+
+                    <Card.Content wrapOnly>
+                      <Notification type={ComponentColorType.is_light_danger}>
+                        <p>{states.error}</p>
+
+                        <Button
+                          isRounded
+                          className="mt-4 font-bold"
+                          type="button"
+                          id={fetchErrorRetryDomId}
+                          onClick={() => {
+                            dispatch({
+                              type: ActionType.data_re_fetch_request,
+                            });
+                          }}
+                        >
+                          Retry
+                        </Button>
+                      </Notification>
+                    </Card.Content>
+                  </Card>
+                );
+
+              case StateValue.data: {
+                const {
+                  states: { upsertExperienceActivated },
+                  context: { experiences },
+                } = states.data;
+
+                const noExperiences = experiences.length === 0;
+                const {
+                  onUpsertExperienceActivated,
+                  deactivateUpsertExperienceUiCb,
+                  onExperienceUpsertSuccess,
+                  onUpdateExperienceError,
+                } = dispatchContextVal;
+
+                return (
+                  <>
+                    <DataStateProvider value={states.data}>
+                      {upsertExperienceActivated.value ===
+                        StateValue.active && (
+                        <Suspense fallback={<Loading />}>
+                          <UpsertExperience
+                            experience={
+                              upsertExperienceActivated.active.context
+                                .experience
+                            }
+                            onClose={deactivateUpsertExperienceUiCb}
+                            onSuccess={onExperienceUpsertSuccess}
+                            onError={onUpdateExperienceError}
+                            className={noTriggerDocumentEventClassName}
+                          />
+                        </Suspense>
+                      )}
+
+                      {noExperiences ? (
+                        <div
+                          className={cn(
+                            "flex justify-center items-center !mt-3",
+                          )}
+                        >
+                          <Notification
+                            type={ComponentColorType.is_light_success}
+                            style={{
+                              width: "min(95vw, 500px)",
+                            }}
+                          >
+                            <div className="no-experiences__title">
+                              No experiences!
+                            </div>
+
+                            <Button
+                              id={noExperiencesActivateNewDomId}
+                              onClick={onUpsertExperienceActivated}
+                              type="button"
+                              btnType={ComponentColorType.is_success}
+                            >
+                              Create New
+                            </Button>
+                          </Notification>
+                        </div>
+                      ) : (
+                        <>
+                          <SearchComponent />
+
+                          <DeletedExperienceNotification />
+
+                          <ExperiencesComponent />
+                        </>
+                      )}
+                    </DataStateProvider>
+
+                    <a
+                      id={activateInsertExperienceDomId}
+                      className="floating-circular cursor-pointer"
+                      onClick={onUpsertExperienceActivated}
+                    >
+                      <span>+</span>
+                    </a>
+                  </>
+                );
+              }
+            }
+          })()}
+        </DispatchProvider>
+      </div>
     </>
   );
 }
+
+export default (props: CallerProps) => {
+  return (
+    <My
+      {...props}
+      getExperienceConnectionListView={getExperienceConnectionListView}
+    />
+  );
+};
 
 function ExperiencesComponent() {
   const {
@@ -314,7 +350,7 @@ function ExperiencesComponent() {
 
   return useMemo(() => {
     return (
-      <div className="experiences-container" id={experiencesDomId}>
+      <div className="experiences-container max-w-lg" id={experiencesDomId}>
         {experiences.map((experienceData) => {
           const { id } = experienceData.experience;
 
@@ -350,176 +386,149 @@ function ExperienceComponent(props: ExperienceProps) {
     state;
 
   return (
-    <article
+    <div
       id={id}
-      className={cn({
-        "experience box media": true,
-        [isOfflineClassName]: onlineStatus === StateValue.offline,
-        [isPartOfflineClassName]: onlineStatus === StateValue.partOffline,
-        [experienceContainerSelector]: true,
-      })}
+      className={cn(
+        "experience shadow-lg border-2 mb-5 p-6 flex relative rounded-md",
+        experienceContainerSelector,
+        onlineStatus === StateValue.offline ? isOfflineClassName : "",
+        onlineStatus === StateValue.partOffline ? isPartOfflineClassName : "",
+      )}
     >
-      <div className="media-content">
-        <div className="content">
-          <div
-            id={makeScrollToDomId(id)}
-            className="my-experience__scroll-to visually-hidden"
-          />
-
-          {showingUpdateSuccess && (
-            <div
-              className={cn({
-                "notification is-success": true,
-                [noTriggerDocumentEventClassName]: true,
-              })}
-            >
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-
-                  dispatch({
-                    type: ActionType.ON_UPDATE_EXPERIENCE_SUCCESS,
-                    experience,
-                  });
-                }}
-                className={`${updateExperienceSuccessNotificationCloseClassName} delete`}
-              />
-              Updated successfully
-            </div>
-          )}
-
-          <Link className="neutral-link experience__title" to={detailPath}>
-            <strong>{title}</strong>
-          </Link>
-
-          {description && (
-            <div className="description">
-              <div
-                onClick={(e) => {
-                  e.preventDefault();
-
-                  dispatch({
-                    type: ActionType.TOGGLE_SHOW_DESCRIPTION,
-                    id,
-                  });
-                }}
-                className={descriptionControlClassName}
-              >
-                <a className="icon neutral-link" href="*">
-                  {showingDescription ? (
-                    <i
-                      className={cn({
-                        "fas fa-minus": true,
-                        [descriptionLessClassName]: true,
-                      })}
-                    ></i>
-                  ) : (
-                    <i
-                      className={cn({
-                        "fas fa-plus": true,
-                        [descriptionMoreClassName]: true,
-                      })}
-                    ></i>
-                  )}
-                </a>
-
-                <strong className="description__label">Description</strong>
-              </div>
-
-              <pre
-                className={cn({
-                  description__text: true,
-                  [descriptionFullClassName]: showingDescription,
-                  [descriptionSummaryClassName]: !showingDescription,
-                })}
-              >
-                {description}
-              </pre>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div
-        className={cn({
-          "dropdown is-right": true,
-          [dropdownIsActiveClassName]: showingOptionsMenu,
-        })}
-      >
+      <div className="flex-1 w-full mt-4">
         <div
-          className={cn({
-            "dropdown-menu": true,
-          })}
-          role="menu"
-        >
-          <div className="dropdown-content">
-            <a
-              className={cn({
-                "neutral-link edit-experience-menu-item": true,
-                [updateExperienceMenuItemSelector]: true,
-              })}
-              style={{
-                cursor: "pointer",
-                display: "block",
-              }}
-              onClick={(e) => {
+          id={makeScrollToDomId(id)}
+          className="visually-hidden relative -top-40"
+        />
+
+        {showingUpdateSuccess && (
+          <Notification
+            type={ComponentColorType.is_success}
+            className={cn("my-3", noTriggerDocumentEventClassName)}
+            close={{
+              onClose: (e) => {
                 e.preventDefault();
 
                 dispatch({
-                  type: ActionType.ACTIVATE_UPSERT_EXPERIENCE,
+                  type: ActionType.on_update_experience_success,
                   experience,
                 });
-              }}
-              href="*"
-            >
-              Edit
-            </a>
-          </div>
+              },
+              className: updateExperienceSuccessNotificationSelector,
+            }}
+          >
+            Updated successfully
+          </Notification>
+        )}
 
-          <div className="dropdown-content">
+        <Link className="px-px pt-0 pb-6 block font-bold" to={detailPath}>
+          {title}
+        </Link>
+
+        {description && (
+          <div className={descriptionContainerSelector}>
             <a
-              className="neutral-link delete-experience-menu-item"
-              style={{
-                cursor: "pointer",
-                display: "block",
-              }}
+              className={cn(
+                "cursor-pointer inline-flex items-baseline",
+                descriptionShowHideSelector,
+              )}
               onClick={(e) => {
                 e.preventDefault();
 
                 dispatch({
-                  type: ActionType.DELETE_EXPERIENCE_REQUEST,
+                  type: ActionType.toggle_show_description,
                   id,
                 });
               }}
-              href="*"
             >
-              Delete
+              <strong className="mr-2">Description</strong>
+
+              {showingDescription ? (
+                <Button
+                  style={{
+                    fontWeight: 600,
+                  }}
+                  wide
+                  className={descriptionHideSelector}
+                >
+                  Hide
+                </Button>
+              ) : (
+                <Button
+                  style={{
+                    fontWeight: 600,
+                  }}
+                  wide
+                  className={descriptionShowSelector}
+                >
+                  Show
+                </Button>
+              )}
             </a>
+
+            {showingDescription && (
+              <Textarea
+                className={cn("mt-4 bg-gray-50", descriptionTextSelector)}
+                rows={5}
+                value={description}
+                disabled
+              />
+            )}
           </div>
-        </div>
+        )}
       </div>
 
-      <a
-        className={cn({
-          [dropdownTriggerClassName]: true,
-          "media-right dropdown-trigger": true,
-          [noTriggerDocumentEventClassName]: true,
-        })}
-        onClick={(e) => {
-          e.preventDefault();
+      <DropdownMenu className="flex-shrink-0">
+        <DropdownMenu.Menu
+          active={showingOptionsMenu}
+          className={dropdownMenuMenuSelector}
+        >
+          <DropdownMenu.Item
+            className={cn({
+              "neutral-link edit-experience-menu-item": true,
+              [updateExperienceMenuItemSelector]: true,
+            })}
+            onClick={(e) => {
+              e.preventDefault();
 
-          dispatch({
-            type: ActionType.TOGGLE_SHOW_OPTIONS_MENU,
-            id,
-          });
-        }}
-        href="*"
-      >
-        <span className="icon is-small">
-          <i className="fas fa-ellipsis-v" aria-hidden="true" />
-        </span>
-      </a>
-    </article>
+              dispatch({
+                type: ActionType.activate_upsert_experience,
+                experience,
+              });
+            }}
+          >
+            Edit
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Item
+            className="neutral-link delete-experience-menu-item"
+            onClick={(e) => {
+              e.preventDefault();
+
+              dispatch({
+                type: ActionType.delete_experience_request,
+                id,
+              });
+            }}
+          >
+            Delete
+          </DropdownMenu.Item>
+        </DropdownMenu.Menu>
+
+        <DropdownMenu.Trigger
+          className={cn(
+            dropdownTriggerSelector,
+            noTriggerDocumentEventClassName,
+          )}
+          onClick={() => {
+            dispatch({
+              type: ActionType.toggle_show_options_menu,
+              id,
+            });
+          }}
+        />
+      </DropdownMenu>
+    </div>
   );
 }
 
@@ -539,18 +548,18 @@ function PaginationComponent() {
   }
 
   return (
-    <div className="my-experiences__prev-next">
-      <button
-        className="button my-experiences__next"
+    <div className="text-center">
+      <Button
+        className={cn("font-extrabold", fetchNextSelector)}
         onClick={fetchMoreExperiences}
       >
         Next
-      </button>
+      </Button>
     </div>
   );
 }
 
-const SearchComponent = () => {
+function SearchComponent() {
   const { dispatch } = useContext(DispatchContext);
 
   const {
@@ -564,42 +573,53 @@ const SearchComponent = () => {
   const { value, results } = active.context;
   const hasResults = results.length > 0;
 
-  const onSearch = useCallback((e: InputChangeEvent) => {
-    const text = e.target.value;
-    dispatch({
-      type: ActionType.SEARCH,
-      text,
-    });
-  }, []);
-
   return (
-    <div className="search">
-      <div className="control has-icons-right">
-        <input
-          id={searchInputDomId}
-          className="input is-rounded"
-          type="text"
-          placeholder="Search your experiences"
-          onChange={onSearch}
-          value={value}
+    <div
+      className="max-w-sm fixed z-10"
+      style={{
+        width: "85%",
+        top: "var(--body-padding-top)",
+      }}
+    >
+      <Input
+        iconRight
+        isRounded
+        id={searchInputDomId}
+        type="text"
+        placeholder="Search your experiences"
+        onChange={(e) => {
+          dispatch({
+            type: ActionType.search,
+            text: e.target.value,
+          });
+        }}
+        value={value}
+      >
+        <SearchIconSvg
+          style={{
+            width: "20px",
+            height: "20px",
+          }}
         />
+      </Input>
 
-        <span className="icon is-small is-right">
-          <i className="fas fa-search"></i>
-        </span>
-      </div>
-
-      <div className="table-container search__results">
-        <table className="table is-bordered is-striped is-fullwidth">
-          <tbody>
+      <div className="eb-tiny-scroll mt-3 overflow-y-auto max-h-72 max-w-full">
+        <table className="w-full">
+          <tbody className="bg-transparent">
             {stateValue === StateValue.active ? (
               hasResults ? (
-                results.map(({ id, title }) => {
+                results.map(({ id, title }, index) => {
                   return (
-                    <tr key={id}>
-                      <td className="search__link-container">
+                    <tr
+                      key={id}
+                      className={cn(index % 2 == 1 ? "bg-gray-50" : "bg-white")}
+                    >
+                      <td className="p-0 border align-top">
                         <Link
-                          className="neutral-link search__link"
+                          className={cn(
+                            "neutral-link w-full block py-2 px-3",
+                            searchLinkSelector,
+                          )}
                           to={makeDetailedExperienceRoute(id)}
                         >
                           {title}
@@ -609,8 +629,10 @@ const SearchComponent = () => {
                   );
                 })
               ) : (
-                <tr>
-                  <td className="search__no-results">No results</td>
+                <tr className="bg-white">
+                  <td className={cn("border", noSearchResultSelector)}>
+                    No results
+                  </td>
                 </tr>
               )
             ) : null}
@@ -619,7 +641,7 @@ const SearchComponent = () => {
       </div>
     </div>
   );
-};
+}
 
 function DeletedExperienceNotification() {
   const { onCloseDeleteExperienceNotification } = useContext(DispatchContext);
@@ -650,43 +672,17 @@ function DeletedExperienceNotification() {
   }
 
   return (
-    <div className="notification is-warning">
-      <button
-        id={domId}
-        className="delete"
-        onClick={onCloseDeleteExperienceNotification}
-      />
+    <Notification
+      className="mb-6 !max-w-lg"
+      type={ComponentColorType.is_warning}
+      close={{
+        onClose: onCloseDeleteExperienceNotification,
+        id: domId,
+      }}
+    >
       Delete of experience
       <strong> {title} </strong> {message}
-    </div>
-  );
-}
-
-function FetchExperiencesFail(props: { error: string; onReFetch: () => void }) {
-  const { error, onReFetch } = props;
-  return (
-    <div className="card my__fetch-errors" id={fetchExperiencesErrorsDomId}>
-      <div className="card-image">
-        <figure className="image is-96x96 my__fetch-errors-image">
-          <img src={errorImage} alt="error loading experiences" />
-        </figure>
-      </div>
-
-      <div className="my__fetch-errors-content card-content notification is-light is-danger">
-        <div className="content">
-          <p>{error}</p>
-        </div>
-
-        <button
-          className="button is-medium"
-          type="button"
-          id={fetchErrorRetryDomId}
-          onClick={onReFetch}
-        >
-          Retry
-        </button>
-      </div>
-    </div>
+    </Notification>
   );
 }
 
@@ -694,3 +690,16 @@ interface ExperienceProps {
   experienceState: ExperienceState;
   experienceData: ExperienceData;
 }
+
+type DispatchContextValue = Readonly<{
+  dispatch: DispatchType;
+  onUpsertExperienceActivated: (e: ReactMouseEvent) => void;
+  onCloseDeleteExperienceNotification: () => void;
+  deactivateUpsertExperienceUiCb: (e: ReactMouseEvent) => void;
+  onExperienceUpsertSuccess: (
+    e: ExperienceListViewFragment,
+    o: OnlineStatus,
+  ) => void;
+  fetchMoreExperiences: () => void;
+  onUpdateExperienceError: (error: string) => void;
+}>;

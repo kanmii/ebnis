@@ -1,6 +1,6 @@
-import Button from "@eb/jsx/src/components/Button/button.component";
-import Notification from "@eb/jsx/src/components/Notification/notification.component";
+import { Button } from "@eb/jsx/src/Button";
 import Input from "@eb/jsx/src/Input";
+import { Notification } from "@eb/jsx/src/Notification";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import cn from "classnames";
 import React, { useContext, useEffect, useReducer } from "react";
@@ -123,15 +123,17 @@ export function Login(props: Props) {
                 ? ComponentColorType.is_warning
                 : ComponentColorType.is_danger
             }
-            elId={notificationId}
+            id={notificationId}
             className={cn(
               warningText ? warningClassName : errorClassName,
               "!mb-4",
             )}
-            onClose={() => {
-              dispatch({
-                type: ActionType.CLOSE_SUBMIT_NOTIFICATION,
-              });
+            close={{
+              onClose: () => {
+                dispatch({
+                  type: ActionType.CLOSE_SUBMIT_NOTIFICATION,
+                });
+              },
             }}
           >
             {warningText || errorText}

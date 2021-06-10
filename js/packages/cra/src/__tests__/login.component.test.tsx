@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { notificationCloseSelector } from "@eb/jsx/src/components/Notification/notification.component";
+import { notificationCloseSelector } from "@eb/jsx/src/Notification";
 import { LoginMutationVariables } from "@eb/shared/src/graphql/apollo-types/LoginMutation";
 import { getIsConnected } from "@eb/shared/src/utils/connections";
 import { manageUserAuthentication } from "@eb/shared/src/utils/manage-user-auth";

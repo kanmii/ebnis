@@ -1,5 +1,5 @@
-import Button from "@eb/jsx/src/components/Button/button.component";
-import Modal from "@eb/jsx/src/components/Modal/modal.component";
+import { Button } from "@eb/jsx/src/Button";
+import Modal from "@eb/jsx/src/Modal";
 import { ReactComponent as ExclamationErrorSvg } from "@eb/shared/src/styles/exclamation-error.svg";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";

@@ -1,8 +1,8 @@
+import { Button } from "@eb/jsx/src/Button";
 import { ChevronDown, ChevronUp } from "@eb/jsx/src/components";
-import Button from "@eb/jsx/src/components/Button/button.component";
-import Modal from "@eb/jsx/src/components/Modal/modal.component";
-import Notification from "@eb/jsx/src/components/Notification/notification.component";
 import { Input, Label, Select, Textarea } from "@eb/jsx/src/Input";
+import Modal from "@eb/jsx/src/Modal";
+import { Notification } from "@eb/jsx/src/Notification";
 import { useCreateExperiencesMutation } from "@eb/shared/src/apollo/experience.gql.types";
 import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import { StateValue } from "@eb/shared/src/utils/types";
@@ -257,13 +257,16 @@ function ErrorOrWarning({
   return warningText || errorText ? (
     <Notification
       className={cn(
+        "mb-4",
         notificationElementSelector,
         warningText ? warningClassName : errorClassName,
       )}
-      id={notificationCloseId}
-      onClose={onCloseNotification}
+      close={{
+        onClose: onCloseNotification,
+        id: notificationCloseId,
+      }}
       type={
-        warningClassName
+        warningText
           ? ComponentColorType.is_warning
           : ComponentColorType.is_danger
       }
@@ -663,11 +666,8 @@ function DefinitionCrudComponent(props: {
     <Button
       isRounded
       type="button"
-      className={cn("mr-3 !p-0 w-11 h-11", className)}
+      className={cn("mr-3 !p-0 w-11 h-11 text-app", className)}
       onClick={onClick}
-      style={{
-        color: "var(--app-color)",
-      }}
     >
       <span className={cn(hasIconClass ? "font-bold text-2xl" : "")}>
         {directionEl}

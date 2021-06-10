@@ -1,32 +1,68 @@
 import { ComponentProps } from "@eb/shared/src/utils/types/react";
 import cn from "classnames";
 import React, {
+  CSSProperties,
   DetailedHTMLProps,
   InputHTMLAttributes,
   LabelHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
+import "./form.styles.css";
 
 const commons = cn(
-  "bg-white border-gray-300 hover:border-gray-400 outline-none",
-  "active:border-blue-200 focus:border-blue-400 w-full max-w-full",
-  "border focus:border-2 active:border-2 px-3 py-2",
+  "eb-input bg-white border-gray-300 hover:border-gray-400 outline-none",
+  "active:border-blue-200 focus:border-blue-400 w-full max-w-full border",
+  "focus:border-2 active:border-2 px-3 py-2",
 );
 
 export function Input(props: InputProps) {
-  const { className: callerClassName, isRounded, ...inputProps } = props;
+  const {
+    iconRight,
+    className: callerClassName,
+    isRounded,
+    children,
+    ...inputProps
+  } = props;
 
-  return (
-    <input
-      {...inputProps}
-      className={cn(
-        "h-10",
-        commons,
-        isRounded ? "rounded-full" : "",
-        callerClassName || "",
-      )}
-    />
+  const t = cn(
+    "h-10",
+    commons,
+    isRounded ? "rounded-full" : "",
+    callerClassName || "",
   );
+
+  let renderElement = <input {...inputProps} className={t} />;
+
+  if (iconRight) {
+    const inputIconClass = cn(t, "pr-10");
+
+    const input = <input {...inputProps} className={inputIconClass} />;
+
+    const style: CSSProperties = {};
+
+    if (iconRight) {
+      style.right = 0;
+    } else {
+      style.left = 0;
+    }
+
+    renderElement = (
+      <div className="relative text-left">
+        {input}
+        <div
+          style={style}
+          className={cn(
+            "eb-icon absolute inline-flex justify-center items-center top-0",
+            "pointer-events-none w-10 h-10 z-10",
+          )}
+        >
+          {children}
+        </div>
+      </div>
+    );
+  }
+
+  return renderElement;
 }
 
 export default Input;
@@ -36,7 +72,7 @@ export function Textarea(props: TextAreaProps) {
 
   return (
     <textarea
-      className={cn(callerClassName || "", commons, "rounded")}
+      className={cn(callerClassName || "", commons, "eb-tiny-scroll rounded")}
       {...inputProps}
     />
   );
@@ -66,7 +102,6 @@ export function Select(props: SelectProps) {
       <select
         className={cn(
           "cursor-pointer block text-base w-full outline-none",
-          // commons,
           callerClassName,
           // isRounded ? "rounded-full" : "",
         )}
@@ -87,8 +122,10 @@ export function Label(props: LabelProps) {
   );
 }
 
-type InputProps = CallerProps &
-  DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
+type InputProps = CallerProps & {
+  iconRight?: true;
+  iconLeft?: true;
+} & DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
 
 type TextAreaProps = DetailedHTMLProps<
   TextareaHTMLAttributes<HTMLTextAreaElement>,

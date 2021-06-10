@@ -6,7 +6,7 @@ import {
 
 export function getMswServer() {
   const globals = Cypress.env(StateValue.globalKey) as EbnisGlobals;
-  return globals.mswBrowserWorker
+  return globals.mswBrowserWorker;
 }
 
 export function useCypressMsw(...handlers: UseParameters) {

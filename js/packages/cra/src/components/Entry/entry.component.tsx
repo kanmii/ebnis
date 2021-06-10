@@ -1,10 +1,11 @@
-import { Button } from "@eb/jsx/src/components/Button/button.component";
-import DropdownMenu from "@eb/jsx/src/components/dropdown-menu/dropdown-menu.component";
-import { Notification } from "@eb/jsx/src/components/Notification/notification.component";
+import { Button } from "@eb/jsx/src/Button";
+import { DropdownMenu } from "@eb/jsx/src/DropdownMenu";
+import { Notification } from "@eb/jsx/src/Notification";
 import { DataObjectFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectFragment";
-import { capitalize, trimClass } from "@eb/shared/src/utils";
+import { capitalize } from "@eb/shared/src/utils";
 import { isOfflineId } from "@eb/shared/src/utils/offlines";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
 import React, { useContext } from "react";
 import { DataStateContext } from "../DetailExperience/detail-experience.context";
 import { noTriggerDocumentEventClassName } from "../DetailExperience/detail-experience.dom";
@@ -38,30 +39,19 @@ export function Entry(props: Props) {
   return (
     <>
       {
-        // :TODO: this does not show up unless sync fails when connection
+        // TODO: this does not show up unless sync fails when connection
         // returns. Please fix so that it always show up when there is
         // sync error related to this entry.
         // ???? How to handle fix if no network??? When online/offline entry??
         syncError && (
-          <Notification
-            type={ComponentColorType.is_danger}
-            className={trimClass(`
-            mt-5
-          `)}
-          >
+          <Notification type={ComponentColorType.is_danger} className="mt-5">
             <p>Entry has errors and can not be created/uploaded!</p>
             <p style={{ marginTop: "10px" }}>Click 'edit button' to fix.</p>
 
-            <div
-              className={trimClass(`
-               text-right
-            `)}
-            >
+            <div className="text-right">
               <Button
                 type="button"
-                className={trimClass(`
-                  font-extrabold
-              `)}
+                className="font-extrabold"
                 onClick={() => {
                   activateUpdateEntryCb({
                     entry,
@@ -80,31 +70,14 @@ export function Entry(props: Props) {
 
       <div
         id={entryId}
-        className={trimClass(
-          `
-          relative
-          shadow-lg
-          relative
-          mt-5
-        `,
-        )}
+        className={cn("shadow-lg relative mt-5")}
         style={{
           boxShadow: isOffline
             ? "var(--media-shadow-1) var(--danger-color), var(--media-shadow-2) var(--danger-color)"
             : "initial",
         }}
       >
-        <div
-          className={trimClass(
-            `
-              pb-4
-              pl-4
-              pr-12
-              pt-6
-              border-t
-          `,
-          )}
-        >
+        <div className={cn("pb-4 pl-4 pr-12 pt-6 border-t")}>
           {dataObjects.map((d) => {
             const { id, definitionId, data } = d;
 
@@ -115,12 +88,7 @@ export function Entry(props: Props) {
               </div>
             );
           })}
-          <div
-            className={trimClass(`
-               text-right
-               mt-3
-            `)}
-          >
+          <div className={cn("text-right mt-3")}>
             {formatDatetime(updatedAt)}
           </div>
         </div>

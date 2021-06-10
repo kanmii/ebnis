@@ -32,7 +32,8 @@ module.exports = (on, config) => {
   // let cypress choose its own PORT
   config.port = null;
 
-  if (CYPRESS_BROWSER) {
+  // In `CI` let cypress choose its own browser (electron I guess)
+  if (CYPRESS_BROWSER && !CI) {
     config.browsers = config.browsers.filter((b) => b.name === CYPRESS_BROWSER);
   }
 

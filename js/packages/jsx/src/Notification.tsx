@@ -4,9 +4,9 @@ import {
   ComponentProps,
   ReactMouseEvent,
 } from "@eb/shared/src/utils/types/react";
-import React from "react";
-import { ButtonClose } from "../../components/Button/button.component";
 import cn from "classnames";
+import React from "react";
+import { ButtonClose } from "./Button";
 
 export const notificationCloseSelector = "notification-close";
 
@@ -24,8 +24,8 @@ const notificationClasses: ComponentColorStyle = {
       text-green-800
   `,
   [ComponentColorType.is_light_danger]: `
-      bg-red-50
-      text-red-800
+      !bg-red-50
+      !text-red-800
   `,
   [ComponentColorType.default]: "",
   [ComponentColorType.is_primary]: "",
@@ -38,43 +38,35 @@ const notificationClasses: ComponentColorStyle = {
 
 export function Notification(props: Props) {
   const {
-    elId,
     children,
     type = ComponentColorType.default,
-    onClose,
     style = {},
+    className,
+    close,
+    ...restProps
   } = props;
-  // istanbul ignore next:
-  const id = props.id || "";
-  // istanbul ignore next:
-  const className = props.className || "";
+  const closeProp = (close || {}) as CloseProps;
+  const { className: cClassName, onClose, ...otherCloseProps } = closeProp;
 
   return (
     <div
       className={cn(
-        className,
-        "eb-notification",
+        "eb-notification rounded relative !pb-5 !pt-6 !pl-5 !pr-12 font-semibold",
         notificationClasses[type] || "",
-        "rounded",
-        "relative",
-        "!pb-5",
-        "!pt-6",
-        "!pl-5",
-        "!pr-12",
-        "font-semibold",
+        className,
       )}
       style={{
         maxWidth: "550px",
         ...style,
       }}
-      id={onClose ? elId || "" : id}
+      {...restProps}
     >
       {onClose && (
         <ButtonClose
-          id={id}
           type={type}
           onClose={onClose}
-          className={cn(notificationCloseSelector)}
+          className={cn(notificationCloseSelector, cClassName)}
+          {...otherCloseProps}
         />
       )}
 
@@ -88,6 +80,11 @@ export default Notification;
 
 type Props = ComponentProps & {
   type?: ComponentColorType;
-  onClose?: (e: ReactMouseEvent) => void;
-  elId?: string;
+  close?: CloseProps;
+};
+
+type OnClose = (e: ReactMouseEvent) => void;
+
+type CloseProps = ComponentProps & {
+  onClose?: OnClose;
 };

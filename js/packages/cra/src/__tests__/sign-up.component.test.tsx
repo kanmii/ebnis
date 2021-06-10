@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { notificationCloseSelector } from "@eb/jsx/src/components/Notification/notification.component";
+import { notificationCloseSelector } from "@eb/jsx/src/Notification";
 import { manageUserAuthentication } from "@eb/shared/src/utils/manage-user-auth";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";

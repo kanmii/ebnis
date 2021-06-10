@@ -1,8 +1,8 @@
-import makeClassNames from "classnames";
-import { PropsWithChildren, useEffect, useRef, useState } from "react";
+import cn from "classnames";
+import { useEffect, useRef, useState } from "react";
+import { ComponentProps } from "../../../../shared/src/utils/types/react";
 import { domPrefix } from "./loading-dom";
 import { onUnmount } from "./loading.injectables";
-import "./loading.styles.css";
 
 export function Loading({
   className,
@@ -30,16 +30,25 @@ export function Loading({
   }, [loading]);
 
   return shouldShow ? (
-    <div className="components-loading" id={domPrefix}>
-      <div
-        className={makeClassNames({
-          "components-loading__spinner": true,
-          [className || ""]: !!className,
-        })}
-        {...props}
-      >
-        <div className="double-bounce1" />
-        <div className="double-bounce2" />
+    <div
+      className={cn(
+        "components-loading",
+        "pointer-events-none fixed top-0 bottom-0 right-0 left-0 z-50 flex",
+        "flex-col justify-center items-center",
+      )}
+      style={{
+        backgroundColor: "var(--modal-background-background-color)",
+      }}
+      id={domPrefix}
+    >
+      <div className={cn("relative w-10 h-10", className)} {...props}>
+        <BounceComponent />
+
+        <BounceComponent
+          style={{
+            animationDelay: "-1s",
+          }}
+        />
       </div>
 
       {children}
@@ -47,10 +56,21 @@ export function Loading({
   ) : null;
 }
 
+function BounceComponent(props: ComponentProps) {
+  return (
+    <div
+      className={cn(
+        "eb-animate-bounce bg-app absolute top-0 left-0 opacity-60 w-full",
+        "h-full rounded-full",
+      )}
+      {...props}
+    />
+  );
+}
+
 // istanbul ignore next:
 export default Loading;
 
-export type Props = PropsWithChildren<{
-  className?: string;
+export type Props = ComponentProps & {
   loading?: boolean;
-}>;
+};

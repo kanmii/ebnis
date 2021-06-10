@@ -1,12 +1,12 @@
-import Button from "@eb/jsx/src/components/Button/button.component";
-import Modal from "@eb/jsx/src/components/Modal/modal.component";
-import Notification from "@eb/jsx/src/components/Notification/notification.component";
+import { Button } from "@eb/jsx/src/Button";
+import Modal from "@eb/jsx/src/Modal";
+import { Notification } from "@eb/jsx/src/Notification";
 import { getEntriesDetailView } from "@eb/shared/src/apollo/experience.gql.types";
 import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
-import { trimClass } from "@eb/shared/src/utils";
 import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
 import { Suspense, useEffect, useReducer } from "react";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
@@ -136,11 +136,13 @@ export function Entries(props: Props) {
 
       {notification.value === StateValue.active && (
         <Notification
-          id={closeUpsertEntryNotificationId}
-          onClose={() => {
-            dispatch({
-              type: ActionType.close_notification,
-            });
+          close={{
+            onClose: () => {
+              dispatch({
+                type: ActionType.close_notification,
+              });
+            },
+            id: closeUpsertEntryNotificationId,
           }}
           type={ComponentColorType.is_success}
         >
@@ -154,13 +156,15 @@ export function Entries(props: Props) {
 
       {menu.value === StateValue.deleteSuccess && (
         <Notification
-          id={entryDeleteSuccessNotificationId}
-          onClose={(e) => {
-            e.preventDefault();
-            dispatch({
-              type: ActionType.delete,
-              key: StateValue.cancelled,
-            });
+          close={{
+            onClose: (e) => {
+              e.preventDefault();
+              dispatch({
+                type: ActionType.delete,
+                key: StateValue.cancelled,
+              });
+            },
+            id: entryDeleteSuccessNotificationId,
           }}
           type={ComponentColorType.is_success}
         >
@@ -170,13 +174,15 @@ export function Entries(props: Props) {
 
       {menu.value === StateValue.errors && (
         <Notification
-          id={entryDeleteFailNotificationId}
-          onClose={(e) => {
-            e.preventDefault();
-            dispatch({
-              type: ActionType.delete,
-              key: StateValue.cancelled,
-            });
+          close={{
+            onClose: (e) => {
+              e.preventDefault();
+              dispatch({
+                type: ActionType.delete,
+                key: StateValue.cancelled,
+              });
+            },
+            id: entryDeleteFailNotificationId,
           }}
           type={ComponentColorType.is_danger}
         >
@@ -190,15 +196,9 @@ export function Entries(props: Props) {
       {entries.length === 0 ? (
         <a
           id={noEntryTriggerId}
-          className={trimClass(
-            `
-              ${noTriggerDocumentEventClassName}
-              cursor-pointer
-              font-semibold
-              text-blue-400
-              hover:text-blue-500
-              pt-3
-            `,
+          className={cn(
+            "cursor-pointer font-semibold text-blue-400 hover:text-blue-500 pt-3",
+            noTriggerDocumentEventClassName,
           )}
           onClick={() => {
             dispatch({
@@ -211,18 +211,7 @@ export function Entries(props: Props) {
       ) : (
         <>
           <div id={entriesContainerId}>
-            <p
-              className={trimClass(
-                `
-                    font-black
-                    text-2xl
-                    mb-2
-                    mt-10
-                    shadow
-                    pl-3
-                  `,
-              )}
-            >
+            <p className={cn("font-black text-2xl mb-2 mt-10 shadow pl-3")}>
               Entries
             </p>
             {entries.map((daten, index) => {
@@ -261,12 +250,7 @@ export function Entries(props: Props) {
             })}
           </div>
           {connected && hasNextPage && (
-            <div
-              className={trimClass(`
-                  mt-6
-                  text-center
-              `)}
-            >
+            <div className={cn("mt-6 text-center")}>
               {error && error.value === "pagingError" && (
                 <div>
                   Unable to fetch more entries
@@ -312,12 +296,7 @@ function DeleteEntryConfirmationComponent({
 }) {
   return (
     <Modal
-      className={trimClass(
-        `
-          delete-entry-modal
-          ${noTriggerDocumentEventClassName}
-        `,
-      )}
+      className={cn("delete-entry-modal", noTriggerDocumentEventClassName)}
       onClose={() => {
         dispatch({
           type: ActionType.delete,

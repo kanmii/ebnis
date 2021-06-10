@@ -573,7 +573,7 @@ export const GET_EXPERIENCES_CONNECTION_LIST_VIEW_QUERY = gql`
       before: $before
       first: $first
       last: $last
-    ) @connection(key: "getExperiences") {
+    ) {
       pageInfo {
         ...PageInfoFragment
       }

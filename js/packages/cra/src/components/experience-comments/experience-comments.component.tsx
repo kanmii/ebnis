@@ -1,12 +1,12 @@
-import Button from "@eb/jsx/src/components/Button/button.component";
-import DropdownMenu from "@eb/jsx/src/components/dropdown-menu/dropdown-menu.component";
-import Modal from "@eb/jsx/src/components/Modal/modal.component";
-import Notification from "@eb/jsx/src/components/Notification/notification.component";
+import { Button } from "@eb/jsx/src/Button";
+import { DropdownMenu } from "@eb/jsx/src/DropdownMenu";
+import Modal from "@eb/jsx/src/Modal";
+import { Notification } from "@eb/jsx/src/Notification";
 import { getExperienceComments } from "@eb/shared/src/apollo/experience.gql.types";
-import { trimClass } from "@eb/shared/src/utils";
 import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
 import React, { Fragment, Suspense, useEffect, useReducer } from "react";
 import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
@@ -92,11 +92,7 @@ export function Comments(props: Props) {
 
             {deletePrompt.value === StateValue.active && (
               <Modal
-                className={trimClass(
-                  `
-                  ${noTriggerDocumentEventClassName}
-                `,
-                )}
+                className={noTriggerDocumentEventClassName}
                 onClose={() => {
                   dispatch({
                     type: ActionType.delete_prompt,
@@ -143,41 +139,15 @@ export function Comments(props: Props) {
               </Modal>
             )}
 
-            <div
-              className={trimClass(
-                `
-                  mb-5
-                `,
-              )}
-            >
+            <div className="mb-5">
               <div>
-                <div
-                  className={trimClass(
-                    `
-                      font-black
-                      text-2xl
-                      mb-2
-                      shadow
-                      pl-3
-                      flex
-                      justify-between
-                    `,
-                  )}
-                >
+                <div className="font-black text-2xl mb-2 shadow pl-3 flex justify-between">
                   <div>Comments</div>
                   <a
                     id={commentsHeaderNewId}
-                    className={trimClass(
-                      `
-                        bg-blue-300
-                        cursor-pointer
-                        pl-5
-                        pr-5
-                        rounded-br
-                        rounded-tr
-                        text-white
-                        ${noTriggerDocumentEventClassName}
-                      `,
+                    className={cn(
+                      "bg-blue-300 cursor-pointer pl-5 pr-5 rounded-br rounded-tr text-white",
+                      noTriggerDocumentEventClassName,
                     )}
                     onClick={() => {
                       parentDispatch({
@@ -196,19 +166,16 @@ export function Comments(props: Props) {
 
                 {successCount || failureCount ? (
                   <Notification
-                    className={trimClass(
-                      `
-                        ${noTriggerDocumentEventClassName}
-                        mt-5
-                      `,
-                    )}
+                    className={cn("mt-5", noTriggerDocumentEventClassName)}
                     type={
                       successCount
                         ? ComponentColorType.is_light_success
                         : ComponentColorType.is_light_danger
                     }
-                    onClose={() => {
-                      //
+                    close={{
+                      onClose: () => {
+                        //
+                      },
                     }}
                   >
                     {successCount && (
@@ -220,12 +187,7 @@ export function Comments(props: Props) {
                     {failureCount && (
                       <div
                         id={deletedCommentsFailure}
-                        className={trimClass(
-                          `
-                            pt-3
-                            text-red-800
-                          `,
-                        )}
+                        className="pt-3 text-red-800"
                       >
                         {failureCount} not deleted. See below.
                       </div>
@@ -253,27 +215,20 @@ export function Comments(props: Props) {
                       {failures[id] && (
                         <>
                           <Notification
-                            className={trimClass(
-                              `
-                                ${deletedCommentsFailureSelector}
-                                ${noTriggerDocumentEventClassName}
-                                mt-5
-                              `,
+                            className={cn(
+                              "mt-5",
+                              deletedCommentsFailureSelector,
+                              noTriggerDocumentEventClassName,
                             )}
                             type={ComponentColorType.is_light_danger}
-                            onClose={() => {
-                              //
+                            close={{
+                              onClose: () => {
+                                //
+                              },
                             }}
                           >
                             Errors deleting comment:
-                            <ul
-                              className={trimClass(
-                                `
-                                  list-disc
-                                  ml-5
-                                `,
-                              )}
-                            >
+                            <ul className="list-disc ml-5">
                               {failures[id].map(([k, v]) => {
                                 return <li key={k}>{v}</li>;
                               })}
@@ -284,29 +239,15 @@ export function Comments(props: Props) {
 
                       <div
                         id={id}
-                        className={trimClass(
-                          `
-                            ${commentItemContainerSelector}
-                            shadow-lg
-                            relative
-                            mt-5
-                          `,
+                        className={cn(
+                          "shadow-lg relative mt-5",
+                          commentItemContainerSelector,
                         )}
                       >
                         <p
-                          className={trimClass(
-                            `
-                              eb-tiny-scroll
-                              whitespace-pre-line
-                              max-h-80
-                              overflow-y-auto
-                              pb-4
-                              pl-4
-                              pr-12
-                              pt-6
-                              border-t
-                              break-words
-                            `,
+                          className={cn(
+                            "eb-tiny-scroll whitespace-pre-line max-h-80 overflow-y-auto pb-4",
+                            "pl-4 pr-12 pt-6 border-t break-words",
                           )}
                         >
                           {text}
@@ -366,16 +307,9 @@ export function Comments(props: Props) {
         component = (
           <div
             id={emptyCommentsContainerId}
-            className={trimClass(
-              `
-                ${noTriggerDocumentEventClassName}
-                cursor-pointer
-                font-semibold
-                text-blue-400
-                hover:text-blue-500
-                mb-3
-                pt-3
-              `,
+            className={cn(
+              "cursor-pointer font-semibold text-blue-400 hover:text-blue-500 mb-3 pt-3",
+              noTriggerDocumentEventClassName,
             )}
             onClick={() => {
               dispatch({

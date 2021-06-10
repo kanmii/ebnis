@@ -1,6 +1,6 @@
-import Button from "@eb/jsx/src/components/Button/button.component";
-import Notification from "@eb/jsx/src/components/Notification/notification.component";
+import { Button } from "@eb/jsx/src/Button";
 import Input from "@eb/jsx/src/Input";
+import { Notification } from "@eb/jsx/src/Notification";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import cn from "classnames";
@@ -93,15 +93,17 @@ export function SignUp(props: Props) {
 
         {(warningText || errorText) && (
           <Notification
-            elId={notificationId}
+            id={notificationId}
             className={cn(
               "!mb-6",
               errorText ? errorClassName : warningClassName,
             )}
-            onClose={() => {
-              dispatch({
-                type: ActionType.CLOSE_SUBMIT_NOTIFICATION,
-              });
+            close={{
+              onClose: () => {
+                dispatch({
+                  type: ActionType.CLOSE_SUBMIT_NOTIFICATION,
+                });
+              },
             }}
             type={
               errorText

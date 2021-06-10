@@ -1,6 +1,5 @@
 /* istanbul ignore file */
 import { ApolloProvider } from "@apollo/client";
-import { restoreCacheOrPurgeStorage } from "@eb/shared/src/client";
 import { EbnisGlobals } from "@eb/shared/src/utils/types";
 import React, { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
@@ -31,7 +30,6 @@ export function AppInner({ obj }: Props) {
       <ApolloProvider client={client}>
         <EbnisAppProvider
           value={{
-            restoreCacheOrPurgeStorage,
             ...window.____ebnis,
           }}
         >

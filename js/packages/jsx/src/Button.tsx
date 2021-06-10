@@ -5,8 +5,8 @@ import {
   ComponentProps,
   ReactMouseEvent,
 } from "@eb/shared/src/utils/types/react";
-import React, { DetailedHTMLProps } from "react";
 import cn from "classnames";
+import React, { DetailedHTMLProps } from "react";
 
 const buttonClasses: ComponentColorStyle = {
   [ComponentColorType.is_danger]: `
@@ -58,6 +58,7 @@ export function Button({
   className,
   btnType = ComponentColorType.default,
   isRounded,
+  wide,
   ...props
 }: Props) {
   return (
@@ -65,9 +66,10 @@ export function Button({
       {...props}
       className={cn(
         className || "",
-        "border cursor-pointer justify-center px-5 py-2 text-center",
+        "border-2 cursor-pointer justify-center text-center",
         "whitespace-nowrap",
-        isRounded ? "rounded-full" : "",
+        isRounded ? "rounded-full" : "rounded",
+        wide ? "py-0 px-5" : "px-5 py-2",
         buttonClasses[btnType],
       )}
     >
@@ -135,6 +137,7 @@ export function ButtonClose({
         right: ".5rem",
         top: ".5rem",
       }}
+      aria-label="close"
     >
       <XCircleFilledSvg />
     </a>
@@ -143,7 +146,8 @@ export function ButtonClose({
 
 type Props = {
   btnType?: ComponentColorType;
-  isRounded?: true;
+  isRounded?: boolean;
+  wide?: boolean;
 } & DetailedHTMLProps<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
   HTMLButtonElement

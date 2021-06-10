@@ -10,7 +10,7 @@
     "@apollo/client": "^3.3.19",
     "@kanmii/socket": "^0.2.2",
     "@kanmii/socket-apollo-link": "^0.2.3",
-    "apollo-cache-persist-dev": "^0.2.1",
+    "apollo3-cache-persist": "^0.9.1",
     "broadcast-channel": "^3.4.1",
     "graphql": "^15.5.0",
     "phoenix": "^1.5.7",

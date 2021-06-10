@@ -1,4 +1,3 @@
-version: "3.4"
 services:
   db:
     image: "postgres:13.3"
@@ -16,7 +15,7 @@ services:
       retries: 5
       start_period: "10s"
     volumes:
-      - "./docker/data/postgres-${COMPOSE_PROJECT_NAME}:/var/lib/postgresql/data"
+      - "./docker/data/postgres-${COMPOSE_PROJECT_NAME:-ebnis}:/var/lib/postgresql/data"
   ex:
     build:
       context: "./ex"
@@ -37,7 +36,7 @@ services:
     entrypoint:
       - "/usr/local/bin/entrypoint.sh"
     user: "ebnis"
-    env_file: "${DOCKER_ENV_FILE}"
+    env_file: "${DOCKER_ENV_FILE:-.env}"
     ports:
       - "${DOCKER_HOST_API_PORT}:${PORT}"
     volumes:
@@ -55,7 +54,7 @@ services:
     image: "ebnis-js:0.0.0"
     entrypoint:
       - "/usr/local/bin/entrypoint.sh"
-    env_file: "${DOCKER_ENV_FILE}"
+    env_file: "${DOCKER_ENV_FILE:-.env}"
     user: "node"
   cra:
     <<: *js
@@ -99,5 +98,3 @@ volumes:
   cra_not_used_build:
   # excluded packages
   cra_not_used_cypress:
-  cra_not_used_express:
-  cra_not_used_nextjs:

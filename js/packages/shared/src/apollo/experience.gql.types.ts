@@ -33,10 +33,6 @@ import {
   GetExperienceDetailView,
   GetExperienceDetailViewVariables,
 } from "../graphql/apollo-types/GetExperienceDetailView";
-import {
-  GetExperiencesConnectionListView,
-  GetExperiencesConnectionListViewVariables,
-} from "../graphql/apollo-types/GetExperiencesConnectionListView";
 import { OnExperiencesDeletedSubscription } from "../graphql/apollo-types/OnExperiencesDeletedSubscription";
 import { PageInfoFragment } from "../graphql/apollo-types/PageInfoFragment";
 import {
@@ -51,7 +47,6 @@ import {
   CREATE_EXPERIENCES_MUTATION,
   GET_DATA_OBJECTS_QUERY,
   GET_ENTRIES_DETAIL_VIEW_QUERY,
-  GET_EXPERIENCES_CONNECTION_LIST_VIEW_QUERY,
   GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY,
   GET_EXPERIENCE_COMMENTS_QUERY,
   GET_EXPERIENCE_DETAIL_VIEW_QUERY,
@@ -192,25 +187,6 @@ export type GetExperienceQueryResult =
   ApolloQueryResult<GetExperienceDetailView>;
 
 ////////////////////////// END COMPLETE EXPERIENCE SECTION ////////////////////
-
-export function getExperienceConnectionListView(
-  fetchPolicy?: FetchPolicy,
-  pagination: GetExperiencesConnectionListViewVariables = {},
-) {
-  const { client } = window.____ebnis;
-
-  return client.query<
-    GetExperiencesConnectionListView,
-    GetExperiencesConnectionListViewVariables
-  >({
-    query: GET_EXPERIENCES_CONNECTION_LIST_VIEW_QUERY,
-    variables: pagination,
-    fetchPolicy: fetchPolicy || "network-only",
-  });
-}
-
-export type GetExperiencesConnectionListViewQueryResult =
-  ApolloQueryResult<GetExperiencesConnectionListView>;
 
 export const EXPERIENCES_MINI_FETCH_COUNT = 10;
 

@@ -1,26 +1,20 @@
 import { ReactComponent as DotsVerticalSvg } from "@eb/shared/src/styles/dots-vertical.svg";
-import { trimClass } from "@eb/shared/src/utils";
 import {
   ComponentProps,
   ReactMouseEvent,
 } from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
 import React from "react";
 
 export const activeClassName = "is-active";
 
 export function DropdownMenu(props: Props) {
-  const { children } = props;
-  const className = props.className || "";
+  const { children, className } = props;
   const [menu, trigger] = React.Children.toArray(children);
 
   return (
     <div
-      className={trimClass(
-        `
-          absolute
-          ${className}
-        `,
-      )}
+      className={cn("eb-dropdown-menu absolute", className)}
       style={{
         right: "1.5rem",
         top: "10px",
@@ -33,22 +27,14 @@ export function DropdownMenu(props: Props) {
 }
 
 function Menu(props: MenuProps) {
-  const { children, active } = props;
-  const className = props.className || "";
+  const { children, active, className } = props;
 
   return (
     <div
-      className={trimClass(
-        `
-            eb-dropdown-menu
-            bg-white
-            ${active ? activeClassName + " flex" : "hidden"}
-            flex-col
-            absolute
-            top-0
-            shadow-md
-            ${className}
-          `,
+      className={cn(
+        "eb-dropdown-menu-menu bg-white flex-col absolute top-0 shadow-md",
+        active ? activeClassName + " flex" : "hidden",
+        className,
       )}
       style={{
         right: "24px",
@@ -66,26 +52,14 @@ function Item(
     onClick: (e: ReactMouseEvent) => void;
   },
 ) {
-  const { onClick, children } = props;
-  const className = props.className || "";
+  const { onClick, children, className } = props;
 
   return (
     <a
-      className={trimClass(
-        `
-          eb-content
-          text-gray-600
-          bg-white
-          rounded
-          cursor-pointer
-          pl-4
-          pr-3
-          pt-3
-          pb-3
-          z-20
-          whitespace-nowrap
-          ${className}
-        `,
+      className={cn(
+        "eb-dropdown-content text-gray-600 bg-white rounded cursor-pointer",
+        "pl-4 pr-3 pt-3 pb-3 z-20 whitespace-nowrap",
+        className,
       )}
       style={{
         borderTopWidth: "0.5px",
@@ -103,21 +77,25 @@ function Trigger(props: TriggerProp) {
 
   return (
     <a
-      className={trimClass(
-        `
-          eb-trigger
-          text-blue-600
-          ${className}
-        `,
+      className={cn(
+        "eb-dropdown-trigger text-blue-600 cursor-pointer",
+        className,
       )}
-      onClick={onClick}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick(e);
+      }}
     >
-      <DotsVerticalSvg />
+      <DotsVerticalSvg
+        style={{
+          width: "20px",
+          height: "20px",
+        }}
+      />
     </a>
   );
 }
 
-export default DropdownMenu;
 DropdownMenu.Trigger = Trigger;
 DropdownMenu.Item = Item;
 DropdownMenu.Menu = Menu;

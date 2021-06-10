@@ -1,10 +1,10 @@
-import { Button } from "@eb/jsx/src/components/Button/button.component";
-import Modal from "@eb/jsx/src/components/Modal/modal.component";
+import { Button } from "@eb/jsx/src/Button";
+import Modal from "@eb/jsx/src/Modal";
 import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
 import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
-import { trimClass } from "@eb/shared/src/utils";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
+import cn from "classnames";
 import React, { ChangeEvent, FormEvent, useCallback, useReducer } from "react";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { errorClassName } from "../../utils/utils.dom";
@@ -65,12 +65,12 @@ export function UpsertEntry(props: Props) {
       <Modal onClose={onClose} top={true}>
         <form
           id={domPrefix}
-          className={trimClass(`
-          component-upsert-entry
-          ${submissionState.value === StateValue.active ? "submitting" : ""},
-          ${className}
-          ${noTriggerDocumentEventClassName}
-        `)}
+          className={cn(
+            "component-upsert-entry",
+            submissionState.value === StateValue.active ? "submitting" : "",
+            className,
+            noTriggerDocumentEventClassName,
+          )}
           onSubmit={onSubmit}
         >
           <Modal.Card
@@ -159,12 +159,7 @@ const DataComponent = React.memo(
     const component = componentFromDataType(type, generic);
 
     return (
-      <div
-        className={trimClass(`
-          ${(!!errors && "error") || ""}
-          field
-        `)}
-      >
+      <div className={cn("field", (!!errors && "error") || "")}>
         <label
           className="label form__label"
           htmlFor={id}
@@ -215,12 +210,7 @@ function NotificationComponent({
   }
 
   return (
-    <div
-      className={trimClass(`
-        notification
-        ${errorClassName}
-      `)}
-    >
+    <div className={cn("notification", errorClassName)}>
       <button
         id={notificationCloseId}
         type="button"
