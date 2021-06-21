@@ -154,9 +154,6 @@ const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
 jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
 
 const mockLoadingId = "l-o-a-d-i-n-g";
-jest.mock("../components/Loading/loading.component", () => {
-  return () => <div id={mockLoadingId}></div>;
-});
 
 jest.mock("@eb/shared/src/apollo/injectables");
 const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
@@ -938,6 +935,7 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
           mockGetCachedExperiencesConnectionListViewFn
         }
         HeaderComponentFn={() => null as any}
+        LoadingComponentFn={() => <div id={mockLoadingId} />}
       />
     ),
   };

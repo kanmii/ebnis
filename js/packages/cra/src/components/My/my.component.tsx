@@ -31,7 +31,7 @@ import { setUpRoutePage } from "../../utils/global-window";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { useRunEffects } from "../../utils/use-run-effects";
 import HeaderComponent from "../Header/header.component";
-import Loading from "../Loading/loading.component";
+import LoadingComponent from "../Loading/loading.component";
 import {
   activateInsertExperienceDomId,
   descriptionContainerSelector,
@@ -87,7 +87,7 @@ const DataStateContextC = createContext<DataState["data"]>(
 const DataStateProvider = DataStateContextC.Provider;
 
 export function My(props: Props) {
-  const { HeaderComponentFn } = props;
+  const { HeaderComponentFn, LoadingComponentFn } = props;
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
   const {
@@ -209,7 +209,7 @@ export function My(props: Props) {
           {(function renderMy() {
             switch (states.value) {
               case StateValue.loading:
-                return <Loading />;
+                return <LoadingComponentFn />;
 
               case StateValue.errors:
                 return (
@@ -267,7 +267,7 @@ export function My(props: Props) {
                     <DataStateProvider value={states.data}>
                       {upsertExperienceActivated.value ===
                         StateValue.active && (
-                        <Suspense fallback={<Loading />}>
+                        <Suspense fallback={<LoadingComponentFn />}>
                           <UpsertExperience
                             experience={
                               upsertExperienceActivated.active.context
@@ -346,6 +346,7 @@ export default (props: CallerProps) => {
         getCachedExperiencesConnectionListView
       }
       HeaderComponentFn={HeaderComponent}
+      LoadingComponentFn={LoadingComponent}
     />
   );
 };
