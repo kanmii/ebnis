@@ -1,13 +1,8 @@
 import { Button } from "@eb/jsx/src/Button";
 import Modal from "@eb/jsx/src/Modal";
 import { Notification } from "@eb/jsx/src/Notification";
-import {
-  getExperienceAndEntriesDetailView,
-  getExperienceComments,
-} from "@eb/shared/src/apollo/experience.gql.types";
 import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
 import { ReactComponent as ExclamationErrorSvg } from "@eb/shared/src/styles/exclamation-error.svg";
-import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import cn from "classnames";
@@ -20,9 +15,7 @@ import React, {
   useMemo,
   useReducer,
 } from "react";
-import { deleteExperiences } from "../../utils/delete-experiences.gql";
 import { setUpRoutePage } from "../../utils/global-window";
-import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { activeClassName } from "../../utils/utils.dom";
 import Entries from "../entries/entries.component";
@@ -71,7 +64,6 @@ import { clearTimeoutFn } from "./detail-experience.injectables";
 import { Comments } from "./detail-experience.lazy";
 import {
   ActionType,
-  CallerProps,
   effectFunctions,
   ExperienceSyncError,
   initState,
@@ -232,20 +224,6 @@ export function DetailExperience(props: Props) {
     </>
   );
 }
-
-// istanbul ignore next:
-export default (props: CallerProps) => {
-  return (
-    <DetailExperience
-      {...props}
-      deleteExperiences={deleteExperiences}
-      componentTimeoutsMs={componentTimeoutsMs}
-      getExperienceComments={getExperienceComments}
-      updateExperiencesMutation={updateExperiencesMutation}
-      getExperienceAndEntriesDetailView={getExperienceAndEntriesDetailView}
-    />
-  );
-};
 
 function ExperienceComponent() {
   const {

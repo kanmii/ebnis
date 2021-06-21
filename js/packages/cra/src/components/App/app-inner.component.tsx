@@ -18,7 +18,7 @@ import { EbnisAppProvider } from "./app.injectables";
 const Login = lazy(() => import("../Login/login.component"));
 const My = lazy(() => import("../My/my.default"));
 const DetailExperience = lazy(
-  () => import("../DetailExperience/detail-experience.component"),
+  () => import("../DetailExperience/detail-experience.default"),
 );
 const SignUp = lazy(() => import("../SignUp/sign-up.component"));
 

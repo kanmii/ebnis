@@ -140,8 +140,9 @@ export function getExperienceAndEntriesDetailView(
   });
 }
 
-export type GetExperienceAndEntriesDetailViewFn =
-  typeof getExperienceAndEntriesDetailView;
+export type GetExperienceAndEntriesDetailViewInject = {
+  getExperienceAndEntriesDetailViewInject: typeof getExperienceAndEntriesDetailView;
+};
 
 export type GetExperienceAndEntriesDetailViewQueryResult =
   ApolloQueryResult<GetExperienceAndEntriesDetailView>;

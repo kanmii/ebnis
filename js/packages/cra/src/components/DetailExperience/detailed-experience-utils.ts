@@ -4,10 +4,7 @@ import {
 } from "@eb/shared/src/apollo/delete-experience-cache";
 import { EntriesCacheUnion } from "@eb/shared/src/apollo/entries-connection.gql";
 import { CacheExperienceAndEntries } from "@eb/shared/src/apollo/experience-detail-entries-connection.gql";
-import {
-  GetExperienceAndEntriesDetailViewFn,
-  GetExperienceCommentsFn,
-} from "@eb/shared/src/apollo/experience.gql.types";
+import { GetExperienceAndEntriesDetailViewInject } from "@eb/shared/src/apollo/experience.gql.types";
 import { getCachedExperienceAndEntriesDetailView } from "@eb/shared/src/apollo/get-detailed-experience-query";
 import {
   getAndRemoveOfflineExperienceIdFromSyncFlag,
@@ -1120,7 +1117,7 @@ type DefDeleteEffect = EffectDefinition<
 const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
   const {
     componentTimeoutsMs: { fetchRetries },
-    getExperienceAndEntriesDetailView,
+    getExperienceAndEntriesDetailViewInject,
   } = props;
 
   const experienceId = getExperienceId(props);
@@ -1160,7 +1157,7 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
 
   async function doFetch() {
     try {
-      const data = await getExperienceAndEntriesDetailView(
+      const data = await getExperienceAndEntriesDetailViewInject(
         {
           experienceId,
           pagination: {
@@ -1504,10 +1501,9 @@ export type CallerProps = RouteChildrenProps<
 
 export type Props = DeleteExperiencesComponentProps &
   CallerProps &
+  GetExperienceAndEntriesDetailViewInject &
   UpdateExperiencesMutationProps & {
     componentTimeoutsMs: ComponentTimeoutsMs;
-    getExperienceComments: GetExperienceCommentsFn;
-    getExperienceAndEntriesDetailView: GetExperienceAndEntriesDetailViewFn;
   };
 
 export type Match = match<DetailExperienceRouteMatch>;

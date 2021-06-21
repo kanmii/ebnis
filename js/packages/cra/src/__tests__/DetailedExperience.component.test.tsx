@@ -22,6 +22,7 @@ import { makeApolloClient } from "@eb/shared/src/client";
 import { CreateEntryErrorFragment } from "@eb/shared/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataObjectErrorFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectErrorFragment";
 import { DeleteExperiences } from "@eb/shared/src/graphql/apollo-types/DeleteExperiences";
+import { GetExperienceAndEntriesDetailView } from "@eb/shared/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import { getIsConnected } from "@eb/shared/src/utils/connections";
 import {
   EbnisGlobals,
@@ -52,10 +53,7 @@ import {
   mswServer,
   mswServerListen,
 } from "@eb/shared/src/__tests__/msw-server";
-import {
-  componentTimeoutsMs,
-  waitForCount,
-} from "@eb/shared/src/__tests__/wait-for-count";
+import { componentTimeoutsMs } from "@eb/shared/src/__tests__/wait-for-count";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
@@ -289,54 +287,60 @@ const history = {
   push: mockHistoryPushFn,
 } as any;
 
-const globals = {
+const ebnisObject = {
   persistor: {
     persist: mockPersistFunc as any,
   },
 } as EbnisGlobals;
 
 beforeAll(() => {
-  window.____ebnis = globals;
+  window.____ebnis = ebnisObject;
+  mswServerListen();
 });
 
 afterAll(() => {
+  mswServer.close();
   deleteObjectKey(window, "____ebnis");
+});
+
+beforeEach(() => {
+  const { client, cache } = makeApolloClient({
+    ebnisGlobals: ebnisObject,
+    testing: true,
+  });
+  ebnisObject.cache = cache;
+  ebnisObject.client = client;
 });
 
 afterEach(() => {
   jest.clearAllMocks();
-  globals.logApolloQueries = false;
-  globals.logReducers = false;
+  ebnisObject.logApolloQueries = false;
+  ebnisObject.logReducers = false;
+  deleteObjectKey(ebnisObject, "client");
+  deleteObjectKey(ebnisObject, "cache");
+  mswServer.resetHandlers();
 });
 
 describe("components", () => {
   beforeAll(() => {
-    mswServerListen();
+    // mswServerListen();
   });
 
   afterAll(() => {
-    mswServer.close();
+    // mswServer.close();
   });
 
   beforeEach(() => {
     mockUseWithSubscriptionContext.mockReturnValue({});
-
-    const { client, cache } = makeApolloClient({
-      ebnisGlobals: globals,
-      testing: true,
-    });
-    globals.cache = cache;
-    globals.client = client;
   });
 
   afterEach(() => {
-    mswServer.resetHandlers();
     cleanup();
-    deleteObjectKey(globals, "client");
-    deleteObjectKey(globals, "cache");
   });
 
   it("fetch experience succeeds / connected / no retry", async () => {
+    // ebnisObject.logReducers = true;
+    // ebnisObject.logApolloQueries = true;
     mockGetIsConnected.mockReturnValue(true);
 
     mswServer.use(
@@ -754,9 +758,10 @@ describe("components", () => {
       expect(mockPutOfflineExperienceIdInSyncFlag).toBeCalled();
       expect(mockPersistFunc).toBeCalled();
 
-      const calls0 = await waitForCount(() => {
-        const x = mockWindowChangeUrl.mock.calls[0];
-        return x;
+      const calls0 = await waitFor(() => {
+        const calls = mockWindowChangeUrl.mock.calls;
+        expect(calls).toHaveLength(1);
+        return calls[0];
       });
 
       const [path, type] = calls0;
@@ -989,10 +994,10 @@ describe("reducers", () => {
 
   afterEach(() => {
     jest.runOnlyPendingTimers();
-    jest.clearAllTimers();
   });
 
   const mockDispatchFn = jest.fn();
+
   const mockGetExperienceAndEntriesDetailView = jest.fn();
 
   const props = {
@@ -1002,9 +1007,10 @@ describe("reducers", () => {
         experienceId: mockOnlineExperienceId1,
       },
     },
-    getExperienceAndEntriesDetailView:
-      mockGetExperienceAndEntriesDetailView as any,
     deleteExperiences: mockDeleteExperiences as any,
+    // getExperienceAndEntriesDetailViewInject: getExperienceAndEntriesDetailView,
+    getExperienceAndEntriesDetailViewInject:
+      mockGetExperienceAndEntriesDetailView as any,
     history,
   } as Props;
 
@@ -1012,9 +1018,7 @@ describe("reducers", () => {
     dispatch: mockDispatchFn,
   } as EffectArgs;
 
-  // TEST 1 mock data
-
-  const syncErrors1 = {
+  const mockSyncErrorsData1 = {
     ownFields: {
       __typename: "UpdateExperienceOwnFieldsError",
       title: "a",
@@ -1049,40 +1053,50 @@ describe("reducers", () => {
     },
   } as SyncErrors;
 
-  const mockGetExperienceAndEntriesDetailView1 = {
-    data: {
-      getExperience: {
-        ...mockOnlineExperience1,
-      } as any,
-      getEntries: {
-        __typename: "GetEntriesSuccess",
-        entries: {
-          pageInfo: {},
-          edges: [
-            {
-              node: {
-                ...mockOnlineEntry1,
-              },
+  const a = {
+    getExperience: {
+      ...mockOnlineExperience1,
+    } as any,
+    getEntries: {
+      __typename: "GetEntriesSuccess",
+      entries: {
+        pageInfo: {},
+        edges: [
+          {
+            node: {
+              ...mockOnlineEntry1,
             },
-            {
-              node: {
-                ...mockOfflineEntry1,
-              },
+          },
+          {
+            node: {
+              ...mockOfflineEntry1,
             },
-            {
-              node: {
-                ...mockOnlineEntry2,
-              },
+          },
+          {
+            node: {
+              ...mockOnlineEntry2,
             },
-          ],
-        },
+          },
+        ],
       },
     },
-  } as GetExperienceAndEntriesDetailViewQueryResult;
+  } as GetExperienceAndEntriesDetailView;
+
+  const mockGetExperienceAndEntriesDetailView1 = {
+    data: a,
+  };
 
   it("fetches successfully with sync errors on retry", async () => {
     // ebnisObject.logReducers = true;
-    mockGetSyncError.mockReturnValue(syncErrors1);
+    // ebnisObject.logApolloQueries = true;
+
+    mockGetSyncError.mockReturnValue(mockSyncErrorsData1);
+
+    mockGetExperienceAndEntriesDetailView.mockResolvedValue(
+      mockGetExperienceAndEntriesDetailView1,
+    );
+
+    // mswServer.use(getExperienceAndEntriesDetailViewGqlMsw(a));
 
     // first time to fetch , there is not network
     mockGetIsConnected
@@ -1092,10 +1106,6 @@ describe("reducers", () => {
 
     const fetchState = initState();
     const e = getEffects<E, S>(fetchState)[0];
-
-    mockGetExperienceAndEntriesDetailView.mockResolvedValue(
-      mockGetExperienceAndEntriesDetailView1,
-    );
 
     await effectFunctions[e.key](e.ownArgs as any, props, effectArgs);
     jest.runOnlyPendingTimers();
@@ -1107,19 +1117,16 @@ describe("reducers", () => {
     reducer(fetchState, call);
   });
 
-  it("was never able to fetch after all retries", async () => {
-    // first time to fetch , there is no network
-    mockGetIsConnected
-      .mockReturnValueOnce(false)
-      // So we try again, but no network still - we will then fail
-      .mockReturnValueOnce(false);
+  it("fetch throws exception", async () => {
+    // ebnisObject.logReducers = true;
+    ebnisObject.logApolloQueries = true;
+
+    mockGetIsConnected.mockReturnValueOnce(true);
+    mockGetExperienceAndEntriesDetailView.mockRejectedValue(new Error("a"));
+    // mswServer.use(getExperienceAndEntriesDetailViewGqlMsw(a));
 
     const fetchState = initState();
     const e = getEffects<E, S>(fetchState)[0];
-
-    mockGetExperienceAndEntriesDetailView.mockResolvedValue(
-      {} as GetExperienceAndEntriesDetailViewQueryResult,
-    );
 
     await effectFunctions[e.key](e.ownArgs as any, props, effectArgs);
     jest.runOnlyPendingTimers();
@@ -1127,21 +1134,7 @@ describe("reducers", () => {
 
     const call = mockDispatchFn.mock.calls[0][0];
     expect(call.experienceData.key).toEqual(StateValue.errors);
-  });
-
-  it("fetch throws exception", async () => {
-    mockGetIsConnected.mockReturnValueOnce(true);
-
-    const fetchState = initState();
-    const e = getEffects<E, S>(fetchState)[0];
-
-    mockGetExperienceAndEntriesDetailView.mockRejectedValue(new Error("a"));
-
-    await effectFunctions[e.key](e.ownArgs as any, props, effectArgs);
-    await waitFor(() => true);
-
-    const call = mockDispatchFn.mock.calls[0][0];
-    expect(call.experienceData.key).toEqual(StateValue.errors);
+    expect(call.experienceData.error.message).toEqual("a");
   });
 
   const mockGetCachedExperienceAndEntriesDetailView1 = {
@@ -1286,6 +1279,24 @@ describe("reducers", () => {
       ["", GENERIC_SERVER_ERROR],
     ]);
   });
+
+  it("was never able to fetch after all retries", async () => {
+    // first time to fetch , there is no network
+    mockGetIsConnected
+      .mockReturnValueOnce(false)
+      // So we try again, but no network still - we will then fail
+      .mockReturnValueOnce(false);
+
+    const fetchState = initState();
+    const e = getEffects<E, S>(fetchState)[0];
+
+    await effectFunctions[e.key](e.ownArgs as any, props, effectArgs);
+    jest.runOnlyPendingTimers();
+    await waitFor(() => true);
+
+    const call = mockDispatchFn.mock.calls[0][0];
+    expect(call.experienceData.key).toEqual(StateValue.errors);
+  });
 });
 
 ////////////////////////// HELPER FUNCTIONS ///////////////////////////
@@ -1313,7 +1324,9 @@ function makeComp({
         componentTimeoutsMs={componentTimeoutsMs}
         updateExperiencesMutation={updateExperiencesMutation}
         deleteExperiences={deleteExperiences}
-        getExperienceAndEntriesDetailView={getExperienceAndEntriesDetailView}
+        getExperienceAndEntriesDetailViewInject={
+          getExperienceAndEntriesDetailView
+        }
         {...props}
       />
     ),
