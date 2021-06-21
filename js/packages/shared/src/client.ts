@@ -188,7 +188,6 @@ export function makeApolloCache() {
               return {};
             },
           },
-
         },
       },
 

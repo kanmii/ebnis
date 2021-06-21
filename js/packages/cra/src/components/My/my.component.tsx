@@ -30,7 +30,7 @@ import { Link } from "react-router-dom";
 import { setUpRoutePage } from "../../utils/global-window";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { useRunEffects } from "../../utils/use-run-effects";
-import Header from "../Header/header.component";
+import HeaderComponent from "../Header/header.component";
 import Loading from "../Loading/loading.component";
 import {
   activateInsertExperienceDomId,
@@ -87,6 +87,7 @@ const DataStateContextC = createContext<DataState["data"]>(
 const DataStateProvider = DataStateContextC.Provider;
 
 export function My(props: Props) {
+  const { HeaderComponentFn } = props;
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
   const {
@@ -195,7 +196,7 @@ export function My(props: Props) {
 
   return (
     <>
-      <Header />
+      <HeaderComponentFn />
 
       <div
         id={domPrefix}
@@ -344,6 +345,7 @@ export default (props: CallerProps) => {
       getCachedExperiencesConnectionListViewFn={
         getCachedExperiencesConnectionListView
       }
+      HeaderComponentFn={HeaderComponent}
     />
   );
 };

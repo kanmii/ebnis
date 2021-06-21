@@ -1170,12 +1170,10 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
         "network-only",
       );
 
-
       const daten =
         (data && data.data) ||
         // istanbul ignore next:
         ({} as CacheExperienceAndEntries);
-
 
       const [experienceData, newSyncErrors] = processGetExperienceQuery(
         daten.getExperience || null,

@@ -394,9 +394,7 @@ context("My page", () => {
 
         cy.get("@experience1").within(() => {
           // Notification that experience update succeeded should be visible
-          cy.get(
-            "." + updateExperienceSuccessNotificationSelector,
-          ).click();
+          cy.get("." + updateExperienceSuccessNotificationSelector).click();
         });
 
         // And updated experience should go to the top

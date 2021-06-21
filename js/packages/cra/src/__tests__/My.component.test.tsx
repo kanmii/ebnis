@@ -85,7 +85,6 @@ const mockPutOrRemoveDeleteExperienceLedger =
 const mockGetExperiencesConnectionListView = jest.fn();
 
 jest.mock("@eb/shared/src/apollo/delete-experience-cache");
-jest.mock("../components/Header/header.component", () => () => null);
 jest.mock("../utils/global-window");
 
 const mockCloseUpsertExperienceUiId = "?-1?";
@@ -831,12 +830,12 @@ describe("reducer", () => {
     getCachedExperiencesConnectionListViewFn:
       mockGetCachedExperiencesConnectionListViewFn,
     getExperienceConnectionListView: mockGetExperiencesConnectionListView,
-    componentTimeoutsMs
+    componentTimeoutsMs,
   } as any;
 
   it("fetches experiences when no network", async () => {
-      ebnisObject.logReducers = true;
-      // ebnisObject.logApolloQueries = true;
+    ebnisObject.logReducers = true;
+    // ebnisObject.logApolloQueries = true;
     const state = initState();
 
     const effect = (state.effects.general as GenericHasEffect<EffectType>)
@@ -938,6 +937,7 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
         getCachedExperiencesConnectionListViewFn={
           mockGetCachedExperiencesConnectionListViewFn
         }
+        HeaderComponentFn={() => null as any}
       />
     ),
   };

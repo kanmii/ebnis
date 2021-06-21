@@ -24,8 +24,6 @@ export const getCachedExperiencesConnectionListFieldPolicy: FieldPolicy<
       return incoming as GetExperiencesConnectionListView_getExperiences;
     }
 
-
-
     const edgesExisting = (existing.edges ||
       []) as GetExperiencesConnectionListView_getExperiences_edges[];
 

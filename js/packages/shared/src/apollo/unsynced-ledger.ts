@@ -86,8 +86,8 @@ export function getOnlineStatus(
 }
 
 export type GetOnlineStatusFn = {
-  getOnlineStatus: typeof getOnlineStatus
-}
+  getOnlineStatus: typeof getOnlineStatus;
+};
 
 interface UnsyncedLedgerQueryResult {
   unsyncedLedger: UnsyncedLedger;

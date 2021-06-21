@@ -60,6 +60,7 @@ import {
 import { scrollIntoView } from "../../utils/scroll-into-view";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { nonsenseId } from "../../utils/utils.dom";
+import { HeaderComponentType } from "../Header/header.component";
 import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
 import { makeScrollToDomId } from "./my.dom";
 import { handlePreFetchExperiences } from "./my.injectables";
@@ -1233,7 +1234,8 @@ export type ComponentTimeoutsMs = {
 
 export type Props = CallerProps &
   GetExperienceConnectionListViewFunction &
-  GetCachedExperiencesConnectionListViewFn & {
+  GetCachedExperiencesConnectionListViewFn &
+  HeaderComponentType & {
     componentTimeoutsMs: ComponentTimeoutsMs;
   };
 

@@ -39,8 +39,8 @@ export function setUpRoutePage(args: SetUpRoutePageArgs) {
 }
 
 export type SetUpRoutePageFn = {
-  setUpRoutePageFn: typeof setUpRoutePage
-}
+  setUpRoutePageFn: typeof setUpRoutePage;
+};
 
 export function getLocation() {
   return window.location;
