@@ -3,14 +3,12 @@ import { Card } from "@eb/jsx/src/Card";
 import { DropdownMenu } from "@eb/jsx/src/DropdownMenu";
 import { Input, Textarea } from "@eb/jsx/src/Input";
 import { Notification } from "@eb/jsx/src/Notification";
-import { getCachedExperiencesConnectionListView } from "@eb/shared/src/apollo/cached-experiences-list-view";
+import { LinkInjectType } from "@eb/jsx/src/utils";
 import { ExperienceData } from "@eb/shared/src/apollo/experience.gql.types";
-import { getExperienceConnectionListView } from "@eb/shared/src/apollo/get-experiences-connection-list.gql";
-import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
+import { UseWithSubscriptionContextInject } from "@eb/shared/src/apollo/injectables";
 import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
 import errorImage from "@eb/shared/src/media/error-96.png";
 import { ReactComponent as SearchIconSvg } from "@eb/shared/src/styles/search-solid.svg";
-import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
 import { OnlineStatus, StateValue } from "@eb/shared/src/utils/types";
 import {
   ComponentColorType,
@@ -26,12 +24,8 @@ import React, {
   useReducer,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
-import { Link } from "react-router-dom";
-import { setUpRoutePage } from "../../utils/global-window";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { useRunEffects } from "../../utils/use-run-effects";
-import HeaderComponent from "../Header/header.component";
-import LoadingComponent from "../Loading/loading.component";
 import {
   activateInsertExperienceDomId,
   descriptionContainerSelector,
@@ -61,10 +55,8 @@ import {
   updateExperienceMenuItemSelector,
   updateExperienceSuccessNotificationSelector,
 } from "./my.dom";
-import { UpsertExperience } from "./my.lazy";
 import {
   ActionType,
-  CallerProps,
   DataState,
   DispatchType,
   effectFunctions,
@@ -87,7 +79,14 @@ const DataStateContextC = createContext<DataState["data"]>(
 const DataStateProvider = DataStateContextC.Provider;
 
 export function My(props: Props) {
-  const { HeaderComponentFn, LoadingComponentFn } = props;
+  const {
+    HeaderComponentFn,
+    LoadingComponentFn,
+    setUpRoutePageInject,
+    useWithSubscriptionContextInject,
+    UpsertExperienceInject,
+    LinkInject,
+  } = props;
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
   const {
@@ -100,7 +99,7 @@ export function My(props: Props) {
 
   const stateValue = states.value;
 
-  const { onSyncData } = useWithSubscriptionContext();
+  const { onSyncData } = useWithSubscriptionContextInject();
 
   useEffect(() => {
     if (onSyncData && stateValue === StateValue.data) {
@@ -120,7 +119,7 @@ export function My(props: Props) {
   }, [genericTimeout]);
 
   useEffect(() => {
-    setUpRoutePage({
+    setUpRoutePageInject({
       title: MY_TITLE,
     });
 
@@ -155,6 +154,8 @@ export function My(props: Props) {
   const dispatchContextVal: DispatchContextValue = useMemo(() => {
     return {
       dispatch,
+      useWithSubscriptionContextInject,
+      LinkInject,
       onUpsertExperienceActivated(e) {
         e.preventDefault();
 
@@ -268,7 +269,7 @@ export function My(props: Props) {
                       {upsertExperienceActivated.value ===
                         StateValue.active && (
                         <Suspense fallback={<LoadingComponentFn />}>
-                          <UpsertExperience
+                          <UpsertExperienceInject
                             experience={
                               upsertExperienceActivated.active.context
                                 .experience
@@ -336,21 +337,6 @@ export function My(props: Props) {
   );
 }
 
-export default (props: CallerProps) => {
-  return (
-    <My
-      {...props}
-      getExperienceConnectionListView={getExperienceConnectionListView}
-      componentTimeoutsMs={componentTimeoutsMs}
-      getCachedExperiencesConnectionListViewFn={
-        getCachedExperiencesConnectionListView
-      }
-      HeaderComponentFn={HeaderComponent}
-      LoadingComponentFn={LoadingComponent}
-    />
-  );
-};
-
 function ExperiencesComponent() {
   const {
     states: { experiences: experiencesStates },
@@ -385,7 +371,7 @@ function ExperiencesComponent() {
 }
 
 function ExperienceComponent(props: ExperienceProps) {
-  const { dispatch } = useContext(DispatchContext);
+  const { dispatch, LinkInject } = useContext(DispatchContext);
   const { experienceData, experienceState: state } = props;
   const { experience, onlineStatus } = experienceData;
   const { title, description, id } = experience;
@@ -430,9 +416,9 @@ function ExperienceComponent(props: ExperienceProps) {
           </Notification>
         )}
 
-        <Link className="px-px pt-0 pb-6 block font-bold" to={detailPath}>
+        <LinkInject className="px-px pt-0 pb-6 block font-bold" to={detailPath}>
           {title}
-        </Link>
+        </LinkInject>
 
         {description && (
           <div className={descriptionContainerSelector}>
@@ -542,7 +528,8 @@ function ExperienceComponent(props: ExperienceProps) {
 }
 
 function PaginationComponent() {
-  const { fetchMoreExperiences } = useContext(DispatchContext);
+  const { fetchMoreExperiences, useWithSubscriptionContextInject } =
+    useContext(DispatchContext);
 
   const {
     context: {
@@ -550,7 +537,7 @@ function PaginationComponent() {
     },
   } = useContext(DataStateContextC);
 
-  const { connected } = useWithSubscriptionContext();
+  const { connected } = useWithSubscriptionContextInject();
 
   if (!(connected && nächsteSeiteVorhanden)) {
     return null;
@@ -569,7 +556,7 @@ function PaginationComponent() {
 }
 
 function SearchComponent() {
-  const { dispatch } = useContext(DispatchContext);
+  const { dispatch, LinkInject } = useContext(DispatchContext);
 
   const {
     states: { search: state },
@@ -624,7 +611,7 @@ function SearchComponent() {
                       className={cn(index % 2 == 1 ? "bg-gray-50" : "bg-white")}
                     >
                       <td className="p-0 border align-top">
-                        <Link
+                        <LinkInject
                           className={cn(
                             "neutral-link w-full block py-2 px-3",
                             searchLinkSelector,
@@ -632,7 +619,7 @@ function SearchComponent() {
                           to={makeDetailedExperienceRoute(id)}
                         >
                           {title}
-                        </Link>
+                        </LinkInject>
                       </td>
                     </tr>
                   );
@@ -700,15 +687,18 @@ interface ExperienceProps {
   experienceData: ExperienceData;
 }
 
-type DispatchContextValue = Readonly<{
-  dispatch: DispatchType;
-  onUpsertExperienceActivated: (e: ReactMouseEvent) => void;
-  onCloseDeleteExperienceNotification: () => void;
-  deactivateUpsertExperienceUiCb: (e: ReactMouseEvent) => void;
-  onExperienceUpsertSuccess: (
-    e: ExperienceListViewFragment,
-    o: OnlineStatus,
-  ) => void;
-  fetchMoreExperiences: () => void;
-  onUpdateExperienceError: (error: string) => void;
-}>;
+type DispatchContextValue = Readonly<
+  {
+    dispatch: DispatchType;
+    onUpsertExperienceActivated: (e: ReactMouseEvent) => void;
+    onCloseDeleteExperienceNotification: () => void;
+    deactivateUpsertExperienceUiCb: (e: ReactMouseEvent) => void;
+    onExperienceUpsertSuccess: (
+      e: ExperienceListViewFragment,
+      o: OnlineStatus,
+    ) => void;
+    fetchMoreExperiences: () => void;
+    onUpdateExperienceError: (error: string) => void;
+  } & UseWithSubscriptionContextInject &
+    LinkInjectType
+>;

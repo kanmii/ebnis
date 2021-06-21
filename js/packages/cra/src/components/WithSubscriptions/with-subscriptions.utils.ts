@@ -177,7 +177,7 @@ export async function cleanUpOfflineExperiences(
 }
 
 export type CleanUpOfflineExperiencesFn = {
-  cleanUpOfflineExperiences: typeof cleanUpOfflineExperiences;
+  cleanUpOfflineExperiencesFn: typeof cleanUpOfflineExperiences;
 };
 
 export async function cleanUpSyncedOfflineEntries(

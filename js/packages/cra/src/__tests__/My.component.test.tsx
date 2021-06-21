@@ -1,21 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { activeClassName } from "@eb/jsx/src/DropdownMenu";
-import {
-  DeletedExperienceLedger,
-  getDeleteExperienceLedger,
-  putOrRemoveDeleteExperienceLedger,
-} from "@eb/shared/src/apollo/delete-experience-cache";
+import { DeletedExperienceLedger } from "@eb/shared/src/apollo/delete-experience-cache";
 import { GetExperiencesConnectionListViewQueryResult } from "@eb/shared/src/apollo/get-experiences-connection-list.gql";
-import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
-import { getOnlineStatus } from "@eb/shared/src/apollo/unsynced-ledger";
-import { purgeExperiencesFromCache1 } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
 import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
 import {
   GetExperiencesConnectionListView_getExperiences,
   GetExperiencesConnectionListView_getExperiences_edges,
 } from "@eb/shared/src/graphql/apollo-types/GetExperiencesConnectionListView";
-import { getIsConnected } from "@eb/shared/src/utils/connections";
 import { makeOfflineId } from "@eb/shared/src/utils/offlines";
 import {
   BroadcastMessageType,
@@ -48,45 +40,37 @@ import {
   updateExperienceMenuItemSelector,
   updateExperienceSuccessNotificationSelector,
 } from "../components/My/my.dom";
-import { handlePreFetchExperiences } from "../components/My/my.injectables";
 import {
   ActionType,
   DataState,
-  effectFunctions,
-  EffectType,
   initState,
   Props,
   reducer,
 } from "../components/My/my.utils";
-import { cleanUpOfflineExperiences } from "../components/WithSubscriptions/with-subscriptions.utils";
-import { fillField, getById } from "../tests.utils";
+import {
+  fillField,
+  getAllByClass,
+  getById,
+  getOneByClass,
+} from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { AppPersistor } from "../utils/app-context";
-import { GenericHasEffect } from "../utils/effects";
-import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
 
+const mockGetUnsyncedExperienceInject = jest.fn();
 const mockGetCachedExperiencesConnectionListViewFn = jest.fn();
-
-jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
-const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/sync-to-server-cache");
-
-jest.mock("../components/My/my.injectables");
-const mockHandlePreFetchExperiences = handlePreFetchExperiences as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
-const mockPurgeExperiencesFromCache1 = purgeExperiencesFromCache1 as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/delete-experience-cache");
-const mockPutOrRemoveDeleteExperienceLedger =
-  putOrRemoveDeleteExperienceLedger as jest.Mock;
-
+const mockCleanUpOfflineExperiencesFn = jest.fn();
+const mockGetSyncErrorsFn = jest.fn();
+const mockHandlePreFetchExperiences = jest.fn();
+const mockPurgeExperiencesFromCache1 = jest.fn();
+const mockPutOrRemoveDeleteExperienceLedger = jest.fn();
 const mockGetExperiencesConnectionListView = jest.fn();
+const mockGetDeleteExperienceLedger = jest.fn();
+const mockGetOnlineStatusProps = jest.fn();
+const mockSetUpRoutePage = jest.fn();
+const mockGetIsConnected = jest.fn();
+const mockUseWithSubscriptionContext = jest.fn();
 
-jest.mock("@eb/shared/src/apollo/delete-experience-cache");
-jest.mock("../utils/global-window");
-
+const mockLoadingId = "l-o-a-d-i-n-g";
 const mockCloseUpsertExperienceUiId = "?-1?";
 const mockOnUpsertExperienceSuccessUiId = "?-2?";
 const mockUpsertExperienceOnErrorUiId = "?-3?";
@@ -96,32 +80,6 @@ const mockOnlineExperience = {
   id: mockOnlineId,
   title: mockTitle,
 } as ExperienceCompleteFragment;
-jest.mock("../components/My/my.lazy", () => ({
-  UpsertExperience: ({
-    onSuccess,
-    onClose,
-    onError,
-  }: {
-    onSuccess: (experience: any) => void;
-    onClose: () => void;
-    onError: () => void;
-  }) => {
-    return (
-      <div>
-        <button
-          id={mockOnUpsertExperienceSuccessUiId}
-          onClick={() => {
-            onSuccess(mockOnlineExperience);
-          }}
-        />
-
-        <button id={mockCloseUpsertExperienceUiId} onClick={onClose} />
-
-        <button id={mockUpsertExperienceOnErrorUiId} onClick={onError} />
-      </div>
-    );
-  },
-}));
 
 const mockPartOfflineId = "?2?";
 const offlineId = makeOfflineId(3);
@@ -130,39 +88,10 @@ const offlineExperience = {
   title: "a",
 } as ExperienceListViewFragment;
 
-jest.mock("@eb/shared/src/apollo/unsynced-ledger");
-const mockGetOnlineStatus = getOnlineStatus as jest.Mock;
-
-jest.mock("react-router-dom", () => ({
-  Link: ({ className = "", to, children }: any) => {
-    to = typeof to === "string" ? to : JSON.stringify(to);
-
-    return (
-      <a className={className} href={to}>
-        {children}
-      </a>
-    );
-  },
-}));
-
-jest.mock("@eb/shared/src/utils/connections");
-const mockGetIsConnected = getIsConnected as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/delete-experience-cache");
-const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
-
-const mockLoadingId = "l-o-a-d-i-n-g";
-
-jest.mock("@eb/shared/src/apollo/injectables");
-const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
-
 const mockHistoryPush = jest.fn();
 const mockPersistFn = jest.fn();
 const mockEvictFn = jest.fn();
 const mockPostMsg = jest.fn();
-const mockDispatch = jest.fn();
 
 const persistor = {
   persist: mockPersistFn as any,
@@ -188,9 +117,9 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  jest.runTimersToTime(MAX_TIMEOUT_MS);
+  jest.runOnlyPendingTimers();
   jest.clearAllTimers();
-  jest.resetAllMocks();
+  jest.clearAllMocks();
   ebnisObject.logApolloQueries = false;
   ebnisObject.logReducers = false;
 });
@@ -212,10 +141,10 @@ describe("component", () => {
       render(ui);
 
       expect(document.getElementById(mockLoadingId)).not.toBeNull();
-      expect(getFetchErrorRetry()).toBeNull();
+      expect(getById(fetchErrorRetryDomId)).toBeNull();
 
       const reFetchEl = await waitFor(() => {
-        const el = getFetchErrorRetry();
+        const el = getById(fetchErrorRetryDomId);
         expect(el).not.toBeNull();
         return el;
       });
@@ -230,24 +159,21 @@ describe("component", () => {
 
       reFetchEl.click();
 
-      expect(getNoExperiencesActivateNew()).toBeNull();
-      jest.runTimersToTime(MAX_TIMEOUT_MS);
+      expect(getById(noExperiencesActivateNewDomId)).toBeNull();
 
       const activateInsertExperienceBtnEl = await waitFor(() => {
-        const el = getNoExperiencesActivateNew();
+        const el = getById(noExperiencesActivateNewDomId);
         expect(el).not.toBeNull();
         return el;
       });
 
-      expect(getMockCloseUpsertExperienceUi()).toBeNull();
+      expect(getById(mockCloseUpsertExperienceUiId)).toBeNull();
 
       activateInsertExperienceBtnEl.click();
 
-      getMockCloseUpsertExperienceUi().click(); // exists
+      getById(mockCloseUpsertExperienceUiId).click(); // exists
 
-      jest.runTimersToTime(MAX_TIMEOUT_MS);
-
-      expect(getMockCloseUpsertExperienceUi()).toBeNull();
+      expect(getById(mockCloseUpsertExperienceUiId)).toBeNull();
     });
   });
 
@@ -257,7 +183,7 @@ describe("component", () => {
       connected: true,
     });
 
-    mockGetExperiencesConnectionListView.mockRejectedValue(new Error("a"));
+    mockGetExperiencesConnectionListView.mockRejectedValueOnce(new Error("a"));
 
     const { ui } = makeComp();
 
@@ -268,10 +194,10 @@ describe("component", () => {
 
       expect(document.getElementById(mockLoadingId)).not.toBeNull();
 
-      expect(getFetchErrorRetry()).toBeNull();
+      expect(getById(fetchErrorRetryDomId)).toBeNull();
 
       const reFetchEl = await waitFor(() => {
-        const el = getFetchErrorRetry();
+        const el = getById(fetchErrorRetryDomId);
         expect(el).not.toBeNull();
         return el;
       });
@@ -296,16 +222,19 @@ describe("component", () => {
 
       reFetchEl.click();
 
-      expect(getNoExperiencesActivateNew()).toBeNull();
+      expect(getById(noExperiencesActivateNewDomId)).toBeNull();
 
-      expect(getFetchNextExperience()).toBeNull();
+      expect(getOneByClass(fetchNextSelector)).toBeNull();
 
-      await waitFor(() => true);
-      const fetchMoreExperiencesBtnEl = getFetchNextExperience();
+      const fetchMoreExperiencesBtnEl = await waitFor(() => {
+        const el = getOneByClass(fetchNextSelector);
+        expect(el).not.toBeNull();
+        return el;
+      });
 
       expect(getExperienceEl).not.toBeNull();
       expect(getExperienceEl("b")).toBeNull();
-      jest.runTimersToTime(MAX_TIMEOUT_MS);
+
       expect(mockHandlePreFetchExperiences.mock.calls[0]).toEqual([
         [mockOnlineId],
         {
@@ -347,19 +276,17 @@ describe("component", () => {
       } as GetExperiencesConnectionListViewQueryResult);
 
       fetchMoreExperiencesBtnEl.click();
-      jest.runTimersToTime(MAX_TIMEOUT_MS);
 
       await waitFor(() => {
         return getExperienceEl("b");
       });
 
-      expect(getFetchNextExperience()).toBeNull();
+      expect(getOneByClass(fetchNextSelector)).toBeNull();
 
       expect(getExperienceEl()).not.toBeNull();
     });
   });
 
-  // MOCK DATA
   const mockGetCachedExperiencesConnectionListViewFnData1 = {
     edges: [
       {
@@ -382,7 +309,7 @@ describe("component", () => {
   it("interacts with description / offline Erfahrungen / teilweise online Erfahrungen", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockGetOnlineStatus
+    mockGetOnlineStatusProps
       .mockReturnValueOnce(StateValue.partOffline)
       .mockReturnValueOnce(StateValue.offline);
 
@@ -487,7 +414,7 @@ describe("component", () => {
       dropdownTriggerEl.click();
 
       // clear experiences menu
-      const containerEl = getContainer();
+      const containerEl = getById(domPrefix);
       containerEl.click();
 
       expect(dropdownMenuEl0.classList).not.toContain(activeClassName);
@@ -495,7 +422,7 @@ describe("component", () => {
       dropdownTriggerEl.click();
       expect(dropdownMenuEl0.classList).toContain(activeClassName);
 
-      getDeleteExperienceMenu().click();
+      getOneByClass("delete-experience-menu-item").click();
 
       expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0].id).toBe(
         mockPartOfflineId,
@@ -542,7 +469,7 @@ describe("component", () => {
 
       expect((getSearchLinks() as any).length).toBe(0);
 
-      const searchInputEl = getSearchInputEl();
+      const searchInputEl = getById(searchInputDomId);
 
       fillField(searchInputEl, "a");
 
@@ -550,17 +477,17 @@ describe("component", () => {
 
       expect(searchLinkEl.href).toContain(mockOnlineId);
 
-      expect(getSearchNoResultsEl().length).toBe(0);
+      expect(getAllByClass(noSearchResultSelector).length).toBe(0);
 
       fillField(searchInputEl, "aaaaa");
 
-      expect(getSearchNoResultsEl().length).toBe(1);
+      expect(getAllByClass(noSearchResultSelector).length).toBe(1);
 
       expect((getSearchLinks() as any).length).toBe(0);
 
-      getContainer().click();
+      getById(domPrefix).click();
 
-      expect(getSearchNoResultsEl().length).toBe(0);
+      expect(getAllByClass(noSearchResultSelector).length).toBe(0);
     });
   });
 
@@ -604,7 +531,7 @@ describe("component", () => {
       expect(getExperienceEl()).toBeNull();
 
       const deleteSuccessEl = await waitFor(() => {
-        const el = getDeleteExperienceSuccessNotification();
+        const el = getById(onDeleteExperienceSuccessNotificationId);
         expect(el).not.toBeNull();
         return el;
       });
@@ -625,7 +552,7 @@ describe("component", () => {
 
       deleteSuccessEl.click();
 
-      expect(getDeleteExperienceSuccessNotification()).toBeNull();
+      expect(getById(onDeleteExperienceSuccessNotificationId)).toBeNull();
     });
   });
 
@@ -654,7 +581,7 @@ describe("component", () => {
       render(ui);
 
       const deleteExperienceCancelledEl = await waitFor(() => {
-        const el = getDeleteExperienceCancelledNotification();
+        const el = getById(onDeleteExperienceCancelledNotificationId);
         expect(el).not.toBeNull();
         return el;
       });
@@ -669,7 +596,7 @@ describe("component", () => {
 
       deleteExperienceCancelledEl.click();
 
-      expect(getDeleteExperienceCancelledNotification()).toBeNull();
+      expect(getById(onDeleteExperienceCancelledNotificationId)).toBeNull();
     });
   });
 
@@ -696,33 +623,39 @@ describe("component", () => {
       render(ui);
 
       const updateEl = await waitFor(() => {
-        const el = getUpdateExperienceMenuItem();
+        const el = getOneByClass(updateExperienceMenuItemSelector);
         expect(el).not.toBeNull();
         return el;
       });
 
       updateEl.click();
 
-      getMockOnUpsertExperienceSuccessUi().click();
+      getById(mockOnUpsertExperienceSuccessUiId).click();
 
-      expect(getMockOnUpsertExperienceSuccessUi()).toBeNull();
+      expect(getById(mockOnUpsertExperienceSuccessUiId)).toBeNull();
 
-      getUpdateExperienceSuccessNotificationCloseEl().click();
+      getOneByClass(updateExperienceSuccessNotificationSelector).click();
 
-      expect(getUpdateExperienceSuccessNotificationCloseEl()).toBeNull();
+      expect(
+        getOneByClass(updateExperienceSuccessNotificationSelector),
+      ).toBeNull();
 
       ////////////////////////// 2nd update ////////////////////////////
 
       updateEl.click();
 
-      getMockOnUpsertExperienceSuccessUi().click();
+      getById(mockOnUpsertExperienceSuccessUiId).click();
 
-      expect(getMockOnUpsertExperienceSuccessUi()).toBeNull();
+      expect(getById(mockOnUpsertExperienceSuccessUiId)).toBeNull();
 
-      expect(getUpdateExperienceSuccessNotificationCloseEl()).not.toBeNull();
+      expect(
+        getOneByClass(updateExperienceSuccessNotificationSelector),
+      ).not.toBeNull();
 
       await waitFor(() => {
-        expect(getUpdateExperienceSuccessNotificationCloseEl()).toBeNull();
+        expect(
+          getOneByClass(updateExperienceSuccessNotificationSelector),
+        ).toBeNull();
       });
     });
   });
@@ -760,7 +693,7 @@ describe("component", () => {
   };
 
   it("updates experiences on sync / upsert experience on error", async () => {
-    mockGetOnlineStatus
+    mockGetOnlineStatusProps
       .mockReturnValueOnce(StateValue.offline)
       .mockReturnValueOnce(StateValue.partOffline);
 
@@ -803,69 +736,37 @@ describe("component", () => {
         isOfflineClassName,
       );
 
-      expect(mockCleanUpOfflineExperiences).toBeCalledWith({
+      expect(mockCleanUpOfflineExperiencesFn).toBeCalledWith({
         [offlineId]: mockOnlineExperience,
       });
 
-      expect(getMockUpsertExperienceOnError()).toBeNull();
+      expect(getById(mockUpsertExperienceOnErrorUiId)).toBeNull();
 
-      getActivateInsertExperience().click();
+      getById(activateInsertExperienceDomId).click();
 
-      getMockUpsertExperienceOnError().click();
+      getById(mockUpsertExperienceOnErrorUiId).click();
 
-      expect(getMockUpsertExperienceOnError()).toBeNull();
+      expect(getById(mockUpsertExperienceOnErrorUiId)).toBeNull();
     });
   });
 });
 
 describe("reducer", () => {
-  const effectArgs = {
-    dispatch: mockDispatch,
-  } as any;
+  // const mockDispatch = jest.fn();
 
-  const props = {
-    getCachedExperiencesConnectionListViewFn:
-      mockGetCachedExperiencesConnectionListViewFn,
-    getExperienceConnectionListView: mockGetExperiencesConnectionListView,
-    componentTimeoutsMs,
-  } as any;
+  // const effectArgs = {
+  //   dispatch: mockDispatch,
+  // } as any;
 
-  it("fetches experiences when no network", async () => {
-    ebnisObject.logReducers = true;
-    // ebnisObject.logApolloQueries = true;
-    const state = initState();
-
-    const effect = (state.effects.general as GenericHasEffect<EffectType>)
-      .hasEffects.context.effects[0];
-
-    const fetchExperiencesEffect = effectFunctions[effect.key];
-    await fetchExperiencesEffect({} as any, props, effectArgs);
-    expect(mockDispatch).not.toHaveBeenCalled();
-
-    jest.runAllTimers();
-
-    expect(mockDispatch.mock.calls[0][0].key).toEqual(StateValue.errors);
-
-    mockGetIsConnected.mockReturnValue(true);
-  });
-
-  it("fetches experiences: first no network, then later there is network", async () => {
-    const state = initState();
-
-    const effect = (state.effects.general as GenericHasEffect<EffectType>)
-      .hasEffects.context.effects[0];
-
-    const fn = effectFunctions[effect.key];
-    await fn({} as any, props, effectArgs);
-    mockGetIsConnected.mockReturnValue(true);
-
-    jest.runTimersToTime(FETCH_EXPERIENCES_TIMEOUTS[0]);
-
-    await waitFor(() => true);
-    expect(mockDispatch.mock.calls[0][0].key).toEqual(StateValue.errors);
-
-    mockGetIsConnected.mockReturnValue(true);
-  });
+  // const props = {
+  //   getCachedExperiencesConnectionListViewFn:
+  //     mockGetCachedExperiencesConnectionListViewFn,
+  //   getExperienceConnectionListView: mockGetExperiencesConnectionListView,
+  //   componentTimeoutsMs,
+  //   getDeleteExperienceLedgerFn: mockGetDeleteExperienceLedger,
+  //   getOnlineStatusProp: mockGetOnlineStatusProps,
+  //   getIsConnectedInject: mockGetIsConnected,
+  // } as any;
 
   it("sets online status to 'online' when on synced experience has no errors", () => {
     let state = initState();
@@ -935,47 +836,73 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
           mockGetCachedExperiencesConnectionListViewFn
         }
         HeaderComponentFn={() => null as any}
-        LoadingComponentFn={() => <div id={mockLoadingId} />}
+        LoadingComponentFn={mockLoadingComponent}
+        cleanUpOfflineExperiencesFn={mockCleanUpOfflineExperiencesFn}
+        getSyncErrorsFn={mockGetSyncErrorsFn}
+        handlePreFetchExperiencesFn={mockHandlePreFetchExperiences}
+        purgeExperiencesFromCache1Fn={mockPurgeExperiencesFromCache1}
+        putOrRemoveDeleteExperienceLedgerFn={
+          mockPutOrRemoveDeleteExperienceLedger
+        }
+        getDeleteExperienceLedgerFn={mockGetDeleteExperienceLedger}
+        getOnlineStatusProp={mockGetOnlineStatusProps}
+        getUnsyncedExperienceInject={mockGetUnsyncedExperienceInject}
+        setUpRoutePageInject={mockSetUpRoutePage}
+        getIsConnectedInject={mockGetIsConnected}
+        useWithSubscriptionContextInject={mockUseWithSubscriptionContext}
+        UpsertExperienceInject={mockUpsertExperience as any}
+        LinkInject={mockLink}
       />
     ),
   };
 }
 
-function getContainer() {
-  return document.getElementById(domPrefix) as HTMLElement;
+function mockLink({ className = "", to, children }: any) {
+  to = typeof to === "string" ? to : JSON.stringify(to);
+
+  return (
+    <a className={className} href={to}>
+      {children}
+    </a>
+  );
 }
 
-function getFetchErrorRetry() {
-  return document.getElementById(fetchErrorRetryDomId) as HTMLElement;
+function mockLoadingComponent() {
+  return <div id={mockLoadingId} />;
 }
 
-function getNoExperiencesActivateNew() {
-  return document.getElementById(noExperiencesActivateNewDomId) as HTMLElement;
-}
+function mockUpsertExperience({
+  onSuccess,
+  onClose,
+  onError,
+}: {
+  onSuccess: (experience: any) => void;
+  onClose: () => void;
+  onError: () => void;
+}) {
+  return (
+    <div>
+      <button
+        id={mockOnUpsertExperienceSuccessUiId}
+        onClick={() => {
+          onSuccess(mockOnlineExperience);
+        }}
+      />
 
-function getMockCloseUpsertExperienceUi() {
-  return document.getElementById(mockCloseUpsertExperienceUiId) as HTMLElement;
-}
+      <button id={mockCloseUpsertExperienceUiId} onClick={onClose} />
 
-function getFetchNextExperience(index = 0) {
-  return document
-    .getElementsByClassName(fetchNextSelector)
-    .item(index) as HTMLElement;
+      <button id={mockUpsertExperienceOnErrorUiId} onClick={onError} />
+    </div>
+  );
 }
 
 function getExperienceEl(id: string = mockOnlineId) {
-  return document.getElementById(id) as HTMLElement;
+  return getById(id);
 }
 
 function getDropdownMenu(parentEl: HTMLElement, index = 0) {
   return parentEl
     .getElementsByClassName(dropdownMenuMenuSelector)
-    .item(index) as HTMLElement;
-}
-
-function getDeleteExperienceMenu(index = 0) {
-  return document
-    .getElementsByClassName("delete-experience-menu-item")
     .item(index) as HTMLElement;
 }
 
@@ -986,56 +913,8 @@ function getSearchLinks(index?: number) {
     : (parentEl.item(index) as HTMLAnchorElement);
 }
 
-function getSearchNoResultsEl() {
-  return document.getElementsByClassName(noSearchResultSelector);
-}
-
-function getSearchInputEl() {
-  return document.getElementById(searchInputDomId) as HTMLElement;
-}
-
-function getDeleteExperienceSuccessNotification() {
-  return document.getElementById(
-    onDeleteExperienceSuccessNotificationId,
-  ) as HTMLElement;
-}
-
-function getDeleteExperienceCancelledNotification() {
-  return document.getElementById(
-    onDeleteExperienceCancelledNotificationId,
-  ) as HTMLElement;
-}
-
-function getUpdateExperienceMenuItem(index = 0) {
-  return document
-    .getElementsByClassName(updateExperienceMenuItemSelector)
-    .item(index) as HTMLElement;
-}
-
-function getMockOnUpsertExperienceSuccessUi() {
-  return document.getElementById(
-    mockOnUpsertExperienceSuccessUiId,
-  ) as HTMLElement;
-}
-
-function getUpdateExperienceSuccessNotificationCloseEl(index = 0) {
-  return document
-    .getElementsByClassName(updateExperienceSuccessNotificationSelector)
-    .item(index) as HTMLElement;
-}
-
 function getDescriptionEl(parentEl: HTMLElement, index?: number) {
   const els = parentEl.getElementsByClassName(descriptionContainerSelector);
 
   return index === undefined ? els : (els.item(index) as HTMLElement);
-}
-
-function getActivateInsertExperience() {
-  return document.getElementById(activateInsertExperienceDomId) as HTMLElement;
-}
-
-function getMockUpsertExperienceOnError() {
-  return document.getElementById(
-    mockUpsertExperienceOnErrorUiId,
-  ) as HTMLElement;
 }

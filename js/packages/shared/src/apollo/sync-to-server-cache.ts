@@ -79,6 +79,10 @@ export function getSyncErrors() {
   return data ? data.syncErrors : ({} as SyncErrors);
 }
 
+export type GetSyncErrorsFn = {
+  getSyncErrorsFn: typeof getSyncErrors;
+};
+
 export function writeSyncErrors(ledger: SyncErrors) {
   const { cache } = window.____ebnis;
 
@@ -89,10 +93,6 @@ export function writeSyncErrors(ledger: SyncErrors) {
     },
   });
 }
-
-export type GetSyncErrorsFn = {
-  getSyncErrorsFn: typeof getSyncErrors;
-};
 
 /**
  * When called with 2 arguments === put

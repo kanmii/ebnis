@@ -1,4 +1,5 @@
 import { Children, cloneElement, ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 export function cloneSingle(
   children: ReactNode,
@@ -26,3 +27,7 @@ export function cloneSingle(
     ),
   );
 }
+
+export type LinkInjectType = {
+  LinkInject: typeof Link;
+};

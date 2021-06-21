@@ -286,7 +286,7 @@ export function purgeExperiencesFromCache1(ids: string[]) {
 }
 
 export type PurgeExperiencesFromCache1Fn = {
-  purgeExperiencesFromCache1: typeof purgeExperiencesFromCache1;
+  purgeExperiencesFromCache1Fn: typeof purgeExperiencesFromCache1;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

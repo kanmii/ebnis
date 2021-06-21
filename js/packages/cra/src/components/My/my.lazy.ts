@@ -4,3 +4,7 @@ import { lazy } from "react";
 export const UpsertExperience = lazy(
   () => import("../UpsertExperience/upsert-experience.component"),
 );
+
+export type UpsertExperienceInjectType = {
+  UpsertExperienceInject: typeof UpsertExperience;
+};

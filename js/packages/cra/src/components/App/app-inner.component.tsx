@@ -16,7 +16,7 @@ import WithSubscriptions from "../WithSubscriptions/with-subscriptions.component
 import { EbnisAppProvider } from "./app.injectables";
 
 const Login = lazy(() => import("../Login/login.component"));
-const My = lazy(() => import("../My/my.component"));
+const My = lazy(() => import("../My/my.default"));
 const DetailExperience = lazy(
   () => import("../DetailExperience/detail-experience.component"),
 );

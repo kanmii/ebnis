@@ -23,10 +23,7 @@ export function windowChangeUrl(url: string, type: ChangeUrlType) {
 }
 
 export function setUpRoutePage(args: SetUpRoutePageArgs) {
-  const {
-    title, //
-    rootClassName,
-  } = args;
+  const { title, rootClassName } = args;
 
   if (title) {
     document.title = title + " - Ebnis";
@@ -38,8 +35,8 @@ export function setUpRoutePage(args: SetUpRoutePageArgs) {
   }
 }
 
-export type SetUpRoutePageFn = {
-  setUpRoutePageFn: typeof setUpRoutePage;
+export type SetUpRoutePageInject = {
+  setUpRoutePageInject: typeof setUpRoutePage;
 };
 
 export function getLocation() {

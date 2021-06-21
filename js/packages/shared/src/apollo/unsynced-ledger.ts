@@ -36,6 +36,10 @@ export function getUnsyncedExperience(
   return unsyncedLedger[id] || null;
 }
 
+export type GetUnsyncedExperienceInject = {
+  getUnsyncedExperienceInject: typeof getUnsyncedExperience;
+};
+
 export function removeUnsyncedExperiences(ids: string[]) {
   const unsyncedLedger = { ...getUnsyncedLedger() };
 
@@ -85,8 +89,8 @@ export function getOnlineStatus(
   return StateValue.online;
 }
 
-export type GetOnlineStatusFn = {
-  getOnlineStatus: typeof getOnlineStatus;
+export type GetOnlineStatusProp = {
+  getOnlineStatusProp: typeof getOnlineStatus;
 };
 
 interface UnsyncedLedgerQueryResult {

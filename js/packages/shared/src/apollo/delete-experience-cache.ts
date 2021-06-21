@@ -24,7 +24,7 @@ export function putOrRemoveDeleteExperienceLedger(
 }
 
 export type PutOrRemoveDeleteExperienceLedgerFn = {
-  putOrRemoveDeleteExperienceLedger: typeof putOrRemoveDeleteExperienceLedger;
+  putOrRemoveDeleteExperienceLedgerFn: typeof putOrRemoveDeleteExperienceLedger;
 };
 
 export function getDeleteExperienceLedger(
@@ -44,7 +44,7 @@ export function getDeleteExperienceLedger(
 }
 
 export type GetDeleteExperienceLedgerFn = {
-  getDeleteExperienceLedger: typeof getDeleteExperienceLedger;
+  getDeleteExperienceLedgerFn: typeof getDeleteExperienceLedger;
 };
 
 export const deleteExperienceVar = makeVar<null | DeletedExperienceLedger>(

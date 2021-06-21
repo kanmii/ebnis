@@ -54,5 +54,5 @@ export function handlePreFetchExperiences(
 }
 
 export type HandlePreFetchExperiencesFn = {
-  handlePreFetchExperiences: typeof handlePreFetchExperiences;
+  handlePreFetchExperiencesFn: typeof handlePreFetchExperiences;
 };
