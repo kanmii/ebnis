@@ -1,12 +1,10 @@
 import { ApolloError } from "@apollo/client";
 import {
+  EntriesCacheUnion,
   GetEntriesDetailViewProps,
   GetEntriesDetailViewQueryResult,
-} from "@eb/shared/src/apollo/experience.gql.types";
-import {
-  getCachedEntriesDetailView,
-  writeCachedEntriesDetailView,
-} from "@eb/shared/src/apollo/get-detailed-experience-query";
+} from "@eb/shared/src/apollo/entries-connection.gql";
+import { getCachedEntriesDetailView } from "@eb/shared/src/apollo/get-detailed-experience-query";
 import {
   getSyncError,
   putOrRemoveSyncError,
@@ -20,16 +18,10 @@ import {
 } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
 import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import {
-  GetEntriesUnionFragment,
-  GetEntriesUnionFragment_GetEntriesSuccess,
-} from "@eb/shared/src/graphql/apollo-types/GetEntriesUnionFragment";
+import { GetEntriesUnionFragment_GetEntriesSuccess } from "@eb/shared/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { PaginationInput } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import { PageInfoFragment } from "@eb/shared/src/graphql/apollo-types/PageInfoFragment";
-import {
-  entryToEdge,
-  toGetEntriesSuccessQuery,
-} from "@eb/shared/src/graphql/utils.gql";
+import { toGetEntriesSuccessQuery } from "@eb/shared/src/graphql/utils.gql";
 import { wrapReducer, wrapState } from "@eb/shared/src/logger";
 import { getIsConnected } from "@eb/shared/src/utils/connections";
 import { isOfflineId } from "@eb/shared/src/utils/offlines";
@@ -313,11 +305,11 @@ function handleOnFetchedAction(
             }
             break;
 
-          // re-fetching
+          // re-fetching when experience updated
           case StateValue.reFetchOnly:
             {
               const { entries } = payload;
-              const idToEntryMap = (
+              const idToUpdatedEntryMap = (
                 entries.edges as EntryConnectionFragment_edges[]
               ).reduce((acc, edge) => {
                 const entry = edge.node as EntryFragment;
@@ -327,7 +319,11 @@ function handleOnFetchedAction(
 
               context.entries.forEach((val) => {
                 const oldEntry = val.entryData;
-                val.entryData = idToEntryMap[oldEntry.id];
+                const updatedEntry = idToUpdatedEntryMap[oldEntry.id];
+
+                //
+
+                val.entryData = updatedEntry;
               });
             }
             break;
@@ -364,14 +360,14 @@ function handleOnFetchedAction(
           }
           break;
 
-        // re-fetching
+        // re-fetching on experience update success
         case StateValue.reFetchOnly:
           {
             const { entries } = payload;
 
-            const { data } = processEntriesQuery(
-              toGetEntriesSuccessQuery(entries),
-            );
+            const { data } = processEntriesQuery({
+              entriesQueryResult: toGetEntriesSuccessQuery(entries),
+            });
 
             successState.value = StateValue.success;
 
@@ -829,7 +825,7 @@ function updateEntriesFn(
 // ====================================================
 
 const fetchEffect: DefFetchEffect["func"] = async (
-  { pagination, reFetchFromCache },
+  { pagination, reFetchFromCache, existingEntriesLength },
   props,
   effectArgs,
 ) => {
@@ -846,15 +842,15 @@ const fetchEffect: DefFetchEffect["func"] = async (
     },
   };
 
-  const previousEntries = getCachedEntriesDetailView(
+  const cachedEntries = getCachedEntriesDetailView(
     experienceId,
   ) as GetEntriesUnionFragment_GetEntriesSuccess;
 
-  if (reFetchFromCache && previousEntries) {
+  if (reFetchFromCache && cachedEntries) {
     dispatch({
       type: ActionType.on_fetched,
       key: StateValue.reFetchOnly,
-      entries: previousEntries.entries,
+      entries: cachedEntries.entries,
     });
 
     return;
@@ -867,17 +863,14 @@ const fetchEffect: DefFetchEffect["func"] = async (
       ({} as GetEntriesDetailViewQueryResult);
 
     if (data) {
-      const { data: processedEntries } = processEntriesQuery(data.getEntries);
+      const { data: processedEntries, scrollToId } = processEntriesQuery({
+        entriesQueryResult: data.getEntries,
+        existingEntriesLength,
+      });
 
       if (pagination) {
-        const blätternZuId = appendToPreviousEntries(
-          experienceId,
-          processedEntries,
-          previousEntries as GetEntriesUnionFragment_GetEntriesSuccess,
-        );
-
         setTimeout(() => {
-          scrollIntoView(blätternZuId);
+          scrollIntoView(scrollToId);
         });
       }
 
@@ -901,15 +894,16 @@ const fetchEffect: DefFetchEffect["func"] = async (
   }
 };
 
-type DefFetchEffect = EffectDefinition<
-  "fetchEffect",
-  {
-    pagination?: PaginationInput;
-    // if we have updated experience successfully, then we re-fetch entries
-    // from cache
-    reFetchFromCache?: boolean;
-  }
->;
+type DefFetchEffectArgs = {
+  pagination?: PaginationInput;
+  // if we have updated experience successfully, then we re-fetch entries
+  // from cache
+  reFetchFromCache?: boolean;
+  // If we are paginating, the length of existing entries data
+  existingEntriesLength?: number;
+};
+
+type DefFetchEffect = EffectDefinition<"fetchEffect", DefFetchEffectArgs>;
 
 const timeoutsEffect: DefTimeoutsEffect["func"] = (
   { set, clear },
@@ -1108,14 +1102,21 @@ function getEffects(proxy: DraftState) {
   return getGeneralEffects<EffectType, DraftState>(proxy);
 }
 
-export function processEntriesQuery(
-  entriesQueryResult?: GetEntriesUnionFragment | null,
-  syncErrors?: SyncError,
-): {
+export function processEntriesQuery({
+  entriesQueryResult,
+  syncErrors,
+  existingEntriesLength,
+}: {
+  entriesQueryResult?: EntriesCacheUnion | null;
+  syncErrors?: SyncError;
+} & Pick<DefFetchEffectArgs, "existingEntriesLength">): {
   data: ProcessedEntriesQueryReturnVal;
   entriesErrors?: IndexToEntryErrorsList;
   processedSyncErrors?: SyncError;
+  scrollToId: string;
 } {
+  let scrollToId = nonsenseId;
+
   if (!entriesQueryResult) {
     const data = {
       key: StateValue.fail,
@@ -1124,6 +1125,7 @@ export function processEntriesQuery(
 
     return {
       data,
+      scrollToId,
     };
   }
 
@@ -1144,27 +1146,31 @@ export function processEntriesQuery(
 
   if (entriesQueryResult.__typename === "GetEntriesSuccess") {
     const daten = entriesQueryResult.entries as EntryConnectionFragment;
+    let edges = daten.edges as EntryConnectionFragment_edges[];
 
-    const entries = (daten.edges as EntryConnectionFragment_edges[]).map(
-      (edge, index) => {
-        const entry = edge.node as EntryFragment;
-        const { id } = entry;
-        const errorId = id;
-        const createError = createSyncErrors[errorId];
-        const updateError = updateSyncErrors[id];
+    if (existingEntriesLength) {
+      edges = edges.slice(existingEntriesLength);
+    }
 
-        if (createError) {
-          processCreateEntriesErrors(entriesErrors, createError, index);
-        } else if (updateError) {
-          processUpdateEntriesErrors(entriesErrors, updateError, index);
-        }
+    const entries = edges.map((edge, index) => {
+      const entry = edge.node as EntryFragment;
+      const { id } = entry;
+      scrollToId = id;
+      const errorId = id;
+      const createError = createSyncErrors[errorId];
+      const updateError = updateSyncErrors[id];
 
-        return {
-          entryData: entry,
-          entrySyncError: createError || updateError,
-        };
-      },
-    );
+      if (createError) {
+        processCreateEntriesErrors(entriesErrors, createError, index);
+      } else if (updateError) {
+        processUpdateEntriesErrors(entriesErrors, updateError, index);
+      }
+
+      return {
+        entryData: entry,
+        entrySyncError: createError || updateError,
+      };
+    });
 
     delete syncErrors1.createEntries;
     delete syncErrors1.updateEntries;
@@ -1179,6 +1185,7 @@ export function processEntriesQuery(
       data,
       entriesErrors: entriesErrors.length ? entriesErrors : undefined,
       processedSyncErrors: syncErrors1,
+      scrollToId,
     };
   } else {
     const data = {
@@ -1188,6 +1195,7 @@ export function processEntriesQuery(
 
     return {
       data,
+      scrollToId,
     };
   }
 }
@@ -1200,56 +1208,6 @@ type EntryErrorsList = {
   // [index, key, errorValue]
   dataObjects?: [string | number, [string, string][]][];
 };
-
-function appendToPreviousEntries(
-  experienceId: string,
-  newEntriesData: ProcessedEntriesQueryReturnVal,
-  previousEntries?: GetEntriesUnionFragment_GetEntriesSuccess,
-) {
-  let blätternZuId = nonsenseId;
-
-  if (newEntriesData.key === StateValue.fail) {
-    return blätternZuId;
-  }
-
-  const { entries, pageInfo } = newEntriesData;
-
-  const newEntryEdges = entries.map((e) => entryToEdge(e.entryData));
-
-  let previousEntryEdges = [] as EntryConnectionFragment_edges[];
-
-  if (previousEntries) {
-    previousEntryEdges = previousEntries.entries
-      .edges as EntryConnectionFragment_edges[];
-  }
-
-  const allEdges = [...previousEntryEdges, ...newEntryEdges];
-
-  const y = toGetEntriesSuccessQuery({
-    edges: allEdges,
-    pageInfo: pageInfo,
-    __typename: "EntryConnection",
-  });
-
-  writeCachedEntriesDetailView(experienceId, y);
-
-  const { persistor } = window.____ebnis;
-  persistor.persist();
-
-  if (previousEntryEdges.length) {
-    blätternZuId = (
-      previousEntryEdges[previousEntryEdges.length - 1].node as EntryFragment
-    ).id;
-  } else {
-    blätternZuId = (newEntryEdges[0].node as EntryFragment).id;
-  }
-
-  return (
-    blätternZuId ||
-    // istanbul ignore next:
-    "??"
-  );
-}
 
 export function processCreateEntriesErrors(
   entryErrors: IndexToEntryErrorsList,

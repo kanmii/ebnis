@@ -1,11 +1,14 @@
 /* istanbul ignore file */
+import { ApolloQueryResult } from "@apollo/client";
 import { FieldPolicy } from "@apollo/client/cache/inmemory/policies";
+import { GetEntriesDetailViewVariables } from "../graphql/apollo-types/GetEntriesDetailView";
 import {
   GetEntriesUnionFragment,
   GetEntriesUnionFragment_GetEntriesErrors,
   GetEntriesUnionFragment_GetEntriesSuccess,
   GetEntriesUnionFragment_GetEntriesSuccess_entries_edges,
 } from "../graphql/apollo-types/GetEntriesUnionFragment";
+import { GET_ENTRIES_DETAIL_VIEW_QUERY } from "../graphql/experience.gql";
 
 export const getEntriesConnectionFieldPolicy: FieldPolicy<
   EntriesCacheUnion,
@@ -72,11 +75,32 @@ export const getEntriesConnectionFieldPolicy: FieldPolicy<
   },
 };
 
+export function getEntriesDetailView(variables: GetEntriesDetailViewVariables) {
+  const { client } = window.____ebnis;
+
+  return client.query<GetEntriesCacheUnion, GetEntriesDetailViewVariables>({
+    query: GET_ENTRIES_DETAIL_VIEW_QUERY,
+    variables,
+    fetchPolicy: "network-only",
+  });
+}
+
 export type EntriesCacheUnion =
   | GetEntriesUnionFragment_GetEntriesErrors
   | EntriesCacheSuccessMayBeWithErrors;
+
+type GetEntriesCacheUnion = {
+  getEntries: EntriesCacheUnion | null;
+};
 
 type EntriesCacheSuccessMayBeWithErrors =
   GetEntriesUnionFragment_GetEntriesSuccess & {
     error?: GetEntriesUnionFragment_GetEntriesErrors["errors"];
   };
+
+export type GetEntriesDetailViewProps = {
+  getEntriesDetailView: typeof getEntriesDetailView;
+};
+
+export type GetEntriesDetailViewQueryResult =
+  ApolloQueryResult<GetEntriesCacheUnion>;

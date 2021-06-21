@@ -1,7 +1,7 @@
 import { Button } from "@eb/jsx/src/Button";
 import Modal from "@eb/jsx/src/Modal";
 import { Notification } from "@eb/jsx/src/Notification";
-import { getEntriesDetailView } from "@eb/shared/src/apollo/experience.gql.types";
+import { getEntriesDetailView } from "@eb/shared/src/apollo/entries-connection.gql";
 import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
 import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
 import { StateValue } from "@eb/shared/src/utils/types";

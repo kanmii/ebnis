@@ -18,10 +18,6 @@ import {
   GetDataObjectsVariables,
 } from "../graphql/apollo-types/GetDataObjects";
 import {
-  GetEntriesDetailView,
-  GetEntriesDetailViewVariables,
-} from "../graphql/apollo-types/GetEntriesDetailView";
-import {
   GetExperienceAndEntriesDetailView,
   GetExperienceAndEntriesDetailViewVariables,
 } from "../graphql/apollo-types/GetExperienceAndEntriesDetailView";
@@ -42,7 +38,6 @@ import {
 import {
   CREATE_EXPERIENCES_MUTATION,
   GET_DATA_OBJECTS_QUERY,
-  GET_ENTRIES_DETAIL_VIEW_QUERY,
   GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY,
   GET_EXPERIENCE_COMMENTS_QUERY,
   GET_EXPERIENCE_DETAIL_VIEW_QUERY,
@@ -147,24 +142,8 @@ export type GetExperienceAndEntriesDetailViewInject = {
 export type GetExperienceAndEntriesDetailViewQueryResult =
   ApolloQueryResult<GetExperienceAndEntriesDetailView>;
 
-export function getEntriesDetailView(variables: GetEntriesDetailViewVariables) {
-  const { client } = window.____ebnis;
 
-  return client.query<GetEntriesDetailView, GetEntriesDetailViewVariables>({
-    query: GET_ENTRIES_DETAIL_VIEW_QUERY,
-    variables,
-    fetchPolicy: "network-only",
-  });
-}
 
-export type GetEntriesDetailViewQueryResult =
-  ApolloQueryResult<GetEntriesDetailView>;
-
-type GetEntriesDetailViewFn = typeof getEntriesDetailView;
-
-export type GetEntriesDetailViewProps = {
-  getEntriesDetailView: GetEntriesDetailViewFn;
-};
 
 export function getExperienceDetailView(
   variables: GetExperienceDetailViewVariables,
