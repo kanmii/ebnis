@@ -1,4 +1,4 @@
-import { getCachedExperiencesConnectionListView } from "@eb/shared/src/apollo/cached-experiences-list-view";
+import { GetCachedExperiencesConnectionListViewFn } from "@eb/shared/src/apollo/cached-experiences-list-view";
 import {
   DeletedExperienceLedger,
   getDeleteExperienceLedger,
@@ -58,7 +58,6 @@ import {
   getGeneralEffects,
 } from "../../utils/effects";
 import { scrollIntoView } from "../../utils/scroll-into-view";
-import { FETCH_EXPERIENCES_TIMEOUTS } from "../../utils/timers";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { nonsenseId } from "../../utils/utils.dom";
 import { cleanUpOfflineExperiences } from "../WithSubscriptions/with-subscriptions.utils";
@@ -151,7 +150,7 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
             break;
 
           case ActionType.fetch_next_experiences_page:
-            handleFetchPrevNextExperiencesPageAction(state);
+            handlePaginateExperiencesAction(state);
             break;
 
           case ActionType.on_update_experience_success:
@@ -382,44 +381,65 @@ function handleOnDataReceivedAction(
   proxy: StateMachine,
   payload: OnDataReceivedPayload,
 ) {
+  const { states } = proxy;
+  const dataState = states as DataState;
+
   switch (payload.key) {
     case StateValue.data:
       {
         const {
-          data,
+          data: { experiences, pageInfo },
           deletedExperience,
           // paginating,
           preparedExperiences,
         } = payload;
-        const { experiences, pageInfo } = data;
 
-        const state = {
-          value: StateValue.data,
-        } as DataState;
+        switch (states.value) {
+          case StateValue.loading:
+          case StateValue.errors:
+            {
+              dataState.value = StateValue.data;
 
-        state.data = {
-          context: {
-            experiencesPrepared: preparedExperiences,
-            experiences,
-            pageInfo,
-          },
+              dataState.data = {
+                context: {
+                  experiencesPrepared: preparedExperiences,
+                  experiences,
+                  pageInfo,
+                },
 
-          states: {
-            upsertExperienceActivated: {
-              value: StateValue.inactive,
-            },
-            experiences: {},
-            search: {
-              value: StateValue.inactive,
-            },
-            deletedExperience: {
-              value: StateValue.inactive,
-            },
-          },
-        };
+                states: {
+                  upsertExperienceActivated: {
+                    value: StateValue.inactive,
+                  },
+                  experiences: {},
+                  search: {
+                    value: StateValue.inactive,
+                  },
+                  deletedExperience: {
+                    value: StateValue.inactive,
+                  },
+                },
+              };
 
-        proxy.states = state;
-        handleOnDeleteExperienceProcessedHelper(state, deletedExperience);
+              handleOnDeleteExperienceProcessedHelper(
+                dataState,
+                deletedExperience,
+              );
+            }
+            break;
+
+          case StateValue.data:
+            {
+              const { context } = dataState.data;
+              context.pageInfo = pageInfo;
+              context.experiencesPrepared = [
+                ...context.experiencesPrepared,
+                ...preparedExperiences,
+              ];
+              context.experiences = [...context.experiences, ...experiences];
+            }
+            break;
+        }
       }
       break;
 
@@ -442,7 +462,7 @@ async function handleDataReFetchRequestAction(proxy: StateMachine) {
   });
 }
 
-function handleFetchPrevNextExperiencesPageAction(proxy: StateMachine) {
+function handlePaginateExperiencesAction(proxy: StateMachine) {
   const { states } = proxy;
 
   // istanbul ignore else
@@ -472,6 +492,7 @@ function handleFetchPrevNextExperiencesPageAction(proxy: StateMachine) {
           first: EXPERIENCES_MINI_FETCH_COUNT,
         },
         previousLastId,
+        existingExperiencesLength: len,
       },
     });
   }
@@ -714,24 +735,28 @@ type DefDeleteExperienceRequestEffect = EffectDefinition<
 >;
 
 const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
-  { paginationInput, previousLastId },
+  { paginationInput, previousLastId, existingExperiencesLength },
   props,
   effectArgs,
 ) => {
-  const { getExperienceConnectionListView } = props;
+  const {
+    getExperienceConnectionListView,
+    componentTimeoutsMs: { fetchRetries },
+    getCachedExperiencesConnectionListViewFn,
+  } = props;
   const { dispatch } = effectArgs;
   let timeoutId: null | NodeJS.Timeout = null;
-  let fetchExperiencesAttemptsCount = 0;
-  const timeoutsLen = FETCH_EXPERIENCES_TIMEOUTS.length - 1;
+  let fetchAttemptsCount = 0;
+  const timeoutsLen = fetchRetries.length - 1;
 
   // bei seitennummerierung wurden wir zwischengespeicherte Erfahrungen nicht
   // gebraucht
-  const cachedExperiencesResult = getCachedExperiencesConnectionListView();
+  const cachedExperiencesResult = getCachedExperiencesConnectionListViewFn();
 
   const deletedExperience = await deleteExperienceProcessedEffectHelper();
 
   if (paginationInput) {
-    fetchExperiences();
+    doFetch();
     return;
   }
 
@@ -758,13 +783,13 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
     // we are connected
     if (getIsConnected()) {
       // fetch from network
-      fetchExperiences();
+      doFetch();
       return;
     }
 
     // we are still trying to connect and have tried enough times
     // isConnected === null
-    if (fetchExperiencesAttemptsCount > timeoutsLen) {
+    if (fetchAttemptsCount > timeoutsLen) {
       dispatch({
         type: ActionType.on_data_received,
         key: StateValue.errors,
@@ -776,13 +801,11 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 
     timeoutId = setTimeout(
       mayBeScheduleFetch,
-      FETCH_EXPERIENCES_TIMEOUTS[fetchExperiencesAttemptsCount++],
+      fetchRetries[fetchAttemptsCount++],
     );
   }
 
-  async function fetchExperiences() {
-    debugger;
-
+  async function doFetch() {
     try {
       const networkFetchResult = await getExperienceConnectionListView(
         "network-only",
@@ -804,7 +827,9 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
           data.getExperiences) as GetExperiencesConnectionListView_getExperiences;
 
         const [processedResults, preparedExperiences] =
-          processGetExperiencesQuery(fetchedExperiences, {});
+          processGetExperiencesQuery(fetchedExperiences, {
+            existingExperiencesLength,
+          });
 
         dispatch({
           type: ActionType.on_data_received,
@@ -837,11 +862,14 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 
 type DefFetchExperiencesEffect = EffectDefinition<
   "fetchExperiencesEffect",
-  {
-    paginationInput?: GetExperiencesConnectionListViewVariables;
-    previousLastId?: string;
-  }
+  DefFetchExperiencesEffectOwnArgs
 >;
+
+type DefFetchExperiencesEffectOwnArgs = {
+  paginationInput?: GetExperiencesConnectionListViewVariables;
+  previousLastId?: string;
+  existingExperiencesLength?: number;
+};
 
 const scrollToViewEffect: DefScrollToViewEffect["func"] = ({ id }) => {
   scrollIntoView(id);
@@ -947,17 +975,25 @@ async function deleteExperienceProcessedEffectHelper() {
 }
 
 function processGetExperiencesQuery(
-  { edges, pageInfo }: GetExperiencesConnectionListView_getExperiences,
+  { edges: e, pageInfo }: GetExperiencesConnectionListView_getExperiences,
   {
     deletedExperience,
+    existingExperiencesLength,
   }: {
     deletedExperience?: DeletedExperienceLedger;
-  },
+  } & Pick<DefFetchExperiencesEffectOwnArgs, "existingExperiencesLength">,
 ): [ExperiencesData, PreparedExperience[]] {
   const deletedId = deletedExperience ? deletedExperience.id : "";
 
-  const newEdges =
-    edges as GetExperiencesConnectionListView_getExperiences_edges[];
+  const edges = e as GetExperiencesConnectionListView_getExperiences_edges[];
+
+  // If we are paginating, apollo will merge all experiences currently
+  // in our client cache with those fetched from network. Thus if we have
+  // experiences existing in cache, we remove them so we only process
+  // new batch of experiences receives from network
+  const newEdges = existingExperiencesLength
+    ? edges.slice(existingExperiencesLength)
+    : edges;
 
   const syncErrors = getSyncErrors() || {};
 
@@ -995,8 +1031,6 @@ function processGetExperiencesQuery(
 
   if (erfahrungenIds.length) {
     setTimeout(() => {
-      // TODO(kanmii): how not to pre fetch data already pre-fetched since
-      // apollo is merging both incoming and existing data
       handlePreFetchExperiences(erfahrungenIds, idToExperienceMap);
     });
   }
@@ -1192,7 +1226,16 @@ export type CallerProps = RouteChildrenProps<
   }
 >;
 
-export type Props = CallerProps & GetExperienceConnectionListViewFunction;
+export type ComponentTimeoutsMs = {
+  fetchRetries: number[];
+  // closeNotification: number;
+};
+
+export type Props = CallerProps &
+  GetExperienceConnectionListViewFunction &
+  GetCachedExperiencesConnectionListViewFn & {
+    componentTimeoutsMs: ComponentTimeoutsMs;
+  };
 
 export interface ExperiencesMap {
   [experienceId: string]: ExperienceState;
@@ -1204,11 +1247,7 @@ export interface ExperienceState {
   showingUpdateSuccess?: boolean;
 }
 
-export type ExperiencesSearchPrepared = {
-  target: Fuzzysort.Prepared;
-  title: string;
-  id: string;
-}[];
+export type ExperiencesSearchPrepared = PreparedExperience[];
 
 export interface EffectArgs {
   dispatch: DispatchType;

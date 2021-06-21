@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 import { ApolloClient, ApolloLink, InMemoryCache } from "@apollo/client";
-import { CachePersistor } from "apollo-cache-persist-dev";
+import { CachePersistor } from "apollo3-cache-persist";
 import { BroadcastChannel } from "broadcast-channel";
 import { graphql, SetupWorkerApi } from "msw";
 import { Socket as PhoenixSocket } from "phoenix";

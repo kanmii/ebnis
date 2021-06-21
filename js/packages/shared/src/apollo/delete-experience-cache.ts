@@ -23,6 +23,10 @@ export function putOrRemoveDeleteExperienceLedger(
   return null;
 }
 
+export type PutOrRemoveDeleteExperienceLedgerFn = {
+  putOrRemoveDeleteExperienceLedger: typeof putOrRemoveDeleteExperienceLedger;
+};
+
 export function getDeleteExperienceLedger(
   id?: string,
 ): DeletedExperienceLedger | null {
@@ -37,6 +41,10 @@ export function getDeleteExperienceLedger(
   }
 
   return putOrRemoveDeleteExperienceLedger();
+}
+
+export type GetDeleteExperienceLedgerFn = {
+  getDeleteExperienceLedger: typeof getDeleteExperienceLedger
 }
 
 export const deleteExperienceVar = makeVar<null | DeletedExperienceLedger>(

@@ -176,6 +176,10 @@ export async function cleanUpOfflineExperiences(
   await persistor.persist();
 }
 
+export type CleanUpOfflineExperiencesFn = {
+  cleanUpOfflineExperiences: typeof cleanUpOfflineExperiences;
+};
+
 export async function cleanUpSyncedOfflineEntries(
   data: OnlineExperienceIdToOfflineEntriesMap,
 ) {

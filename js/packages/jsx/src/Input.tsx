@@ -92,7 +92,7 @@ export function Select(props: SelectProps) {
   return (
     <div
       className={cn(
-        "h-11 inline-block max-w-full relative align-top",
+        "h-11 inline-block relative align-top",
         parentClassName || "",
         commons,
         isRounded ? "rounded-full" : "",

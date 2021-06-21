@@ -36,10 +36,6 @@ import {
 import { OnExperiencesDeletedSubscription } from "../graphql/apollo-types/OnExperiencesDeletedSubscription";
 import { PageInfoFragment } from "../graphql/apollo-types/PageInfoFragment";
 import {
-  PreFetchExperiences,
-  PreFetchExperiencesVariables,
-} from "../graphql/apollo-types/PreFetchExperiences";
-import {
   UpdateExperiencesOnline,
   UpdateExperiencesOnlineVariables,
 } from "../graphql/apollo-types/UpdateExperiencesOnline";
@@ -51,9 +47,9 @@ import {
   GET_EXPERIENCE_COMMENTS_QUERY,
   GET_EXPERIENCE_DETAIL_VIEW_QUERY,
   ON_EXPERIENCES_DELETED_SUBSCRIPTION,
-  PRE_FETCH_EXPERIENCES_QUERY,
 } from "../graphql/experience.gql";
 import { getSessionId } from "../utils/session-manager";
+import { CacheExperienceAndEntries } from "./experience-detail-entries-connection.gql";
 
 ////////////////////////// UPDATE EXPERIENCES SECTION //////////////////
 
@@ -135,7 +131,7 @@ export function getExperienceAndEntriesDetailView(
   const { client } = window.____ebnis;
 
   return client.query<
-    GetExperienceAndEntriesDetailView,
+    CacheExperienceAndEntries,
     GetExperienceAndEntriesDetailViewVariables
   >({
     query: GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY,
@@ -200,16 +196,6 @@ export type ExperiencesData = {
   experiences: ExperienceData[];
   pageInfo: PageInfoFragment;
 };
-
-export function preFetchExperiences(variables: PreFetchExperiencesVariables) {
-  const { client } = window.____ebnis;
-
-  return client.query<PreFetchExperiences, PreFetchExperiencesVariables>({
-    query: PRE_FETCH_EXPERIENCES_QUERY,
-    variables,
-    fetchPolicy: "network-only",
-  });
-}
 
 export function getGetDataObjects(variables: GetDataObjectsVariables) {
   const { client } = window.____ebnis;

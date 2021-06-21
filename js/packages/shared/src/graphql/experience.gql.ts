@@ -639,8 +639,7 @@ export const GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY = gql`
       ...ExperienceDetailViewFragment
     }
 
-    getEntries(experienceId: $experienceId, pagination: $pagination)
-      @connection(key: "getEntries", filter: ["experienceId"]) {
+    getEntries(experienceId: $experienceId, pagination: $pagination) {
       ...GetEntriesUnionFragment
     }
   }

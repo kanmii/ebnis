@@ -1,10 +1,10 @@
 import {
   activateInsertExperienceDomId,
-  dropdownTriggerClassName,
+  dropdownTriggerSelector,
   experienceContainerSelector,
   MY_TITLE,
   updateExperienceMenuItemSelector,
-  updateExperienceSuccessNotificationCloseClassName,
+  updateExperienceSuccessNotificationSelector,
 } from "@eb/cra/src/components/My/my.dom";
 import {
   addDefinitionSelector,
@@ -247,7 +247,7 @@ context("My page", () => {
 
         cy.get("@experience1").within(() => {
           // And we click on menu button of second experience (title1)
-          cy.get("." + dropdownTriggerClassName).click();
+          cy.get("." + dropdownTriggerSelector).click();
 
           // And we click on edit button of experience
           cy.get("." + updateExperienceMenuItemSelector).click();
@@ -299,7 +299,7 @@ context("My page", () => {
 
         cy.get("@experience1").within(() => {
           // Notification that experience update succeeded should be visible
-          cy.get("." + updateExperienceSuccessNotificationCloseClassName)
+          cy.get("." + updateExperienceSuccessNotificationSelector)
             .should("exist")
             .click();
         });
@@ -350,7 +350,7 @@ context("My page", () => {
 
         cy.get("@experience1").within(() => {
           // And we click on menu button of second experience (title1)
-          cy.get("." + dropdownTriggerClassName).click();
+          cy.get("." + dropdownTriggerSelector).click();
 
           // And we click on edit button of experience
           cy.get("." + updateExperienceMenuItemSelector).click();
@@ -395,7 +395,7 @@ context("My page", () => {
         cy.get("@experience1").within(() => {
           // Notification that experience update succeeded should be visible
           cy.get(
-            "." + updateExperienceSuccessNotificationCloseClassName,
+            "." + updateExperienceSuccessNotificationSelector,
           ).click();
         });
 

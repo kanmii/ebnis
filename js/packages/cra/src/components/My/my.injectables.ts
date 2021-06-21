@@ -1,8 +1,8 @@
-import { preFetchExperiences } from "@eb/shared/src/apollo/experience.gql.types";
 import {
   writeCachedEntriesDetailView,
   writeGetExperienceDetailViewQueryToCache,
 } from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { preFetchExperiences } from "@eb/shared/src/apollo/pre-fetch-experiences.gql";
 import { EntryConnectionFragment } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
 import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
@@ -50,16 +50,9 @@ export function handlePreFetchExperiences(
         toGetEntriesSuccessQuery(entryConnection),
       );
     });
-
-    const { cache } = window.____ebnis;
-    const dataProxy = cache as any;
-    const data = dataProxy.data.data.ROOT_QUERY;
-
-    for (const key of Object.keys(data)) {
-      if (key.startsWith("preFetchExperiences({")) {
-        delete data[key];
-        break;
-      }
-    }
   });
+}
+
+export type HandlePreFetchExperiencesFn = {
+  handlePreFetchExperiences: typeof handlePreFetchExperiences
 }

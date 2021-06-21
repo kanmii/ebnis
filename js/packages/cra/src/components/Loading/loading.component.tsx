@@ -70,6 +70,9 @@ function BounceComponent(props: ComponentProps) {
 
 // istanbul ignore next:
 export default Loading;
+export type LoadingComponentType = {
+  LoadingComponentFn: typeof Loading
+}
 
 export type Props = ComponentProps & {
   loading?: boolean;

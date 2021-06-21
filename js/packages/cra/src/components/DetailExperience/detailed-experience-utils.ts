@@ -2,6 +2,8 @@ import {
   getDeleteExperienceLedger,
   putOrRemoveDeleteExperienceLedger,
 } from "@eb/shared/src/apollo/delete-experience-cache";
+import { EntriesCacheUnion } from "@eb/shared/src/apollo/entries-connection.gql";
+import { CacheExperienceAndEntries } from "@eb/shared/src/apollo/experience-detail-entries-connection.gql";
 import {
   GetExperienceAndEntriesDetailViewFn,
   GetExperienceCommentsFn,
@@ -23,7 +25,6 @@ import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/Data
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
 import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
 import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
-import { GetEntriesUnionFragment } from "@eb/shared/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { GetExperienceAndEntriesDetailView } from "@eb/shared/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import { wrapReducer, wrapState } from "@eb/shared/src/logger";
 import { getIsConnected } from "@eb/shared/src/utils/connections";
@@ -1169,10 +1170,12 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
         "network-only",
       );
 
+
       const daten =
         (data && data.data) ||
         // istanbul ignore next:
-        ({} as GetExperienceAndEntriesDetailView);
+        ({} as CacheExperienceAndEntries);
+
 
       const [experienceData, newSyncErrors] = processGetExperienceQuery(
         daten.getExperience || null,
@@ -1329,7 +1332,7 @@ export const effectFunctions = {
 
 function processGetExperienceQuery(
   experience: ExperienceDetailViewFragment | null,
-  entriesQueryResult: GetEntriesUnionFragment | null,
+  entriesQueryResult: EntriesCacheUnion | null,
   syncErrors?: SyncError,
 ): [FetchedExperiencePayload, ExperienceSyncError | undefined] {
   if (experience) {

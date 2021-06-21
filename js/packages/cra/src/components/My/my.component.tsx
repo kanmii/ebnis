@@ -3,12 +3,14 @@ import { Card } from "@eb/jsx/src/Card";
 import { DropdownMenu } from "@eb/jsx/src/DropdownMenu";
 import { Input, Textarea } from "@eb/jsx/src/Input";
 import { Notification } from "@eb/jsx/src/Notification";
+import { getCachedExperiencesConnectionListView } from "@eb/shared/src/apollo/cached-experiences-list-view";
 import { ExperienceData } from "@eb/shared/src/apollo/experience.gql.types";
 import { getExperienceConnectionListView } from "@eb/shared/src/apollo/get-experiences-connection-list.gql";
 import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
 import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
 import errorImage from "@eb/shared/src/media/error-96.png";
 import { ReactComponent as SearchIconSvg } from "@eb/shared/src/styles/search-solid.svg";
+import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
 import { OnlineStatus, StateValue } from "@eb/shared/src/utils/types";
 import {
   ComponentColorType,
@@ -338,6 +340,10 @@ export default (props: CallerProps) => {
     <My
       {...props}
       getExperienceConnectionListView={getExperienceConnectionListView}
+      componentTimeoutsMs={componentTimeoutsMs}
+      getCachedExperiencesConnectionListViewFn={
+        getCachedExperiencesConnectionListView
+      }
     />
   );
 };

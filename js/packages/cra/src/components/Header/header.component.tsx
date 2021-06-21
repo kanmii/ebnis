@@ -64,9 +64,13 @@ function LogoImageComponent({ src }: { src: string }) {
 }
 
 // istanbul ignore next:
-export default () => {
+const HeaderComponent = () => {
   const { connected } = useContext(WithSubscriptionContext);
   return <Header connected={connected} />;
+};
+export default HeaderComponent;
+export type HeaderComponentType = {
+  HeaderComponentFn: typeof HeaderComponent;
 };
 
 export interface Props {

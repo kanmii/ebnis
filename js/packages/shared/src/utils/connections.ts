@@ -65,6 +65,10 @@ export function getIsConnected() {
   return connectionStatus ? connectionStatus.isConnected : null;
 }
 
+export type GetIsConnectedFn = {
+  getIsConnected: typeof getIsConnected
+}
+
 function getConnectionStatus() {
   return window.____ebnis.connectionStatus;
 }

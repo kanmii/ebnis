@@ -5,10 +5,7 @@ import {
   getDeleteExperienceLedger,
   putOrRemoveDeleteExperienceLedger,
 } from "@eb/shared/src/apollo/delete-experience-cache";
-import {
-  getExperienceConnectionListView,
-  GetExperiencesConnectionListViewQueryResult,
-} from "@eb/shared/src/apollo/get-experiences-connection-list.gql";
+import { GetExperiencesConnectionListViewQueryResult } from "@eb/shared/src/apollo/get-experiences-connection-list.gql";
 import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
 import { getOnlineStatus } from "@eb/shared/src/apollo/unsynced-ledger";
 import { purgeExperiencesFromCache1 } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
@@ -25,6 +22,7 @@ import {
   EbnisGlobals,
   StateValue,
 } from "@eb/shared/src/utils/types";
+import { componentTimeoutsMs } from "@eb/shared/src/__tests__/wait-for-count";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
@@ -67,6 +65,8 @@ import { AppPersistor } from "../utils/app-context";
 import { GenericHasEffect } from "../utils/effects";
 import { FETCH_EXPERIENCES_TIMEOUTS, MAX_TIMEOUT_MS } from "../utils/timers";
 
+const mockGetCachedExperiencesConnectionListViewFn = jest.fn();
+
 jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
 const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
 
@@ -81,10 +81,6 @@ const mockPurgeExperiencesFromCache1 = purgeExperiencesFromCache1 as jest.Mock;
 jest.mock("@eb/shared/src/apollo/delete-experience-cache");
 const mockPutOrRemoveDeleteExperienceLedger =
   putOrRemoveDeleteExperienceLedger as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/get-experiences-connection-list.gql");
-const mockManuallyFetchExperienceConnectionMini =
-  getExperienceConnectionListView as jest.Mock;
 
 const mockGetExperiencesConnectionListView = jest.fn();
 
@@ -176,14 +172,14 @@ const persistor = {
   persist: mockPersistFn as any,
 } as AppPersistor;
 
-const globals = {
+const ebnisObject = {
   persistor,
   cache: { evict: mockEvictFn } as any,
   bcBroadcaster: { postMessage: mockPostMsg } as any,
 } as EbnisGlobals;
 
 beforeAll(() => {
-  window.____ebnis = globals;
+  window.____ebnis = ebnisObject;
 });
 
 afterAll(() => {
@@ -199,6 +195,8 @@ afterEach(() => {
   jest.runTimersToTime(MAX_TIMEOUT_MS);
   jest.clearAllTimers();
   jest.resetAllMocks();
+  ebnisObject.logApolloQueries = false;
+  ebnisObject.logReducers = false;
 });
 
 describe("component", () => {
@@ -206,23 +204,27 @@ describe("component", () => {
     mockGetIsConnected.mockResolvedValue(true);
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
+    mockGetExperiencesConnectionListView.mockResolvedValue({
       error: new Error("a"),
     } as GetExperiencesConnectionListViewQueryResult);
 
     const { ui } = makeComp();
 
     await act(async () => {
+      // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
       render(ui);
-      jest.runTimersToTime(MAX_TIMEOUT_MS);
 
       expect(document.getElementById(mockLoadingId)).not.toBeNull();
       expect(getFetchErrorRetry()).toBeNull();
 
-      await waitFor(() => true);
-      const reFetchEl = getFetchErrorRetry();
+      const reFetchEl = await waitFor(() => {
+        const el = getFetchErrorRetry();
+        expect(el).not.toBeNull();
+        return el;
+      });
 
-      mockManuallyFetchExperienceConnectionMini.mockResolvedValue({
+      mockGetExperiencesConnectionListView.mockResolvedValue({
         data: {
           getExperiences: {
             edges: [] as any,
@@ -235,8 +237,11 @@ describe("component", () => {
       expect(getNoExperiencesActivateNew()).toBeNull();
       jest.runTimersToTime(MAX_TIMEOUT_MS);
 
-      await waitFor(() => true);
-      const activateInsertExperienceBtnEl = getNoExperiencesActivateNew();
+      const activateInsertExperienceBtnEl = await waitFor(() => {
+        const el = getNoExperiencesActivateNew();
+        expect(el).not.toBeNull();
+        return el;
+      });
 
       expect(getMockCloseUpsertExperienceUi()).toBeNull();
 
@@ -256,22 +261,26 @@ describe("component", () => {
       connected: true,
     });
 
-    mockManuallyFetchExperienceConnectionMini.mockRejectedValue(new Error("a"));
+    mockGetExperiencesConnectionListView.mockRejectedValue(new Error("a"));
 
     const { ui } = makeComp();
 
     await act(async () => {
+      // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
       render(ui);
-      jest.runTimersToTime(MAX_TIMEOUT_MS);
 
       expect(document.getElementById(mockLoadingId)).not.toBeNull();
 
       expect(getFetchErrorRetry()).toBeNull();
 
-      await waitFor(() => true);
-      const reFetchEl = getFetchErrorRetry();
+      const reFetchEl = await waitFor(() => {
+        const el = getFetchErrorRetry();
+        expect(el).not.toBeNull();
+        return el;
+      });
 
-      mockManuallyFetchExperienceConnectionMini.mockResolvedValueOnce({
+      mockGetExperiencesConnectionListView.mockResolvedValueOnce({
         data: {
           getExperiences: {
             edges: [
@@ -290,7 +299,6 @@ describe("component", () => {
       } as GetExperiencesConnectionListViewQueryResult);
 
       reFetchEl.click();
-      jest.runTimersToTime(MAX_TIMEOUT_MS);
 
       expect(getNoExperiencesActivateNew()).toBeNull();
 
@@ -326,7 +334,7 @@ describe("component", () => {
         },
       } as GetExperiencesConnectionListView_getExperiences);
 
-      mockManuallyFetchExperienceConnectionMini.mockResolvedValueOnce({
+      mockGetExperiencesConnectionListView.mockResolvedValueOnce({
         data: {
           getExperiences: {
             edges: [
@@ -355,6 +363,26 @@ describe("component", () => {
     });
   });
 
+  // MOCK DATA
+  const mockGetCachedExperiencesConnectionListViewFnData1 = {
+    edges: [
+      {
+        node: {
+          id: mockPartOfflineId,
+          title: "bb",
+        },
+      },
+      {
+        node: {
+          id: offlineId,
+          title: "cc",
+          description: "cc",
+        },
+      },
+    ] as GetExperiencesConnectionListView_getExperiences_edges[],
+    pageInfo: {},
+  } as GetExperiencesConnectionListView_getExperiences;
+
   it("interacts with description / offline Erfahrungen / teilweise online Erfahrungen", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
@@ -362,34 +390,21 @@ describe("component", () => {
       .mockReturnValueOnce(StateValue.partOffline)
       .mockReturnValueOnce(StateValue.offline);
 
-    mockGetExperiencesConnectionListView.mockReturnValue({
-      edges: [
-        {
-          node: {
-            id: mockPartOfflineId,
-            title: "bb",
-          },
-        },
-        {
-          node: {
-            id: offlineId,
-            title: "cc",
-            description: "cc",
-          },
-        },
-      ] as GetExperiencesConnectionListView_getExperiences_edges[],
-      pageInfo: {},
-    } as GetExperiencesConnectionListView_getExperiences);
+    mockGetCachedExperiencesConnectionListViewFn.mockReturnValue(
+      mockGetCachedExperiencesConnectionListViewFnData1,
+    );
 
     const { ui } = makeComp();
 
     await act(async () => {
+      // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
       render(ui);
 
       const partOfflineExperienceEl = await waitFor(() => {
-        const x = getExperienceEl(mockPartOfflineId);
-        expect(x).not.toBeNull();
-        return x;
+        const el = getExperienceEl(mockPartOfflineId);
+        expect(el).not.toBeNull();
+        return el;
       });
 
       expect(partOfflineExperienceEl.className).toContain(
@@ -433,23 +448,30 @@ describe("component", () => {
     });
   });
 
+  // MOCKED DATA
+  const mockGetCachedExperiencesConnectionListViewFnData2 = {
+    edges: [
+      {
+        node: {
+          id: mockPartOfflineId,
+          title: "bb",
+        },
+      },
+    ] as GetExperiencesConnectionListView_getExperiences_edges[],
+    pageInfo: {},
+  } as GetExperiencesConnectionListView_getExperiences;
+
   it("interacts with options menu", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
-    mockGetExperiencesConnectionListView.mockReturnValue({
-      edges: [
-        {
-          node: {
-            id: mockPartOfflineId,
-            title: "bb",
-          },
-        },
-      ] as GetExperiencesConnectionListView_getExperiences_edges[],
-      pageInfo: {},
-    } as GetExperiencesConnectionListView_getExperiences);
+    mockGetCachedExperiencesConnectionListViewFn.mockReturnValue(
+      mockGetCachedExperiencesConnectionListViewFnData2,
+    );
 
     const { ui } = makeComp();
 
     await act(async () => {
+      // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
       render(ui);
 
       const experiencesEls0 = await waitFor(() => {
@@ -479,8 +501,6 @@ describe("component", () => {
 
       getDeleteExperienceMenu().click();
 
-      await waitFor(() => true);
-
       expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0][0].id).toBe(
         mockPartOfflineId,
       );
@@ -489,27 +509,34 @@ describe("component", () => {
     });
   });
 
-  const mockGetExperiencesMiniQuery2 = {
-    edges: [
-      {
-        node: {
-          id: mockOnlineId,
-          title: "aa",
-        },
-      },
-    ] as GetExperiencesConnectionListView_getExperiences_edges[],
-    pageInfo: {},
-  } as GetExperiencesConnectionListView_getExperiences;
+  const mockGetExperiencesConnectionListViewData2 = {
+    data: {
+      getExperiences: {
+        edges: [
+          {
+            node: {
+              id: mockOnlineId,
+              title: "aa",
+            },
+          },
+        ] as GetExperiencesConnectionListView_getExperiences_edges[],
+        pageInfo: {},
+      } as GetExperiencesConnectionListView_getExperiences,
+    },
+  };
 
   it("Searches", async () => {
+    mockGetIsConnected.mockReturnValue(true);
     mockUseWithSubscriptionContext.mockReturnValue({});
-    mockGetExperiencesConnectionListView.mockReturnValue(
-      mockGetExperiencesMiniQuery2,
+    mockGetExperiencesConnectionListView.mockResolvedValue(
+      mockGetExperiencesConnectionListViewData2,
     );
 
     const { ui } = makeComp();
 
     await act(async () => {
+      // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
       render(ui);
 
       await waitFor(() => {
@@ -541,26 +568,29 @@ describe("component", () => {
     });
   });
 
+  const mockGetCachedExperiencesConnectionListViewFnData3 = {
+    edges: [
+      {
+        node: {
+          id: mockOnlineId,
+          title: "aa",
+        },
+      },
+      {
+        node: {
+          id: "bb",
+          title: "bb",
+        },
+      },
+    ] as GetExperiencesConnectionListView_getExperiences_edges[],
+    pageInfo: {},
+  } as GetExperiencesConnectionListView_getExperiences;
+
   it("deletes experience successfully", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
-
-    mockGetExperiencesConnectionListView.mockReturnValue({
-      edges: [
-        {
-          node: {
-            id: mockOnlineId,
-            title: "aa",
-          },
-        },
-        {
-          node: {
-            id: "bb",
-            title: "bb",
-          },
-        },
-      ] as GetExperiencesConnectionListView_getExperiences_edges[],
-      pageInfo: {},
-    } as GetExperiencesConnectionListView_getExperiences);
+    mockGetCachedExperiencesConnectionListViewFn.mockReturnValue(
+      mockGetCachedExperiencesConnectionListViewFnData3,
+    );
 
     mockGetDeleteExperienceLedger.mockReturnValue({
       id: mockOnlineId,
@@ -569,36 +599,44 @@ describe("component", () => {
     } as DeletedExperienceLedger);
 
     const { ui } = makeComp();
-    render(ui);
 
-    expect(getExperienceEl()).toBeNull();
+    await act(async () => {
+      // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
+      render(ui);
 
-    await waitFor(() => true);
-    const deleteSuccessEl = getDeleteExperienceSuccessNotification();
+      expect(getExperienceEl()).toBeNull();
 
-    expect(getExperienceEl("bb")).not.toBeNull();
+      const deleteSuccessEl = await waitFor(() => {
+        const el = getDeleteExperienceSuccessNotification();
+        expect(el).not.toBeNull();
+        return el;
+      });
 
-    expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
-    expect(mockPurgeExperiencesFromCache1.mock.calls[0][0][0]).toBe(
-      mockOnlineId,
-    );
-    expect(mockEvictFn.mock.calls[0][0].id).toEqual(mockOnlineId);
-    expect(mockPersistFn).toHaveBeenCalled();
-    expect(mockPostMsg.mock.calls[0][0]).toMatchObject({
-      type: BroadcastMessageType.experienceDeleted,
-      id: mockOnlineId,
-      title: "aa",
+      expect(getExperienceEl("bb")).not.toBeNull();
+
+      expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
+      expect(mockPurgeExperiencesFromCache1.mock.calls[0][0][0]).toBe(
+        mockOnlineId,
+      );
+      expect(mockEvictFn.mock.calls[0][0].id).toEqual(mockOnlineId);
+      expect(mockPersistFn).toHaveBeenCalled();
+      expect(mockPostMsg.mock.calls[0][0]).toMatchObject({
+        type: BroadcastMessageType.experienceDeleted,
+        id: mockOnlineId,
+        title: "aa",
+      });
+
+      deleteSuccessEl.click();
+
+      expect(getDeleteExperienceSuccessNotification()).toBeNull();
     });
-
-    deleteSuccessEl.click();
-
-    expect(getDeleteExperienceSuccessNotification()).toBeNull();
   });
 
   it("cancels experience deletion", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockGetExperiencesConnectionListView.mockReturnValue({
+    mockGetCachedExperiencesConnectionListViewFn.mockReturnValue({
       edges: [
         {
           node: {
@@ -616,72 +654,114 @@ describe("component", () => {
     } as DeletedExperienceLedger);
 
     const { ui } = makeComp();
-    render(ui);
+    await act(async () => {
+      render(ui);
 
-    await waitFor(() => true);
+      const deleteExperienceCancelledEl = await waitFor(() => {
+        const el = getDeleteExperienceCancelledNotification();
+        expect(el).not.toBeNull();
+        return el;
+      });
 
-    const deleteExperienceCancelledEl =
-      getDeleteExperienceCancelledNotification();
+      expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
 
-    expect(mockPutOrRemoveDeleteExperienceLedger.mock.calls[0]).toEqual([]);
+      expect(mockPurgeExperiencesFromCache1).not.toHaveBeenCalled();
 
-    expect(mockPurgeExperiencesFromCache1).not.toHaveBeenCalled();
+      expect(mockEvictFn).not.toHaveBeenCalled();
+      expect(mockPersistFn).not.toHaveBeenCalled();
+      expect(mockPostMsg).not.toHaveBeenCalled();
 
-    expect(mockEvictFn).not.toHaveBeenCalled();
-    expect(mockPersistFn).not.toHaveBeenCalled();
-    expect(mockPostMsg).not.toHaveBeenCalled();
+      deleteExperienceCancelledEl.click();
 
-    deleteExperienceCancelledEl.click();
-
-    expect(getDeleteExperienceCancelledNotification()).toBeNull();
+      expect(getDeleteExperienceCancelledNotification()).toBeNull();
+    });
   });
+
+  const mockGetCachedExperiencesConnectionListViewFnData4 = {
+    edges: [
+      {
+        node: {
+          id: mockOnlineId,
+          title: mockTitle,
+        },
+      },
+    ] as GetExperiencesConnectionListView_getExperiences_edges[],
+    pageInfo: {},
+  } as GetExperiencesConnectionListView_getExperiences;
 
   it("updates experience", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
-    mockGetExperiencesConnectionListView.mockReturnValue({
-      edges: [
-        {
-          node: {
-            id: mockOnlineId,
-            title: mockTitle,
-          },
-        },
-      ] as GetExperiencesConnectionListView_getExperiences_edges[],
-      pageInfo: {},
-    } as GetExperiencesConnectionListView_getExperiences);
+    mockGetCachedExperiencesConnectionListViewFn.mockReturnValue(
+      mockGetCachedExperiencesConnectionListViewFnData4,
+    );
 
     const { ui } = makeComp();
-    render(ui);
+    await act(async () => {
+      render(ui);
 
-    await waitFor(() => true);
-    const updateEl = getUpdateExperienceMenuItem();
+      const updateEl = await waitFor(() => {
+        const el = getUpdateExperienceMenuItem();
+        expect(el).not.toBeNull();
+        return el;
+      });
 
-    updateEl.click();
+      updateEl.click();
 
-    getMockOnUpsertExperienceSuccessUi().click();
+      getMockOnUpsertExperienceSuccessUi().click();
 
-    expect(getMockOnUpsertExperienceSuccessUi()).toBeNull();
+      expect(getMockOnUpsertExperienceSuccessUi()).toBeNull();
 
-    getUpdateExperienceSuccessNotificationCloseEl().click();
+      getUpdateExperienceSuccessNotificationCloseEl().click();
 
-    expect(getUpdateExperienceSuccessNotificationCloseEl()).toBeNull();
+      expect(getUpdateExperienceSuccessNotificationCloseEl()).toBeNull();
 
-    ////////////////////////// 2nd update ////////////////////////////
+      ////////////////////////// 2nd update ////////////////////////////
 
-    updateEl.click();
+      updateEl.click();
 
-    getMockOnUpsertExperienceSuccessUi().click();
+      getMockOnUpsertExperienceSuccessUi().click();
 
-    expect(getMockOnUpsertExperienceSuccessUi()).toBeNull();
+      expect(getMockOnUpsertExperienceSuccessUi()).toBeNull();
 
-    expect(getUpdateExperienceSuccessNotificationCloseEl()).not.toBeNull();
+      expect(getUpdateExperienceSuccessNotificationCloseEl()).not.toBeNull();
 
-    act(() => {
-      jest.runTimersToTime(MAX_TIMEOUT_MS);
+      await waitFor(() => {
+        expect(getUpdateExperienceSuccessNotificationCloseEl()).toBeNull();
+      });
     });
-
-    expect(getUpdateExperienceSuccessNotificationCloseEl()).toBeNull();
   });
+
+  const mockGetCachedExperiencesConnectionListViewFnData5 = {
+    edges: [
+      {
+        node: offlineExperience,
+      },
+      {
+        node: {
+          id: mockPartOfflineId,
+          title: "b",
+        },
+      },
+    ] as GetExperiencesConnectionListView_getExperiences_edges[],
+    pageInfo: {},
+  } as GetExperiencesConnectionListView_getExperiences;
+
+  const mockUseWithSubscriptionContextData1 = {
+    onSyncData: {
+      offlineIdToOnlineExperienceMap: {
+        [offlineId]: mockOnlineExperience,
+      },
+
+      onlineExperienceUpdatedMap: {
+        [mockPartOfflineId]: {},
+      },
+
+      syncErrors: {
+        [offlineId]: {},
+        [mockPartOfflineId]: {},
+      },
+    },
+  };
 
   it("updates experiences on sync / upsert experience on error", async () => {
     mockGetOnlineStatus
@@ -689,74 +769,56 @@ describe("component", () => {
       .mockReturnValueOnce(StateValue.partOffline);
 
     // Given data just synced to backend
-    mockUseWithSubscriptionContext.mockReturnValue({
-      onSyncData: {
-        offlineIdToOnlineExperienceMap: {
-          [offlineId]: mockOnlineExperience,
-        },
-
-        onlineExperienceUpdatedMap: {
-          [mockPartOfflineId]: {},
-        },
-
-        syncErrors: {
-          [offlineId]: {},
-          [mockPartOfflineId]: {},
-        },
-      },
-    });
-
-    // And there is 1 offline and 1 part offline experiences in the system
-    mockGetExperiencesConnectionListView.mockReturnValue({
-      edges: [
-        {
-          node: offlineExperience,
-        },
-        {
-          node: {
-            id: mockPartOfflineId,
-            title: "b",
-          },
-        },
-      ] as GetExperiencesConnectionListView_getExperiences_edges[],
-      pageInfo: {},
-    } as GetExperiencesConnectionListView_getExperiences);
-
-    // When component is rendered
-    const { ui } = makeComp();
-    render(ui);
-
-    // Then offline experience should be visible
-    await waitFor(() => {
-      return getExperienceEl(offlineId);
-    });
-
-    // But after a while, offline experience should not be visible
-    expect(getExperienceEl(offlineId)).toBeNull();
-
-    // Online experience should be visible
-    const onlineExperienceEl = getExperienceEl();
-    expect(onlineExperienceEl.className).toContain(isPartOfflineClassName);
-    expect(onlineExperienceEl.className).not.toContain(isOfflineClassName);
-
-    // Part offline experience should be visible and become online
-    const partOfflineExperienceEl = getExperienceEl(mockPartOfflineId);
-    expect(partOfflineExperienceEl.className).not.toContain(
-      isPartOfflineClassName,
+    mockUseWithSubscriptionContext.mockReturnValue(
+      mockUseWithSubscriptionContextData1,
     );
-    expect(partOfflineExperienceEl.className).not.toContain(isOfflineClassName);
+    // And there is 1 offline and 1 part offline experiences in the system
+    mockGetCachedExperiencesConnectionListViewFn.mockReturnValue(
+      mockGetCachedExperiencesConnectionListViewFnData5,
+    );
 
-    expect(mockCleanUpOfflineExperiences).toBeCalledWith({
-      [offlineId]: mockOnlineExperience,
+    const { ui } = makeComp();
+
+    await act(async () => {
+      // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
+      render(ui);
+
+      // Online experience should be visible
+
+      const onlineExperienceEl = await waitFor(() => {
+        const el = getExperienceEl();
+        expect(el).not.toBeNull();
+        return el;
+      });
+      expect(onlineExperienceEl.className).toContain(isPartOfflineClassName);
+      expect(onlineExperienceEl.className).not.toContain(isOfflineClassName);
+
+      // Offline experience should never be visible because it is immediately
+      // synced
+      expect(getExperienceEl(offlineId)).toBeNull();
+
+      // Part offline experience should be visible and become online
+      const partOfflineExperienceEl = getExperienceEl(mockPartOfflineId);
+      expect(partOfflineExperienceEl.className).not.toContain(
+        isPartOfflineClassName,
+      );
+      expect(partOfflineExperienceEl.className).not.toContain(
+        isOfflineClassName,
+      );
+
+      expect(mockCleanUpOfflineExperiences).toBeCalledWith({
+        [offlineId]: mockOnlineExperience,
+      });
+
+      expect(getMockUpsertExperienceOnError()).toBeNull();
+
+      getActivateInsertExperience().click();
+
+      getMockUpsertExperienceOnError().click();
+
+      expect(getMockUpsertExperienceOnError()).toBeNull();
     });
-
-    expect(getMockUpsertExperienceOnError()).toBeNull();
-
-    getActivateInsertExperience().click();
-
-    getMockUpsertExperienceOnError().click();
-
-    expect(getMockUpsertExperienceOnError()).toBeNull();
   });
 });
 
@@ -765,9 +827,16 @@ describe("reducer", () => {
     dispatch: mockDispatch,
   } as any;
 
-  const props = {} as any;
+  const props = {
+    getCachedExperiencesConnectionListViewFn:
+      mockGetCachedExperiencesConnectionListViewFn,
+    getExperienceConnectionListView: mockGetExperiencesConnectionListView,
+    componentTimeoutsMs
+  } as any;
 
   it("fetches experiences when no network", async () => {
+      ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
     const state = initState();
 
     const effect = (state.effects.general as GenericHasEffect<EffectType>)
@@ -865,6 +934,10 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
         {...props}
         location={location}
         history={history}
+        componentTimeoutsMs={componentTimeoutsMs}
+        getCachedExperiencesConnectionListViewFn={
+          mockGetCachedExperiencesConnectionListViewFn
+        }
       />
     ),
   };

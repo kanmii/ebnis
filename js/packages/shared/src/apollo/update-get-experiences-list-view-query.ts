@@ -285,6 +285,10 @@ export function purgeExperiencesFromCache1(ids: string[]) {
   dataProxy.broadcastWatches();
 }
 
+export type PurgeExperiencesFromCache1Fn = {
+  purgeExperiencesFromCache1: typeof purgeExperiencesFromCache1;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function purgeExperience(experienceId: string, data?: any) {
   if (!data) {

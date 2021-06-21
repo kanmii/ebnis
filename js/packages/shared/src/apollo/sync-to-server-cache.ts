@@ -90,6 +90,10 @@ export function writeSyncErrors(ledger: SyncErrors) {
   });
 }
 
+export type GetSyncErrorsFn = {
+  getSyncErrorsFn: typeof getSyncErrors;
+};
+
 /**
  * When called with 2 arguments === put
  * when called with 1 argument == remove

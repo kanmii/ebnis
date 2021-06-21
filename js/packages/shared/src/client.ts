@@ -10,6 +10,7 @@ import * as AbsintheSocket from "@kanmii/socket";
 import { createAbsintheSocketLink } from "@kanmii/socket-apollo-link";
 import { CachePersistor, LocalStorageWrapper } from "apollo3-cache-persist";
 import { deleteExperienceVar } from "./apollo/delete-experience-cache";
+import { getEntriesConnectionFieldPolicy } from "./apollo/entries-connection.gql";
 import { getCachedExperiencesConnectionListFieldPolicy } from "./apollo/get-experiences-connection-list.gql";
 import {
   SCHEMA_KEY,
@@ -176,6 +177,18 @@ export function makeApolloCache() {
           syncErrors: syncErrorsPolicy,
 
           getExperiences: getCachedExperiencesConnectionListFieldPolicy,
+
+          getEntries: getEntriesConnectionFieldPolicy,
+
+          preFetchExperiences: {
+            read() {
+              return {};
+            },
+            merge() {
+              return {};
+            },
+          },
+
         },
       },
 
