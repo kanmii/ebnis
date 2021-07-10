@@ -2,7 +2,7 @@ services:
   db:
     image: "postgres:13.3"
     ports:
-      - "${DOCKER_HOST_DATABASE_PORT}:5432"
+      - "${DOCKER_HOST_DATABASE_PORT:-5432}:5432"
     environment:
       POSTGRES_PASSWORD: "postgres"
       POSTGRES_DB: "${DATABASE_NAME}"
@@ -16,6 +16,10 @@ services:
       start_period: "10s"
     volumes:
       - "./docker/data/postgres-${COMPOSE_PROJECT_NAME:-ebnis}:/var/lib/postgresql/data"
+    networks:
+      - ebnis
+    extra_hosts:
+      - "db:172.17.0.1"
   ex:
     build:
       context: "./ex"
@@ -44,6 +48,8 @@ services:
       - "ex_not_used__build:/app/_build/"
       - "ex_not_used_deps:/app/deps/"
       - "ex_not_used_.elixir_ls:/app/.elixir_ls/"
+    networks:
+      - ebnis
   js: &js
     build:
       context: "./js"
@@ -56,6 +62,8 @@ services:
       - "/usr/local/bin/entrypoint.sh"
     env_file: "${DOCKER_ENV_FILE:-.env}"
     user: "node"
+    networks:
+      - ebnis
   cra:
     <<: *js
     ports:
@@ -98,3 +106,7 @@ volumes:
   cra_not_used_build:
   # excluded packages
   cra_not_used_cypress:
+
+networks:
+  ebnis:
+    driver: bridge

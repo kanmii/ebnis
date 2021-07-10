@@ -1,4 +1,4 @@
-### Ebnis
+# Ebnis
 
 # How to develop
 
@@ -20,14 +20,14 @@ there can be only one `.env` file in the root of our project.
 
 ```sh
 # If you have named your `env` file anything other than `.env`
-set -a; . .env-e2e; set +a;
+set -a; . .env-another; set +a;
 
 docker-compose build js ex
 
 docker-compose up cra ex
 ```
 
-## Attach to running iex session in another shell
+# Attach to running iex session in another shell
 
 Inside the container:
 
@@ -37,7 +37,7 @@ Inside the container:
 2. Node name is `MIX_ENV` by default. Customize by setting `DEV_NODE_NAME`
    environment variable.
 
-See the file `ex/entrypoint.sh`
+See the file `ex/entrypoint.sh` for usage of these variables.
 
 3. Attach to the running container
 
@@ -47,7 +47,7 @@ set -a; . .env-e2e; set +a; docker-compose exec ex /bin/bash
 
 4. Inside the container:
 
-```
+```sh
 iex --sname you_must_choose_a_name \
   --cookie enter_cookie \
   --remsh node_name@container_id
@@ -55,18 +55,15 @@ iex --sname you_must_choose_a_name \
 
 You can get the `container_id` from your `bash` prompt inside the container
 or `HOSTNAME` environment variable inside the container
-or run `docker ps` in another shell to obtain your `container_id`
+or run `docker ps` in another shell to obtain your `container_id`.
 
-To make it easy, a `bash` alias was created: `conn-iex`
-See the file `ex/entrypoint.sh`
-
-# Testing elixir app
+# Test Elixir app
 
 In a new shell, `docker-compose exec` into a running `ex` docker-compose
 service container running in development mode:
 
 ```
-set -a; . .env-e2e; set +a;
+set -a; . .env-another; set +a;
 
 docker-compose exec ex /bin/bash
 ```
@@ -81,6 +78,28 @@ Run test in watch mode:
 
 ```
 mix test.watch
+```
+
+# Test Javascript App
+
+`cd` into `js` folder
+
+Get dependencies
+
+`yarn install`
+
+run `yarn start` to discover available commands
+
+### Watch files and run tests
+
+```
+yarn start cra.t
+```
+
+### test coverage
+
+```
+yarn start cra.t.c
 ```
 
 # Production
@@ -104,87 +123,4 @@ Source the environment variables in your shell and build the docker image
 set -a; . .env-prod; set +a; docker build --build-arg DOCKER_HOST_USER_NAME -t ebnis-be-release ./ex
 ```
 
-A docker image named `ebnis-be-release` will be built
-
-# Connect to a local postgres server running on your docker host
-
-in `path/to/data/postgresql.conf` on your host, set `listen_addresses`:
-
-```
-listen_addresses = '*'
-```
-
-in `path/to/data/pg_hba.conf` on your host put:
-
-```
-host    all             all             172.17.0.0/16           trust
-```
-
-assuming `172.17.0.1` is the `inet` when you run
-`ip route show | awk '/docker/ {print $9}'`
-
-Restart postgres server
-
-```
-pg_ctl restart
-```
-
-Inside `.env-prod`, set `$DOCKER_ADD_DB_HOST` and run
-
-```
-docker run -it --rm \
-  --name ebnis-prod-api \
-  --add-host=$DOCKER_ADD_DB_HOST \
-  --env-file=.env-prod \
-  -p $DOCKER_HOST_PORT:$PORT \
-  ebnis-be-release /usr/local/bin/entrypoint.sh
-```
-
-You can access the phoenix server at `$DOCKER_HOST_PORT`
-
-### Connect to a postgres server running in a docker container
-
-Start a postgres container
-
-```
-docker run -d --name postgres-container-name -e POSTGRES_PASSWORD=password postgres:12.2
-```
-
-Or restart one
-
-```
-docker start postgres-container-name
-```
-
-Start phoenix app, linking the database host to the running postgres container
-
-```
-docker run -it --rm \
-  --name ebnis-prod-api \
-  --link=postgres-container-name:db \
-  --env-file=.env-prod \
-  -p $DOCKER_HOST_API_PORT:$PORT \
-  ebnis-be-release /usr/local/bin/entrypoint.sh
-```
-
-# Javascript App
-
-`cd` into `js` folder
-
-Get dependencies
-
-`yarn install`
-
-run `yarn start` to discover available commands
-
-### Watch files and run tests
-
-```
-yarn start cra.t
-```
-
-### test coverage
-
-```
-yarn start cra.t.c
-```
+A docker image named `ebnis-be-release` will be built.

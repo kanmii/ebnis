@@ -48,9 +48,9 @@ export function setGlobals(globals: EbnisGlobals) {
 }
 
 export function getApiUrl() {
-  return (process.env.API_URL_INTERNAL ||
-    process.env.REACT_APP_API_URL ||
-    process.env.API_URL) as string;
+  const host = (process.env.REACT_APP_API_URL || process.env.API_URL) as string;
+
+  return host.replace("0.0.0.0", "localhost");
 }
 
 export function getBackendUrls(uri?: string) {
