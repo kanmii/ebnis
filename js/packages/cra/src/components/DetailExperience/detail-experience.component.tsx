@@ -1,7 +1,6 @@
 import { Button } from "@eb/jsx/src/Button";
 import Modal from "@eb/jsx/src/Modal";
 import { Notification } from "@eb/jsx/src/Notification";
-import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
 import { ReactComponent as ExclamationErrorSvg } from "@eb/shared/src/styles/exclamation-error.svg";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
@@ -18,7 +17,7 @@ import React, {
 import { setUpRoutePage } from "../../utils/global-window";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { activeClassName } from "../../utils/utils.dom";
-import Entries from "../entries/entries.component";
+import { EntriesInjectType } from "../entries/entries.default";
 import { EntriesRemoteActionType } from "../entries/entries.utils";
 import {
   createCommentsLabelText,
@@ -29,9 +28,8 @@ import {
   showCommentsMenuId,
 } from "../experience-comments/experience-comments.dom";
 import { CommentRemoteActionType } from "../experience-comments/experience-comments.utils";
-import Header from "../Header/header.component";
-import Loading from "../Loading/loading.component";
-import { UpsertExperience } from "../My/my.lazy";
+import { LoadingComponentType } from "../Loading/loading.component";
+import { UpsertExperienceInjectType } from "../My/my.lazy";
 import {
   DataStateContext,
   DataStateProvider,
@@ -60,8 +58,7 @@ import {
   updateMenuItemId,
   updateSuccessNotificationId,
 } from "./detail-experience.dom";
-import { clearTimeoutFn } from "./detail-experience.injectables";
-import { Comments } from "./detail-experience.lazy";
+import { CommentsInjectType } from "./detail-experience.lazy";
 import {
   ActionType,
   effectFunctions,
@@ -72,6 +69,16 @@ import {
 } from "./detailed-experience-utils";
 
 export function DetailExperience(props: Props) {
+  const {
+    HeaderComponentFn,
+    LoadingComponentFn,
+    useWithSubscriptionContextInject,
+    clearTimeoutFnInject,
+    UpsertExperienceInject,
+    CommentsInject,
+    EntriesInject,
+  } = props;
+
   const [stateMachine, dispatch] = useReducer(reducer, props, initState);
 
   const {
@@ -82,7 +89,7 @@ export function DetailExperience(props: Props) {
 
   const stateValue = states.value;
 
-  const { onSyncData } = useWithSubscriptionContext();
+  const { onSyncData } = useWithSubscriptionContextInject();
 
   useEffect(() => {
     if (onSyncData && stateValue === StateValue.data) {
@@ -100,7 +107,7 @@ export function DetailExperience(props: Props) {
   useEffect(() => {
     return () => {
       if (genericTimeout) {
-        clearTimeoutFn(genericTimeout);
+        clearTimeoutFnInject(genericTimeout);
       }
     };
   }, [genericTimeout]);
@@ -108,6 +115,7 @@ export function DetailExperience(props: Props) {
   const dispatchContextVal: DispatchContextValue = useMemo(() => {
     return {
       dispatch,
+      useWithSubscriptionContextInject,
       onDeleteDeclined() {
         dispatch({
           type: ActionType.delete,
@@ -183,14 +191,14 @@ export function DetailExperience(props: Props) {
 
   return (
     <>
-      <Header />
+      <HeaderComponentFn />
 
       <div>
         <DispatchProvider value={dispatchContextVal}>
           {(function renderDetailExperience() {
             switch (states.value) {
               case StateValue.loading:
-                return <Loading />;
+                return <LoadingComponentFn />;
 
               case StateValue.errors:
                 return (
@@ -211,7 +219,12 @@ export function DetailExperience(props: Props) {
                 return (
                   <>
                     <DataStateProvider value={states.data}>
-                      <ExperienceComponent />
+                      <ExperienceComponent
+                        LoadingComponentFn={LoadingComponentFn}
+                        UpsertExperienceInject={UpsertExperienceInject}
+                        CommentsInject={CommentsInject}
+                        EntriesInject={EntriesInject}
+                      />
                       <MenuComponent />
                     </DataStateProvider>
                   </>
@@ -225,7 +238,19 @@ export function DetailExperience(props: Props) {
   );
 }
 
-function ExperienceComponent() {
+function ExperienceComponent(
+  props: LoadingComponentType &
+    UpsertExperienceInjectType &
+    CommentsInjectType &
+    EntriesInjectType,
+) {
+  const {
+    LoadingComponentFn,
+    UpsertExperienceInject,
+    CommentsInject,
+    EntriesInject,
+  } = props;
+
   const {
     dispatch,
     cancelUpdateUiRequestCb,
@@ -280,8 +305,8 @@ function ExperienceComponent() {
   return (
     <>
       {updateUiActive.value === StateValue.active && (
-        <Suspense fallback={<Loading />}>
-          <UpsertExperience
+        <Suspense fallback={<LoadingComponentFn />}>
+          <UpsertExperienceInject
             experience={experience}
             onClose={cancelUpdateUiRequestCb}
             onSuccess={onUpdateSuccess}
@@ -398,14 +423,14 @@ function ExperienceComponent() {
           )}
 
         {commentsState.value === StateValue.active && (
-          <Comments
+          <CommentsInject
             postActions={commentsState.active.context.postActions}
             experience={experience}
             parentDispatch={dispatch}
           />
         )}
 
-        <Entries
+        <EntriesInject
           {...entriesState}
           experience={experience}
           parentDispatch={dispatch}

@@ -837,14 +837,14 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
         }
         HeaderComponentFn={() => null as any}
         LoadingComponentFn={mockLoadingComponent}
-        cleanUpOfflineExperiencesFn={mockCleanUpOfflineExperiencesFn}
+        cleanUpOfflineExperiencesInject={mockCleanUpOfflineExperiencesFn}
         getSyncErrorsFn={mockGetSyncErrorsFn}
         handlePreFetchExperiencesFn={mockHandlePreFetchExperiences}
         purgeExperiencesFromCache1Fn={mockPurgeExperiencesFromCache1}
-        putOrRemoveDeleteExperienceLedgerFn={
+        putOrRemoveDeleteExperienceLedgerInject={
           mockPutOrRemoveDeleteExperienceLedger
         }
-        getDeleteExperienceLedgerFn={mockGetDeleteExperienceLedger}
+        getDeleteExperienceLedgerInject={mockGetDeleteExperienceLedger}
         getOnlineStatusProp={mockGetOnlineStatusProps}
         getUnsyncedExperienceInject={mockGetUnsyncedExperienceInject}
         setUpRoutePageInject={mockSetUpRoutePage}

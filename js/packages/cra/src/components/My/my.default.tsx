@@ -36,12 +36,14 @@ export default (props: CallerProps) => {
       }
       HeaderComponentFn={HeaderComponent}
       LoadingComponentFn={LoadingComponent}
-      cleanUpOfflineExperiencesFn={cleanUpOfflineExperiences}
+      cleanUpOfflineExperiencesInject={cleanUpOfflineExperiences}
       getSyncErrorsFn={getSyncErrors}
       handlePreFetchExperiencesFn={handlePreFetchExperiences}
       purgeExperiencesFromCache1Fn={purgeExperiencesFromCache1}
-      putOrRemoveDeleteExperienceLedgerFn={putOrRemoveDeleteExperienceLedger}
-      getDeleteExperienceLedgerFn={getDeleteExperienceLedger}
+      putOrRemoveDeleteExperienceLedgerInject={
+        putOrRemoveDeleteExperienceLedger
+      }
+      getDeleteExperienceLedgerInject={getDeleteExperienceLedger}
       getOnlineStatusProp={getOnlineStatus}
       getUnsyncedExperienceInject={getUnsyncedExperience}
       setUpRoutePageInject={setUpRoutePage}

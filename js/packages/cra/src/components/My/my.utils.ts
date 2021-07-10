@@ -2,8 +2,8 @@ import { LinkInjectType } from "@eb/jsx/src/utils";
 import { GetCachedExperiencesConnectionListViewFn } from "@eb/shared/src/apollo/cached-experiences-list-view";
 import {
   DeletedExperienceLedger,
-  GetDeleteExperienceLedgerFn,
-  PutOrRemoveDeleteExperienceLedgerFn,
+  GetDeleteExperienceLedgerInjectType,
+  PutOrRemoveDeleteExperienceLedgerInjectType,
 } from "@eb/shared/src/apollo/delete-experience-cache";
 import {
   ExperienceData,
@@ -27,7 +27,7 @@ import {
 } from "@eb/shared/src/graphql/apollo-types/GetExperiencesConnectionListView";
 import { wrapReducer } from "@eb/shared/src/logger";
 import { deleteObjectKey } from "@eb/shared/src/utils";
-import { GetIsConnectedInject } from "@eb/shared/src/utils/connections";
+import { GetIsConnectedInjectType } from "@eb/shared/src/utils/connections";
 import {
   ActiveVal,
   Any,
@@ -65,7 +65,7 @@ import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { nonsenseId } from "../../utils/utils.dom";
 import { HeaderComponentType } from "../Header/header.component";
 import { LoadingComponentType } from "../Loading/loading.component";
-import { CleanUpOfflineExperiencesFn } from "../WithSubscriptions/with-subscriptions.utils";
+import { CleanUpOfflineExperiencesInjectType } from "../WithSubscriptions/with-subscriptions.utils";
 import { makeScrollToDomId } from "./my.dom";
 import { HandlePreFetchExperiencesFn } from "./my.injectables";
 import { UpsertExperienceInjectType } from "./my.lazy";
@@ -727,7 +727,10 @@ function prepareExperienceForSearch({ id, title }: ExperienceListViewFragment) {
 
 const deletedExperienceRequestEffect: DefDeleteExperienceRequestEffect["func"] =
   ({ id }, props) => {
-    const { putOrRemoveDeleteExperienceLedgerFn } = props;
+    const {
+      putOrRemoveDeleteExperienceLedgerInject:
+        putOrRemoveDeleteExperienceLedgerFn,
+    } = props;
 
     putOrRemoveDeleteExperienceLedgerFn({
       key: StateValue.requested,
@@ -940,7 +943,7 @@ type DefTimeoutsEffect = EffectDefinition<
 
 const postSyncEffect: DefPostSyncEffect["func"] = (
   { data },
-  { cleanUpOfflineExperiencesFn },
+  { cleanUpOfflineExperiencesInject: cleanUpOfflineExperiencesFn },
 ) => {
   cleanUpOfflineExperiencesFn(data);
 };
@@ -962,8 +965,8 @@ export const effectFunctions = {
 
 async function deleteExperienceProcessedEffectHelper({
   purgeExperiencesFromCache1Fn,
-  putOrRemoveDeleteExperienceLedgerFn,
-  getDeleteExperienceLedgerFn,
+  putOrRemoveDeleteExperienceLedgerInject: putOrRemoveDeleteExperienceLedgerFn,
+  getDeleteExperienceLedgerInject: getDeleteExperienceLedgerFn,
 }: Props) {
   const deletedExperience = getDeleteExperienceLedgerFn();
 
@@ -1257,17 +1260,17 @@ export type ComponentTimeoutsMs = {
 export type Props = CallerProps &
   UseWithSubscriptionContextInject &
   SetUpRoutePageInject &
-  GetIsConnectedInject &
+  GetIsConnectedInjectType &
   UpsertExperienceInjectType &
   GetExperienceConnectionListViewFunction &
   GetCachedExperiencesConnectionListViewFn &
   LoadingComponentType &
-  CleanUpOfflineExperiencesFn &
+  CleanUpOfflineExperiencesInjectType &
   GetSyncErrorsFn &
   GetOnlineStatusProp &
-  GetDeleteExperienceLedgerFn &
+  GetDeleteExperienceLedgerInjectType &
   GetUnsyncedExperienceInject &
-  PutOrRemoveDeleteExperienceLedgerFn &
+  PutOrRemoveDeleteExperienceLedgerInjectType &
   HandlePreFetchExperiencesFn &
   PurgeExperiencesFromCache1Fn &
   LinkInjectType &

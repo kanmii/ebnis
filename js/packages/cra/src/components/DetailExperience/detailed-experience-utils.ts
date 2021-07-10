@@ -1,21 +1,22 @@
 import {
-  getDeleteExperienceLedger,
-  putOrRemoveDeleteExperienceLedger,
+  GetDeleteExperienceLedgerInjectType,
+  PutOrRemoveDeleteExperienceLedgerInjectType,
 } from "@eb/shared/src/apollo/delete-experience-cache";
 import { EntriesCacheUnion } from "@eb/shared/src/apollo/entries-connection.gql";
 import { CacheExperienceAndEntries } from "@eb/shared/src/apollo/experience-detail-entries-connection.gql";
 import { GetExperienceAndEntriesDetailViewInject } from "@eb/shared/src/apollo/experience.gql.types";
-import { getCachedExperienceAndEntriesDetailView } from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { GetCachedExperienceAndEntriesDetailViewInjectType } from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { UseWithSubscriptionContextInject } from "@eb/shared/src/apollo/injectables";
 import {
-  getAndRemoveOfflineExperienceIdFromSyncFlag,
-  getSyncError,
-  putOfflineExperienceIdInSyncFlag,
+  GetAndRemoveOfflineExperienceIdFromSyncFlagInjectType,
+  GetSyncErrorInjectType,
+  MapOnlineExperienceIdToOfflineIdInSyncFlagInjectType,
   putOrRemoveSyncError,
 } from "@eb/shared/src/apollo/sync-to-server-cache";
 import {
   getOnlineStatus,
   getUnsyncedExperience,
-  removeUnsyncedExperiences,
+  RemoveUnsyncedExperiencesInjectType,
 } from "@eb/shared/src/apollo/unsynced-ledger";
 import { purgeEntry } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
 import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
@@ -24,7 +25,7 @@ import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/
 import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
 import { GetExperienceAndEntriesDetailView } from "@eb/shared/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import { wrapReducer, wrapState } from "@eb/shared/src/logger";
-import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { GetIsConnectedInjectType } from "@eb/shared/src/utils/connections";
 import {
   ActiveVal,
   DataVal,
@@ -61,13 +62,14 @@ import {
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
+import { ChangeUrlType, WindowChangeUrlType } from "../../utils/global-window";
 import { UpdateExperiencesMutationProps } from "../../utils/update-experiences.gql";
 import {
   DetailExperienceRouteMatch,
   makeDetailedExperienceRoute,
   MY_URL,
 } from "../../utils/urls";
+import { EntriesInjectType } from "../entries/entries.default";
 import {
   EntriesParentContext,
   EntriesRemoteAction,
@@ -81,10 +83,15 @@ import {
   CommentRemoteAction,
   CommentRemoteActionType,
 } from "../experience-comments/experience-comments.utils";
+import { HeaderComponentType } from "../Header/header.component";
+import { LoadingComponentType } from "../Loading/loading.component";
+import { UpsertExperienceInjectType } from "../My/my.lazy";
 import {
-  cleanUpOfflineExperiences,
-  cleanUpSyncedOfflineEntries,
+  CleanUpOfflineExperiencesInjectType,
+  CleanUpSyncedOfflineEntriesInjectType,
 } from "../WithSubscriptions/with-subscriptions.utils";
+import { ClearTimeoutFnInjectType } from "./detail-experience.injectables";
+import { CommentsInjectType } from "./detail-experience.lazy";
 
 export enum ActionType {
   record_timeout = "@detailed-experience/record-timeout",
@@ -968,18 +975,18 @@ type DefTimeoutsEffect = EffectDefinition<
 
 const deleteRequestedEffect: DefDeleteRequestedEffect["func"] = (
   { experienceId },
-  _,
+  { getDeleteExperienceLedgerInject, putOrRemoveDeleteExperienceLedgerInject },
   effectArgs,
 ) => {
   const { dispatch } = effectArgs;
 
   // Is a request to delete this experience pending?
-  const deleteLedger = getDeleteExperienceLedger(experienceId);
+  const deleteLedger = getDeleteExperienceLedgerInject(experienceId);
 
   if (deleteLedger && deleteLedger.key === StateValue.requested) {
     // remove flag that indicates delete requested from cache
     // since we'll now process this request
-    putOrRemoveDeleteExperienceLedger();
+    putOrRemoveDeleteExperienceLedgerInject();
 
     // do the actual deletion (or ask user for confirmation)
     dispatch({
@@ -1002,9 +1009,9 @@ const cancelDeleteEffect: DefCancelDeleteEffect["func"] = (
   props,
 ) => {
   if (key) {
-    const { history } = props;
+    const { history, putOrRemoveDeleteExperienceLedgerInject } = props;
 
-    putOrRemoveDeleteExperienceLedger({
+    putOrRemoveDeleteExperienceLedgerInject({
       key: StateValue.cancelled,
       id,
       title,
@@ -1027,7 +1034,12 @@ const deleteEffect: DefDeleteEffect["func"] = async (
   props,
   ownArgs,
 ) => {
-  const { history, deleteExperiences } = props;
+  const {
+    history,
+    deleteExperiences,
+    removeUnsyncedExperiencesInject,
+    putOrRemoveDeleteExperienceLedgerInject,
+  } = props;
   const { dispatch } = ownArgs;
 
   try {
@@ -1086,13 +1098,13 @@ const deleteEffect: DefDeleteEffect["func"] = async (
       experience: { id: responseId, title },
     } = experienceResponse;
 
-    putOrRemoveDeleteExperienceLedger({
+    putOrRemoveDeleteExperienceLedgerInject({
       id: responseId,
       key: StateValue.deleted,
       title,
     });
 
-    removeUnsyncedExperiences([responseId]);
+    removeUnsyncedExperiencesInject([responseId]);
 
     const { persistor } = window.____ebnis;
     await persistor.persist();
@@ -1118,6 +1130,11 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
   const {
     componentTimeoutsMs: { fetchRetries },
     getExperienceAndEntriesDetailViewInject,
+    getCachedExperienceAndEntriesDetailViewInject,
+    getIsConnectedInject,
+    getAndRemoveOfflineExperienceIdFromSyncFlagInject,
+    getSyncErrorInject,
+    cleanUpOfflineExperiencesInject,
   } = props;
 
   const experienceId = getExperienceId(props);
@@ -1125,17 +1142,19 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
   let timeoutId: null | NodeJS.Timeout = null;
   const timeoutsLen = fetchRetries.length - 1;
 
-  const cachedResult = getCachedExperienceAndEntriesDetailView(experienceId);
+  const cachedResult =
+    getCachedExperienceAndEntriesDetailViewInject(experienceId);
 
-  const offlineId = getAndRemoveOfflineExperienceIdFromSyncFlag(experienceId);
+  const offlineId =
+    getAndRemoveOfflineExperienceIdFromSyncFlagInject(experienceId);
 
   if (offlineId) {
-    cleanUpOfflineExperiences({
+    cleanUpOfflineExperiencesInject({
       [offlineId]: {} as ExperienceCompleteFragment,
     });
   }
 
-  const syncErrors = getSyncError(experienceId) || undefined;
+  const syncErrors = getSyncErrorInject(experienceId) || undefined;
 
   if (cachedResult) {
     const daten = cachedResult.data as GetExperienceAndEntriesDetailView;
@@ -1200,7 +1219,7 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
 
   function schedule() {
     // we are connected
-    if (getIsConnected()) {
+    if (getIsConnectedInject()) {
       doFetch();
       return;
     }
@@ -1227,27 +1246,34 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
 type DefFetchEffect = EffectDefinition<"fetchEffect">;
 
 const postOfflineExperiencesSyncEffect: DefPostOfflineExperiencesSyncEffect["func"] =
-  async ({ data, onlineIdToOfflineId }) => {
+  async ({ data, onlineIdToOfflineId }, props) => {
+    const {
+      windowChangeUrlFn,
+      mapOnlineExperienceIdToOfflineIdInSyncFlagInject:
+        putOfflineExperienceIdInSyncFlagInject,
+      cleanUpOfflineExperiencesInject,
+    } = props;
+
     // istanbul ignore else:
     if (Object.keys(data).length) {
-      cleanUpOfflineExperiences(data);
+      cleanUpOfflineExperiencesInject(data);
     }
-
-    const { persistor } = window.____ebnis;
 
     // istanbul ignore else:
     if (onlineIdToOfflineId) {
       const [onlineId] = onlineIdToOfflineId;
 
-      putOfflineExperienceIdInSyncFlag(onlineIdToOfflineId);
+      putOfflineExperienceIdInSyncFlagInject(onlineIdToOfflineId);
 
       setTimeout(() => {
-        windowChangeUrl(
+        windowChangeUrlFn(
           makeDetailedExperienceRoute(onlineId),
           ChangeUrlType.replace,
         );
       });
     }
+
+    const { persistor } = window.____ebnis;
 
     await persistor.persist();
   };
@@ -1260,10 +1286,11 @@ type DefPostOfflineExperiencesSyncEffect = EffectDefinition<
   }
 >;
 
-const postOfflineEntriesSyncEffect: DefPostOfflineEntriesSyncEffect["func"] = ({
-  data,
-}) => {
-  cleanUpSyncedOfflineEntries(data);
+const postOfflineEntriesSyncEffect: DefPostOfflineEntriesSyncEffect["func"] = (
+  { data },
+  { cleanUpSyncedOfflineEntriesInject },
+) => {
+  cleanUpSyncedOfflineEntriesInject(data);
 };
 
 type DefPostOfflineEntriesSyncEffect = EffectDefinition<
@@ -1274,8 +1301,8 @@ type DefPostOfflineEntriesSyncEffect = EffectDefinition<
 >;
 
 const deleteCreateEntrySyncErrorEffect: DefDeleteCreateEntrySyncErrorEffect["func"] =
-  ({ data: { experienceId, createErrors } }) => {
-    const errors = getSyncError(experienceId);
+  ({ data: { experienceId, createErrors } }, { getSyncErrorInject }) => {
+    const errors = getSyncErrorInject(experienceId);
 
     // istanbul ignore else:
     if (errors) {
@@ -1339,7 +1366,10 @@ function processGetExperienceQuery(
       data: entriesData,
       entriesErrors,
       processedSyncErrors,
-    } = processEntriesQuery(entriesQueryResult, syncErrors);
+    } = processEntriesQuery({
+      entriesQueryResult,
+      syncErrors,
+    });
 
     let errors = syncErrors as ExperienceSyncError;
 
@@ -1502,7 +1532,25 @@ export type CallerProps = RouteChildrenProps<
 export type Props = DeleteExperiencesComponentProps &
   CallerProps &
   GetExperienceAndEntriesDetailViewInject &
-  UpdateExperiencesMutationProps & {
+  UpdateExperiencesMutationProps &
+  HeaderComponentType &
+  LoadingComponentType &
+  WindowChangeUrlType &
+  UseWithSubscriptionContextInject &
+  RemoveUnsyncedExperiencesInjectType &
+  GetCachedExperienceAndEntriesDetailViewInjectType &
+  ClearTimeoutFnInjectType &
+  GetDeleteExperienceLedgerInjectType &
+  PutOrRemoveDeleteExperienceLedgerInjectType &
+  GetIsConnectedInjectType &
+  MapOnlineExperienceIdToOfflineIdInSyncFlagInjectType &
+  GetAndRemoveOfflineExperienceIdFromSyncFlagInjectType &
+  GetSyncErrorInjectType &
+  CleanUpSyncedOfflineEntriesInjectType &
+  CleanUpOfflineExperiencesInjectType &
+  UpsertExperienceInjectType &
+  CommentsInjectType &
+  EntriesInjectType & {
     componentTimeoutsMs: ComponentTimeoutsMs;
   };
 

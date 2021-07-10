@@ -6,3 +6,7 @@ export function scrollDocumentToTop() {
 export function clearTimeoutFn(timeout: NodeJS.Timeout) {
   clearTimeout(timeout);
 }
+
+export type ClearTimeoutFnInjectType = {
+  clearTimeoutFnInject: typeof clearTimeoutFn;
+};

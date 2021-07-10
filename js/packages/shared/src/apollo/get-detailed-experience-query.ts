@@ -68,6 +68,10 @@ export function getCachedExperienceAndEntriesDetailView(erfahrungId: string) {
   } as GetExperienceAndEntriesDetailViewQueryResult;
 }
 
+export type GetCachedExperienceAndEntriesDetailViewInjectType = {
+  getCachedExperienceAndEntriesDetailViewInject: typeof getCachedExperienceAndEntriesDetailView;
+};
+
 export function writeGetExperienceDetailViewQueryToCache(
   experience: ExperienceCompleteFragment,
 ) {

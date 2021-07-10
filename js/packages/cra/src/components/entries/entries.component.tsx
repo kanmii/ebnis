@@ -1,14 +1,11 @@
 import { Button } from "@eb/jsx/src/Button";
 import Modal from "@eb/jsx/src/Modal";
 import { Notification } from "@eb/jsx/src/Notification";
-import { getEntriesDetailView } from "@eb/shared/src/apollo/entries-connection.gql";
 import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
-import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import cn from "classnames";
 import { Suspense, useEffect, useReducer } from "react";
-import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { noTriggerDocumentEventClassName } from "../DetailExperience/detail-experience.dom";
 import Entry from "../Entry/entry.component";
@@ -27,7 +24,6 @@ import {
 import { UpsertEntry } from "./entries.lazy";
 import {
   ActionType,
-  CallerProps,
   DispatchType,
   effectFunctions,
   initState,
@@ -277,17 +273,6 @@ export function Entries(props: Props) {
     </>
   );
 }
-
-export default (props: CallerProps) => {
-  return (
-    <Entries
-      {...props}
-      componentTimeoutsMs={componentTimeoutsMs}
-      updateExperiencesMutation={updateExperiencesMutation}
-      getEntriesDetailView={getEntriesDetailView}
-    />
-  );
-};
 
 function DeleteEntryConfirmationComponent({
   dispatch,

@@ -1,29 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  getDeleteExperienceLedger,
-  putOrRemoveDeleteExperienceLedger,
-} from "@eb/shared/src/apollo/delete-experience-cache";
-import {
   getExperienceAndEntriesDetailView,
   GetExperienceAndEntriesDetailViewQueryResult,
 } from "@eb/shared/src/apollo/experience.gql.types";
-import {
-  // getCachedEntriesDetailView,
-  getCachedExperienceAndEntriesDetailView,
-} from "@eb/shared/src/apollo/get-detailed-experience-query";
-import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
-import {
-  getAndRemoveOfflineExperienceIdFromSyncFlag,
-  getSyncError,
-  putOfflineExperienceIdInSyncFlag,
-} from "@eb/shared/src/apollo/sync-to-server-cache";
-import { removeUnsyncedExperiences } from "@eb/shared/src/apollo/unsynced-ledger";
 import { makeApolloClient } from "@eb/shared/src/client";
 import { CreateEntryErrorFragment } from "@eb/shared/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataObjectErrorFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectErrorFragment";
-import { DeleteExperiences } from "@eb/shared/src/graphql/apollo-types/DeleteExperiences";
 import { GetExperienceAndEntriesDetailView } from "@eb/shared/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
-import { getIsConnected } from "@eb/shared/src/utils/connections";
 import {
   EbnisGlobals,
   OnSyncedData,
@@ -46,7 +29,6 @@ import {
 } from "@eb/shared/src/__tests__/mock-data";
 import {
   deleteExperiencesMswGql,
-  // updateMswExperiencesGql,
   getExperienceAndEntriesDetailViewGqlMsw,
 } from "@eb/shared/src/__tests__/msw-handlers";
 import {
@@ -75,7 +57,6 @@ import {
   updateMenuItemId,
   updateSuccessNotificationId,
 } from "../components/DetailExperience/detail-experience.dom";
-import { clearTimeoutFn } from "../components/DetailExperience/detail-experience.injectables";
 import {
   ActionType,
   EffectArgs,
@@ -101,185 +82,40 @@ import {
   CommentRemoteActionType,
 } from "../components/experience-comments/experience-comments.utils";
 import { Props as UpsertExperienceProps } from "../components/UpsertExperience/upsert-experience.utils";
-import {
-  cleanUpOfflineExperiences,
-  cleanUpSyncedOfflineEntries,
-} from "../components/WithSubscriptions/with-subscriptions.utils";
 import { getById, getEffects, getOneByClass } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { deleteExperiences } from "../utils/delete-experiences.gql";
-import { ChangeUrlType, windowChangeUrl } from "../utils/global-window";
+import { ChangeUrlType } from "../utils/global-window";
 import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { MY_URL } from "../utils/urls";
 import { activeClassName } from "../utils/utils.dom";
 
-jest.mock("../components/DetailExperience/detail-experience.injectables");
-const mockClearTimeoutFn = clearTimeoutFn as jest.Mock;
-
-const mockActionType = ActionType;
-
-jest.mock("../utils/global-window");
-const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/injectables");
-const mockUseWithSubscriptionContext = useWithSubscriptionContext as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/unsynced-ledger");
-const mockRemoveUnsyncedExperiences = removeUnsyncedExperiences as jest.Mock;
-
 const mockUpsertSuccessId = "@t/upsert-success";
 const mockUpsertFailId = "@t/upsert-fail";
 const mockUpsertCancelId = "@t/upsert-cancel";
-const mockOnline = StateValue.online;
-jest.mock("../components/My/my.lazy", () => ({
-  UpsertExperience: (props: UpsertExperienceProps) => {
-    return (
-      <div>
-        <button
-          id={mockUpsertSuccessId}
-          onClick={() => {
-            props.onSuccess(mockOnlineExperience1, mockOnline);
-          }}
-        />
-        <button
-          id={mockUpsertFailId}
-          onClick={() => {
-            props.onError("a");
-          }}
-        />
-        <button id={mockUpsertCancelId} onClick={props.onClose} />
-      </div>
-    );
-  },
-}));
-
-jest.mock("@eb/shared/src/apollo/delete-experience-cache");
-const mockGetDeleteExperienceLedger = getDeleteExperienceLedger as jest.Mock;
-const mockPutOrRemoveDeleteExperienceLedger =
-  putOrRemoveDeleteExperienceLedger as jest.Mock;
-
 const mockLoadingId = "@t/loading";
-jest.mock("../components/Loading/loading.component", () => {
-  return () => <span id={mockLoadingId} />;
-});
-
 const mockHeaderId = "@t/header";
-jest.mock("../components/Header/header.component", () => () => (
-  <div id={mockHeaderId} />
-));
-
-const mockNewEntryId = "@t/new-entry";
-const mockEntryMenuId = "@t/entry-menu";
-const mockEntriesRemoteActionType = EntriesRemoteActionType;
-jest.mock("../components/entries/entries.component", () => {
-  return (props: EntriesCallerProps) => {
-    const { parentDispatch, postActions } = props;
-    const action0 = postActions[0];
-
-    return (
-      <div>
-        <span
-          id={mockNewEntryId}
-          onClick={() => {
-            parentDispatch({
-              type: mockActionType.hide_menus,
-              menus: ["mainCircular"],
-            });
-          }}
-        />
-        {action0 && action0.type === mockEntriesRemoteActionType.upsert && (
-          <span id={mockEntryMenuId} />
-        )}
-      </div>
-    );
-  };
-});
-
-jest.mock("@eb/shared/src/utils/connections");
-const mockGetIsConnected = getIsConnected as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
-const mockGetCachedExperienceAndEntriesDetailView =
-  getCachedExperienceAndEntriesDetailView as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/sync-to-server-cache");
-const mockGetSyncError = getSyncError as jest.Mock;
-const mockgetAndRemoveOfflineExperienceIdFromSyncFlag =
-  getAndRemoveOfflineExperienceIdFromSyncFlag as jest.Mock;
-const mockPutOfflineExperienceIdInSyncFlag =
-  putOfflineExperienceIdInSyncFlag as jest.Mock;
-// const mockPutOrRemoveSyncError = putOrRemoveSyncError as jest.Mock;
-
-jest.mock("../components/WithSubscriptions/with-subscriptions.utils");
-const mockCleanUpOfflineExperiences = cleanUpOfflineExperiences as jest.Mock;
-const mockCleanUpSyncedOfflineEntries =
-  cleanUpSyncedOfflineEntries as jest.Mock;
-
 const mockUpsertCommentsId = "@t/upsert-comments";
 const mockCloseUpsertCommentsId = "@t/close-comments";
 const mockCommentsHideMenuId = "@t/comments-hide-menu";
-const mockCommentRemoteActionType = CommentRemoteActionType;
-const mockNoTriggerDocumentEventClassName = noTriggerDocumentEventClassName;
-jest.mock("../components/DetailExperience/detail-experience.lazy", () => {
-  return {
-    Comments: (props: CommentsCallerProps) => {
-      const { postActions, parentDispatch } = props;
-      const action0 = postActions[0];
+const mockNewEntryId = "@t/new-entry";
+const mockEntryMenuId = "@t/entry-menu";
 
-      return (
-        <div className={mockNoTriggerDocumentEventClassName}>
-          <span
-            id={mockUpsertCommentsId}
-            onClick={() => {
-              if (
-                action0 &&
-                action0.type === mockCommentRemoteActionType.upsert
-              ) {
-                parentDispatch({
-                  type: mockActionType.comment_action,
-                  action: {
-                    type: mockCommentRemoteActionType.upsert,
-                  },
-                });
-              }
-            }}
-          />
-          <span
-            id={mockCloseUpsertCommentsId}
-            onClick={() => {
-              parentDispatch({
-                type: mockActionType.comment_action,
-                action: {
-                  type: mockCommentRemoteActionType.upsert_closed,
-                },
-              });
-            }}
-          />
-          <span
-            id={mockCommentsHideMenuId}
-            onClick={() => {
-              if (
-                action0 &&
-                action0.type === mockCommentRemoteActionType.hide_menus
-              ) {
-                parentDispatch({
-                  type: mockActionType.comment_action,
-                  action: {
-                    type: mockCommentRemoteActionType.hide,
-                  },
-                });
-              }
-            }}
-          />
-        </div>
-      );
-    },
-  };
-});
-
+const mockWindowChangeUrl = jest.fn();
+const mockUseWithSubscriptionContext = jest.fn();
+const mockRemoveUnsyncedExperiences = jest.fn();
+const mockGetCachedExperienceAndEntriesDetailView = jest.fn();
+const mockClearTimeoutFn = jest.fn();
+const mockGetDeleteExperienceLedger = jest.fn();
+const mockPutOrRemoveDeleteExperienceLedger = jest.fn();
+const mockGetIsConnected = jest.fn();
+const mockGetSyncError = jest.fn();
+const mockgetAndRemoveOfflineExperienceIdFromSyncFlag = jest.fn();
+const mockMapOnlineExperienceIdToOfflineIdInSyncFlag = jest.fn();
+const mockCleanUpOfflineExperiences = jest.fn();
+const mockCleanUpSyncedOfflineEntries = jest.fn();
 const mockHistoryPushFn = jest.fn();
-
 const mockPersistFunc = jest.fn();
 const mockDeleteExperiences = jest.fn();
 
@@ -323,11 +159,11 @@ afterEach(() => {
 
 describe("components", () => {
   beforeAll(() => {
-    // mswServerListen();
+    mswServerListen();
   });
 
   afterAll(() => {
-    // mswServer.close();
+    mswServer.close();
   });
 
   beforeEach(() => {
@@ -338,10 +174,12 @@ describe("components", () => {
     cleanup();
   });
 
-  it("fetch experience succeeds / connected / no retry", async () => {
-    // ebnisObject.logReducers = true;
-    // ebnisObject.logApolloQueries = true;
+  it("There is no retry prompt when experience successfully fetched from server", async () => {
+    // 1
+
     mockGetIsConnected.mockReturnValue(true);
+
+    // 2
 
     mswServer.use(
       getExperienceAndEntriesDetailViewGqlMsw({
@@ -355,33 +193,50 @@ describe("components", () => {
     const { ui } = makeComp();
 
     await act(async () => {
+      // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
+
+      // 3
+
       render(ui);
 
+      // 4
+
       expect(getById(mockLoadingId)).not.toBeNull();
+
+      // 5
+
       expect(getById(domPrefix)).toBeNull();
+
+      // 6
+
+      expect(getById(refetchId)).toBeNull();
+
+      // 7
 
       await waitFor(() => {
         expect(getById(domPrefix)).not.toBeNull();
       });
 
+      // 8
+
       expect(getById(mockLoadingId)).toBeNull();
+
+      // 9
+
       expect(getById(refetchId)).toBeNull();
     });
   });
 
-  const mockGetCachedExperienceAndEntriesDetailView2 = {
-    data: {
-      getExperience: {
-        ...mockOnlineExperience1,
-      } as any,
-    },
-  } as GetExperienceAndEntriesDetailViewQueryResult;
+  it("Given fetching experience from server fails, when retry from cache succeeds, experience should be visible", async () => {
+    // 1
 
-  it("first fetch of experience fails/succeeds on retry from cache", async () => {
     mockGetIsConnected.mockReturnValue(true);
 
     mswServer.use(
       getExperienceAndEntriesDetailViewGqlMsw({
+        // 2
+
         getExperience: null, // causes failure
         getEntries: null,
       }),
@@ -390,11 +245,25 @@ describe("components", () => {
     const { ui } = makeComp();
 
     await act(async () => {
+      // ebnisObject.logReducers = true;
+
+      // 3
+
       render(ui);
 
+      // 4
+
       expect(getById(mockLoadingId)).not.toBeNull();
+
+      // 5
+
       expect(getById(domPrefix)).toBeNull();
+
+      // 6
+
       expect(getById(refetchId)).toBeNull();
+
+      // 7
 
       const retryEl = await waitFor(() => {
         const el = getById(refetchId);
@@ -402,24 +271,43 @@ describe("components", () => {
         return el;
       });
 
+      // 8
+
       expect(getById(mockLoadingId)).toBeNull();
+
+      // 9
+
       expect(getById(domPrefix)).toBeNull();
 
+      // 10
+
       mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
-        mockGetCachedExperienceAndEntriesDetailView2,
+        mockGetCachedExperienceAndEntriesDetailViewData,
       );
 
+      // 11
+
       retryEl.click();
+
+      // 12
+
+      expect(getById(domPrefix)).toBeNull();
+
+      // 13
 
       await waitFor(() => {
         expect(getById(domPrefix)).not.toBeNull();
       });
 
+      // 14
+
       expect(getById(refetchId)).toBeNull();
     });
   });
 
-  it("update experience succeeds", async () => {
+  it("Close success notification automatically and manually when experience updated", async () => {
+    // 1
+
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValue({
       data: {
         getExperience: {
@@ -432,69 +320,87 @@ describe("components", () => {
 
     await act(async () => {
       // ebnisObject.logReducers = true;
+
+      // 2
+
       render(ui);
+
+      // 3
+
       const triggerUpdateUiEl = await waitFor(() => {
         const el = getById(updateMenuItemId);
         expect(el).not.toBeNull();
         return el;
       });
-      // Update UI should not be visible
+
+      // 4
+
       expect(getById(mockUpsertCancelId)).toBeNull();
-      // When Update UI is requested
+
+      // 5
+
       triggerUpdateUiEl.click();
-      // Update UI should be visible
-      // When Update UI is cancelled
+
+      // 6, 7
+
       getById(mockUpsertCancelId).click();
-      // Update UI should not be visible
+
+      // 8
+
       expect(getById(mockUpsertCancelId)).toBeNull();
-      expect(getById(mockUpsertSuccessId)).toBeNull();
-      // When Update UI is requested
+
+      // 9
+
       triggerUpdateUiEl.click();
-      // Notification should not be visible
+
+      // 10
+
+      const x = getById(mockUpsertSuccessId);
+      expect(x).not.toBeNull();
+
+      // 11
+
       expect(getById(updateSuccessNotificationId)).toBeNull();
-      // Update UI should be visible
-      // When update succeeds
-      getById(mockUpsertSuccessId).click();
-      // Update UI should not be visible
+
+      // 12
+
+      x.click();
+
+      // 13
+
       expect(getById(mockUpsertSuccessId)).toBeNull();
-      // Notification should be visible
-      // When notification is closed
+
+      // 14, 15
+
       getById(updateSuccessNotificationId).click();
-      // Notification should not be visible
+
+      // 16
+
       expect(getById(updateSuccessNotificationId)).toBeNull();
-      // When Update UI is requested
+
+      // 17
+
       triggerUpdateUiEl.click();
-      // Update UI should be visible
-      // When update succeeds
+
+      // 18
+
       getById(mockUpsertSuccessId).click();
-      // Notification should be visible
+
+      // 19
+
       expect(getById(updateSuccessNotificationId)).not.toBeNull();
-      // Notification should auto close
+
+      // 20
+
       await waitFor(() => {
         expect(getById(updateSuccessNotificationId)).toBeNull();
       });
     });
   });
 
-  const deleteExperience1Data: DeleteExperiences = {
-    deleteExperiences: {
-      __typename: "DeleteExperiencesSomeSuccess",
-      experiences: [
-        {
-          __typename: "DeleteExperienceSuccess",
-          experience: {
-            __typename: "Experience",
-            id: mockOnlineExperienceId1,
-            title: "aa",
-          },
-        },
-      ],
-      clientSession: "",
-      clientToken: "",
-    },
-  };
+  it("Delete experience success", async () => {
+    // 1
 
-  it("delete experience success", async () => {
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValue({
       data: {
         getExperience: {
@@ -503,13 +409,39 @@ describe("components", () => {
       },
     } as GetExperienceAndEntriesDetailViewQueryResult);
 
-    mswServer.use(deleteExperiencesMswGql(deleteExperience1Data));
+    // 2
+
+    mswServer.use(
+      deleteExperiencesMswGql({
+        deleteExperiences: {
+          __typename: "DeleteExperiencesSomeSuccess",
+          experiences: [
+            {
+              __typename: "DeleteExperienceSuccess",
+              experience: {
+                __typename: "Experience",
+                id: mockOnlineExperienceId1,
+                title: "aa",
+              },
+            },
+          ],
+          clientSession: "",
+          clientToken: "",
+        },
+      }),
+    );
 
     const { ui } = makeComp();
 
     await act(async () => {
       // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
+
+      // 3
+
       render(ui);
+
+      // 4
 
       const triggerDeleteUiEl = await waitFor(() => {
         const el = getById(deleteMenuItemId);
@@ -517,58 +449,67 @@ describe("components", () => {
         return el;
       });
 
-      // Delete confirmation should not be visible
+      // 5
+
       expect(getById(deleteHeaderCloseId)).toBeNull();
 
-      // When delete is requested
+      // 6
+
       triggerDeleteUiEl.click();
 
-      // Delete confirmation should be visible
-      // When delete confirmation is closed: header
+      // 7, 8
+
       getById(deleteHeaderCloseId).click();
 
-      // Delete confirmation should not be visible
+      // 9
       expect(getById(deleteHeaderCloseId)).toBeNull();
+
+      // 10
+
       expect(getById(deleteFooterCloseId)).toBeNull();
 
-      // When delete is requested
+      // 11
+
       triggerDeleteUiEl.click();
 
-      // Delete confirmation should be visible
-      // When delete confirmation is closed: footer
+      // 12, 13
+
       getById(deleteFooterCloseId).click();
 
-      // Delete confirmation should not be visible
+      // 14
+
       expect(getById(deleteFooterCloseId)).toBeNull();
 
-      // When delete is requested
+      // 15
+
       triggerDeleteUiEl.click();
 
-      // When deletion is confirmed
+      // 16
+
       getById(deleteOkId).click();
 
-      // When deletion succeeds
-      // User should be navigated away from the page
+      // 17
+
+      expect(mockHistoryPushFn).not.toBeCalled();
+
+      // 18
+
       await waitFor(() => {
         const calls = mockHistoryPushFn.mock.calls[0];
         expect(calls[0]).toBe(MY_URL);
       });
 
-      // Code to clean up deleted experience from cache should be called
+      // 19
+
       expect(mockPutOrRemoveDeleteExperienceLedger).toBeCalled();
       expect(mockRemoveUnsyncedExperiences).toBeCalled();
       expect(mockPersistFunc).toBeCalled();
     });
   });
 
-  const deleteExperience2Data: DeleteExperiences = {
-    deleteExperiences: {
-      __typename: "DeleteExperiencesAllFail",
-      error: "a",
-    },
-  };
+  it("Delete experience failure notification can be closed manually", async () => {
+    // 1
 
-  it("delete experience fails/manually close notification", async () => {
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValue({
       data: {
         getExperience: {
@@ -577,17 +518,30 @@ describe("components", () => {
       },
     } as GetExperienceAndEntriesDetailViewQueryResult);
 
-    mswServer.use(deleteExperiencesMswGql(deleteExperience2Data));
+    // 2
+
+    mswServer.use(
+      deleteExperiencesMswGql({
+        deleteExperiences: {
+          __typename: "DeleteExperiencesAllFail",
+          error: "a",
+        },
+      }),
+    );
 
     const { ui } = makeComp();
-    let unMount1: any;
+    let cachedUnmount: any;
 
     await act(async () => {
       // ebnisObject.logReducers = true;
       // ebnisObject.logApolloQueries = true;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+      // 3
+
       const { unmount } = render(ui);
-      unMount1 = unmount;
+      cachedUnmount = unmount;
+
+      // 4
 
       const triggerDeleteUiEl = await waitFor(() => {
         const el = getById(deleteMenuItemId);
@@ -595,37 +549,48 @@ describe("components", () => {
         return el;
       });
 
-      // When delete is requested and confirmed
-      triggerDeleteUiEl.click();
-      getById(deleteOkId).click();
+      // 5
 
-      // notification should not be visible
       expect(getById(deleteFailNotificationCloseId)).toBeNull();
 
-      // When deletion fails
-      // notification should be visible
+      // 6
+
+      triggerDeleteUiEl.click();
+
+      // 7
+
+      getById(deleteOkId).click();
+
+      // 8
+
       const notificationEl = await waitFor(() => {
         const el = getById(deleteFailNotificationCloseId);
         expect(el).not.toBeNull();
         return el;
       });
 
-      // When notification closed
+      //  9
+
       notificationEl.click();
 
-      // notification should not be visible
+      // 10
+
       expect(getById(deleteFailNotificationCloseId)).toBeNull();
+
+      // Timers will be cleared when component unmount
 
       expect(mockClearTimeoutFn).not.toBeCalled();
     });
 
     // timeouts should be cleared after component unmount
     expect(mockClearTimeoutFn).not.toBeCalled();
-    unMount1();
+    cachedUnmount();
     expect(mockClearTimeoutFn).toBeCalled();
   });
 
   it("delete experience fails/automatically close notification", async () => {
+    // 1
+
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValue({
       data: {
         getExperience: {
@@ -633,6 +598,8 @@ describe("components", () => {
         } as any,
       },
     } as GetExperienceAndEntriesDetailViewQueryResult);
+
+    // 2
 
     mockDeleteExperiences.mockResolvedValue({});
 
@@ -645,7 +612,12 @@ describe("components", () => {
     await act(async () => {
       // ebnisObject.logReducers = true;
       // ebnisObject.logApolloQueries = true;
+
+      // 3
+
       render(ui);
+
+      // 4
 
       const triggerDeleteUiEl = await waitFor(() => {
         const el = getById(deleteMenuItemId);
@@ -653,232 +625,311 @@ describe("components", () => {
         return el;
       });
 
-      // When delete is requested and confirmed
-      triggerDeleteUiEl.click();
-      getById(deleteOkId).click();
+      // 5
 
-      // notification should not be visible
       expect(getById(deleteFailNotificationCloseId)).toBeNull();
 
-      // When deletion fails
-      // notification should be visible
+      // 6
+
+      triggerDeleteUiEl.click();
+
+      // 7
+
+      getById(deleteOkId).click();
+
+      // 8
+
       await waitFor(() => {
         const el = getById(deleteFailNotificationCloseId);
         expect(el).not.toBeNull();
         return el;
       });
 
-      // Notification should auto close
+      // 9
       await waitFor(() => {
         expect(getById(deleteFailNotificationCloseId)).toBeNull();
       });
     });
   });
 
-  const withSubscriptionContext1 = {
-    onSyncData: {
-      offlineIdToOnlineExperienceMap: {
-        [mockOfflineExperienceId1]: mockOnlineExperience1,
-        "fake-id": {},
-      },
-      syncErrors: {
-        [mockOfflineExperienceId1]: {
-          createEntries: {
-            [mockOfflineEntry1Id]: {
-              error: "e",
-              dataObjects: [
-                {
-                  meta: {
-                    index: 1,
-                    id: "",
-                    clientId: "",
-                  },
-                  data: "1",
+  it("Update cache and redirect user for successfully synced page and non page offline experiences. Show error notification for failed sync offline/part offline entries", async () => {
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue({
+      data: {
+        getExperience: {
+          // 1
+
+          ...mockOfflineExperience1,
+        } as any,
+        getEntries: {
+          __typename: "GetEntriesSuccess",
+          entries: {
+            pageInfo: {},
+            edges: [
+              {
+                // 2
+
+                node: {
+                  ...mockOfflineEntry1,
                 },
-              ],
-            } as CreateEntryErrorFragment,
-          },
-          updateEntries: {
-            [mockOnlineEntry1Id]: "a",
+              },
+              {
+                // 3
+
+                node: {
+                  ...mockOnlineEntry1,
+                },
+              },
+            ],
           },
         },
       },
-    } as OnSyncedData,
-  };
+    } as GetExperienceAndEntriesDetailViewQueryResult);
 
-  const mockGetCachedExperienceAndEntriesDetailView1 = {
-    data: {
-      getExperience: {
-        ...mockOfflineExperience1,
-      } as any,
-      getEntries: {
-        __typename: "GetEntriesSuccess",
-        entries: {
-          pageInfo: {},
-          edges: [
-            {
-              node: {
-                ...mockOfflineEntry1,
-              },
-            },
-            {
-              node: {
-                ...mockOnlineEntry1,
-              },
-            },
-          ],
+    const nonPageOfflineExperienceId = "not-viewing-offline-experience-id";
+    mockUseWithSubscriptionContext.mockReturnValue({
+      onSyncData: {
+        offlineIdToOnlineExperienceMap: {
+          // 4 - offline experience has become online experience
+
+          [mockOfflineExperienceId1]: mockOnlineExperience1,
+
+          // 5
+
+          [nonPageOfflineExperienceId]: {},
         },
-      },
-    },
-  } as GetExperienceAndEntriesDetailViewQueryResult;
+        // 6 , 7
 
-  it("sync offline experience - with createEntries errors", async () => {
-    mockUseWithSubscriptionContext.mockReturnValue(withSubscriptionContext1);
+        syncErrors: {
+          [mockOfflineExperienceId1]: {
+            createEntries: {
+              // 6
+
+              [mockOfflineEntry1Id]: {
+                error: "e",
+                dataObjects: [
+                  {
+                    meta: {
+                      index: 1,
+                      id: "",
+                      clientId: "",
+                    },
+                    data: "1",
+                  },
+                ],
+              } as CreateEntryErrorFragment,
+            },
+            updateEntries: {
+              // 7
+
+              [mockOnlineEntry1Id]: "a",
+            },
+          },
+        },
+      } as OnSyncedData,
+    });
+
+    // 8
 
     mockgetAndRemoveOfflineExperienceIdFromSyncFlag.mockReturnValue(
       mockOfflineExperienceId1,
-    );
-
-    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
-      mockGetCachedExperienceAndEntriesDetailView1,
     );
 
     const { ui } = makeComp();
 
     await act(async () => {
       // ebnisObject.logReducers = true;
+      // ebnisObject.logApolloQueries = true;
+
+      // 9
 
       render(ui);
+
+      // 10
+
       expect(getById(syncErrorsNotificationId)).toBeNull();
+
+      // 11
 
       await waitFor(() => {
         expect(getById(syncErrorsNotificationId)).not.toBeNull();
       });
 
-      expect(mockPutOfflineExperienceIdInSyncFlag).toBeCalled();
+      // 12
+
+      expect(mockMapOnlineExperienceIdToOfflineIdInSyncFlag).toBeCalled();
       expect(mockPersistFunc).toBeCalled();
+
+      // 13
 
       const calls0 = await waitFor(() => {
         const calls = mockWindowChangeUrl.mock.calls;
         expect(calls).toHaveLength(1);
-        return calls[0];
+        const calls0 = calls[0];
+        return calls0;
       });
 
       const [path, type] = calls0;
       expect(path.includes(mockOnlineExperienceId1)).toBe(true);
       expect(type).toEqual(ChangeUrlType.replace);
 
+      // 15
+
       expect(mockCleanUpOfflineExperiences).toBeCalledWith({
-        "fake-id": {},
+        [nonPageOfflineExperienceId]: {},
       });
     });
   });
 
-  const withSubscriptionContext2 = {
-    onSyncData: {
-      onlineExperienceUpdatedMap: {
-        [mockOnlineExperienceId1]: {} as any,
-      },
-      onlineExperienceIdToOfflineEntriesMap: {
-        [mockOnlineExperienceId1]: {} as any,
-      },
-      syncErrors: {
-        [mockOnlineExperienceId1]: {
-          ownFields: {
-            __typename: "UpdateExperienceOwnFieldsError",
-            title: "a",
-          },
-          definitions: {
-            [mockOnlineDataDefinitionInteger1Id]: {
-              __typename: "DefinitionError",
-              id: mockOnlineDataDefinitionInteger1Id,
-              name: "a",
-              type: null,
-              error: null,
-            },
-          },
-          updateEntries: {
-            1: {
-              1: {
-                meta: {
-                  index: 0,
-                  id: "1",
+  it("Show error notification for failed syncing of updated experience. Prevent new entry creation until entry sync error fixed", async () => {
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue({
+      data: {
+        getExperience: {
+          // 1
+
+          ...mockOnlineExperience1,
+        } as any,
+        getEntries: {
+          __typename: "GetEntriesSuccess",
+          entries: {
+            pageInfo: {},
+            edges: [
+              {
+                // 2
+
+                node: {
+                  ...mockOnlineEntry1,
                 },
-                data: "a",
-                error: null,
-              } as DataObjectErrorFragment,
-            },
+              },
+            ],
           },
         },
       },
-    } as OnSyncedData,
-  };
+    } as GetExperienceAndEntriesDetailViewQueryResult);
 
-  const mockGetCachedExperienceAndEntriesDetailView3 = {
-    data: {
-      getExperience: {
-        ...mockOnlineExperience1,
-      } as any,
-      getEntries: {
-        __typename: "GetEntriesSuccess",
-        entries: {
-          pageInfo: {},
-          edges: [
-            {
-              node: {
-                ...mockOnlineEntry1,
+    mockUseWithSubscriptionContext.mockReturnValue({
+      onSyncData: {
+        onlineExperienceUpdatedMap: {
+          // 3
+
+          [mockOnlineExperienceId1]: {} as any,
+        },
+        onlineExperienceIdToOfflineEntriesMap: {
+          // 4
+
+          [mockOnlineExperienceId1]: {} as any,
+        },
+        syncErrors: {
+          [mockOnlineExperienceId1]: {
+            // 5
+
+            ownFields: {
+              __typename: "UpdateExperienceOwnFieldsError",
+              title: "a",
+            },
+            // 6
+
+            definitions: {
+              [mockOnlineDataDefinitionInteger1Id]: {
+                __typename: "DefinitionError",
+                id: mockOnlineDataDefinitionInteger1Id,
+                name: "a",
+                type: null,
+                error: null,
               },
             },
-          ],
-        },
-      },
-    },
-  } as GetExperienceAndEntriesDetailViewQueryResult;
+            // 7
 
-  it("sync online experience - with updateEntries and own fields errors", async () => {
-    mockUseWithSubscriptionContext.mockReturnValue(withSubscriptionContext2);
+            updateEntries: {
+              1: {
+                1: {
+                  meta: {
+                    index: 0,
+                    id: "1",
+                  },
+                  data: "a",
+                  error: null,
+                } as DataObjectErrorFragment,
+              },
+            },
+          },
+        },
+      } as OnSyncedData,
+    });
+
+    // 8
 
     mockgetAndRemoveOfflineExperienceIdFromSyncFlag.mockReturnValue(
       mockOfflineExperienceId1,
     );
 
-    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
-      mockGetCachedExperienceAndEntriesDetailView3,
-    );
-
     const { ui } = makeComp();
 
     await act(async () => {
+      // 9
+
       render(ui);
+
+      // 10
+
       expect(getById(syncErrorsNotificationId)).toBeNull();
+
+      // 11
 
       await waitFor(() => {
         expect(getById(syncErrorsNotificationId)).not.toBeNull();
       });
 
+      // 13
+
       expect(mockCleanUpSyncedOfflineEntries).toBeCalled();
+
+      // 14
 
       expect(getById(closeSyncErrorsMsgBtnId)).toBeNull();
 
-      const newEntryMenuEl = getOneByClass(newEntryMenuItemSelector);
-      newEntryMenuEl.click();
+      // 15
+
+      getOneByClass(newEntryMenuItemSelector).click();
+
+      // 16, 17
 
       getById(closeSyncErrorsMsgBtnId).click();
+
+      // 18
+
       expect(getById(closeSyncErrorsMsgBtnId)).toBeNull();
     });
   });
 
+  const mockGetCachedExperienceAndEntriesDetailViewData = {
+    data: {
+      getExperience: {
+        ...mockOnlineExperience1,
+      } as any,
+    },
+  } as GetExperienceAndEntriesDetailViewQueryResult;
+
   it("comments menu", async () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
-    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
-      mockGetCachedExperienceAndEntriesDetailView2,
-    );
+    mockGetCachedExperienceAndEntriesDetailView.mockReturnValue({
+      data: {
+        getExperience: {
+          // 1
+
+          ...mockOnlineExperience1,
+        } as any,
+      },
+    } as GetExperienceAndEntriesDetailViewQueryResult);
 
     const { ui } = makeComp();
 
     await act(async () => {
+      // 2
+
       render(ui);
+
+      // 3
 
       const showCommentsMenuEl = await waitFor(() => {
         const el = getById(showCommentsMenuId);
@@ -886,16 +937,40 @@ describe("components", () => {
         return el;
       });
 
+      // 4
+
       expect(getById(mockUpsertCommentsId)).toBeNull();
+
+      // 5
+
       expect(getById(hideCommentsMenuId)).toBeNull();
+
+      // 6
 
       showCommentsMenuEl.click();
+
+      // 7
+
       expect(getById(mockUpsertCommentsId)).not.toBeNull();
+
+      // 8
+
       expect(getById(showCommentsMenuId)).toBeNull();
 
+      // 9, 10
+
       getById(hideCommentsMenuId).click();
+
+      // 11
+
       expect(getById(mockUpsertCommentsId)).toBeNull();
+
+      // 12
+
       expect(getById(hideCommentsMenuId)).toBeNull();
+
+      // 13
+
       expect(getById(showCommentsMenuId)).not.toBeNull();
 
       getById(createCommentsMenuId).click();
@@ -922,7 +997,7 @@ describe("components", () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
-      mockGetCachedExperienceAndEntriesDetailView2,
+      mockGetCachedExperienceAndEntriesDetailViewData,
     );
 
     const { ui } = makeComp();
@@ -958,7 +1033,7 @@ describe("components", () => {
     mockUseWithSubscriptionContext.mockReturnValue({});
 
     mockGetCachedExperienceAndEntriesDetailView.mockReturnValue(
-      mockGetCachedExperienceAndEntriesDetailView2,
+      mockGetCachedExperienceAndEntriesDetailViewData,
     );
 
     const { ui } = makeComp();
@@ -1008,10 +1083,18 @@ describe("reducers", () => {
       },
     },
     deleteExperiences: mockDeleteExperiences as any,
-    // getExperienceAndEntriesDetailViewInject: getExperienceAndEntriesDetailView,
     getExperienceAndEntriesDetailViewInject:
       mockGetExperienceAndEntriesDetailView as any,
     history,
+    getCachedExperienceAndEntriesDetailViewInject:
+      mockGetCachedExperienceAndEntriesDetailView as any,
+    getDeleteExperienceLedgerInject: mockGetDeleteExperienceLedger as any,
+    putOrRemoveDeleteExperienceLedgerInject:
+      mockPutOrRemoveDeleteExperienceLedger as any,
+    getIsConnectedInject: mockGetIsConnected as any,
+    getAndRemoveOfflineExperienceIdFromSyncFlagInject:
+      mockgetAndRemoveOfflineExperienceIdFromSyncFlag as any,
+    getSyncErrorInject: mockGetSyncError as any,
   } as Props;
 
   const effectArgs = {
@@ -1327,8 +1410,127 @@ function makeComp({
         getExperienceAndEntriesDetailViewInject={
           getExperienceAndEntriesDetailView
         }
+        HeaderComponentFn={() => (<div id={mockHeaderId} />) as any}
+        LoadingComponentFn={mockLoadingComponent}
+        windowChangeUrlFn={mockWindowChangeUrl}
+        useWithSubscriptionContextInject={mockUseWithSubscriptionContext}
+        removeUnsyncedExperiencesInject={mockRemoveUnsyncedExperiences}
+        getCachedExperienceAndEntriesDetailViewInject={
+          mockGetCachedExperienceAndEntriesDetailView
+        }
+        clearTimeoutFnInject={mockClearTimeoutFn}
+        getDeleteExperienceLedgerInject={mockGetDeleteExperienceLedger}
+        putOrRemoveDeleteExperienceLedgerInject={
+          mockPutOrRemoveDeleteExperienceLedger
+        }
+        getIsConnectedInject={mockGetIsConnected}
+        mapOnlineExperienceIdToOfflineIdInSyncFlagInject={
+          mockMapOnlineExperienceIdToOfflineIdInSyncFlag
+        }
+        getAndRemoveOfflineExperienceIdFromSyncFlagInject={
+          mockgetAndRemoveOfflineExperienceIdFromSyncFlag
+        }
+        getSyncErrorInject={mockGetSyncError}
+        cleanUpSyncedOfflineEntriesInject={mockCleanUpSyncedOfflineEntries}
+        cleanUpOfflineExperiencesInject={mockCleanUpOfflineExperiences}
+        UpsertExperienceInject={mockUpsertExperienceComponent as any}
+        CommentsInject={mockCommentsComponent as any}
+        EntriesInject={mockEntriesComponent as any}
         {...props}
       />
     ),
   };
+}
+
+function mockLoadingComponent() {
+  return <div id={mockLoadingId} />;
+}
+
+function mockUpsertExperienceComponent(props: UpsertExperienceProps) {
+  return (
+    <div>
+      <button
+        id={mockUpsertSuccessId}
+        onClick={() => {
+          props.onSuccess(mockOnlineExperience1, StateValue.online);
+        }}
+      />
+      <button
+        id={mockUpsertFailId}
+        onClick={() => {
+          props.onError("a");
+        }}
+      />
+      <button id={mockUpsertCancelId} onClick={props.onClose} />
+    </div>
+  );
+}
+
+function mockCommentsComponent(props: CommentsCallerProps) {
+  const { postActions, parentDispatch } = props;
+  const action0 = postActions[0];
+
+  return (
+    <div className={noTriggerDocumentEventClassName}>
+      <span
+        id={mockUpsertCommentsId}
+        onClick={() => {
+          if (action0 && action0.type === CommentRemoteActionType.upsert) {
+            parentDispatch({
+              type: ActionType.comment_action,
+              action: {
+                type: CommentRemoteActionType.upsert,
+              },
+            });
+          }
+        }}
+      />
+      <span
+        id={mockCloseUpsertCommentsId}
+        onClick={() => {
+          parentDispatch({
+            type: ActionType.comment_action,
+            action: {
+              type: CommentRemoteActionType.upsert_closed,
+            },
+          });
+        }}
+      />
+      <span
+        id={mockCommentsHideMenuId}
+        onClick={() => {
+          if (action0 && action0.type === CommentRemoteActionType.hide_menus) {
+            parentDispatch({
+              type: ActionType.comment_action,
+              action: {
+                type: CommentRemoteActionType.hide,
+              },
+            });
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+function mockEntriesComponent(props: EntriesCallerProps) {
+  const { parentDispatch, postActions } = props;
+  const action0 = postActions[0];
+
+  return (
+    <div>
+      <span
+        id={mockNewEntryId}
+        onClick={() => {
+          parentDispatch({
+            type: ActionType.hide_menus,
+            menus: ["mainCircular"],
+          });
+        }}
+      />
+      {action0 && action0.type === EntriesRemoteActionType.upsert && (
+        <span id={mockEntryMenuId} />
+      )}
+    </div>
+  );
 }

@@ -65,7 +65,7 @@ export function getIsConnected() {
   return connectionStatus ? connectionStatus.isConnected : null;
 }
 
-export type GetIsConnectedInject = {
+export type GetIsConnectedInjectType = {
   getIsConnectedInject: typeof getIsConnected;
 };
 

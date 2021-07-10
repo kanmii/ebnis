@@ -50,6 +50,10 @@ export function removeUnsyncedExperiences(ids: string[]) {
   writeUnsyncedLedger(unsyncedLedger);
 }
 
+export type RemoveUnsyncedExperiencesInjectType = {
+  removeUnsyncedExperiencesInject: typeof removeUnsyncedExperiences
+}
+
 function writeUnsyncedLedger(unsyncedLedger: UnsyncedLedger) {
   const { cache } = window.____ebnis;
   cache.writeQuery({

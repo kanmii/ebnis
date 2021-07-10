@@ -176,8 +176,8 @@ export async function cleanUpOfflineExperiences(
   await persistor.persist();
 }
 
-export type CleanUpOfflineExperiencesFn = {
-  cleanUpOfflineExperiencesFn: typeof cleanUpOfflineExperiences;
+export type CleanUpOfflineExperiencesInjectType = {
+  cleanUpOfflineExperiencesInject: typeof cleanUpOfflineExperiences;
 };
 
 export async function cleanUpSyncedOfflineEntries(
@@ -195,6 +195,10 @@ export async function cleanUpSyncedOfflineEntries(
 
   persistor.persist();
 }
+
+export type CleanUpSyncedOfflineEntriesInjectType = {
+  cleanUpSyncedOfflineEntriesInject: typeof cleanUpSyncedOfflineEntries;
+};
 
 ////////////////////////// END EFFECTS SECTION ////////////////////////////
 

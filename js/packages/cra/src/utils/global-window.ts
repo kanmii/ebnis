@@ -22,6 +22,10 @@ export function windowChangeUrl(url: string, type: ChangeUrlType) {
   }
 }
 
+export type WindowChangeUrlType = {
+  windowChangeUrlFn: typeof windowChangeUrl
+}
+
 export function setUpRoutePage(args: SetUpRoutePageArgs) {
   const { title, rootClassName } = args;
 
