@@ -4,8 +4,9 @@ import {
   getDeleteExperienceLedger,
   putOrRemoveDeleteExperienceLedger,
 } from "@eb/shared/src/apollo/delete-experience-cache";
+import { getCachedExperienceAndEntriesDetailView } from "@eb/shared/src/apollo/experience-detail-cache-utils";
 import { getExperienceAndEntriesDetailView } from "@eb/shared/src/apollo/experience.gql.types";
-import { getCachedExperienceAndEntriesDetailView } from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { cleanUpOfflineExperiences } from "@eb/shared/src/apollo/experiences-list-cache-utils";
 import { useWithSubscriptionContext } from "@eb/shared/src/apollo/injectables";
 import {
   getAndRemoveOfflineExperienceIdFromSyncFlag,
@@ -13,19 +14,16 @@ import {
   mapOnlineExperienceIdToOfflineIdInSyncFlag,
 } from "@eb/shared/src/apollo/sync-to-server-cache";
 import { removeUnsyncedExperiences } from "@eb/shared/src/apollo/unsynced-ledger";
+import { updateExperiencesMutation } from "@eb/shared/src/apollo/update-experiences.gql";
+import { windowChangeUrl } from "@eb/shared/src/global-window";
 import { getIsConnected } from "@eb/shared/src/utils/connections";
 import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
 import { deleteExperiences } from "../../utils/delete-experiences.gql";
-import { windowChangeUrl } from "../../utils/global-window";
-import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import Entries from "../entries/entries.default";
 import HeaderComponent from "../Header/header.component";
 import LoadingComponent from "../Loading/loading.component";
 import { UpsertExperience } from "../My/my.lazy";
-import {
-  cleanUpOfflineExperiences,
-  cleanUpSyncedOfflineEntries,
-} from "../WithSubscriptions/with-subscriptions.utils";
+import { cleanUpSyncedOfflineEntries } from "../WithSubscriptions/with-subscriptions.utils";
 import { DetailExperience } from "./detail-experience.component";
 import { clearTimeoutFn } from "./detail-experience.injectables";
 import { Comments } from "./detail-experience.lazy";
@@ -36,7 +34,7 @@ export default (props: CallerProps) => {
     <DetailExperience
       {...props}
       HeaderComponentFn={HeaderComponent}
-      LoadingComponentFn={LoadingComponent}
+      LoadingComponentInject={LoadingComponent}
       deleteExperiences={deleteExperiences}
       componentTimeoutsMs={componentTimeoutsMs}
       updateExperiencesMutation={updateExperiencesMutation}
@@ -44,7 +42,7 @@ export default (props: CallerProps) => {
       getExperienceAndEntriesDetailViewInject={
         getExperienceAndEntriesDetailView
       }
-      windowChangeUrlFn={windowChangeUrl}
+      windowChangeUrlInject={windowChangeUrl}
       removeUnsyncedExperiencesInject={removeUnsyncedExperiences}
       getCachedExperienceAndEntriesDetailViewInject={
         getCachedExperienceAndEntriesDetailView

@@ -20,6 +20,10 @@ export function scrollIntoView(
   element.scrollIntoView(options);
 }
 
+export type ScrollIntoViewInjectType = {
+  scrollIntoViewInject: typeof scrollIntoView;
+};
+
 export type ScrollIntoView = (
   id: string,
   options?: ScrollIntoViewOptions,

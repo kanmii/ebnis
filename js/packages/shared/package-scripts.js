@@ -4,7 +4,9 @@ const { resolve: resolvePath } = require("path");
 const shell = require("shelljs");
 const commonScripts = require("../../_shared/_package-scripts");
 
-const apiUrl = process.env.API_URL;
+const { API_URL = "" } = process.env;
+
+const apiUrl = API_URL;
 const genClientOutputRelative = "./src/graphql/apollo-types";
 const genClientOutput = resolvePath(__dirname, genClientOutputRelative);
 

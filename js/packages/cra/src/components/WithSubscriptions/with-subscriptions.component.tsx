@@ -1,4 +1,5 @@
 import { cleanCachedMutations } from "@eb/shared/src/apollo/clean-cached-mutations";
+import { ChangeUrlType } from "@eb/shared/src/global-window";
 import {
   BroadcastMessageType,
   EmitAction,
@@ -8,11 +9,6 @@ import {
   StateValue,
 } from "@eb/shared/src/utils/types";
 import React, { useEffect, useReducer } from "react";
-import {
-  ChangeUrlType,
-  getLocation,
-  windowChangeUrl,
-} from "../../utils/global-window";
 import { MY_URL } from "../../utils/urls";
 import { useRunEffects } from "../../utils/use-run-effects";
 import {
@@ -22,7 +18,6 @@ import {
 } from "./with-subscriptions.injectables";
 import {
   ActionType,
-  CallerProps,
   cleanUpSyncedOfflineEntries,
   effectFunctions,
   initState,
@@ -65,6 +60,9 @@ export function WithSubscriptions(props: Props) {
   });
 
   function onBcMessage(message: EmitAction) {
+    const { windowChangeUrlInject, getLocationInject } =
+      window.____ebnis.withSubscriptionsComponentInjections;
+
     const { type, ...payload } = message;
 
     switch (type) {
@@ -81,15 +79,15 @@ export function WithSubscriptions(props: Props) {
 
       case BroadcastMessageType.experienceDeleted:
         // istanbul ignore else:
-        if (getLocation().pathname.includes(MY_URL)) {
-          windowChangeUrl(MY_URL, ChangeUrlType.replace);
+        if (getLocationInject().pathname.includes(MY_URL)) {
+          windowChangeUrlInject(MY_URL, ChangeUrlType.replace);
         }
         break;
 
       case BroadcastMessageType.syncDone:
         {
           const data = payload as OnSyncedData;
-          const { pathname } = getLocation();
+          const { pathname } = getLocationInject();
 
           // istanbul ignore else:
           if (
@@ -97,7 +95,7 @@ export function WithSubscriptions(props: Props) {
             pathname === MY_URL
           ) {
             // in MY_URL view, we are not showing entries.
-            // :TODO: what if we decide to show entries on MY_URL view?
+            // TODO: what if we decide to show entries on MY_URL view?
             // what if we add additional routes where sync could have occurred
             cleanUpSyncedOfflineEntries(
               data.onlineExperienceIdToOfflineEntriesMap,
@@ -126,8 +124,3 @@ export function WithSubscriptions(props: Props) {
     </WithSubscriptionsDispatchProvider>
   );
 }
-
-// istanbul ignore next:
-export default (props: CallerProps) => {
-  return <WithSubscriptions {...props} />;
-};

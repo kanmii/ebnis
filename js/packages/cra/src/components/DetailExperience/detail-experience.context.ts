@@ -1,8 +1,8 @@
-import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { ExperienceDFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDFragment";
 import { OnlineStatus } from "@eb/shared/src/utils/types";
 import { ReactMouseEvent } from "@eb/shared/src/utils/types/react";
 import { createContext } from "react";
-import { UseWithSubscriptionContextInject } from "../../../../shared/src/apollo/injectables";
+import { UseWithSubscriptionContextInjectType } from "../../../../shared/src/apollo/injectables";
 import { CommentRemoteAction } from "../experience-comments/experience-comments.utils";
 import { DataState, DispatchType } from "./detailed-experience-utils";
 
@@ -14,7 +14,7 @@ export type DispatchContextValue = Readonly<
     requestUpdateUiCb: (e: ReactMouseEvent) => void;
     cancelUpdateUiRequestCb: (e: ReactMouseEvent) => void;
     onUpdateSuccess: (
-      e: ExperienceDetailViewFragment,
+      e: ExperienceDFragment,
       onlineStatus: OnlineStatus,
     ) => void;
     toggleMenuCb: (e: ReactMouseEvent) => void;
@@ -23,7 +23,7 @@ export type DispatchContextValue = Readonly<
     closeSyncErrorsMsg: (e: ReactMouseEvent) => void;
     refetchCb: (e: ReactMouseEvent) => void;
     commentCb: (e: ReactMouseEvent, commentAction: CommentRemoteAction) => void;
-  } & UseWithSubscriptionContextInject
+  } & UseWithSubscriptionContextInjectType
 >;
 
 export const DispatchContext = createContext<DispatchContextValue>(

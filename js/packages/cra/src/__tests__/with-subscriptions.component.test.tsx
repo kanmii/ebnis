@@ -1,16 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { readEntryFragment } from "@eb/shared/src/apollo/get-detailed-experience-query";
-import { syncToServer } from "@eb/shared/src/apollo/sync-to-server";
-import {
-  purgeEntry,
-  purgeExperiencesFromCache1,
-} from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
 import {
   broadcastMessage,
   makeBChannel,
 } from "@eb/shared/src/broadcast-channel-manager";
+import { ChangeUrlType } from "@eb/shared/src/global-window";
+import { WithSubscriptionsComponentInjections } from "@eb/shared/src/injections";
 import { makeObservable } from "@eb/shared/src/observable-manager";
-import { getUser } from "@eb/shared/src/utils/manage-user-auth";
 import {
   Any,
   BroadcastMessageExperienceDeleted,
@@ -24,13 +19,9 @@ import { cleanup, render } from "@testing-library/react";
 import React, { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
 import { WithSubscriptions } from "../components/WithSubscriptions/with-subscriptions.component";
-import {
-  cleanupWithSubscriptions,
-  subscribeToGraphqlEvents,
-} from "../components/WithSubscriptions/with-subscriptions.injectables";
+import { cleanupWithSubscriptions } from "../components/WithSubscriptions/with-subscriptions.injectables";
 import {
   ActionType,
-  cleanUpOfflineExperiences,
   effectFunctions,
   EffectType,
   initState,
@@ -38,30 +29,17 @@ import {
 } from "../components/WithSubscriptions/with-subscriptions.utils";
 import { deleteObjectKey } from "../utils";
 import { GenericHasEffect } from "../utils/effects";
-import {
-  ChangeUrlType,
-  getLocation,
-  windowChangeUrl,
-} from "../utils/global-window";
 import { MAX_TIMEOUT_MS } from "../utils/timers";
 import { MY_URL } from "../utils/urls";
 
-jest.mock("@eb/shared/src/utils/manage-user-auth");
-const mockGetUser = getUser as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
-const mockPurgeExperiencesFromCache1 = purgeExperiencesFromCache1 as jest.Mock;
-const mockPurgeEntry = purgeEntry as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
-const mockReadEntryFragment = readEntryFragment as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/sync-to-server");
-const mockSyncToServer = syncToServer as jest.Mock;
-
-jest.mock("../utils/global-window");
-const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
-const mockGetLocation = getLocation as jest.Mock;
+const mockGetUser = jest.fn();
+const mockPurgeExperiencesFromCache1 = jest.fn();
+const mockPurgeEntry = jest.fn();
+const mockReadEntryFragment = jest.fn();
+const mockSyncToServer = jest.fn();
+const mockWindowChangeUrl = jest.fn();
+const mockGetLocation = jest.fn();
+const mockSubscribeToGraphqlExperiencesDeletedEvent = jest.fn();
 
 let mockWithEmitterProviderValue = null as any;
 jest.mock(
@@ -74,7 +52,6 @@ jest.mock(
         return children;
       },
       cleanupWithSubscriptions: jest.fn(),
-      subscribeToGraphqlEvents: jest.fn(),
       WithSubscriptionsDispatchProvider: ({ children }: any) => {
         return children;
       },
@@ -82,7 +59,6 @@ jest.mock(
   },
 );
 const mockCleanupWithSubscription = cleanupWithSubscriptions as jest.Mock;
-const mockSubscribeToGraphqlEvents = subscribeToGraphqlEvents as jest.Mock;
 const mockSubscribeToGraphqlEventsSubscribe = jest.fn();
 
 const mockPersistFn = jest.fn();
@@ -91,16 +67,38 @@ const persistor = {
   persist: mockPersistFn as any,
 } as any;
 
+const withSubscriptionsComponentInjections: WithSubscriptionsComponentInjections =
+  {
+    purgeEntryInject: mockPurgeEntry,
+    purgeExperiencesFromCacheInject: mockPurgeExperiencesFromCache1,
+    getUserInject: mockGetUser,
+    readEntryFragmentInject: mockReadEntryFragment,
+    syncToServerInject: mockSyncToServer,
+    windowChangeUrlInject: mockWindowChangeUrl,
+    getLocationInject: mockGetLocation,
+    subscribeToGraphqlExperiencesDeletedEventInject:
+      mockSubscribeToGraphqlExperiencesDeletedEvent,
+  };
+
 const ebnisObject = {
   persistor,
-  // logApolloQueries: true,
-  // logReducers: true,
 } as EbnisGlobals;
 
 const mockDispatch = jest.fn();
 
+beforeAll(() => {
+  window.____ebnis = ebnisObject;
+});
+
+afterAll(() => {
+  deleteObjectKey(window, "____ebnis");
+});
+
 beforeEach(() => {
-  mockSubscribeToGraphqlEvents.mockReturnValue({
+  ebnisObject.withSubscriptionsComponentInjections =
+    withSubscriptionsComponentInjections;
+
+  mockSubscribeToGraphqlExperiencesDeletedEvent.mockReturnValue({
     subscribe: mockSubscribeToGraphqlEventsSubscribe,
   });
 });
@@ -121,14 +119,11 @@ describe("component", () => {
   });
 
   afterAll(() => {
-    // clearNodeFolder();
-
     const { bcBroadcaster } = ebnisObject;
     bcBroadcaster.close();
     deleteObjectKey(ebnisObject, "bcBroadcaster");
     deleteObjectKey(ebnisObject, "emitter");
     deleteObjectKey(ebnisObject, "observable");
-    deleteObjectKey(window, "____ebnis");
   });
 
   afterEach(() => {
@@ -277,16 +272,6 @@ describe("component", () => {
 
     //cleanup
     mockCleanupWithSubscription.mock.calls[0][0]();
-  });
-
-  it("cleans up offline experiences", async () => {
-    expect(mockPurgeExperiencesFromCache1).not.toHaveBeenCalled();
-    expect(mockPersistFn).not.toHaveBeenCalled();
-
-    await cleanUpOfflineExperiences({ a: 1 } as any);
-
-    expect(mockPurgeExperiencesFromCache1.mock.calls[0][0]).toEqual(["a"]);
-    expect(mockPersistFn).toHaveBeenCalled();
   });
 });
 

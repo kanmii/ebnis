@@ -6,7 +6,7 @@ import gql from "graphql-tag";
 import {
   UnsyncedLedger,
   UnsyncedModifiedExperience,
-} from "../../../cra/src/utils/unsynced-ledger.types";
+} from "./unsynced-ledger.types";
 
 const UNSYNCED_LEDGER_QUERY = gql`
   query {
@@ -51,8 +51,8 @@ export function removeUnsyncedExperiences(ids: string[]) {
 }
 
 export type RemoveUnsyncedExperiencesInjectType = {
-  removeUnsyncedExperiencesInject: typeof removeUnsyncedExperiences
-}
+  removeUnsyncedExperiencesInject: typeof removeUnsyncedExperiences;
+};
 
 function writeUnsyncedLedger(unsyncedLedger: UnsyncedLedger) {
   const { cache } = window.____ebnis;

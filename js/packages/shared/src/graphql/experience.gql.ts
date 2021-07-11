@@ -15,6 +15,9 @@ export const DEFINITION_FRAGMENT = gql`
   }
 `;
 
+export const FRAGMENT_NAME_experienceListViewFragment =
+  "ExperienceListViewFragment";
+
 export const EXPERIENCE_LIST_VIEW_FRAGMENT = gql`
   fragment ExperienceListViewFragment on Experience {
     id
@@ -54,8 +57,14 @@ export const EXPERIENCE_REST_FRAGMENT = gql`
 // It includes all fields minus comments
 // ====================================================
 
-export const EXPERIENCE_DETAIL_VIEW_FRAGMENT = gql`
-  fragment ExperienceDetailViewFragment on Experience {
+// D = definition
+// C = comments
+// E = entries
+
+export const FRAGMENT_NAME_experienceDFragment = "ExperienceDFragment";
+
+export const EXPERIENCE_D_FRAGMENT = gql`
+  fragment ExperienceDFragment on Experience {
     ...ExperienceListViewFragment
 
     dataDefinitions {
@@ -67,28 +76,20 @@ export const EXPERIENCE_DETAIL_VIEW_FRAGMENT = gql`
   ${DEFINITION_FRAGMENT}
 `;
 
-export const EXPERIENCE_COMPLETE_FRAGMENT = gql`
-  fragment ExperienceCompleteFragment on Experience {
-    id
-    title
-    description
-    clientId
-    insertedAt
-    updatedAt
-    dataDefinitions {
-      ...DataDefinitionFragment
-    }
+export const FRAGMENT_NAME_experienceDCFragment = "ExperienceDCFragment";
+
+export const EXPERIENCE_DC_FRAGMENT = gql`
+  fragment ExperienceDCFragment on Experience {
+    ...ExperienceDFragment
+
     comments {
       ...CommentFragment
     }
   }
 
-  ${DEFINITION_FRAGMENT}
+  ${EXPERIENCE_D_FRAGMENT}
   ${COMMENT_FRAGMENT}
 `;
-
-export const FRAGMENT_NAME_experienceCompleteFragment =
-  "ExperienceCompleteFragment";
 
 export const EXPERIENCE_CONNECTION_FRAGMENT = gql`
   fragment ExperienceConnectionFragment on ExperienceConnection {
@@ -99,12 +100,12 @@ export const EXPERIENCE_CONNECTION_FRAGMENT = gql`
     edges {
       cursor
       node {
-        ...ExperienceDetailViewFragment
+        ...ExperienceDFragment
       }
     }
   }
 
-  ${EXPERIENCE_DETAIL_VIEW_FRAGMENT}
+  ${EXPERIENCE_D_FRAGMENT}
   ${PAGE_INFO_FRAGMENT}
 `;
 
@@ -432,7 +433,7 @@ export const UPDATE_EXPERIENCES_ONLINE_MUTATION = gql`
 const CREATE_EXPERIENCE_SUCCESS_FRAGMENT = gql`
   fragment CreateExperienceSuccessFragment on ExperienceSuccess {
     experience {
-      ...ExperienceCompleteFragment
+      ...ExperienceDCFragment
     }
     entries {
       __typename
@@ -449,7 +450,7 @@ const CREATE_EXPERIENCE_SUCCESS_FRAGMENT = gql`
       }
     }
   }
-  ${EXPERIENCE_COMPLETE_FRAGMENT}
+  ${EXPERIENCE_DC_FRAGMENT}
   ${ENTRY_FRAGMENT}
   ${CREATE_ENTRY_ERROR_FRAGMENT}
 `;
@@ -554,6 +555,16 @@ export const ON_EXPERIENCES_DELETED_SUBSCRIPTION = gql`
 
 ////////////////////////// END DELETE EXPERIENCES SECTION /////////////
 
+export const EXPERIENCE_LIST_VIEW_EDGE_FRAGMENT = gql`
+  fragment ExperienceListViewEdgeFragment on ExperienceEdge {
+    cursor
+    node {
+      ...ExperienceListViewFragment
+    }
+  }
+  ${EXPERIENCE_LIST_VIEW_FRAGMENT}
+`;
+
 // ====================================================
 // Start Get experiences for the list view
 // this query will be kept around after we ran it and all experiences list
@@ -579,16 +590,12 @@ export const GET_EXPERIENCES_CONNECTION_LIST_VIEW_QUERY = gql`
       }
 
       edges {
-        cursor
-        node {
-          ...ExperienceListViewFragment
-        }
+        ...ExperienceListViewEdgeFragment
       }
     }
   }
-
-  ${EXPERIENCE_LIST_VIEW_FRAGMENT}
   ${PAGE_INFO_FRAGMENT}
+  ${EXPERIENCE_LIST_VIEW_EDGE_FRAGMENT}
 `;
 // ====================================================
 // End get experiences for the list view
@@ -636,7 +643,7 @@ export const GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY = gql`
     $pagination: PaginationInput!
   ) {
     getExperience(id: $experienceId) {
-      ...ExperienceDetailViewFragment
+      ...ExperienceDFragment
     }
 
     getEntries(experienceId: $experienceId, pagination: $pagination) {
@@ -644,18 +651,18 @@ export const GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY = gql`
     }
   }
 
-  ${EXPERIENCE_DETAIL_VIEW_FRAGMENT}
+  ${EXPERIENCE_D_FRAGMENT}
   ${GET_ENTRIES_UNION_FRAGMENT}
 `;
 
 export const GET_EXPERIENCE_DETAIL_VIEW_QUERY = gql`
   query GetExperienceDetailView($id: ID!) {
     getExperience(id: $id) {
-      ...ExperienceDetailViewFragment
+      ...ExperienceDFragment
     }
   }
 
-  ${EXPERIENCE_DETAIL_VIEW_FRAGMENT}
+  ${EXPERIENCE_D_FRAGMENT}
 `;
 
 export const GET_ENTRIES_DETAIL_VIEW_QUERY = gql`

@@ -29,8 +29,8 @@ export function getCachedExperiencesConnectionListView() {
   return getExperiences;
 }
 
-export type GetCachedExperiencesConnectionListViewFn = {
-  getCachedExperiencesConnectionListViewFn: typeof getCachedExperiencesConnectionListView;
+export type GetCachedExperiencesConnectionListViewInjectType = {
+  getCachedExperiencesConnectionListViewInject: typeof getCachedExperiencesConnectionListView;
 };
 
 export function makeGetExperienceApolloCacheKey(id: string) {

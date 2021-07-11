@@ -6,10 +6,10 @@
 import { DataTypes } from "./globalTypes";
 
 // ====================================================
-// GraphQL fragment: ExperienceCompleteFragment
+// GraphQL fragment: ExperienceDFragment
 // ====================================================
 
-export interface ExperienceCompleteFragment_dataDefinitions {
+export interface ExperienceDFragment_dataDefinitions {
   __typename: "DataDefinition";
   id: string;
   /**
@@ -29,13 +29,7 @@ export interface ExperienceCompleteFragment_dataDefinitions {
   clientId: string | null;
 }
 
-export interface ExperienceCompleteFragment_comments {
-  __typename: "Comment";
-  id: string;
-  text: string;
-}
-
-export interface ExperienceCompleteFragment {
+export interface ExperienceDFragment {
   __typename: "Experience";
   /**
    * The title of the experience
@@ -58,9 +52,5 @@ export interface ExperienceCompleteFragment {
   /**
    * The field definitions used for the experience entries
    */
-  dataDefinitions: ExperienceCompleteFragment_dataDefinitions[];
-  /**
-   * The list of comments belonging to an experience
-   */
-  comments: (ExperienceCompleteFragment_comments | null)[] | null;
+  dataDefinitions: ExperienceDFragment_dataDefinitions[];
 }

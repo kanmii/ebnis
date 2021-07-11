@@ -1,23 +1,14 @@
 import { LinkInjectType } from "@eb/jsx/src/utils";
-import { GetCachedExperiencesConnectionListViewFn } from "@eb/shared/src/apollo/cached-experiences-list-view";
-import {
-  DeletedExperienceLedger,
-  GetDeleteExperienceLedgerInjectType,
-  PutOrRemoveDeleteExperienceLedgerInjectType,
-} from "@eb/shared/src/apollo/delete-experience-cache";
+import { DeletedExperienceLedger } from "@eb/shared/src/apollo/delete-experience-cache";
 import {
   ExperienceData,
   ExperiencesData,
   EXPERIENCES_MINI_FETCH_COUNT,
 } from "@eb/shared/src/apollo/experience.gql.types";
-import { GetExperienceConnectionListViewFunction } from "@eb/shared/src/apollo/get-experiences-connection-list.gql";
-import { UseWithSubscriptionContextInject } from "@eb/shared/src/apollo/injectables";
-import { GetSyncErrorsFn } from "@eb/shared/src/apollo/sync-to-server-cache";
 import {
   GetOnlineStatusProp,
   GetUnsyncedExperienceInject,
 } from "@eb/shared/src/apollo/unsynced-ledger";
-import { PurgeExperiencesFromCache1Fn } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
 import { broadcastMessage } from "@eb/shared/src/broadcast-channel-manager";
 import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
 import {
@@ -26,8 +17,8 @@ import {
   GetExperiencesConnectionListView_getExperiences_edges,
 } from "@eb/shared/src/graphql/apollo-types/GetExperiencesConnectionListView";
 import { wrapReducer } from "@eb/shared/src/logger";
+import { scrollIntoView } from "@eb/shared/src/scroll-into-view";
 import { deleteObjectKey } from "@eb/shared/src/utils";
-import { GetIsConnectedInjectType } from "@eb/shared/src/utils/connections";
 import {
   ActiveVal,
   Any,
@@ -59,15 +50,12 @@ import {
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import { SetUpRoutePageInject } from "../../utils/global-window";
-import { scrollIntoView } from "../../utils/scroll-into-view";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { nonsenseId } from "../../utils/utils.dom";
-import { HeaderComponentType } from "../Header/header.component";
+import { HeaderComponentInjectType } from "../Header/header.component";
 import { LoadingComponentType } from "../Loading/loading.component";
-import { CleanUpOfflineExperiencesInjectType } from "../WithSubscriptions/with-subscriptions.utils";
 import { makeScrollToDomId } from "./my.dom";
-import { HandlePreFetchExperiencesFn } from "./my.injectables";
+import { HandlePreFetchExperiencesInjectType } from "./my.injectables";
 import { UpsertExperienceInjectType } from "./my.lazy";
 
 export enum ActionType {
@@ -727,12 +715,10 @@ function prepareExperienceForSearch({ id, title }: ExperienceListViewFragment) {
 
 const deletedExperienceRequestEffect: DefDeleteExperienceRequestEffect["func"] =
   ({ id }, props) => {
-    const {
-      putOrRemoveDeleteExperienceLedgerInject:
-        putOrRemoveDeleteExperienceLedgerFn,
-    } = props;
+    const { putOrRemoveDeleteExperienceLedgerInject } =
+      window.____ebnis.listExperiencesViwInjections;
 
-    putOrRemoveDeleteExperienceLedgerFn({
+    putOrRemoveDeleteExperienceLedgerInject({
       key: StateValue.requested,
       id,
     });
@@ -751,11 +737,12 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
   effectArgs,
 ) => {
   const {
-    getExperienceConnectionListView,
-    componentTimeoutsMs: { fetchRetries },
-    getCachedExperiencesConnectionListViewFn,
+    getCachedExperiencesConnectionListViewInject,
     getIsConnectedInject,
-  } = props;
+    getExperienceConnectionListViewInject,
+    componentTimeoutsMsInject: { fetchRetries },
+  } = window.____ebnis.listExperiencesViwInjections;
+
   const { dispatch } = effectArgs;
   let timeoutId: null | NodeJS.Timeout = null;
   let fetchAttemptsCount = 0;
@@ -763,9 +750,10 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 
   // bei seitennummerierung wurden wir zwischengespeicherte Erfahrungen nicht
   // gebraucht
-  const cachedExperiencesResult = getCachedExperiencesConnectionListViewFn();
+  const cachedExperiencesResult =
+    getCachedExperiencesConnectionListViewInject();
 
-  const deletedExperience = await deleteExperienceProcessedEffectHelper(props);
+  const deletedExperience = await deleteExperienceProcessedEffectHelper();
 
   if (paginationInput) {
     doFetch();
@@ -778,6 +766,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
       props,
       {
         deletedExperience,
+        fetchOrigin: "cache",
       },
     );
 
@@ -820,7 +809,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
 
   async function doFetch() {
     try {
-      const networkFetchResult = await getExperienceConnectionListView(
+      const networkFetchResult = await getExperienceConnectionListViewInject(
         "network-only",
         paginationInput || {
           first: EXPERIENCES_MINI_FETCH_COUNT,
@@ -842,6 +831,7 @@ const fetchExperiencesEffect: DefFetchExperiencesEffect["func"] = async (
         const [processedResults, preparedExperiences] =
           processGetExperiencesQuery(fetchedExperiences, props, {
             existingExperiencesLength,
+            fetchOrigin: "network",
           });
 
         dispatch({
@@ -941,11 +931,10 @@ type DefTimeoutsEffect = EffectDefinition<
   }
 >;
 
-const postSyncEffect: DefPostSyncEffect["func"] = (
-  { data },
-  { cleanUpOfflineExperiencesInject: cleanUpOfflineExperiencesFn },
-) => {
-  cleanUpOfflineExperiencesFn(data);
+const postSyncEffect: DefPostSyncEffect["func"] = ({ data }) => {
+  const { cleanUpOfflineExperiencesInject } =
+    window.____ebnis.listExperiencesViwInjections;
+  cleanUpOfflineExperiencesInject(data);
 };
 
 type DefPostSyncEffect = EffectDefinition<
@@ -963,23 +952,25 @@ export const effectFunctions = {
   postSyncEffect,
 };
 
-async function deleteExperienceProcessedEffectHelper({
-  purgeExperiencesFromCache1Fn,
-  putOrRemoveDeleteExperienceLedgerInject: putOrRemoveDeleteExperienceLedgerFn,
-  getDeleteExperienceLedgerInject: getDeleteExperienceLedgerFn,
-}: Props) {
-  const deletedExperience = getDeleteExperienceLedgerFn();
+async function deleteExperienceProcessedEffectHelper() {
+  const {
+    purgeExperiencesFromCacheInject,
+    putOrRemoveDeleteExperienceLedgerInject,
+    getDeleteExperienceLedgerInject,
+  } = window.____ebnis.listExperiencesViwInjections;
+
+  const deletedExperience = getDeleteExperienceLedgerInject();
 
   if (!deletedExperience) {
     return;
   }
 
-  putOrRemoveDeleteExperienceLedgerFn();
+  putOrRemoveDeleteExperienceLedgerInject();
 
   // istanbul ignore else
   if (deletedExperience.key === StateValue.deleted) {
     const { id } = deletedExperience;
-    purgeExperiencesFromCache1Fn([id]);
+    purgeExperiencesFromCacheInject([id]);
     const { persistor, cache } = window.____ebnis;
     cache.evict({ id });
     await persistor.persist();
@@ -997,18 +988,26 @@ async function deleteExperienceProcessedEffectHelper({
 function processGetExperiencesQuery(
   { edges: e, pageInfo }: GetExperiencesConnectionListView_getExperiences,
   {
-    getSyncErrorsFn,
-    handlePreFetchExperiencesFn,
+    handlePreFetchExperiencesInject: handlePreFetchExperiencesFn,
     getOnlineStatusProp,
     getUnsyncedExperienceInject,
   }: Props,
   {
     deletedExperience,
     existingExperiencesLength,
+    fetchOrigin,
   }: {
     deletedExperience?: DeletedExperienceLedger;
+
+    // The origin of the fetch: will be used to determine if we should
+    // pre-fetch additional attributes of experiences - only data fetched from
+    // network will be pre-fetched
+
+    fetchOrigin: "cache" | "network";
   } & Pick<DefFetchExperiencesEffectOwnArgs, "existingExperiencesLength">,
 ): [ExperiencesData, PreparedExperience[]] {
+  const { getSyncErrorsInject } = window.____ebnis.listExperiencesViwInjections;
+
   const deletedId = deletedExperience ? deletedExperience.id : "";
 
   const edges = e as GetExperiencesConnectionListView_getExperiences_edges[];
@@ -1021,7 +1020,7 @@ function processGetExperiencesQuery(
     ? edges.slice(existingExperiencesLength)
     : edges;
 
-  const syncErrors = getSyncErrorsFn() || {};
+  const syncErrors = getSyncErrorsInject() || {};
 
   const preparedExperiences: PreparedExperience[] = [];
 
@@ -1039,15 +1038,18 @@ function processGetExperiencesQuery(
       }
 
       const syncError = syncErrors[id];
+      preparedExperiences.push(prepareExperienceForSearch(experience));
+
+      const unsynced = getUnsyncedExperienceInject(id);
+      const onlineStatus = getOnlineStatusProp(id, unsynced);
+
       erfahrungenIds.push(id);
       idToExperienceMap[id] = experience;
-      preparedExperiences.push(prepareExperienceForSearch(experience));
-      const unsynced = getUnsyncedExperienceInject(id);
 
       neuenErfahrungen.push({
         experience,
         syncError,
-        onlineStatus: getOnlineStatusProp(id, unsynced),
+        onlineStatus,
       });
 
       return acc;
@@ -1055,7 +1057,7 @@ function processGetExperiencesQuery(
     [[], []] as [ExperienceData[], string[]],
   );
 
-  if (erfahrungenIds.length) {
+  if (fetchOrigin === "network") {
     setTimeout(() => {
       handlePreFetchExperiencesFn(erfahrungenIds, idToExperienceMap);
     });
@@ -1258,25 +1260,13 @@ export type ComponentTimeoutsMs = {
 };
 
 export type Props = CallerProps &
-  UseWithSubscriptionContextInject &
-  SetUpRoutePageInject &
-  GetIsConnectedInjectType &
   UpsertExperienceInjectType &
-  GetExperienceConnectionListViewFunction &
-  GetCachedExperiencesConnectionListViewFn &
   LoadingComponentType &
-  CleanUpOfflineExperiencesInjectType &
-  GetSyncErrorsFn &
   GetOnlineStatusProp &
-  GetDeleteExperienceLedgerInjectType &
   GetUnsyncedExperienceInject &
-  PutOrRemoveDeleteExperienceLedgerInjectType &
-  HandlePreFetchExperiencesFn &
-  PurgeExperiencesFromCache1Fn &
+  HandlePreFetchExperiencesInjectType &
   LinkInjectType &
-  HeaderComponentType & {
-    componentTimeoutsMs: ComponentTimeoutsMs;
-  };
+  HeaderComponentInjectType;
 
 export interface ExperiencesMap {
   [experienceId: string]: ExperienceState;

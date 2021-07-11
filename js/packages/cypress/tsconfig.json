@@ -4,6 +4,6 @@
     "isolatedModules": false,
     "types": ["cypress", "@cypress/skip-test"]
   },
-  "include": ["./cypress/**/*.ts", "../shared/src/definitions.d.ts"],
+  "include": ["./cypress/**/*.ts", "../shared/src"],
   "exclude": ["node_modules"]
 }

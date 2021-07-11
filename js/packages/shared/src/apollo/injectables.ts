@@ -1,11 +1,11 @@
 /* istanbul ignore file */
 import { useContext } from "react";
-import { WithSubscriptionContext } from "../../../cra/src/utils/app-context";
+import { WithSubscriptionContext } from "../../../cra/src/utils/react-app-context";
 
 export function useWithSubscriptionContext() {
   return useContext(WithSubscriptionContext);
 }
 
-export type UseWithSubscriptionContextInject = {
+export type UseWithSubscriptionContextInjectType = {
   useWithSubscriptionContextInject: typeof useWithSubscriptionContext;
 };

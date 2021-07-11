@@ -12,6 +12,8 @@ export const DATA_OBJECT_FRAGMENT = gql`
   }
 `;
 
+export const FRAGMENT_NAME_entryFragment = "EntryFragment";
+
 export const ENTRY_FRAGMENT = gql`
   fragment EntryFragment on Entry {
     id

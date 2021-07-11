@@ -4,14 +4,9 @@ import {
   MutationFunction,
   MutationFunctionOptions,
   MutationResult,
-  useMutation,
 } from "@apollo/client";
 import { OnlineStatus, SyncError } from "@eb/shared/src/utils/types";
 import { ExecutionResult } from "graphql/execution/execute";
-import {
-  CreateExperiences,
-  CreateExperiencesVariables,
-} from "../graphql/apollo-types/CreateExperiences";
 import { ExperienceListViewFragment } from "../graphql/apollo-types/ExperienceListViewFragment";
 import {
   GetDataObjects,
@@ -36,7 +31,6 @@ import {
   UpdateExperiencesOnlineVariables,
 } from "../graphql/apollo-types/UpdateExperiencesOnline";
 import {
-  CREATE_EXPERIENCES_MUTATION,
   GET_DATA_OBJECTS_QUERY,
   GET_EXPERIENCE_AND_ENTRIES_DETAIL_VIEW_QUERY,
   GET_EXPERIENCE_COMMENTS_QUERY,
@@ -69,40 +63,7 @@ export type UseUpdateExperiencesOnlineMutation = [
 
 ////////////////////////// END UPDATE EXPERIENCES SECTION //////////////////
 
-////////////////////////// START CREATE EXPERIENCES SECTION ////////////////////
-
-export function useCreateExperiencesMutation(): UseCreateExperiencesMutation {
-  return useMutation(CREATE_EXPERIENCES_MUTATION);
-}
-
-export type CreateExperiencesMutationFn = MutationFunction<
-  CreateExperiences,
-  CreateExperiencesVariables
->;
-
-// used to type check test mock resolved value
-export type CreateExperiencesMutationResult =
-  ExecutionResult<CreateExperiences>;
-
-// used to type check test mock calls
-export type CreateExperiencesMutationFnOptions = MutationFunctionOptions<
-  CreateExperiences,
-  CreateExperiencesVariables
->;
-
-type UseCreateExperiencesMutation = [
-  CreateExperiencesMutationFn,
-  MutationResult<CreateExperiences>,
-];
-
-// component's props should extend this
-export interface CreateExperiencesOnlineComponentProps {
-  createExperiences: CreateExperiencesMutationFn;
-}
-
-////////////////////////// END CREATE EXPERIENCES SECTION ///////////////
-
-export function subscribeToGraphqlEvents() {
+export function subscribeToGraphqlExperiencesDeletedEvent() {
   const { client } = window.____ebnis;
 
   const observer = client.subscribe<OnExperiencesDeletedSubscription>({
@@ -114,6 +75,10 @@ export function subscribeToGraphqlEvents() {
 
   return observer;
 }
+
+export type SubscribeToGraphqlExperiencesDeletedEventInjectType = {
+  subscribeToGraphqlExperiencesDeletedEventInject: typeof subscribeToGraphqlExperiencesDeletedEvent;
+};
 
 ////////////////////////// END DELETE EXPERIENCES SECTION ////////////
 
@@ -142,9 +107,6 @@ export type GetExperienceAndEntriesDetailViewInject = {
 export type GetExperienceAndEntriesDetailViewQueryResult =
   ApolloQueryResult<GetExperienceAndEntriesDetailView>;
 
-
-
-
 export function getExperienceDetailView(
   variables: GetExperienceDetailViewVariables,
 ) {
@@ -158,6 +120,10 @@ export function getExperienceDetailView(
     variables,
   });
 }
+
+export type GetExperienceDetailViewInjectType = {
+  getExperienceDetailViewInject: typeof getExperienceDetailView;
+};
 
 export type GetExperienceQueryResult =
   ApolloQueryResult<GetExperienceDetailView>;
@@ -186,6 +152,10 @@ export function getGetDataObjects(variables: GetDataObjectsVariables) {
     fetchPolicy: "network-only",
   });
 }
+
+export type GetGetDataObjectsInjectType = {
+  getGetDataObjectsInject: typeof getGetDataObjects;
+};
 
 export function getExperienceComments(variables: { experienceId: string }) {
   const { client } = window.____ebnis;

@@ -12,6 +12,7 @@
     "@kanmii/socket-apollo-link": "^0.2.3",
     "apollo3-cache-persist": "^0.9.1",
     "broadcast-channel": "^3.4.1",
+    "date-fns": "^2.22.1",
     "graphql": "^15.5.0",
     "phoenix": "^1.5.7",
     "react": "^17.0.1",

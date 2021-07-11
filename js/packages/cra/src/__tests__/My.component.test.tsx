@@ -2,12 +2,13 @@
 import { activeClassName } from "@eb/jsx/src/DropdownMenu";
 import { DeletedExperienceLedger } from "@eb/shared/src/apollo/delete-experience-cache";
 import { GetExperiencesConnectionListViewQueryResult } from "@eb/shared/src/apollo/get-experiences-connection-list.gql";
-import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDCFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDCFragment";
 import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
 import {
   GetExperiencesConnectionListView_getExperiences,
   GetExperiencesConnectionListView_getExperiences_edges,
 } from "@eb/shared/src/graphql/apollo-types/GetExperiencesConnectionListView";
+import { ListExperiencesViewInjections } from "@eb/shared/src/injections";
 import { makeOfflineId } from "@eb/shared/src/utils/offlines";
 import {
   BroadcastMessageType,
@@ -54,7 +55,7 @@ import {
   getOneByClass,
 } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
-import { AppPersistor } from "../utils/app-context";
+import { AppPersistor } from "../utils/react-app-context";
 
 const mockGetUnsyncedExperienceInject = jest.fn();
 const mockGetCachedExperiencesConnectionListViewFn = jest.fn();
@@ -79,7 +80,7 @@ const mockTitle = "?1?";
 const mockOnlineExperience = {
   id: mockOnlineId,
   title: mockTitle,
-} as ExperienceCompleteFragment;
+} as ExperienceDCFragment;
 
 const mockPartOfflineId = "?2?";
 const offlineId = makeOfflineId(3);
@@ -97,6 +98,22 @@ const persistor = {
   persist: mockPersistFn as any,
 } as AppPersistor;
 
+const listExperiencesViwInjections: ListExperiencesViewInjections = {
+  getExperienceConnectionListViewInject: mockGetExperiencesConnectionListView,
+  getCachedExperiencesConnectionListViewInject:
+    mockGetCachedExperiencesConnectionListViewFn,
+  getSyncErrorsInject: mockGetSyncErrorsFn,
+  purgeExperiencesFromCacheInject: mockPurgeExperiencesFromCache1,
+  putOrRemoveDeleteExperienceLedgerInject:
+    mockPutOrRemoveDeleteExperienceLedger,
+  getDeleteExperienceLedgerInject: mockGetDeleteExperienceLedger,
+  setUpRoutePageInject: mockSetUpRoutePage,
+  getIsConnectedInject: mockGetIsConnected,
+  useWithSubscriptionContextInject: mockUseWithSubscriptionContext,
+  componentTimeoutsMsInject: componentTimeoutsMs,
+  cleanUpOfflineExperiencesInject: mockCleanUpOfflineExperiencesFn,
+};
+
 const ebnisObject = {
   persistor,
   cache: { evict: mockEvictFn } as any,
@@ -113,6 +130,7 @@ afterAll(() => {
 
 beforeEach(() => {
   jest.useFakeTimers();
+  ebnisObject.listExperiencesViwInjections = listExperiencesViwInjections;
 });
 
 afterEach(() => {
@@ -752,22 +770,6 @@ describe("component", () => {
 });
 
 describe("reducer", () => {
-  // const mockDispatch = jest.fn();
-
-  // const effectArgs = {
-  //   dispatch: mockDispatch,
-  // } as any;
-
-  // const props = {
-  //   getCachedExperiencesConnectionListViewFn:
-  //     mockGetCachedExperiencesConnectionListViewFn,
-  //   getExperienceConnectionListView: mockGetExperiencesConnectionListView,
-  //   componentTimeoutsMs,
-  //   getDeleteExperienceLedgerFn: mockGetDeleteExperienceLedger,
-  //   getOnlineStatusProp: mockGetOnlineStatusProps,
-  //   getIsConnectedInject: mockGetIsConnected,
-  // } as any;
-
   it("sets online status to 'online' when on synced experience has no errors", () => {
     let state = initState();
 
@@ -827,29 +829,14 @@ function makeComp({ props = {} }: { props?: Partial<Props> } = {}) {
   return {
     ui: (
       <MyP
-        getExperienceConnectionListView={mockGetExperiencesConnectionListView}
         {...props}
         location={location}
         history={history}
-        componentTimeoutsMs={componentTimeoutsMs}
-        getCachedExperiencesConnectionListViewFn={
-          mockGetCachedExperiencesConnectionListViewFn
-        }
         HeaderComponentFn={() => null as any}
-        LoadingComponentFn={mockLoadingComponent}
-        cleanUpOfflineExperiencesInject={mockCleanUpOfflineExperiencesFn}
-        getSyncErrorsFn={mockGetSyncErrorsFn}
-        handlePreFetchExperiencesFn={mockHandlePreFetchExperiences}
-        purgeExperiencesFromCache1Fn={mockPurgeExperiencesFromCache1}
-        putOrRemoveDeleteExperienceLedgerInject={
-          mockPutOrRemoveDeleteExperienceLedger
-        }
-        getDeleteExperienceLedgerInject={mockGetDeleteExperienceLedger}
+        LoadingComponentInject={mockLoadingComponent}
+        handlePreFetchExperiencesInject={mockHandlePreFetchExperiences}
         getOnlineStatusProp={mockGetOnlineStatusProps}
         getUnsyncedExperienceInject={mockGetUnsyncedExperienceInject}
-        setUpRoutePageInject={mockSetUpRoutePage}
-        getIsConnectedInject={mockGetIsConnected}
-        useWithSubscriptionContextInject={mockUseWithSubscriptionContext}
         UpsertExperienceInject={mockUpsertExperience as any}
         LinkInject={mockLink}
       />

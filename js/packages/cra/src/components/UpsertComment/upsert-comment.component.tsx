@@ -1,10 +1,10 @@
 import { Button } from "@eb/jsx/src/Button";
 import Modal from "@eb/jsx/src/Modal";
+import { updateExperiencesMutation } from "@eb/shared/src/apollo/update-experiences.gql";
 import { ReactComponent as ExclamationErrorSvg } from "@eb/shared/src/styles/exclamation-error.svg";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import { ChangeEvent, useCallback, useReducer } from "react";
-import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { useRunEffects } from "../../utils/use-run-effects";
 import {
   closeId,

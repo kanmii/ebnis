@@ -2,7 +2,7 @@ import { CommentFragment } from "../graphql/apollo-types/CommentFragment";
 import { DataDefinitionFragment } from "../graphql/apollo-types/DataDefinitionFragment";
 import { EntryConnectionFragment } from "../graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "../graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "../graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDCFragment } from "../graphql/apollo-types/ExperienceDCFragment";
 import { GetEntriesUnionFragment } from "../graphql/apollo-types/GetEntriesUnionFragment";
 import { DataTypes } from "../graphql/apollo-types/globalTypes";
 import { UserFragment } from "../graphql/apollo-types/UserFragment";
@@ -163,7 +163,7 @@ export const mockOnlineExperience1 = {
   dataDefinitions: [mockDataDefinitionInteger1],
   __typename: "Experience",
   comments: null,
-} as ExperienceCompleteFragment;
+} as ExperienceDCFragment;
 
 export const mockOfflineExperience1 = {
   title: "online experience 1",
@@ -174,7 +174,7 @@ export const mockOfflineExperience1 = {
   id: mockOfflineExperienceId1,
   dataDefinitions: [mockDataDefinitionInteger1],
   __typename: "Experience",
-} as ExperienceCompleteFragment;
+} as ExperienceDCFragment;
 
 export const mockUser1: UserFragment = {
   __typename: "User",

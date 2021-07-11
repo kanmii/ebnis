@@ -11,7 +11,7 @@ import {
   EntryConnectionFragment_edges,
 } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDCFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDCFragment";
 import {
   CreateDataDefinition,
   CreateDataObject,
@@ -47,11 +47,12 @@ import {
   SyncFlag,
   UpdateSyncReturnVal,
 } from "@eb/shared/src/utils/types";
-import { createExperiencesManualUpdate } from "./create-experiences-manual-update";
+import { createExperiencesManualCacheUpdate } from "./create-experiences-manual-cache-update";
 import {
   getCachedEntriesDetailViewSuccess,
-  readExperienceCompleteFragment,
-} from "./get-detailed-experience-query";
+  readExperienceDCFragment,
+  readExperienceDFragment,
+} from "./experience-detail-cache-utils";
 import {
   getSyncErrors,
   getSyncFlag,
@@ -65,7 +66,7 @@ const WAIT_INTERVAL = 1 * 1000 * 60; // 1 minute
 
 export async function syncToServer() {
   const result = getSyncFlag();
-  let canSync = result.canSync;
+  const canSync = result.canSync;
   const isSyncing = result.isSyncing;
 
   if (!canSync) {
@@ -93,26 +94,27 @@ export async function syncToServer() {
     return;
   }
 
-  const oldSyncErrors = getSyncErrors();
+  const previousSyncErrors = getSyncErrors();
 
-  const [updateInput, createInput] = Object.entries(unsyncedLedger).reduce(
+  const [updateInputs, createInputs] = Object.entries(unsyncedLedger).reduce(
     (acc, [experienceId, ledger]) => {
-      if (oldSyncErrors[experienceId]) {
+      if (previousSyncErrors[experienceId]) {
         return acc;
       }
 
-      const [updateInputs, createInputs] = acc;
+      const [updateInputsInner, createInputsInput] = acc;
 
-      const experience = readExperienceCompleteFragment(
-        experienceId,
-      ) as ExperienceCompleteFragment;
+      const onlineOrOfflineExperience =
+        readExperienceDCFragment(experienceId) ||
+        (readExperienceDFragment(experienceId) as ExperienceDCFragment);
 
       if (isOfflineId(experienceId)) {
-        const input = experienceToCreateInput(experience);
-        createInputs.push(input);
+        const input = experienceToCreateInput(onlineOrOfflineExperience);
+        createInputsInput.push(input);
       } else {
+        const onlineExperienceToSync = onlineOrOfflineExperience;
         const input = { experienceId } as UpdateExperienceInput;
-        updateInputs.push(input);
+        updateInputsInner.push(input);
 
         const {
           ownFields,
@@ -127,19 +129,17 @@ export async function syncToServer() {
 
           Object.keys(ownFields).forEach((k) => {
             const key = k as "description" | "title";
-            ownFieldsInput[key] = experience[key];
+            ownFieldsInput[key] = onlineExperienceToSync[key];
           });
         }
 
         if (definitions) {
-          const idToDefinitionMap = experience.dataDefinitions.reduce(
-            (acc, d) => {
+          const idToDefinitionMap =
+            onlineExperienceToSync.dataDefinitions.reduce((acc, d) => {
               const definition = d as DataDefinitionFragment;
               acc[definition.id] = definition;
               return acc;
-            },
-            {} as { [definitionId: string]: DataDefinitionFragment },
-          );
+            }, {} as { [definitionId: string]: DataDefinitionFragment });
 
           input.updateDefinitions = Object.entries(definitions).map(
             ([definitionId, { name, type }]) => {
@@ -218,42 +218,27 @@ export async function syncToServer() {
     [[], []] as Variables,
   );
 
-  // let's check again to ensure someone has not set
-  // syncFlag since last time
-  canSync = getSyncFlag().canSync;
-
-  if (!canSync) {
-    putSyncFlag({
-      isSyncing: false,
-    } as SyncFlag);
-
-    setTimeout(() => {
-      syncToServer();
-    }, WAIT_INTERVAL);
-
-    return;
-  }
-
   const { client, cache, persistor } = window.____ebnis;
 
   let updateResult =
     undefined as unknown as UpdateExperiencesOnline_updateExperiences;
+
   let createResult =
     undefined as unknown as CreateExperiences_createExperiences[];
 
   try {
-    if (updateInput.length && createInput.length) {
+    if (updateInputs.length && createInputs.length) {
       const result = await client.mutate<SyncToServer, SyncToServerVariables>({
         mutation: SYNC_TO_SERVER_MUTATION,
         variables: {
-          updateInput,
-          createInput,
+          updateInput: updateInputs,
+          createInput: createInputs,
         },
       });
 
-      const x = result && result.data && result.data;
-      if (x) {
-        const { createExperiences, updateExperiences } = x;
+      const validResult = result && result.data && result.data;
+      if (validResult) {
+        const { createExperiences, updateExperiences } = validResult;
 
         if (updateExperiences) {
           updateResult = updateExperiences;
@@ -263,14 +248,14 @@ export async function syncToServer() {
           createResult = createExperiences;
         }
       }
-    } else if (updateInput.length) {
+    } else if (updateInputs.length) {
       const result = await client.mutate<
         UpdateExperiencesOnline,
         UpdateExperiencesOnlineVariables
       >({
         mutation: UPDATE_EXPERIENCES_ONLINE_MUTATION,
         variables: {
-          input: updateInput,
+          input: updateInputs,
         },
       });
 
@@ -278,14 +263,14 @@ export async function syncToServer() {
         result.data &&
         result.data
           .updateExperiences) as UpdateExperiencesOnline_updateExperiences;
-    } else if (createInput.length) {
+    } else if (createInputs.length) {
       const result = await client.mutate<
         CreateExperiences,
         CreateExperiencesVariables
       >({
         mutation: CREATE_EXPERIENCES_MUTATION,
         variables: {
-          input: createInput,
+          input: createInputs,
         },
       });
 
@@ -325,7 +310,7 @@ export async function syncToServer() {
   }
 
   if (createResult) {
-    const result = createExperiencesManualUpdate(cache, {
+    const result = createExperiencesManualCacheUpdate(cache, {
       data: {
         createExperiences: createResult,
       },
@@ -367,7 +352,11 @@ export async function syncToServer() {
   return { updateResult, createResult };
 }
 
-function experienceToCreateInput(experience: ExperienceCompleteFragment) {
+export type SyncToServerInjectType = {
+  syncToServerInject: typeof syncToServer;
+};
+
+function experienceToCreateInput(experience: ExperienceDCFragment) {
   const { id: experienceId, description, title, dataDefinitions } = experience;
 
   const createExperienceInput = {

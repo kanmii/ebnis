@@ -2,9 +2,10 @@
 import { CreateEntryErrorFragment } from "@eb/shared/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
-import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { ExperienceDFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDFragment";
 import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
-import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { UpsertEntryInjections } from "@eb/shared/src/injections";
+import { toISODateString, toISODatetimeString } from "@eb/shared/src/utils";
 import { makeOfflineId } from "@eb/shared/src/utils/offlines";
 import { EbnisGlobals, StateValue } from "@eb/shared/src/utils/types";
 import { cleanup, render, waitFor } from "@testing-library/react";
@@ -17,7 +18,6 @@ import {
   notificationCloseId,
   submitBtnDomId,
 } from "../components/UpsertEntry/upsert-entry.dom";
-import { createOfflineEntryMutation } from "../components/UpsertEntry/upsert-entry.resolvers";
 import {
   ActionType,
   effectFunctions,
@@ -26,8 +26,6 @@ import {
   Props,
   reducer,
   SubmissionErrors,
-  toISODateString,
-  toISODatetimeString,
 } from "../components/UpsertEntry/upsert-entry.utils";
 import {
   defaultExperience,
@@ -36,26 +34,13 @@ import {
   getOneByClass,
 } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
-import { AppPersistor } from "../utils/app-context";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
-import { scrollIntoView } from "../utils/scroll-into-view";
-import { updateExperiencesMutation } from "../utils/update-experiences.gql";
+import { AppPersistor } from "../utils/react-app-context";
 
-jest.mock("../utils/update-experiences.gql");
-const mockUpdateExperiencesMutation = updateExperiencesMutation as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
-
-jest.mock("../components/UpsertEntry/upsert-entry.resolvers");
-const mockCreateOfflineEntry = createOfflineEntryMutation as jest.Mock;
-
-jest.mock("../utils/scroll-into-view");
-const mockScrollIntoView = scrollIntoView as jest.Mock;
-
-jest.mock("@eb/shared/src/utils/connections");
-const mockIsConnected = getIsConnected as jest.Mock;
-
-jest.mock("../components/UpsertEntry/upsert-entry.injectables");
+const mockUpdateExperiencesMutation = jest.fn();
+const mockCreateOfflineEntry = jest.fn();
+const mockScrollIntoView = jest.fn();
+const mockIsConnected = jest.fn();
 
 jest.mock("@eb/jsx/src/components/DateField/date-field.component", () => {
   return {
@@ -104,6 +89,13 @@ const persistor = {
   persist: mockPersistFn as any,
 } as AppPersistor;
 
+const upsertEntryInjections: UpsertEntryInjections = {
+  updateExperiencesMutationInject: mockUpdateExperiencesMutation,
+  createOfflineEntryMutationInject: mockCreateOfflineEntry,
+  scrollIntoViewInject: mockScrollIntoView,
+  getIsConnectedInject: mockIsConnected,
+};
+
 const ebnisObject = {
   persistor,
   // client: null as any,
@@ -115,6 +107,10 @@ beforeAll(() => {
 
 afterAll(() => {
   deleteObjectKey(window, "____ebnis");
+});
+
+beforeEach(() => {
+  ebnisObject.upsertEntryInjections = upsertEntryInjections;
 });
 
 afterEach(() => {
@@ -466,7 +462,7 @@ describe("component", () => {
               name: "b",
             },
           ] as DataDefinitionFragment[],
-        } as ExperienceDetailViewFragment,
+        } as ExperienceDFragment,
       },
     });
 

@@ -1,11 +1,12 @@
+import { ChangeUrlType, windowChangeUrl } from "@eb/shared/src/global-window";
 import { wrapReducer } from "@eb/shared/src/logger";
+import { scrollIntoView } from "@eb/shared/src/scroll-into-view";
 import { getIsConnected } from "@eb/shared/src/utils/connections";
 import { manageUserAuthentication } from "@eb/shared/src/utils/manage-user-auth";
 import { Any } from "@eb/shared/src/utils/types";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
 import { deleteObjectKey } from "../../utils";
-import { EbnisContextProps } from "../../utils/app-context";
 import {
   FieldError,
   FORM_CONTAINS_ERRORS_MESSAGE,
@@ -15,8 +16,7 @@ import {
   parseStringError,
   StringyErrorPayload,
 } from "../../utils/common-errors";
-import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
-import { scrollIntoView } from "../../utils/scroll-into-view";
+import { EbnisContextProps } from "../../utils/react-app-context";
 import { MY_URL } from "../../utils/urls";
 import { LoginMutationComponentProps } from "../../utils/user.gql.types";
 

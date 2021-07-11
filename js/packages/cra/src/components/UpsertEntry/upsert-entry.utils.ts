@@ -5,14 +5,18 @@ import {
 import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
 import { DataObjectFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectFragment";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
-import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { ExperienceDFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDFragment";
 import {
   CreateDataObject,
   CreateEntryInput,
   DataTypes,
 } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import { wrapReducer } from "@eb/shared/src/logger";
-import { getIsConnected } from "@eb/shared/src/utils/connections";
+import {
+  DataDefinitionFormObjVal,
+  parseDataObjectData,
+  stringifyDataObjectData,
+} from "@eb/shared/src/utils";
 import { isOfflineId } from "@eb/shared/src/utils/offlines";
 import {
   ActiveVal,
@@ -23,8 +27,6 @@ import {
   OnlineStatus,
   StateValue,
 } from "@eb/shared/src/utils/types";
-import dateFnFormat from "date-fns/format";
-import parseISO from "date-fns/parseISO";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
 import { deleteObjectKey } from "../../utils";
@@ -39,14 +41,7 @@ import {
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import { scrollIntoView } from "../../utils/scroll-into-view";
-import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { scrollIntoViewNonFieldErrorDomId } from "./upsert-entry.dom";
-import { createOfflineEntryMutation } from "./upsert-entry.resolvers";
-
-const NEW_LINE_REGEX = /\n/g;
-export const ISO_DATE_FORMAT = "yyyy-MM-dd";
-const ISO_DATE_TIME_FORMAT = ISO_DATE_FORMAT + "'T'HH:mm:ssXXX";
 
 export enum ActionType {
   on_form_field_changed = "@upsert-entry/on-form-field-changed",
@@ -54,45 +49,6 @@ export enum ActionType {
   dismiss_notification = "@upsert-entry/dismiss-notification",
   submit = "@upsert-entry/submit",
   on_common_error = "@upsert-entry/on-common-error",
-}
-
-export function toISODateString(date: Date) {
-  return dateFnFormat(date, ISO_DATE_FORMAT);
-}
-
-export function toISODatetimeString(date: Date | string) {
-  const parsedDate = typeof date === "string" ? parseISO(date) : date;
-  const formattedDate = dateFnFormat(parsedDate, ISO_DATE_TIME_FORMAT);
-  return formattedDate;
-}
-
-export function formObjToString(type: DataTypes, val: FormObjVal) {
-  let toString = val;
-
-  switch (type) {
-    case DataTypes.DATE:
-      toString = toISODateString(val as Date);
-      break;
-
-    case DataTypes.DATETIME:
-      toString = toISODatetimeString(val as Date);
-      break;
-
-    case DataTypes.DECIMAL:
-    case DataTypes.INTEGER:
-      toString = (val || "0") + "";
-      break;
-
-    case DataTypes.SINGLE_LINE_TEXT:
-      toString = "" + val;
-      break;
-
-    case DataTypes.MULTI_LINE_TEXT:
-      toString = (("" + val) as string).replace(NEW_LINE_REGEX, "\\\\n");
-      break;
-  }
-
-  return (toString as string).trim().replace(/"/g, '\\"');
 }
 
 export const reducer: Reducer<StateMachine, Action> = (state, action) =>
@@ -136,6 +92,8 @@ const upsertEffect: DefUpsertEffect["func"] = (
   props,
   effectArgs,
 ) => {
+  const { getIsConnectedInject } = window.____ebnis.upsertEntryInjections;
+
   if (createEntryClientId) {
     input = {
       ...input,
@@ -147,7 +105,7 @@ const upsertEffect: DefUpsertEffect["func"] = (
   const experienceId = experience.id;
   const isOffline = isOfflineId(experienceId);
 
-  if (getIsConnected()) {
+  if (getIsConnectedInject()) {
     upsertOnlineEntryEffectHelper(input, props, effectArgs);
   } else {
     upsertOfflineEntryEffectHelper(input, props, effectArgs, isOffline);
@@ -159,6 +117,9 @@ async function upsertOnlineEntryEffectHelper(
   props: Props,
   effectArgs: EffectArgs,
 ) {
+  const { updateExperiencesMutationInject } =
+    window.____ebnis.upsertEntryInjections;
+
   const {
     experience: { id: experienceId },
     updatingEntry,
@@ -193,7 +154,7 @@ async function upsertOnlineEntryEffectHelper(
     },
   ];
 
-  updateExperiencesMutation({
+  updateExperiencesMutationInject({
     input: inputs,
     onUpdateSuccess: async ({ entries }) => {
       const newEntries = entries && entries.newEntries;
@@ -237,6 +198,9 @@ async function upsertOfflineEntryEffectHelper(
   effectArgs: EffectArgs,
   isOffline: boolean,
 ) {
+  const { createOfflineEntryMutationInject } =
+    window.____ebnis.upsertEntryInjections;
+
   const {
     experience: { id: experienceId },
     onSuccess,
@@ -244,7 +208,7 @@ async function upsertOfflineEntryEffectHelper(
 
   const { dispatch } = effectArgs;
 
-  const validResponse = await createOfflineEntryMutation({
+  const validResponse = await createOfflineEntryMutationInject({
     experienceId,
     dataObjects: input.dataObjects as CreateDataObject[],
   });
@@ -274,7 +238,9 @@ interface CreateEntryEffectArgs {
 type DefUpsertEffect = EffectDefinition<"upsertEffect", CreateEntryEffectArgs>;
 
 const scrollToViewEffect: DefScrollToViewEffect["func"] = ({ id }) => {
-  scrollIntoView(id, {
+  const { scrollIntoViewInject } = window.____ebnis.upsertEntryInjections;
+
+  scrollIntoViewInject(id, {
     behavior: "smooth",
   });
 };
@@ -349,20 +315,9 @@ export function initState(props: Props): StateMachine {
   return stateMachine;
 }
 
-export function parseDataObjectData(data: string) {
-  const json = JSON.parse(data);
-  const [type, stringData] = Object.entries(json)[0];
-  const typeUpper = type.toUpperCase();
-  const dataString = stringData as string;
-
-  return typeUpper === DataTypes.DATE || typeUpper === DataTypes.DATETIME
-    ? new Date(dataString)
-    : dataString;
-}
-
 function mapDefinitionIdToDataHelper(updatingEntry?: EntryFragment) {
   const result = {} as {
-    [dataDefinitionId: string]: FormObjVal;
+    [dataDefinitionId: string]: DataDefinitionFormObjVal;
   };
 
   if (!updatingEntry) {
@@ -516,16 +471,12 @@ function handleFormFieldChangedAction(
   proxy.states.form.fields[fieldIndex].context.value = value;
 }
 
-export function stringifyDataObjectData(type: DataTypes, parsedData: any) {
-  return `{"${type.toLowerCase()}":"${formObjToString(type, parsedData)}"}`;
-}
-
 ////////////////////////// END STATE UPDATE SECTION /////////////////////
 
 ////////////////////////// TYPES SECTION ////////////////////////////
 
 export interface CallerProps {
-  experience: ExperienceDetailViewFragment;
+  experience: ExperienceDFragment;
   updatingEntry?: UpdatingPayload;
   onSuccess: (entry: EntryFragment, onlineStatus: OnlineStatus) => void;
   onClose: () => void;
@@ -539,8 +490,6 @@ export type UpdatingPayload = {
   errors?: CreateEntryErrorFragment;
 };
 
-export type FormObjVal = Date | string | number;
-
 // the keys are the indices of the field definitions and the values are the
 // default values for each field data type e.g number for integer and date
 // for date
@@ -550,7 +499,7 @@ export interface FormFields {
 
 export interface FieldState {
   context: {
-    value: FormObjVal;
+    value: DataDefinitionFormObjVal;
     definition: DataDefinitionFragment;
     errors?: [string, string][];
   };
@@ -559,14 +508,14 @@ export interface FieldState {
 export interface FieldComponentProps {
   formFieldName: string;
   dispatch: DispatchType;
-  value: FormObjVal;
+  value: DataDefinitionFormObjVal;
 }
 
-export type ToString = (val: FormObjVal) => string;
+export type ToString = (val: DataDefinitionFormObjVal) => string;
 
 interface FieldChangedPayload {
   fieldIndex: string | number;
-  value: FormObjVal;
+  value: DataDefinitionFormObjVal;
 }
 
 type DraftState = Draft<StateMachine>;
@@ -584,7 +533,7 @@ type StateMachine = Readonly<GenericGeneralEffect<EffectType>> &
   }>;
 
 type GlobalContext = Readonly<{
-  experience: Readonly<ExperienceDetailViewFragment>;
+  experience: Readonly<ExperienceDFragment>;
   updatingEntry?: UpdatingPayload;
 }>;
 

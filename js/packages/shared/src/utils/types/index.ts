@@ -10,8 +10,14 @@ import { CreateExperienceErrorsFragment_errors } from "../../graphql/apollo-type
 import { DataObjectErrorFragment } from "../../graphql/apollo-types/DataObjectErrorFragment";
 import { DefinitionErrorFragment } from "../../graphql/apollo-types/DefinitionErrorFragment";
 import { EntryFragment } from "../../graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "../../graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDCFragment } from "../../graphql/apollo-types/ExperienceDCFragment";
 import { UpdateExperienceOwnFieldsErrorFragment } from "../../graphql/apollo-types/UpdateExperienceOwnFieldsErrorFragment";
+import {
+  ListExperiencesViewInjections,
+  UpsertEntryInjections,
+  UpsertExperienceInjections,
+  WithSubscriptionsComponentInjections,
+} from "../../injections";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Any = Record<string, any>;
@@ -35,6 +41,10 @@ export interface EbnisGlobals {
   observable: Observable<EmitAction>;
   apolloLink: ApolloLink;
   appSocket: AppSocket;
+  upsertExperienceInjections: UpsertExperienceInjections;
+  upsertEntryInjections: UpsertEntryInjections;
+  listExperiencesViwInjections: ListExperiencesViewInjections;
+  withSubscriptionsComponentInjections: WithSubscriptionsComponentInjections;
 }
 
 declare global {
@@ -99,7 +109,7 @@ export type OnlineExperienceIdToOfflineEntriesMap = {
 };
 
 export type OfflineIdToOnlineExperienceMap = {
-  [offlineExperienceId: string]: ExperienceCompleteFragment;
+  [offlineExperienceId: string]: ExperienceDCFragment;
 };
 
 export type SyncErrors = {

@@ -29,6 +29,10 @@ export function getUser() {
   return data ? (JSON.parse(data) as UserFragment) : null;
 }
 
+export type GetUserInjectType = {
+  getUserInject: typeof getUser;
+};
+
 export function getToken() {
   const data = getUser();
   return data && data.jwt;

@@ -14,3 +14,7 @@ export type ComponentTimeoutsMs = {
   fetchRetries: number[];
   closeNotification: number;
 };
+
+export type ComponentTimeoutsMsInjectType = {
+  componentTimeoutsMsInject: ComponentTimeoutsMs;
+};

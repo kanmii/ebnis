@@ -2,8 +2,7 @@
 import {
   WithSubscriptionContext,
   WithSubscriptionsDispatchContext,
-} from "../../utils/app-context";
-export { subscribeToGraphqlEvents } from "@eb/shared/src/apollo/experience.gql.types";
+} from "../../utils/react-app-context";
 
 export const WithSubscriptionProvider = WithSubscriptionContext.Provider;
 export const WithSubscriptionsDispatchProvider =

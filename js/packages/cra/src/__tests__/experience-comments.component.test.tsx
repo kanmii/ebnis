@@ -1,9 +1,9 @@
 import { ApolloError } from "@apollo/client";
-import { getExperienceComments } from "@eb/shared/src/apollo/experience.gql.types";
 import {
-  readExperienceCompleteFragment,
-  writeCachedExperienceCompleteFragment,
-} from "@eb/shared/src/apollo/get-detailed-experience-query";
+  readExperienceDCFragment,
+  writeExperienceDCFragment,
+} from "@eb/shared/src/apollo/experience-detail-cache-utils";
+import { getExperienceComments } from "@eb/shared/src/apollo/experience.gql.types";
 import { makeApolloClient } from "@eb/shared/src/client";
 import { CommentFragment } from "@eb/shared/src/graphql/apollo-types/CommentFragment";
 import { UpdateExperiencesOnline } from "@eb/shared/src/graphql/apollo-types/UpdateExperiencesOnline";
@@ -32,6 +32,7 @@ import { cleanup, render, waitFor } from "@testing-library/react";
 import { GraphQLError } from "graphql";
 import { ComponentType } from "react";
 import { act } from "react-dom/test-utils";
+import { updateExperiencesMutation } from "../../../shared/src/apollo/update-experiences.gql";
 import { ActionType as ParentActionType } from "../components/DetailExperience/detailed-experience-utils";
 import { Comments } from "../components/experience-comments/experience-comments.component";
 import {
@@ -62,19 +63,18 @@ import {
 import { Props as UpsertCommentProps } from "../components/UpsertComment/upsert-comment.utils";
 import { getAllByClass, getById, getEffects } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
-import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { activeClassName } from "../utils/utils.dom";
 
-jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
+jest.mock("@eb/shared/src/apollo/experiences-list-cache-utils");
 
 jest.mock("@eb/shared/src/apollo/update-experiences-manual-cache-update");
 
-jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
+jest.mock("@eb/shared/src/apollo/experience-detail-cache-utils");
 // getCachedExperienceDetailView
 const mockReadExperienceCompleteFragment =
-  readExperienceCompleteFragment as jest.Mock;
+  readExperienceDCFragment as jest.Mock;
 const mockWriteCachedExperienceCompleteFragment =
-  writeCachedExperienceCompleteFragment as jest.Mock;
+  writeExperienceDCFragment as jest.Mock;
 
 jest.mock("@eb/shared/src/utils/connections");
 const mockGetIsConnected = getIsConnected as jest.Mock;

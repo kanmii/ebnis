@@ -3,7 +3,9 @@ import {
   getExperienceAndEntriesDetailView,
   GetExperienceAndEntriesDetailViewQueryResult,
 } from "@eb/shared/src/apollo/experience.gql.types";
+import { updateExperiencesMutation } from "@eb/shared/src/apollo/update-experiences.gql";
 import { makeApolloClient } from "@eb/shared/src/client";
+import { ChangeUrlType } from "@eb/shared/src/global-window";
 import { CreateEntryErrorFragment } from "@eb/shared/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataObjectErrorFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectErrorFragment";
 import { GetExperienceAndEntriesDetailView } from "@eb/shared/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
@@ -86,8 +88,6 @@ import { getById, getEffects, getOneByClass } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
 import { GENERIC_SERVER_ERROR } from "../utils/common-errors";
 import { deleteExperiences } from "../utils/delete-experiences.gql";
-import { ChangeUrlType } from "../utils/global-window";
-import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 import { MY_URL } from "../utils/urls";
 import { activeClassName } from "../utils/utils.dom";
 
@@ -1411,8 +1411,8 @@ function makeComp({
           getExperienceAndEntriesDetailView
         }
         HeaderComponentFn={() => (<div id={mockHeaderId} />) as any}
-        LoadingComponentFn={mockLoadingComponent}
-        windowChangeUrlFn={mockWindowChangeUrl}
+        LoadingComponentInject={mockLoadingComponent}
+        windowChangeUrlInject={mockWindowChangeUrl}
         useWithSubscriptionContextInject={mockUseWithSubscriptionContext}
         removeUnsyncedExperiencesInject={mockRemoveUnsyncedExperiences}
         getCachedExperienceAndEntriesDetailViewInject={

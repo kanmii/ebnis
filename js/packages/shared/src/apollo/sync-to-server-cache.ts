@@ -107,8 +107,8 @@ export function getSyncErrors() {
   return data ? data.syncErrors : ({} as SyncErrors);
 }
 
-export type GetSyncErrorsFn = {
-  getSyncErrorsFn: typeof getSyncErrors;
+export type GetSyncErrorsInjectType = {
+  getSyncErrorsInject: typeof getSyncErrors;
 };
 
 export function writeSyncErrors(ledger: SyncErrors) {

@@ -4,7 +4,7 @@ import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/Data
 import { DataObjectFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectFragment";
 import { EntryConnectionFragment_edges } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDCFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDCFragment";
 import { GetEntriesUnionFragment_GetEntriesSuccess_entries } from "@eb/shared/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { UpdateExperienceFragment } from "@eb/shared/src/graphql/apollo-types/UpdateExperienceFragment";
 import {
@@ -27,19 +27,20 @@ import {
   SyncErrors,
 } from "@eb/shared/src/utils/types";
 import immer, { Draft } from "immer";
-import { UnsyncedModifiedExperience } from "../../../cra/src/utils/unsynced-ledger.types";
-import { UpdateExperiencesOnlineMutationResult } from "./experience.gql.types";
 import {
   getCachedEntriesDetailViewSuccess,
-  readExperienceCompleteFragment,
+  readExperienceDCFragment,
+  readExperienceDFragment,
   writeCachedEntriesDetailView,
-  writeCachedExperienceCompleteFragment,
-} from "./get-detailed-experience-query";
+  writeExperienceDCFragment,
+} from "./experience-detail-cache-utils";
+import { UpdateExperiencesOnlineMutationResult } from "./experience.gql.types";
 import {
   getUnsyncedExperience,
   removeUnsyncedExperiences,
   writeUnsyncedExperience,
 } from "./unsynced-ledger";
+import { UnsyncedModifiedExperience } from "./unsynced-ledger.types";
 
 export function updateExperiencesManualCacheUpdate(
   _dataProxy: DataProxy,
@@ -73,17 +74,19 @@ export function updateExperiencesManualCacheUpdate(
           comments: commentsResult,
         } = updateResult;
         const { experienceId } = experienceResult;
-        let cachedExperience = readExperienceCompleteFragment(experienceId);
+
+        let cachedExperience =
+          readExperienceDCFragment(experienceId) ||
+          readExperienceDFragment(experienceId);
 
         // TODO: what if experience missing from cache
         // istanbul ignore next
+
         if (!cachedExperience) {
           continue;
         }
 
-        cachedExperience = {
-          ...cachedExperience,
-        };
+        cachedExperience = { ...cachedExperience };
 
         onlineExperienceUpdatedMap[experienceId] = true;
 
@@ -173,11 +176,12 @@ export function updateExperiencesManualCacheUpdate(
         ] = fromImmer;
 
         updatedIds[updatedExperience.id] = 1;
-        writeCachedExperienceCompleteFragment(updatedExperience);
+        writeExperienceDCFragment(updatedExperience);
 
         writeCachedEntriesDetailView(
           experienceId,
           toGetEntriesSuccessQuery(updatedGetEntriesQuery),
+          { replaceAll: true },
         );
 
         if (!Object.keys(updatedUnsyncedExperience).length) {
@@ -511,7 +515,7 @@ function applyAndCleanUpCommentInserts(
   cachedExperience.comments = successfulComments.concat(cachedComments);
 }
 
-type ExperienceDraft = Draft<ExperienceCompleteFragment>;
+type ExperienceDraft = Draft<ExperienceDCFragment>;
 type GetEntriesQueryDraft =
   Draft<GetEntriesUnionFragment_GetEntriesSuccess_entries>;
 type DraftUnsyncedModifiedExperience = Draft<UnsyncedModifiedExperience>;
@@ -529,7 +533,7 @@ interface EntryIdToDataObjectMap {
 }
 
 type ToBeModified = [
-  ExperienceCompleteFragment,
+  ExperienceDCFragment,
   UnsyncedModifiedExperience,
   GetEntriesUnionFragment_GetEntriesSuccess_entries,
 ];

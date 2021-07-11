@@ -4,12 +4,14 @@ import {
   GetEntriesDetailViewProps,
   GetEntriesDetailViewQueryResult,
 } from "@eb/shared/src/apollo/entries-connection.gql";
-import { getCachedEntriesDetailView } from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { getCachedEntriesDetailView } from "@eb/shared/src/apollo/experience-detail-cache-utils";
+import { purgeEntry } from "@eb/shared/src/apollo/experiences-list-cache-utils";
 import {
   getSyncError,
   putOrRemoveSyncError,
 } from "@eb/shared/src/apollo/sync-to-server-cache";
-import { purgeEntry } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { UpdateExperiencesMutationProps } from "@eb/shared/src/apollo/update-experiences.gql";
+import { updateExperienceOfflineFn } from "@eb/shared/src/apollo/upsert-experience.resolvers";
 import { CreateEntryErrorFragment } from "@eb/shared/src/graphql/apollo-types/CreateEntryErrorFragment";
 import { DataObjectErrorFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectErrorFragment";
 import {
@@ -17,12 +19,13 @@ import {
   EntryConnectionFragment_edges,
 } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
-import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { ExperienceDFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDFragment";
 import { GetEntriesUnionFragment_GetEntriesSuccess } from "@eb/shared/src/graphql/apollo-types/GetEntriesUnionFragment";
 import { PaginationInput } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import { PageInfoFragment } from "@eb/shared/src/graphql/apollo-types/PageInfoFragment";
 import { toGetEntriesSuccessQuery } from "@eb/shared/src/graphql/utils.gql";
 import { wrapReducer, wrapState } from "@eb/shared/src/logger";
+import { scrollIntoView } from "@eb/shared/src/scroll-into-view";
 import { getIsConnected } from "@eb/shared/src/utils/connections";
 import { isOfflineId } from "@eb/shared/src/utils/offlines";
 import { ComponentTimeoutsMs } from "@eb/shared/src/utils/timers";
@@ -65,8 +68,6 @@ import {
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import { scrollIntoView } from "../../utils/scroll-into-view";
-import { UpdateExperiencesMutationProps } from "../../utils/update-experiences.gql";
 import { nonsenseId } from "../../utils/utils.dom";
 import { scrollDocumentToTop } from "../DetailExperience/detail-experience.injectables";
 import {
@@ -76,7 +77,6 @@ import {
   ExperienceSyncError,
 } from "../DetailExperience/detailed-experience-utils";
 import { UpdatingPayload } from "../UpsertEntry/upsert-entry.utils";
-import { updateExperienceOfflineFn } from "../UpsertExperience/upsert-experience.resolvers";
 import { cleanUpSyncedOfflineEntries } from "../WithSubscriptions/with-subscriptions.utils";
 
 export enum EntriesRemoteActionType {
@@ -426,20 +426,20 @@ function handleOnUpsertSuccessAction(
   const successState = entriesState as DataSuccess;
 
   upsertUi.value = StateValue.inactive;
-  // :TODO: parent experience detail notification must be set to inactive ???
+  // TODO: parent experience detail notification must be set to inactive ???
   // notification.value = StateValue.inactive;
 
   const {
     oldData,
     newData: {
       entry: upsertedEntry,
-      // :TODO: handle this?????
+      // TODO: handle this?????
       // onlineStatus: newOnlineStatus
     },
     syncErrors,
   } = payload;
 
-  // :TODO: set parent onlineStatus
+  // TODO: set parent onlineStatus
   // context.onlineStatus = newOnlineStatus;
   const effects = getEffects(proxy);
 
@@ -451,6 +451,7 @@ function handleOnUpsertSuccessAction(
   });
 
   // completely new entry created online
+
   if (!oldData) {
     const newEntryNotification = notification as NotificationState;
 
@@ -1345,7 +1346,7 @@ type DraftState = Draft<StateMachine>;
 
 export type StateMachine = GenericGeneralEffect<EffectType> & {
   context: {
-    experience: ExperienceDetailViewFragment;
+    experience: ExperienceDFragment;
   };
   timeouts: Timeouts;
   states: {
@@ -1576,7 +1577,7 @@ export type EntriesParentContext = {
 };
 
 export type CallerProps = EntriesParentContext & {
-  experience: ExperienceDetailViewFragment;
+  experience: ExperienceDFragment;
   parentDispatch: ParentDispatchType;
 };
 

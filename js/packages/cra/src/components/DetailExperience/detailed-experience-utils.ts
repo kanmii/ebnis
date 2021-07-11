@@ -3,10 +3,14 @@ import {
   PutOrRemoveDeleteExperienceLedgerInjectType,
 } from "@eb/shared/src/apollo/delete-experience-cache";
 import { EntriesCacheUnion } from "@eb/shared/src/apollo/entries-connection.gql";
+import { GetCachedExperienceAndEntriesDetailViewInjectType } from "@eb/shared/src/apollo/experience-detail-cache-utils";
 import { CacheExperienceAndEntries } from "@eb/shared/src/apollo/experience-detail-entries-connection.gql";
 import { GetExperienceAndEntriesDetailViewInject } from "@eb/shared/src/apollo/experience.gql.types";
-import { GetCachedExperienceAndEntriesDetailViewInjectType } from "@eb/shared/src/apollo/get-detailed-experience-query";
-import { UseWithSubscriptionContextInject } from "@eb/shared/src/apollo/injectables";
+import {
+  CleanUpOfflineExperiencesInjectType,
+  purgeEntry,
+} from "@eb/shared/src/apollo/experiences-list-cache-utils";
+import { UseWithSubscriptionContextInjectType } from "@eb/shared/src/apollo/injectables";
 import {
   GetAndRemoveOfflineExperienceIdFromSyncFlagInjectType,
   GetSyncErrorInjectType,
@@ -18,11 +22,15 @@ import {
   getUnsyncedExperience,
   RemoveUnsyncedExperiencesInjectType,
 } from "@eb/shared/src/apollo/unsynced-ledger";
-import { purgeEntry } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { UpdateExperiencesMutationProps } from "@eb/shared/src/apollo/update-experiences.gql";
+import {
+  ChangeUrlType,
+  WindowChangeUrlInjectType,
+} from "@eb/shared/src/global-window";
 import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { ExperienceDCFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDCFragment";
+import { ExperienceDFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDFragment";
 import { GetExperienceAndEntriesDetailView } from "@eb/shared/src/graphql/apollo-types/GetExperienceAndEntriesDetailView";
 import { wrapReducer, wrapState } from "@eb/shared/src/logger";
 import { GetIsConnectedInjectType } from "@eb/shared/src/utils/connections";
@@ -62,8 +70,6 @@ import {
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import { ChangeUrlType, WindowChangeUrlType } from "../../utils/global-window";
-import { UpdateExperiencesMutationProps } from "../../utils/update-experiences.gql";
 import {
   DetailExperienceRouteMatch,
   makeDetailedExperienceRoute,
@@ -83,13 +89,10 @@ import {
   CommentRemoteAction,
   CommentRemoteActionType,
 } from "../experience-comments/experience-comments.utils";
-import { HeaderComponentType } from "../Header/header.component";
+import { HeaderComponentInjectType } from "../Header/header.component";
 import { LoadingComponentType } from "../Loading/loading.component";
 import { UpsertExperienceInjectType } from "../My/my.lazy";
-import {
-  CleanUpOfflineExperiencesInjectType,
-  CleanUpSyncedOfflineEntriesInjectType,
-} from "../WithSubscriptions/with-subscriptions.utils";
+import { CleanUpSyncedOfflineEntriesInjectType } from "../WithSubscriptions/with-subscriptions.utils";
 import { ClearTimeoutFnInjectType } from "./detail-experience.injectables";
 import { CommentsInjectType } from "./detail-experience.lazy";
 
@@ -1024,7 +1027,7 @@ const cancelDeleteEffect: DefCancelDeleteEffect["func"] = (
 type DefCancelDeleteEffect = EffectDefinition<
   "cancelDeleteEffect",
   {
-    experience: ExperienceDetailViewFragment;
+    experience: ExperienceDFragment;
     key: string;
   }
 >;
@@ -1150,7 +1153,7 @@ const fetchEffect: DefFetchEffect["func"] = (_, props, { dispatch }) => {
 
   if (offlineId) {
     cleanUpOfflineExperiencesInject({
-      [offlineId]: {} as ExperienceCompleteFragment,
+      [offlineId]: {} as ExperienceDCFragment,
     });
   }
 
@@ -1248,7 +1251,7 @@ type DefFetchEffect = EffectDefinition<"fetchEffect">;
 const postOfflineExperiencesSyncEffect: DefPostOfflineExperiencesSyncEffect["func"] =
   async ({ data, onlineIdToOfflineId }, props) => {
     const {
-      windowChangeUrlFn,
+      windowChangeUrlInject: windowChangeUrlFn,
       mapOnlineExperienceIdToOfflineIdInSyncFlagInject:
         putOfflineExperienceIdInSyncFlagInject,
       cleanUpOfflineExperiencesInject,
@@ -1353,7 +1356,7 @@ export const effectFunctions = {
 };
 
 function processGetExperienceQuery(
-  experience: ExperienceDetailViewFragment | null,
+  experience: ExperienceDFragment | null,
   entriesQueryResult: EntriesCacheUnion | null,
   syncErrors?: SyncError,
 ): [FetchedExperiencePayload, ExperienceSyncError | undefined] {
@@ -1420,7 +1423,7 @@ export type EntriesDataFailureState = {
 };
 
 export type DataStateContext = {
-  experience: ExperienceDetailViewFragment;
+  experience: ExperienceDFragment;
   dataDefinitionIdToNameMap: DataDefinitionIdToNameMap;
   syncErrors?: ExperienceSyncError;
   onlineStatus: OnlineStatus;
@@ -1533,10 +1536,10 @@ export type Props = DeleteExperiencesComponentProps &
   CallerProps &
   GetExperienceAndEntriesDetailViewInject &
   UpdateExperiencesMutationProps &
-  HeaderComponentType &
+  HeaderComponentInjectType &
   LoadingComponentType &
-  WindowChangeUrlType &
-  UseWithSubscriptionContextInject &
+  WindowChangeUrlInjectType &
+  UseWithSubscriptionContextInjectType &
   RemoveUnsyncedExperiencesInjectType &
   GetCachedExperienceAndEntriesDetailViewInjectType &
   ClearTimeoutFnInjectType &
@@ -1627,7 +1630,7 @@ type UpdateExperiencePayload = WithMayBeExperiencePayload & {
 };
 
 type WithMayBeExperiencePayload = {
-  experience?: ExperienceDetailViewFragment;
+  experience?: ExperienceDFragment;
 };
 
 export type ExperienceSyncError = SyncError & {
@@ -1644,7 +1647,7 @@ type OnDataReceivedPayload = {
 type FetchedExperiencePayload =
   | {
       key: DataVal;
-      experience: ExperienceDetailViewFragment;
+      experience: ExperienceDFragment;
       entriesData: ProcessedEntriesQueryReturnVal;
       onlineStatus: OnlineStatus;
     }

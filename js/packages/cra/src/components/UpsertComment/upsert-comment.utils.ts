@@ -15,6 +15,7 @@ import { ReactMouseEvent } from "@eb/shared/src/utils/types/react";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
 import { DeepReadonly } from "utility-types";
+import { UpdateExperiencesMutation } from "../../../../shared/src/apollo/update-experiences.gql";
 import {
   GENERIC_SERVER_ERROR,
   parseStringError,
@@ -24,7 +25,6 @@ import {
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import { UpdateExperiencesMutation } from "../../utils/update-experiences.gql";
 
 export enum ActionType {
   SUBMISSION = "@upsert-comment/submission",

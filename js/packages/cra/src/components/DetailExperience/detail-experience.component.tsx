@@ -1,6 +1,7 @@
 import { Button } from "@eb/jsx/src/Button";
 import Modal from "@eb/jsx/src/Modal";
 import { Notification } from "@eb/jsx/src/Notification";
+import { setUpRoutePage } from "@eb/shared/src/global-window";
 import { ReactComponent as ExclamationErrorSvg } from "@eb/shared/src/styles/exclamation-error.svg";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
@@ -14,7 +15,6 @@ import React, {
   useMemo,
   useReducer,
 } from "react";
-import { setUpRoutePage } from "../../utils/global-window";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { activeClassName } from "../../utils/utils.dom";
 import { EntriesInjectType } from "../entries/entries.default";
@@ -71,7 +71,7 @@ import {
 export function DetailExperience(props: Props) {
   const {
     HeaderComponentFn,
-    LoadingComponentFn,
+    LoadingComponentInject: LoadingComponentFn,
     useWithSubscriptionContextInject,
     clearTimeoutFnInject,
     UpsertExperienceInject,
@@ -220,7 +220,7 @@ export function DetailExperience(props: Props) {
                   <>
                     <DataStateProvider value={states.data}>
                       <ExperienceComponent
-                        LoadingComponentFn={LoadingComponentFn}
+                        LoadingComponentInject={LoadingComponentFn}
                         UpsertExperienceInject={UpsertExperienceInject}
                         CommentsInject={CommentsInject}
                         EntriesInject={EntriesInject}
@@ -245,7 +245,7 @@ function ExperienceComponent(
     EntriesInjectType,
 ) {
   const {
-    LoadingComponentFn,
+    LoadingComponentInject: LoadingComponentFn,
     UpsertExperienceInject,
     CommentsInject,
     EntriesInject,

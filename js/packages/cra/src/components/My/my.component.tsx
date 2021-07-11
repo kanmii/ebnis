@@ -5,10 +5,10 @@ import { Input, Textarea } from "@eb/jsx/src/Input";
 import { Notification } from "@eb/jsx/src/Notification";
 import { LinkInjectType } from "@eb/jsx/src/utils";
 import { ExperienceData } from "@eb/shared/src/apollo/experience.gql.types";
-import { UseWithSubscriptionContextInject } from "@eb/shared/src/apollo/injectables";
 import { ExperienceListViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceListViewFragment";
 import errorImage from "@eb/shared/src/media/error-96.png";
 import { ReactComponent as SearchIconSvg } from "@eb/shared/src/styles/search-solid.svg";
+import { deleteObjectKey } from "@eb/shared/src/utils";
 import { OnlineStatus, StateValue } from "@eb/shared/src/utils/types";
 import {
   ComponentColorType,
@@ -79,11 +79,12 @@ const DataStateContextC = createContext<DataState["data"]>(
 const DataStateProvider = DataStateContextC.Provider;
 
 export function My(props: Props) {
+  const { setUpRoutePageInject, useWithSubscriptionContextInject } =
+    window.____ebnis.listExperiencesViwInjections;
+
   const {
     HeaderComponentFn,
-    LoadingComponentFn,
-    setUpRoutePageInject,
-    useWithSubscriptionContextInject,
+    LoadingComponentInject: LoadingComponentFn,
     UpsertExperienceInject,
     LinkInject,
   } = props;
@@ -151,10 +152,15 @@ export function My(props: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      deleteObjectKey(window.____ebnis, "listExperiencesViwInjections");
+    };
+  }, []);
+
   const dispatchContextVal: DispatchContextValue = useMemo(() => {
     return {
       dispatch,
-      useWithSubscriptionContextInject,
       LinkInject,
       onUpsertExperienceActivated(e) {
         e.preventDefault();
@@ -528,8 +534,10 @@ function ExperienceComponent(props: ExperienceProps) {
 }
 
 function PaginationComponent() {
-  const { fetchMoreExperiences, useWithSubscriptionContextInject } =
-    useContext(DispatchContext);
+  const { useWithSubscriptionContextInject } =
+    window.____ebnis.listExperiencesViwInjections;
+
+  const { fetchMoreExperiences } = useContext(DispatchContext);
 
   const {
     context: {
@@ -699,6 +707,5 @@ type DispatchContextValue = Readonly<
     ) => void;
     fetchMoreExperiences: () => void;
     onUpdateExperienceError: (error: string) => void;
-  } & UseWithSubscriptionContextInject &
-    LinkInjectType
+  } & LinkInjectType
 >;

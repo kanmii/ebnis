@@ -1,30 +1,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   getCachedEntriesDetailViewSuccess,
-  readExperienceCompleteFragment,
-} from "@eb/shared/src/apollo/get-detailed-experience-query";
+  readExperienceDFragment,
+} from "@eb/shared/src/apollo/experience-detail-cache-utils";
 import {
   getUnsyncedExperience,
   writeUnsyncedExperience,
 } from "@eb/shared/src/apollo/unsynced-ledger";
-import { isOfflineId, makeOfflineId } from "@eb/shared/src/utils/offlines";
-import { upsertNewEntry } from "../components/UpsertEntry/upsert-entry.injectables";
+import { upsertNewEntry } from "@eb/shared/src/apollo/upsert-entry.injectables";
 import {
   createOfflineEntryMutation,
   CreateOfflineEntryMutationReturnVal,
   CreateOfflineEntryMutationVariables,
-} from "../components/UpsertEntry/upsert-entry.resolvers";
+} from "@eb/shared/src/apollo/upsert-entry.resolvers";
+import { isOfflineId, makeOfflineId } from "@eb/shared/src/utils/offlines";
 import { deleteObjectKey } from "../utils";
 
-jest.mock("../components/UpsertEntry/upsert-entry.injectables");
+jest.mock("@eb/shared/src/apollo/upsert-entry.injectables");
 const mockUpsertWithEntry = upsertNewEntry as jest.Mock;
 
 jest.mock("@eb/shared/src/apollo/unsynced-ledger");
 const mockGetUnsyncedExperience = getUnsyncedExperience as jest.Mock;
 const mockWriteUnsyncedExperience = writeUnsyncedExperience as jest.Mock;
 
-jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
-const mockReadExperienceFragment = readExperienceCompleteFragment as jest.Mock;
+jest.mock("@eb/shared/src/apollo/experience-detail-cache-utils");
+const mockReadExperienceFragment = readExperienceDFragment as jest.Mock;
 const mockGetEntriesQuerySuccess =
   getCachedEntriesDetailViewSuccess as jest.Mock;
 

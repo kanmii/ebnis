@@ -1,4 +1,4 @@
 /* istanbul ignore file */
-import { EbnisAppContext } from "../../utils/app-context";
+import { EbnisAppContext } from "../../utils/react-app-context";
 
 export const EbnisAppProvider = EbnisAppContext.Provider;

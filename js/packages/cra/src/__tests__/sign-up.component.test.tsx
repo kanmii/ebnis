@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { notificationCloseSelector } from "@eb/jsx/src/Notification";
+import { windowChangeUrl } from "@eb/shared/src/global-window";
+import { scrollIntoView } from "@eb/shared/src/scroll-into-view";
 import { manageUserAuthentication } from "@eb/shared/src/utils/manage-user-auth";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";
@@ -15,9 +17,7 @@ import {
 } from "../components/SignUp/sign-up.dom";
 import { Props } from "../components/SignUp/sign-up.utils";
 import { fillField } from "../tests.utils";
-import { AppPersistor } from "../utils/app-context";
-import { windowChangeUrl } from "../utils/global-window";
-import { scrollIntoView } from "../utils/scroll-into-view";
+import { AppPersistor } from "../utils/react-app-context";
 import { RegisterUserMutationResult } from "../utils/user.gql.types";
 import {
   errorClassName,
@@ -27,7 +27,7 @@ import {
   warningClassName,
 } from "../utils/utils.dom";
 
-jest.mock("../utils/global-window");
+jest.mock("@eb/shared/src/global-window");
 const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
 
 jest.mock("@eb/shared/src/utils/manage-user-auth");
@@ -44,7 +44,7 @@ const persistor = {
 
 const mockRegisterUser = jest.fn();
 
-jest.mock("../utils/scroll-into-view");
+jest.mock("@eb/shared/src/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
 
 afterEach(() => {

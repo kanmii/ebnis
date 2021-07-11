@@ -3,14 +3,14 @@ import {
   domPrefix as upsertEntryId,
   submitBtnDomId as upsertEntrySubmitBtnDomId,
 } from "@eb/cra/src/components/UpsertEntry/upsert-entry.dom";
+import { makeDetailedExperienceRoute } from "@eb/cra/src/utils/urls";
 import {
   createOfflineEntryMutation,
   CreateOfflineEntryMutationReturnVal,
-} from "@eb/cra/src/components/UpsertEntry/upsert-entry.resolvers";
-import { updateCacheQueriesWithCreatedExperience } from "@eb/cra/src/components/UpsertExperience/upsert-experience.resolvers";
-import { makeDetailedExperienceRoute } from "@eb/cra/src/utils/urls";
+} from "@eb/shared/src/apollo/upsert-entry.resolvers";
+import { updateCacheQueriesWithCreatedExperience } from "@eb/shared/src/apollo/upsert-experience.resolvers";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDCFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDCFragment";
 import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import { UpdateExperiencesOnline } from "@eb/shared/src/graphql/apollo-types/UpdateExperiencesOnline";
 import {
@@ -21,7 +21,7 @@ import {
   createExperiencesMswGql,
   updateExperiencesMswGql,
 } from "@eb/shared/src/__tests__/msw-handlers";
-import { createOnlineExperience } from "../support/create-experiences";
+import { createOnlineExperienceCy } from "../support/create-experiences.cypress";
 import { useCypressMsw } from "../support/cypress-msw";
 
 describe("Detailed experience page", () => {
@@ -30,47 +30,50 @@ describe("Detailed experience page", () => {
     cy.registerUser();
   });
 
-  // :TODO: handle experience not found with a 404 page
+  // TODO: handle experience not found with a 404 page
 
   it("create online entry succeeds", () => {
     const { title, description } = mockOnlineExperience1;
 
     // Given an online experience exists in the system
-    const p = createOnlineExperience({
-      title,
-      description,
-      dataDefinitions: [
-        {
-          name: "nn",
-          type: DataTypes.INTEGER,
-        },
-      ],
-    });
+    const p = createOnlineExperienceCy([
+      {
+        title,
+        description,
+        dataDefinitions: [
+          {
+            name: "nn",
+            type: DataTypes.INTEGER,
+          },
+        ],
+      },
+    ]);
 
-    cy.wrap(p).then((unwrapped) => {
-      const { id: experienceId, dataDefinitions } =
-        unwrapped as ExperienceCompleteFragment;
+    cy.wrap<Promise<ExperienceDCFragment[]>, ExperienceDCFragment[]>(p).then(
+      ([unwrapped]) => {
+        const { id: experienceId, dataDefinitions } = unwrapped;
 
-      const def0 = dataDefinitions[0];
+        const def0 = dataDefinitions[0];
 
-      // When we visit experience detail page
-      const url = makeDetailedExperienceRoute(experienceId);
-      cy.visit(url);
-      cy.title().should("contain", title);
-      cy.setConnectionStatus(true);
+        // When we visit experience detail page
+        const url = makeDetailedExperienceRoute(experienceId);
+        cy.visit(url);
+        cy.title().should("contain", title);
+        cy.setConnectionStatus(true);
 
-      cy.get("#" + noEntryTriggerId)
-        .should("exist")
-        .click();
+        cy.get("#" + noEntryTriggerId)
+          .should("exist")
+          .click();
 
-      cy.get("#" + upsertEntryId)
-        .should("exist")
-        .within(() => {
-          cy.get("#" + def0.id).type("5");
-        });
+        cy.get("#" + upsertEntryId)
+          .should("exist")
+          .within(() => {
+            cy.get("#" + def0.id).type("5");
+          });
 
-      cy.get("#" + upsertEntrySubmitBtnDomId).click();
-    });
+        cy.get("#" + upsertEntrySubmitBtnDomId).click();
+      },
+    );
   });
 });
 
@@ -98,38 +101,19 @@ describe("Detailed experience page MSW", () => {
     );
 
     // Given an online experience exists in the system
-    const p = createOnlineExperience({
+    const p = makeOnlineExperienceOfflineEntry({
+      id: experienceId,
       title,
       description,
-      dataDefinitions: [
-        {
-          name: "nn",
-          type: DataTypes.INTEGER,
-        },
-      ],
-    }).then(() => {
-      return createOfflineEntryMutation({
-        experienceId,
-        dataObjects: [
-          {
-            definitionId: mockOnlineDataDefinitionInteger1Id,
-            data: `{"integer":1}`,
-          },
-        ],
-      }).then((result) => {
-        const { experience, entry } =
-          result as CreateOfflineEntryMutationReturnVal;
-        updateCacheQueriesWithCreatedExperience(experience, [entry]);
-
-        return result;
-      });
     });
 
     cy.wrap(p).then((unwrapped) => {
       const { entry } = unwrapped as CreateOfflineEntryMutationReturnVal;
 
       useCypressMsw(
-        updateExperiencesMswGql(updateExperiencesMswGql1(entry, experienceId)),
+        updateExperiencesMswGql(
+          makeUpdateExperiencesMswData(entry, experienceId),
+        ),
       );
 
       // When we visit experience detail page
@@ -140,7 +124,10 @@ describe("Detailed experience page MSW", () => {
   });
 });
 
-function updateExperiencesMswGql1(entry: EntryFragment, experienceId: string) {
+function makeUpdateExperiencesMswData(
+  entry: EntryFragment,
+  experienceId: string,
+) {
   const data: UpdateExperiencesOnline = {
     updateExperiences: {
       __typename: "UpdateExperiencesSomeSuccess",
@@ -184,4 +171,39 @@ function updateExperiencesMswGql1(entry: EntryFragment, experienceId: string) {
   };
 
   return data;
+}
+
+async function makeOnlineExperienceOfflineEntry({
+  id: experienceId,
+  title,
+  description,
+}: Pick<ExperienceDCFragment, "title" | "description" | "id">) {
+  const experiences = await createOnlineExperienceCy([
+    {
+      title,
+      description,
+      dataDefinitions: [
+        {
+          name: "nn",
+          type: DataTypes.INTEGER,
+        },
+      ],
+    },
+  ]);
+
+  updateCacheQueriesWithCreatedExperience(experiences[0]);
+
+  const entryReturn = await createOfflineEntryMutation({
+    experienceId,
+    dataObjects: [
+      {
+        definitionId: mockOnlineDataDefinitionInteger1Id,
+        data: `{"integer":1}`,
+      },
+    ],
+  });
+
+  expect(entryReturn).not.eq(null);
+
+  return entryReturn;
 }

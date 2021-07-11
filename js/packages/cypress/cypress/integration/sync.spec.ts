@@ -1,6 +1,6 @@
-import { createOfflineExperience } from "@eb/cra/src/components/UpsertExperience/upsert-experience.resolvers";
 import { MY_URL } from "@eb/cra/src/utils/urls";
-import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { createOfflineExperience } from "@eb/shared/src/apollo/upsert-experience.resolvers";
+import { ExperienceDCFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDCFragment";
 import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 
 context("Sync", () => {
@@ -25,27 +25,31 @@ context("Sync", () => {
             ],
           },
         ],
-      });
+      }) as Promise<ExperienceDCFragment>;
 
-      cy.wrap(p).then((p) => {
-        const { id } = p as ExperienceCompleteFragment;
+      cy.wrap<Promise<ExperienceDCFragment>, ExperienceDCFragment>(p).then(
+        (p) => {
+          const { id } = p;
 
-        // When we visit experiences list page
-        cy.visit(MY_URL);
+          cy.setConnectionStatus(false);
 
-        // offline experience should exist
-        cy.get("#" + id).should("exist");
+          // When we visit experiences list page
+          cy.visit(MY_URL);
 
-        // when data is synced
-        cy.setConnectionStatus(true);
+          // offline experience should exist
+          cy.get("#" + id).should("exist");
 
-        // offline experience should not exist
-        cy.get("#" + id).should("not.exist");
+          // when data is synced
+          cy.setConnectionStatus(true);
 
-        // :TODO: test that online experience exists
-        // hint: set data-client-id in `MyComponent`, but only after we start
-        // using ULID in the client
-      });
+          // offline experience should not exist
+          cy.get("#" + id).should("not.exist");
+
+          // :TODO: test that online experience exists
+          // hint: set data-client-id in `MyComponent`, but only after we start
+          // using ULID in the client
+        },
+      );
     });
   });
 });

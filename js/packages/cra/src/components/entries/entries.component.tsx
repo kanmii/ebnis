@@ -52,6 +52,8 @@ export function Entries(props: Props) {
     }
   }, [postActions]);
 
+  const { connected } = useWithSubscriptionContext();
+
   const { entries: state, menu, notification, upsertUi } = states.states;
 
   // fail / success / fetchEntriesError
@@ -76,8 +78,6 @@ export function Entries(props: Props) {
     );
   }
 
-  // will react complain?
-  const { connected } = useWithSubscriptionContext();
   const {
     context: {
       entries,

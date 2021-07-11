@@ -12,7 +12,7 @@ import {
 } from "../../utils/urls";
 import AuthenticationRequired from "../AuthenticationRequired/authentication-required.component";
 import Loading from "../Loading/loading.component";
-import WithSubscriptions from "../WithSubscriptions/with-subscriptions.component";
+import WithSubscriptions from "../WithSubscriptions/with-subscriptions.default";
 import { EbnisAppProvider } from "./app.injectables";
 
 const Login = lazy(() => import("../Login/login.component"));

@@ -1,6 +1,6 @@
 import { getEntriesDetailView } from "@eb/shared/src/apollo/entries-connection.gql";
+import { updateExperiencesMutation } from "@eb/shared/src/apollo/update-experiences.gql";
 import { componentTimeoutsMs } from "@eb/shared/src/utils/timers";
-import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { Entries as EntriesComponent } from "./entries.component";
 import { CallerProps } from "./entries.utils";
 

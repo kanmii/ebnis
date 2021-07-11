@@ -2,7 +2,7 @@ import logo from "@eb/shared/src/media/logo.png";
 import cn from "classnames";
 import React, { useContext } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { WithSubscriptionContext } from "../../utils/app-context";
+import { WithSubscriptionContext } from "../../utils/react-app-context";
 import { MY_URL } from "../../utils/urls";
 import {
   connectedSelector,
@@ -69,7 +69,7 @@ const HeaderComponent = () => {
   return <Header connected={connected} />;
 };
 export default HeaderComponent;
-export type HeaderComponentType = {
+export type HeaderComponentInjectType = {
   HeaderComponentFn: typeof HeaderComponent;
 };
 

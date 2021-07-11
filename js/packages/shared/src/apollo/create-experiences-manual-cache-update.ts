@@ -3,7 +3,7 @@ import { CreateEntryErrorFragment } from "@eb/shared/src/graphql/apollo-types/Cr
 import { DataObjectFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectFragment";
 import { EntryConnectionFragment_edges } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDCFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDCFragment";
 import {
   entryToEdge,
   toGetEntriesSuccessQuery,
@@ -13,37 +13,42 @@ import {
   SyncError,
   SyncErrors,
 } from "@eb/shared/src/utils/types";
-import { CreateExperiencesMutationResult } from "./experience.gql.types";
+import { CreateExperiencesMutationResult } from "./create-experience-online-mutation-fn";
 import {
   getCachedEntriesDetailViewSuccess,
-  readExperienceCompleteFragment,
+  readExperienceDCFragment,
   writeCachedEntriesDetailView,
   writeGetExperienceDetailViewQueryToCache,
-} from "./get-detailed-experience-query";
+} from "./experience-detail-cache-utils";
+import { upsertExperiencesInGetExperiencesListView } from "./experiences-list-cache-utils";
 import {
   removeUnsyncedExperiences,
   writeUnsyncedExperience,
 } from "./unsynced-ledger";
-import { upsertExperiencesInGetExperiencesMiniQuery } from "./update-get-experiences-list-view-query";
 
-export function createExperiencesManualUpdate(
+export function createExperiencesManualCacheUpdate(
   _dataProxy: DataProxy,
   result: CreateExperiencesMutationResult,
   maybeSyncErrors?: SyncErrors,
-) {
+): CreateExperiencesManualCacheUpdateReturnType {
+  let returnValue: CreateExperiencesManualCacheUpdateReturnType = undefined;
+
   const validResponses = result && result.data && result.data.createExperiences;
 
+  // istanbul ignore next: satisfy typescript
   if (!validResponses) {
-    return undefined;
+    return returnValue;
   }
 
   const offlineIdToOnlineExperienceMap: OfflineIdToOnlineExperienceMap = {};
   const syncErrors = maybeSyncErrors ? maybeSyncErrors : ({} as SyncErrors);
 
+  // A fresh experience created online will be inserted
+  // An offline experience synced will be replaced
+
   const toBeInsertedOrReplaced = validResponses.reduce(
     (toBeInsertedAcc, response) => {
-      // satisfy typescript
-      // istanbul ignore next:
+      // istanbul ignore next: satisfy typescript
       if (!response) {
         return toBeInsertedAcc;
       }
@@ -55,23 +60,24 @@ export function createExperiencesManualUpdate(
           response;
 
         const offlineErfahrungId = newlyCreatedExperience.clientId || "";
-        const offlineExperience =
-          readExperienceCompleteFragment(offlineErfahrungId);
+        const offlineExperience = readExperienceDCFragment(offlineErfahrungId);
         const onlineExperienceId = newlyCreatedExperience.id;
 
         toBeInsertedAcc.push([onlineExperienceId, newlyCreatedExperience]);
 
         // fresh experience created directly online
+
         if (!offlineExperience) {
           return toBeInsertedAcc;
         }
 
-        // following exist because of experience created offline now synced
+        // following exists because of experience created offline now synced
 
         offlineIdToOnlineExperienceMap[offlineErfahrungId] =
           newlyCreatedExperience;
 
         // kein Eintrag erstelltet mit Offline Erfahrung
+
         if (!entriesResult) {
           removeUnsyncedExperiences([offlineErfahrungId]);
 
@@ -159,6 +165,7 @@ export function createExperiencesManualUpdate(
             ...getEntries,
             edges: neueErstellteErfahrungEinträgeKanten,
           }),
+          { replaceAll: true },
         );
 
         writeCachedEntriesDetailView(
@@ -167,6 +174,7 @@ export function createExperiencesManualUpdate(
             ...getEntries,
             edges: entriesLeftOverForOfflineExperience,
           }),
+          { replaceAll: true },
         );
 
         // Has entries errors
@@ -192,13 +200,16 @@ export function createExperiencesManualUpdate(
   );
 
   if (toBeInsertedOrReplaced.length) {
-    upsertExperiencesInGetExperiencesMiniQuery(toBeInsertedOrReplaced);
+    upsertExperiencesInGetExperiencesListView(toBeInsertedOrReplaced);
 
-    return [syncErrors, offlineIdToOnlineExperienceMap];
+    returnValue = [syncErrors, offlineIdToOnlineExperienceMap];
   }
 
-  return undefined;
+  return returnValue;
 }
 
+type NonEmptyReturn = [SyncErrors, OfflineIdToOnlineExperienceMap];
+type CreateExperiencesManualCacheUpdateReturnType = NonEmptyReturn | undefined;
+
 // [offlineId, OnlineExperience]
-type ToBeInsertedOrReplaced = [string, ExperienceCompleteFragment];
+type ToBeInsertedOrReplaced = [string, ExperienceDCFragment];

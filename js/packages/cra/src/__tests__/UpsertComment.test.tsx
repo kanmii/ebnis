@@ -1,4 +1,4 @@
-import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { floatExperienceToTopInGetExperiencesListViewQuery } from "@eb/shared/src/apollo/experiences-list-cache-utils";
 import { makeApolloClient } from "@eb/shared/src/client";
 import { EbnisGlobals } from "@eb/shared/src/utils/types";
 import { mockComment1 } from "@eb/shared/src/__tests__/mock-data";
@@ -10,6 +10,7 @@ import {
 import { waitForCount } from "@eb/shared/src/__tests__/wait-for-count";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ComponentType } from "react";
+import { updateExperiencesMutation } from "../../../shared/src/apollo/update-experiences.gql";
 import UpsertComment from "../components/UpsertComment/upsert-comment.component";
 import {
   closeId,
@@ -30,11 +31,10 @@ import {
 } from "../components/UpsertComment/upsert-comment.utils";
 import { fillField, getById, getEffects } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
-import { updateExperiencesMutation } from "../utils/update-experiences.gql";
 
-jest.mock("@eb/shared/src/apollo/update-get-experiences-list-view-query");
+jest.mock("@eb/shared/src/apollo/experiences-list-cache-utils");
 const mockFloatExperienceToTheTopInGetExperiencesMiniQuery =
-  floatExperienceToTheTopInGetExperiencesMiniQuery as jest.Mock;
+  floatExperienceToTopInGetExperiencesListViewQuery as jest.Mock;
 
 const mockOnSuccess = jest.fn();
 const mockOnClose = jest.fn();

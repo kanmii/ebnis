@@ -22,9 +22,9 @@ export function windowChangeUrl(url: string, type: ChangeUrlType) {
   }
 }
 
-export type WindowChangeUrlType = {
-  windowChangeUrlFn: typeof windowChangeUrl
-}
+export type WindowChangeUrlInjectType = {
+  windowChangeUrlInject: typeof windowChangeUrl;
+};
 
 export function setUpRoutePage(args: SetUpRoutePageArgs) {
   const { title, rootClassName } = args;
@@ -39,13 +39,17 @@ export function setUpRoutePage(args: SetUpRoutePageArgs) {
   }
 }
 
-export type SetUpRoutePageInject = {
+export type SetUpRoutePageInjectType = {
   setUpRoutePageInject: typeof setUpRoutePage;
 };
 
 export function getLocation() {
   return window.location;
 }
+
+export type GetLocationInjectionType = {
+  getLocationInject: typeof getLocation;
+};
 
 interface SetUpRoutePageArgs {
   title?: string;

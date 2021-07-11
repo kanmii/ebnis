@@ -28,6 +28,7 @@ function checkoutSession({ useMsw }: CheckoutSessionArgs = {}) {
         browserWorker.resetHandlers();
         browserWorker.stop();
       } catch (error) {
+        console.error("\n\nMSW browser worker error. It should be ignored");
         console.error(error);
       }
     }

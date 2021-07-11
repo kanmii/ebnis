@@ -1,21 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  CreateExperiencesMutationResult,
-  getExperienceDetailView,
-  GetExperienceQueryResult,
-  getGetDataObjects,
-} from "@eb/shared/src/apollo/experience.gql.types";
-import {
-  getCachedEntriesDetailViewSuccess,
-  getCachedExperienceDetailView,
-} from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { CreateExperiencesMutationResult } from "@eb/shared/src/apollo/create-experience-online-mutation-fn";
+import { GetExperienceQueryResult } from "@eb/shared/src/apollo/experience.gql.types";
 import { CreateExperiences_createExperiences_CreateExperienceErrors_errors } from "@eb/shared/src/graphql/apollo-types/CreateExperiences";
-import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { ExperienceDFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDFragment";
 import {
   CreateExperienceInput,
   DataTypes,
 } from "@eb/shared/src/graphql/apollo-types/globalTypes";
-import { getIsConnected } from "@eb/shared/src/utils/connections";
+import { UpsertExperienceInjections } from "@eb/shared/src/injections";
 import { makeOfflineId } from "@eb/shared/src/utils/offlines";
 import { Any, EbnisGlobals, StateValue } from "@eb/shared/src/utils/types";
 import { cleanup, render, waitFor } from "@testing-library/react";
@@ -47,10 +39,6 @@ import {
   titleInputDomId,
 } from "../components/UpsertExperience/upsert-experience.dom";
 import {
-  createOfflineExperience,
-  updateExperienceOfflineFn,
-} from "../components/UpsertExperience/upsert-experience.resolvers";
-import {
   ActionType,
   ChangedState,
   EffectArgs,
@@ -64,65 +52,64 @@ import {
   StateMachine,
   SubmissionCommonErrors,
 } from "../components/UpsertExperience/upsert-experience.utils";
-import { fillField } from "../tests.utils";
+import { fillField, getById } from "../tests.utils";
 import { deleteObjectKey } from "../utils";
-import { AppPersistor } from "../utils/app-context";
-import { windowChangeUrl } from "../utils/global-window";
-import { scrollIntoView } from "../utils/scroll-into-view";
-import { updateExperiencesMutation } from "../utils/update-experiences.gql";
+import { AppPersistor } from "../utils/react-app-context";
 import { errorClassName, warningClassName } from "../utils/utils.dom";
 
-jest.mock("../components/UpsertExperience/upsert-experience.resolvers");
-const mockCreateOfflineExperience = createOfflineExperience as jest.Mock;
-const mockUpdateExperienceOfflineFn = updateExperienceOfflineFn as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/get-detailed-experience-query");
-const mockGetEntriesQuery = getCachedExperienceDetailView as jest.Mock;
-const mockGetEntriesQuerySuccess =
-  getCachedEntriesDetailViewSuccess as jest.Mock;
-
-jest.mock("@eb/shared/src/apollo/experience.gql.types");
-const mockFetchExperienceDetailView = getExperienceDetailView as jest.Mock;
-
-jest.mock("../utils/update-experiences.gql");
-const mockUpdateExperiencesMutation = updateExperiencesMutation as jest.Mock;
-const mockManuallyGetDataObjects = getGetDataObjects as jest.Mock;
-
-jest.mock("@eb/shared/src/utils/connections");
-const mockIsConnected = getIsConnected as jest.Mock;
-
-jest.mock("../utils/global-window");
-const mockWindowChangeUrl = windowChangeUrl as jest.Mock;
-
-jest.mock("../utils/scroll-into-view");
-const mockScrollIntoView = scrollIntoView as jest.Mock;
-
+const mockCreateOfflineExperience = jest.fn();
+const mockUpdateExperienceOfflineFn = jest.fn();
+const mockGetEntriesQuerySuccess = jest.fn();
+const mockFetchExperienceDetailView = jest.fn();
+const mockManuallyGetDataObjects = jest.fn();
+const mockUpdateExperiencesMutation = jest.fn();
+const mockIsConnected = jest.fn();
+const mockWindowChangeUrl = jest.fn();
+const mockScrollIntoView = jest.fn();
 const mockOnClose = jest.fn();
 const mockOnError = jest.fn();
 const mockOnSuccess = jest.fn();
 const mockDispatch = jest.fn();
 const mockCreateExperiencesOnline = jest.fn();
 const mockPersistFn = jest.fn();
+
 const persistor = {
   persist: mockPersistFn as any,
 } as AppPersistor;
 
-const globals = {
+const upsertExperienceInjections: UpsertExperienceInjections = {
+  getExperienceDetailViewInject: mockFetchExperienceDetailView,
+  getGetDataObjectsInject: mockManuallyGetDataObjects,
+  createOfflineExperienceInject: mockCreateOfflineExperience,
+  updateExperienceOfflineFnInject: mockUpdateExperienceOfflineFn,
+  getCachedEntriesDetailViewSuccessInject: mockGetEntriesQuerySuccess,
+  updateExperiencesMutationInject: mockUpdateExperiencesMutation,
+  getIsConnectedInject: mockIsConnected,
+  windowChangeUrlInject: mockWindowChangeUrl,
+  scrollIntoViewInject: mockScrollIntoView,
+  createExperienceOnlineMutationInject: mockCreateExperiencesOnline,
+};
+
+const ebnisGlobals = {
   persistor,
   client: {} as any,
 } as EbnisGlobals;
 
 beforeAll(() => {
-  window.____ebnis = globals;
+  window.____ebnis = ebnisGlobals;
 });
 
 afterAll(() => {
   deleteObjectKey(window, "____ebnis");
 });
 
+beforeEach(() => {
+  ebnisGlobals.upsertExperienceInjections = upsertExperienceInjections;
+});
+
 afterEach(() => {
   cleanup();
-  jest.resetAllMocks();
+  jest.clearAllMocks();
 });
 
 const onlineExperienceId = "1";
@@ -138,7 +125,7 @@ const onlineExperience = {
       type: DataTypes.INTEGER,
     },
   ],
-} as ExperienceDetailViewFragment;
+} as ExperienceDFragment;
 
 const offlineExperienceId = makeOfflineId(".");
 const offlineExperience = {
@@ -150,11 +137,18 @@ const offlineExperience = {
 describe("components", () => {
   it("create experience/submit empty form/reset/form errors/success", async () => {
     const { ui } = makeComp();
+
+    // 1
+
     render(ui);
 
+    // 2
+
     const descriptionInputEl = getDescriptionInputEl();
-    // description control is initially revealed
     expect(descriptionInputEl.classList).not.toContain(hiddenSelector);
+
+    // 3
+
     const descriptionToggleEl = getDescriptionToggleEl();
 
     expect(
@@ -163,49 +157,60 @@ describe("components", () => {
         .item(0),
     ).toBeNull();
 
+    // 4
+
     expect(
       descriptionToggleEl
         .getElementsByClassName(descriptionHideSelector)
         .item(0),
     ).not.toBeNull();
 
-    // hide
+    // 5
+
     descriptionToggleEl.click();
+
+    // 6
 
     expect(descriptionInputEl.classList).toContain(hiddenSelector);
 
-    // we are hiding already, hide icon should not be visible
+    // 7
+
     expect(
       descriptionToggleEl
         .getElementsByClassName(descriptionHideSelector)
         .item(0),
     ).toBeNull();
 
-    // show description icon should be visible
+    // 8
+
     expect(
       descriptionToggleEl
         .getElementsByClassName(descriptionShowSelector)
         .item(0),
     ).not.toBeNull();
 
-    // show - so we can complete it
+    // 9
+
     descriptionToggleEl.click();
-    // we are already showing, so show icon is not visible
-    expect(
-      descriptionToggleEl
-        .getElementsByClassName(descriptionShowSelector)
-        .item(0),
-    ).toBeNull();
-    // hide icon should be visible so we can hide
+
+    // 10
+
     expect(
       descriptionToggleEl
         .getElementsByClassName(descriptionShowSelector)
         .item(0),
     ).toBeNull();
 
-    expect(getNotificationCloseEl()).toBeNull();
+    // 11
 
-    // title should not contain errors
+    expect(
+      descriptionToggleEl
+        .getElementsByClassName(descriptionShowSelector)
+        .item(0),
+    ).toBeNull();
+
+    // 12
+
     const titleInputEl = getTitleInputEl();
     const titleInputParentFieldEl = getParentFieldEl(titleInputEl);
 
@@ -215,7 +220,8 @@ describe("components", () => {
 
     expect(getFieldErrorEl(titleInputParentFieldEl)).toBeNull();
 
-    // definition 0 should not contain error
+    // 13
+
     let definitionsEls = getDefinitionContainerEls();
     const definition0El = definitionsEls.item(0) as HTMLElement;
     const definition0NameEl = getDefinitionNameControlEl(definition0El);
@@ -232,18 +238,31 @@ describe("components", () => {
       fieldErrorIndicatorSelector,
     );
 
-    // we submit an empty form
+    // 14
+
+    expect(getNotificationCloseEl()).toBeNull();
+
+    // 15
+
     const submitEl = getSubmitEl();
     submitEl.click();
+
     let notificationCloseEl = getNotificationCloseEl();
     let notificationEl = getNotificationEl(notificationCloseEl);
+
+    // 16
+
     expect(notificationEl.classList).toContain(warningClassName);
 
-    // form field errors
+    // 17
+
     expect(titleInputParentFieldEl.classList).toContain(
       fieldErrorIndicatorSelector,
     );
     expect(getFieldErrorEl(titleInputParentFieldEl)).not.toBeNull();
+
+    // 18
+
     expect(getFieldErrorEl(definition0NameFieldEl)).not.toBeNull();
     expect(getFieldErrorEl(definition0TypeFieldEl)).not.toBeNull();
     expect(definition0NameFieldEl.classList).toContain(
@@ -253,29 +272,51 @@ describe("components", () => {
       fieldErrorIndicatorSelector,
     );
 
-    // we should be able to fill form even when there are errors
+    // 19
+
     fillField(titleInputEl, "tt");
+
+    // 20
+
     fillField(descriptionInputEl, "dd");
+
+    // 21
+
     fillField(definition0NameEl, "nn");
+
+    // 22
+
     fillField(definition0TypeEl, DataTypes.DATE);
+
+    // 23
 
     expect(titleInputEl.value).toBe("tt");
     expect(descriptionInputEl.value).toEqual("dd");
     expect(definition0NameEl.value).toBe("nn");
     expect(definition0TypeEl.value).toBe(DataTypes.DATE);
 
-    // hide - it should be revealed when reset button is invoked
+    // 24 - hiding description field here is to show that description field is
+    // always revealed when form is reset
+
     descriptionToggleEl.click();
+
+    // 25
+
     expect(descriptionInputEl.classList).toContain(hiddenSelector);
+
+    // 26
 
     const resetEl = getResetEl();
     resetEl.click();
 
-    // hitting reset button should clear all errors and all form field values
+    // 27
+
     expect(titleInputEl.value).toBe("");
     expect(descriptionInputEl.value).toEqual("");
     expect(definition0NameEl.value).toBe("");
     expect(definition0TypeEl.value).toBe("");
+
+    // 28
 
     expect(titleInputParentFieldEl.classList).not.toContain(
       fieldErrorIndicatorSelector,
@@ -290,21 +331,29 @@ describe("components", () => {
     expect(definition0TypeFieldEl.classList).not.toContain(
       fieldErrorIndicatorSelector,
     );
-    // description should be revealed
+
+    // 29
+
     expect(descriptionInputEl.classList).not.toContain(hiddenSelector);
-    // and close notification should be hidden
+
+    // 30
+
     expect(getNotificationCloseEl()).toBeNull();
 
-    // let's complete the form and submit
+    // 31
+
     fillField(titleInputEl, "tt");
     fillField(descriptionInputEl, "dd");
     fillField(definition0NameEl, "nn");
     fillField(definition0TypeEl, DataTypes.DATE);
 
-    // we are connected
+    // 32
+
     mockIsConnected.mockReturnValue(true);
 
-    const serverResponse1 = {
+    // 33
+
+    mockCreateExperiencesOnline.mockResolvedValue({
       data: {
         createExperiences: [
           {
@@ -324,22 +373,28 @@ describe("components", () => {
           },
         ],
       },
-    } as CreateExperiencesMutationResult;
+    } as CreateExperiencesMutationResult);
 
-    mockCreateExperiencesOnline.mockResolvedValue(serverResponse1);
+    // 34
+
+    expect(getNotificationCloseEl()).toBeNull();
+
+    // 35
 
     submitEl.click();
 
-    await waitFor(() => true);
+    // 36
 
-    notificationCloseEl = getNotificationCloseEl();
+    notificationCloseEl = await waitFor(() => {
+      const el = getNotificationCloseEl();
+      expect(el).not.toBeNull();
+      return el;
+    });
 
     notificationEl = getNotificationEl(notificationCloseEl);
     expect(notificationEl.classList).toContain(errorClassName);
-    notificationCloseEl.click();
-    expect(getNotificationCloseEl()).toBeNull();
 
-    // form field errors
+    // 37
     expect(titleInputParentFieldEl.classList).toContain(
       fieldErrorIndicatorSelector,
     );
@@ -353,15 +408,42 @@ describe("components", () => {
       fieldErrorIndicatorSelector,
     );
 
-    //  javascript exceptions during submission
+    // 38
+
+    expect(mockScrollIntoView).toHaveBeenCalled();
+    mockScrollIntoView.mockClear();
+
+    // 39
+
+    notificationCloseEl.click();
+
+    // 40
+
+    expect(getNotificationCloseEl()).toBeNull();
+
+    //  41
+
     mockCreateExperiencesOnline.mockRejectedValue(new Error("a"));
+
+    // 42
+
     submitEl.click();
-    await waitFor(() => true);
-    notificationCloseEl = getNotificationCloseEl();
+
+    // 43
+
+    notificationCloseEl = await waitFor(() => {
+      const el = getNotificationCloseEl();
+      expect(el).not.toBeNull();
+      return el;
+    });
+
     notificationEl = getNotificationEl(notificationCloseEl);
     expect(notificationEl.classList).toContain(errorClassName);
 
-    const serverResponse3 = {
+    // 44
+
+    mockCreateExperiencesOnline.mockClear();
+    mockCreateExperiencesOnline.mockResolvedValue({
       data: {
         createExperiences: [
           {
@@ -370,91 +452,149 @@ describe("components", () => {
           },
         ],
       },
-    } as CreateExperiencesMutationResult;
+    } as CreateExperiencesMutationResult);
 
-    mockCreateExperiencesOnline.mockReset();
-    mockCreateExperiencesOnline.mockResolvedValue(serverResponse3);
+    // 45
 
-    // we can not navigate away without success
     expect(mockWindowChangeUrl).not.toHaveBeenCalled();
+
+    // 46
+
     expect(mockPersistFn).not.toHaveBeenCalled();
 
+    // 47
+
     submitEl.click();
-    await waitFor(() => true);
-    expect(mockWindowChangeUrl).toHaveBeenCalled();
-    expect(mockPersistFn).toHaveBeenCalled();
-    expect(
-      mockCreateExperiencesOnline.mock.calls[0][0].variables.input[0],
-    ).toEqual({
-      dataDefinitions: [
-        {
-          name: "nn",
-          type: DataTypes.DATE,
-        },
-      ],
-      title: "tt",
-      description: "dd",
+
+    // 48
+
+    await waitFor(() => {
+      const calls = mockCreateExperiencesOnline.mock.calls;
+      expect(calls.length).toBe(1);
+
+      expect(calls[0][0].input[0]).toEqual({
+        dataDefinitions: [
+          {
+            name: "nn",
+            type: DataTypes.DATE,
+          },
+        ],
+        title: "tt",
+        description: "dd",
+      });
     });
 
-    // add/remove/move definitions
+    // 49
 
-    // add
-    mockScrollIntoView.mockReset();
+    expect(mockScrollIntoView).toHaveBeenCalled();
+    mockScrollIntoView.mockClear();
+
+    // 50
+
+    expect(mockWindowChangeUrl).toHaveBeenCalled();
+
+    // 51
+
+    expect(mockPersistFn).toHaveBeenCalled();
+
+    // 52
+
     (
       definition0El
         .getElementsByClassName(addDefinitionSelector)
         .item(0) as HTMLElement
     ).click();
 
-    await waitFor(() => true);
+    // 53
 
-    definitionsEls = getDefinitionContainerEls();
+    definitionsEls = await waitFor(() => {
+      const el = getDefinitionContainerEls();
+      return el;
+    });
+
+    //
+
     const definition1El = definitionsEls.item(1) as HTMLElement;
     expect(mockScrollIntoView.mock.calls[0][0]).toEqual(definition1El.id);
-
-    // up
     mockScrollIntoView.mockReset();
+
+    //
+
     (
       definition1El
         .getElementsByClassName(moveUpDefinitionSelector)
         .item(0) as HTMLElement
     ).click();
 
-    await waitFor(() => true);
-    definitionsEls = getDefinitionContainerEls();
-    expect(mockScrollIntoView.mock.calls[0][0]).toEqual(definition1El.id);
+    //
+
+    definitionsEls = await waitFor(() => {
+      const els = getDefinitionContainerEls();
+      return els;
+    });
+
     expect(definitionsEls.item(0)).toBe(definition1El);
     expect(definitionsEls.item(1)).toBe(definition0El);
 
-    // down
-    mockScrollIntoView.mockReset();
+    //
+
+    expect(mockScrollIntoView.mock.calls[0][0]).toEqual(definition1El.id);
+    mockScrollIntoView.mockClear();
+
+    //
+
     (
       definition1El
         .getElementsByClassName(moveDownDefinitionSelector)
         .item(0) as HTMLElement
     ).click();
 
-    await waitFor(() => true);
-    definitionsEls = getDefinitionContainerEls();
-    expect(mockScrollIntoView.mock.calls[0][0]).toEqual(definition1El.id);
+    //
+
+    definitionsEls = await waitFor(() => {
+      const els = getDefinitionContainerEls();
+      return els;
+    });
+
     expect(definitionsEls.item(0)).toBe(definition0El);
     expect(definitionsEls.item(1)).toBe(definition1El);
 
-    // remove
-    mockScrollIntoView.mockReset();
+    //
+
+    expect(mockScrollIntoView.mock.calls[0][0]).toEqual(definition1El.id);
+    mockScrollIntoView.mockClear();
+
+    //
+
     (
       definition1El
         .getElementsByClassName(removeDefinitionSelector)
         .item(0) as HTMLElement
     ).click();
 
-    await waitFor(() => true);
-    expect(mockScrollIntoView.mock.calls[0][0]).toEqual(definition0El.id);
-    definitionsEls = getDefinitionContainerEls();
+    //
+
+    definitionsEls = await waitFor(() => {
+      const els = getDefinitionContainerEls();
+      return els;
+    });
+
     expect(definitionsEls.length).toBe(1);
 
+    //
+
+    expect(mockScrollIntoView.mock.calls[0][0]).toEqual(definition0El.id);
+
+    //
+
     expect(mockOnClose).not.toHaveBeenCalled();
-    getDisposeEl().click();
+
+    //
+
+    getById(disposeComponentDomId).click();
+
+    //
+
     expect(mockOnClose).toHaveBeenCalled();
   });
 
@@ -584,7 +724,6 @@ describe("components", () => {
       const { onUpdateSuccess, onError } = calls[0][0];
 
       const updatedExperience = { id: "a" };
-      mockGetEntriesQuery.mockReturnValue(updatedExperience);
 
       mockGetEntriesQuerySuccess.mockReturnValue(getEntriesQuerySuccess1);
 
@@ -655,9 +794,7 @@ describe("components", () => {
     expect(mockWindowChangeUrl).toHaveBeenCalled();
     expect(mockPersistFn).toHaveBeenCalled();
 
-    expect(
-      mockCreateExperiencesOnline.mock.calls[0][0].variables.input[0],
-    ).toEqual({
+    expect(mockCreateExperiencesOnline.mock.calls[0][0].input[0]).toEqual({
       dataDefinitions: [
         {
           name: "nn",
@@ -673,7 +810,6 @@ describe("components", () => {
 
 describe("reducer", () => {
   const props = {
-    createExperiences: mockCreateExperiencesOnline as any,
     onSuccess: mockOnSuccess as any,
   } as Props;
 
@@ -1077,7 +1213,6 @@ function makeComp({ props = {} }: { props?: Partial<Any> } = {}) {
   return {
     ui: (
       <UpsertExperienceP
-        createExperiences={mockCreateExperiencesOnline}
         onClose={mockOnClose}
         onError={mockOnError}
         onSuccess={mockOnSuccess}
@@ -1175,8 +1310,4 @@ function formChangedDefinition(
 
 function defsStatesToList(state: StateMachine) {
   return Object.values(state.states.form.fields.dataDefinitions);
-}
-
-function getDisposeEl() {
-  return document.getElementById(disposeComponentDomId) as HTMLElement;
 }

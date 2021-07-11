@@ -3,12 +3,18 @@ import { ChevronDown, ChevronUp } from "@eb/jsx/src/components";
 import { Input, Label, Select, Textarea } from "@eb/jsx/src/Input";
 import Modal from "@eb/jsx/src/Modal";
 import { Notification } from "@eb/jsx/src/Notification";
-import { useCreateExperiencesMutation } from "@eb/shared/src/apollo/experience.gql.types";
 import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import { deleteObjectKey } from "@eb/shared/src/utils";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import cn from "classnames";
-import React, { ChangeEvent, FormEvent, useCallback, useReducer } from "react";
+import React, {
+  ChangeEvent,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useReducer,
+} from "react";
 import { FieldError } from "../../utils/common-errors";
 import { InputChangeEvent } from "../../utils/types";
 import { useRunEffects } from "../../utils/use-run-effects";
@@ -46,7 +52,6 @@ import {
 } from "./upsert-experience.dom";
 import {
   ActionType,
-  CallerProps,
   DataDefinitionFieldsMap,
   DescriptionFormField,
   DispatchType,
@@ -81,6 +86,12 @@ export function UpsertExperience(props: Props) {
     effects: { general: generalEffects },
     context: { header, title },
   } = stateMachine;
+
+  useEffect(() => {
+    return () => {
+      deleteObjectKey(window.____ebnis, "upsertExperienceInjections");
+    };
+  }, []);
 
   useRunEffects(generalEffects, effectFunctions, props, { dispatch });
 
@@ -675,13 +686,6 @@ function DefinitionCrudComponent(props: {
     </Button>
   );
 }
-
-// istanbul ignore next:
-export default (props: CallerProps) => {
-  const [createExperiences] = useCreateExperiencesMutation();
-
-  return <UpsertExperience {...props} createExperiences={createExperiences} />;
-};
 
 interface DescriptionProps {
   state: DescriptionFormField;

@@ -2,10 +2,20 @@ import { Button } from "@eb/jsx/src/Button";
 import Modal from "@eb/jsx/src/Modal";
 import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
 import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
+import {
+  DataDefinitionFormObjVal,
+  deleteObjectKey,
+} from "@eb/shared/src/utils";
 import { StateValue } from "@eb/shared/src/utils/types";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import cn from "classnames";
-import React, { ChangeEvent, FormEvent, useCallback, useReducer } from "react";
+import React, {
+  ChangeEvent,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useReducer,
+} from "react";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { errorClassName } from "../../utils/utils.dom";
 import { noTriggerDocumentEventClassName } from "../DetailExperience/detail-experience.dom";
@@ -22,11 +32,9 @@ import {
 import "./upsert-entry.styles.scss";
 import {
   ActionType,
-  CallerProps,
   DispatchType,
   effectFunctions,
   FieldState,
-  FormObjVal,
   initState,
   Props,
   reducer,
@@ -42,6 +50,12 @@ export function UpsertEntry(props: Props) {
     states: { submission: submissionState, form },
     effects: { general: generalEffects },
   } = stateMachine;
+
+  useEffect(() => {
+    return () => {
+      deleteObjectKey(window.____ebnis, "upsertEntryInjections");
+    };
+  }, []);
 
   useRunEffects(generalEffects, effectFunctions, props, { dispatch });
 
@@ -234,7 +248,7 @@ function NotificationComponent({
 function makeDateChangedFn(dispatch: DispatchType, index: number) {
   return function makeDateChangedFnInner(
     _fieldName: string,
-    value: FormObjVal,
+    value: DataDefinitionFormObjVal,
   ) {
     dispatch({
       type: ActionType.on_form_field_changed,
@@ -243,11 +257,6 @@ function makeDateChangedFn(dispatch: DispatchType, index: number) {
     });
   };
 }
-
-// istanbul ignore next:
-export default (props: CallerProps) => {
-  return <UpsertEntry {...props} />;
-};
 
 interface DataComponentProps {
   definition: DataDefinitionFragment;

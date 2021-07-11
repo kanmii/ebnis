@@ -1,18 +1,11 @@
-import { readEntryFragment } from "@eb/shared/src/apollo/get-detailed-experience-query";
-import { syncToServer } from "@eb/shared/src/apollo/sync-to-server";
-import {
-  purgeEntry,
-  purgeExperiencesFromCache1,
-} from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
+import { ChangeUrlType } from "@eb/shared/src/global-window";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
 import { OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences } from "@eb/shared/src/graphql/apollo-types/OnExperiencesDeletedSubscription";
 import { wrapReducer } from "@eb/shared/src/logger";
-import { getUser } from "@eb/shared/src/utils/manage-user-auth";
 import {
   Any,
   EbnisGlobals,
   EmitActionConnectionChangedPayload,
-  OfflineIdToOnlineExperienceMap,
   OnlineExperienceIdToOfflineEntriesMap,
   OnSyncedData,
   StateValue,
@@ -20,19 +13,13 @@ import {
 import immer, { Draft } from "immer";
 import { Dispatch, PropsWithChildren, Reducer } from "react";
 import { deleteObjectKey } from "../../utils";
-import { WithSubscriptionContextProps } from "../../utils/app-context";
 import {
   GenericEffectDefinition,
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import {
-  ChangeUrlType,
-  getLocation,
-  windowChangeUrl,
-} from "../../utils/global-window";
+import { WithSubscriptionContextProps } from "../../utils/react-app-context";
 import { MY_URL } from "../../utils/urls";
-import { subscribeToGraphqlEvents } from "./with-subscriptions.injectables";
 
 export enum ActionType {
   CONNECTION_CHANGED = "@with-subscription/connection-changed",
@@ -119,32 +106,44 @@ const connectionChangedEffect: DefConnectionChangedEffect["func"] = (
     return;
   }
 
+  const { syncToServerInject } =
+    window.____ebnis.withSubscriptionsComponentInjections;
+
   setTimeout(() => {
-    syncToServer();
+    syncToServerInject();
   }, 100);
 
   const { dispatch } = effectArgs;
 
-  if (!subscribedToGraphqlEvents && getUser()) {
-    subscribeToGraphqlEvents().subscribe(
-      async function OnSuccess(result) {
-        const data = result && result.data && result.data.onExperiencesDeleted;
+  const {
+    purgeExperiencesFromCacheInject,
+    getUserInject,
+    windowChangeUrlInject,
+    getLocationInject,
+    subscribeToGraphqlExperiencesDeletedEventInject,
+  } = window.____ebnis.withSubscriptionsComponentInjections;
+
+  if (!subscribedToGraphqlEvents && getUserInject()) {
+    subscribeToGraphqlExperiencesDeletedEventInject().subscribe(
+      async function onSubscriptionData(result) {
+        const validResult =
+          result && result.data && result.data.onExperiencesDeleted;
 
         // istanbul ignore else:
-        if (data) {
-          const ids = data.experiences.map((experience) => {
+        if (validResult) {
+          const ids = validResult.experiences.map((experience) => {
             return (
               experience as OnExperiencesDeletedSubscription_onExperiencesDeleted_experiences
             ).id;
           });
 
-          purgeExperiencesFromCache1(ids);
+          purgeExperiencesFromCacheInject(ids);
           const { persistor } = window.____ebnis;
           await persistor.persist();
 
           // istanbul ignore else:
-          if (getLocation().pathname.includes(MY_URL)) {
-            windowChangeUrl(MY_URL, ChangeUrlType.replace);
+          if (getLocationInject().pathname.includes(MY_URL)) {
+            windowChangeUrlInject(MY_URL, ChangeUrlType.replace);
           }
         }
       },
@@ -168,29 +167,23 @@ export const effectFunctions = {
   connectionChangedEffect,
 };
 
-export async function cleanUpOfflineExperiences(
-  data: OfflineIdToOnlineExperienceMap,
-) {
-  purgeExperiencesFromCache1(Object.keys(data));
-  const { persistor } = window.____ebnis;
-  await persistor.persist();
-}
-
-export type CleanUpOfflineExperiencesInjectType = {
-  cleanUpOfflineExperiencesInject: typeof cleanUpOfflineExperiences;
-};
-
 export async function cleanUpSyncedOfflineEntries(
   data: OnlineExperienceIdToOfflineEntriesMap,
 ) {
-  const { persistor } = window.____ebnis;
+  const {
+    persistor,
+    withSubscriptionsComponentInjections: {
+      purgeEntryInject,
+      readEntryFragmentInject,
+    },
+  } = window.____ebnis;
 
   const toPurge = Object.values(data).flatMap((offlineIdToEntryMap) =>
     Object.keys(offlineIdToEntryMap),
   );
 
   toPurge.forEach((id) => {
-    purgeEntry(readEntryFragment(id) as EntryFragment);
+    purgeEntryInject(readEntryFragmentInject(id) as EntryFragment);
   });
 
   persistor.persist();

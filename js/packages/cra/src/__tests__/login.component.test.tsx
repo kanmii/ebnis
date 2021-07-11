@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { notificationCloseSelector } from "@eb/jsx/src/Notification";
+import { windowChangeUrl } from "@eb/shared/src/global-window";
 import { LoginMutationVariables } from "@eb/shared/src/graphql/apollo-types/LoginMutation";
+import { scrollIntoView } from "@eb/shared/src/scroll-into-view";
 import { getIsConnected } from "@eb/shared/src/utils/connections";
 import { manageUserAuthentication } from "@eb/shared/src/utils/manage-user-auth";
 import { cleanup, render, waitFor } from "@testing-library/react";
@@ -28,21 +30,19 @@ import {
   SubmissionCommonErrors,
 } from "../components/Login/login.utils";
 import { fillField } from "../tests.utils";
-import { AppPersistor } from "../utils/app-context";
-import { windowChangeUrl } from "../utils/global-window";
-import { scrollIntoView } from "../utils/scroll-into-view";
+import { AppPersistor } from "../utils/react-app-context";
 import { LoginMutationResult } from "../utils/user.gql.types";
 import { errorClassName, warningClassName } from "../utils/utils.dom";
 
 jest.mock("../components/Header/header.component", () => () => null);
 
-jest.mock("../utils/scroll-into-view");
+jest.mock("@eb/shared/src/scroll-into-view");
 const mockScrollIntoView = scrollIntoView as jest.Mock;
 
 jest.mock("@eb/shared/src/utils/connections");
 const mockIsConnected = getIsConnected as jest.Mock;
 
-jest.mock("../utils/global-window");
+jest.mock("@eb/shared/src/global-window");
 const mockWindowReplaceUrl = windowChangeUrl as jest.Mock;
 
 jest.mock("@eb/shared/src/utils/manage-user-auth");

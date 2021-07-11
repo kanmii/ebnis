@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 import { EntryConnectionFragment } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
-import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDCFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDCFragment";
 import { DataTypes } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import { fireEvent } from "@testing-library/react";
 import { GenericGeneralEffect, GenericHasEffect } from "./utils/effects";
@@ -32,7 +32,7 @@ export const defaultExperience = {
       type: DataTypes.INTEGER,
     },
   ],
-} as ExperienceCompleteFragment;
+} as ExperienceDCFragment;
 
 export const defaultGetEntriesQuery = {
   edges: [] as any,

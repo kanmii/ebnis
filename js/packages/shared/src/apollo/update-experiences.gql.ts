@@ -1,7 +1,7 @@
-import { getCachedExperienceDetailView } from "@eb/shared/src/apollo/get-detailed-experience-query";
+import { getCachedExperienceDetailView } from "@eb/shared/src/apollo/experience-detail-cache-utils";
+import { floatExperienceToTopInGetExperiencesListViewQuery } from "@eb/shared/src/apollo/experiences-list-cache-utils";
 import { updateExperiencesManualCacheUpdate } from "@eb/shared/src/apollo/update-experiences-manual-cache-update";
-import { floatExperienceToTheTopInGetExperiencesMiniQuery } from "@eb/shared/src/apollo/update-get-experiences-list-view-query";
-import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDCFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDCFragment";
 import { UpdateExperienceInput } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import { UpdateExperienceSomeSuccessFragment } from "@eb/shared/src/graphql/apollo-types/UpdateExperienceSomeSuccessFragment";
 import {
@@ -50,9 +50,9 @@ export async function updateExperiencesMutation({
 
         const updatedExperience = getCachedExperienceDetailView(
           experienceId,
-        ) as ExperienceCompleteFragment;
+        ) as ExperienceDCFragment;
 
-        floatExperienceToTheTopInGetExperiencesMiniQuery(updatedExperience);
+        floatExperienceToTopInGetExperiencesListViewQuery(updatedExperience);
 
         onUpdateSuccess(updateResult, updatedExperience);
       }
@@ -62,11 +62,15 @@ export async function updateExperiencesMutation({
   }
 }
 
+export type UpdateExperiencesMutationInjectType = {
+  updateExperiencesMutationInject: typeof updateExperiencesMutation;
+};
+
 type UpdateExperiencesMutationArgs = {
   input: UpdateExperienceInput[];
   onUpdateSuccess: (
     updateResult: UpdateExperienceSomeSuccessFragment,
-    experience: ExperienceCompleteFragment,
+    experience: ExperienceDCFragment,
   ) => void;
   onError: (error?: CommonError) => void;
   onDone?: () => void;

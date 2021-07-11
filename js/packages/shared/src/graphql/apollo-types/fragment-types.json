@@ -1,37 +1,37 @@
 {
-  "UpdateExperienceUnion": [
-    "UpdateExperienceErrors",
-    "UpdateExperienceSomeSuccess"
-  ],
-  "UpdateExperienceOwnFieldsUnion": [
-    "ExperienceOwnFieldsSuccess",
-    "UpdateExperienceOwnFieldsErrors"
-  ],
-  "UpdateDataObjectUnion": ["DataObjectErrors", "DataObjectSuccess"],
-  "UpdateDefinition": ["DefinitionErrors", "DefinitionSuccess"],
-  "UpdateUser": ["UpdateUserErrors", "UserSuccess"],
+  "CommentUnion": ["CommentSuccess", "CommentUnionErrors"],
+  "CreateEntriesUnion": ["CreateEntryErrors", "CreateEntrySuccess"],
+  "CreateExperienceUnion": ["CreateExperienceErrors", "ExperienceSuccess"],
+  "DeleteEntriesUnion": ["DeleteEntryErrors", "DeleteEntrySuccess"],
   "DeleteExperienceUnion": [
     "DeleteExperienceErrors",
     "DeleteExperienceSuccess"
   ],
-  "DeleteEntriesUnion": ["DeleteEntryErrors", "DeleteEntrySuccess"],
-  "CreateEntriesUnion": ["CreateEntryErrors", "CreateEntrySuccess"],
-  "UpdatedEntriesUnion": ["UpdateEntryErrors", "UpdateEntrySomeSuccess"],
-  "RegisterUser": ["RegisterUserErrors", "UserSuccess"],
+  "DeleteExperiences": [
+    "DeleteExperiencesAllFail",
+    "DeleteExperiencesSomeSuccess"
+  ],
+  "GetEntriesUnion": ["GetEntriesErrors", "GetEntriesSuccess"],
   "GetExperienceCommentsUnion": [
     "GetExperienceCommentsErrors",
     "GetExperienceCommentsSuccess"
   ],
-  "CommentUnion": ["CommentSuccess", "CommentUnionErrors"],
   "Login": ["LoginError", "UserSuccess"],
+  "RegisterUser": ["RegisterUserErrors", "UserSuccess"],
+  "UpdateDataObjectUnion": ["DataObjectErrors", "DataObjectSuccess"],
+  "UpdateDefinition": ["DefinitionErrors", "DefinitionSuccess"],
+  "UpdateExperienceOwnFieldsUnion": [
+    "ExperienceOwnFieldsSuccess",
+    "UpdateExperienceOwnFieldsErrors"
+  ],
+  "UpdateExperienceUnion": [
+    "UpdateExperienceErrors",
+    "UpdateExperienceSomeSuccess"
+  ],
   "UpdateExperiencesUnion": [
     "UpdateExperiencesAllFail",
     "UpdateExperiencesSomeSuccess"
   ],
-  "GetEntriesUnion": ["GetEntriesErrors", "GetEntriesSuccess"],
-  "CreateExperienceUnion": ["CreateExperienceErrors", "ExperienceSuccess"],
-  "DeleteExperiences": [
-    "DeleteExperiencesAllFail",
-    "DeleteExperiencesSomeSuccess"
-  ]
+  "UpdateUser": ["UpdateUserErrors", "UserSuccess"],
+  "UpdatedEntriesUnion": ["UpdateEntryErrors", "UpdateEntrySomeSuccess"]
 }

@@ -39,10 +39,6 @@ export const getCachedExperiencesConnectionListFieldPolicy: FieldPolicy<
   },
 
   read(existing) {
-    if (!existing) {
-      return existing;
-    }
-
     return existing;
   },
 };
@@ -66,6 +62,6 @@ export function getExperienceConnectionListView(
 export type GetExperiencesConnectionListViewQueryResult =
   ApolloQueryResult<GetExperiencesConnectionListView>;
 
-export type GetExperienceConnectionListViewFunction = {
-  getExperienceConnectionListView: typeof getExperienceConnectionListView;
+export type GetExperienceConnectionListViewInjectType = {
+  getExperienceConnectionListViewInject: typeof getExperienceConnectionListView;
 };

@@ -1,21 +1,21 @@
 import {
   getCachedEntriesDetailViewSuccess,
-  readExperienceCompleteFragment,
-} from "@eb/shared/src/apollo/get-detailed-experience-query";
+  readExperienceDFragment,
+} from "@eb/shared/src/apollo/experience-detail-cache-utils";
 import {
   getUnsyncedExperience,
   writeUnsyncedExperience,
 } from "@eb/shared/src/apollo/unsynced-ledger";
 import { EntryConnectionFragment_edges } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
-import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
+import { ExperienceDCFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDCFragment";
 import { CreateEntryInput } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import {
   isOfflineId,
   makeOfflineDataObjectIdFromEntry,
   makeOfflineEntryIdFromExperience,
 } from "@eb/shared/src/utils/offlines";
-import { UnsyncedModifiedExperience } from "../../utils/unsynced-ledger.types";
+import { UnsyncedModifiedExperience } from "./unsynced-ledger.types";
 import {
   upsertNewEntry,
   UpsertNewEntryReturnVal,
@@ -23,13 +23,13 @@ import {
 
 export async function createOfflineEntryMutation(
   variables: CreateOfflineEntryMutationVariables,
-  experienceArg?: ExperienceCompleteFragment,
+  experienceArg?: ExperienceDCFragment,
 ): Promise<CreateOfflineEntryMutationReturnVal | null> {
   const { experienceId, insertedAt, updatedAt } = variables;
   const today = new Date();
   const timestamps = today.toJSON();
-  const experience =
-    experienceArg || readExperienceCompleteFragment(experienceId);
+
+  const experience = experienceArg || readExperienceDFragment(experienceId);
 
   if (!experience) {
     return null;
@@ -97,7 +97,7 @@ export type CreateOfflineEntryMutationVariables = CreateEntryInput & {
 export type CreateOfflineEntryMutationReturnVal = {
   id: string;
   entry: EntryFragment;
-  experience: ExperienceCompleteFragment;
+  experience: ExperienceDCFragment;
 };
 
 function updateUnsynced(experienceId: string) {
@@ -114,3 +114,7 @@ function updateUnsynced(experienceId: string) {
   unsyncedExperience.newEntries = true;
   writeUnsyncedExperience(experienceId, unsyncedExperience);
 }
+
+export type CreateOfflineEntryMutationInjectType = {
+  createOfflineEntryMutationInject: typeof createOfflineEntryMutation;
+};

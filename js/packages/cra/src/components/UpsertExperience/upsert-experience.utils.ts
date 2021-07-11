@@ -1,25 +1,13 @@
-import { createExperiencesManualUpdate } from "@eb/shared/src/apollo/create-experiences-manual-update";
-import {
-  CreateExperiencesMutationFn,
-  CreateExperiencesOnlineComponentProps,
-  getExperienceDetailView,
-  getGetDataObjects,
-} from "@eb/shared/src/apollo/experience.gql.types";
-import { getCachedEntriesDetailViewSuccess } from "@eb/shared/src/apollo/get-detailed-experience-query";
-import {
-  CreateExperienceErrorsFragment,
-  CreateExperienceErrorsFragment_errors,
-} from "@eb/shared/src/graphql/apollo-types/CreateExperienceErrorsFragment";
+import { ChangeUrlType } from "@eb/shared/src/global-window";
 import {
   CreateExperiences_createExperiences_CreateExperienceErrors_errors,
   CreateExperiences_createExperiences_CreateExperienceErrors_errors_dataDefinitions,
 } from "@eb/shared/src/graphql/apollo-types/CreateExperiences";
-import { CreateExperienceSuccessFragment } from "@eb/shared/src/graphql/apollo-types/CreateExperienceSuccessFragment";
 import { DataDefinitionFragment } from "@eb/shared/src/graphql/apollo-types/DataDefinitionFragment";
 import { DataObjectFragment } from "@eb/shared/src/graphql/apollo-types/DataObjectFragment";
 import { EntryConnectionFragment_edges } from "@eb/shared/src/graphql/apollo-types/EntryConnectionFragment";
 import { EntryFragment } from "@eb/shared/src/graphql/apollo-types/EntryFragment";
-import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { ExperienceDFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDFragment";
 import {
   CreateDataDefinition,
   CreateExperienceInput,
@@ -28,7 +16,6 @@ import {
   UpdateExperienceInput,
 } from "@eb/shared/src/graphql/apollo-types/globalTypes";
 import { wrapReducer } from "@eb/shared/src/logger";
-import { getIsConnected } from "@eb/shared/src/utils/connections";
 import { isOfflineId } from "@eb/shared/src/utils/offlines";
 import {
   ActiveVal,
@@ -66,15 +53,8 @@ import {
   GenericHasEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import { ChangeUrlType, windowChangeUrl } from "../../utils/global-window";
-import { scrollIntoView } from "../../utils/scroll-into-view";
-import { updateExperiencesMutation } from "../../utils/update-experiences.gql";
 import { makeDetailedExperienceRoute } from "../../utils/urls";
 import { scrollIntoViewDomId } from "./upsert-experience.dom";
-import {
-  createOfflineExperience,
-  updateExperienceOfflineFn,
-} from "./upsert-experience.resolvers";
 
 export const fieldTypeKeys = Object.values(DataTypes);
 
@@ -174,50 +154,62 @@ export const reducer: Reducer<StateMachine, Action> = (state, action) =>
 
 ////////////////////////// EFFECTS SECTION /////////////////////////
 
-const insertExperienceEffect: DefInsertExperienceEffect["func"] = (
+const insertExperienceEffect: DefInsertExperienceEffect["func"] = async (
   args,
   props,
   effectArgs,
 ) => {
+  const {
+    getIsConnectedInject,
+    windowChangeUrlInject,
+    createExperienceOnlineMutationInject,
+  } = window.____ebnis.upsertExperienceInjections;
+
   const { input } = args;
 
-  if (getIsConnected()) {
-    const { createExperiences } = props;
+  if (getIsConnectedInject()) {
     const { dispatch } = effectArgs;
 
-    createExperienceOnlineEffect(input, createExperiences, async (data) => {
-      switch (data.key) {
-        case "ExperienceSuccess":
-          await window.____ebnis.persistor.persist();
+    try {
+      const responses = await createExperienceOnlineMutationInject({
+        input: [input],
+      });
 
-          windowChangeUrl(
-            makeDetailedExperienceRoute(data.data.experience.id),
-            ChangeUrlType.goTo,
-          );
-          break;
+      const validResponses =
+        responses && responses.data && responses.data.createExperiences;
 
-        case "exception":
-          dispatch({
-            type: ActionType.ON_COMMON_ERROR,
-            error: data.error,
-          });
-          break;
+      if (!validResponses) {
+        dispatch({
+          type: ActionType.ON_COMMON_ERROR,
+          error: GENERIC_SERVER_ERROR,
+        });
 
-        case "CreateExperienceErrors":
-          dispatch({
-            type: ActionType.ON_SERVER_ERRORS,
-            errors: data.errors,
-          });
-          break;
-
-        case "invalidResponse":
-          dispatch({
-            type: ActionType.ON_COMMON_ERROR,
-            error: GENERIC_SERVER_ERROR,
-          });
-          break;
+        return;
       }
-    });
+
+      const response = validResponses[0];
+
+      if (response.__typename === "CreateExperienceErrors") {
+        const { errors } = response;
+
+        dispatch({
+          type: ActionType.ON_SERVER_ERRORS,
+          errors,
+        });
+      } else {
+        await window.____ebnis.persistor.persist();
+
+        windowChangeUrlInject(
+          makeDetailedExperienceRoute(response.experience.id),
+          ChangeUrlType.goTo,
+        );
+      }
+    } catch (error) {
+      dispatch({
+        type: ActionType.ON_COMMON_ERROR,
+        error,
+      });
+    }
   } else {
     createExperienceOfflineEffect(input, props, effectArgs);
   }
@@ -236,10 +228,14 @@ async function createExperienceOfflineEffect(
   _: Props,
   effectArgs: EffectArgs,
 ) {
+  const { createOfflineExperienceInject, windowChangeUrlInject } =
+    window.____ebnis.upsertExperienceInjections;
+
   const { dispatch } = effectArgs;
+
   const variables = ceateExperienceInputMutationFunctionVariable(input);
 
-  const result = await createOfflineExperience(variables);
+  const result = await createOfflineExperienceInject(variables);
 
   if (!result) {
     dispatch({
@@ -257,75 +253,11 @@ async function createExperienceOfflineEffect(
     } else {
       const experienceId = result.id;
       await window.____ebnis.persistor.persist();
-      windowChangeUrl(
+      windowChangeUrlInject(
         makeDetailedExperienceRoute(experienceId),
         ChangeUrlType.goTo,
       );
     }
-  }
-}
-
-type CreateExperienceOnlineEvents =
-  | {
-      key: "invalidResponse";
-    }
-  | {
-      key: CreateExperienceErrorsFragment["__typename"];
-      errors: CreateExperienceErrorsFragment_errors;
-    }
-  | {
-      key: CreateExperienceSuccessFragment["__typename"];
-      data: CreateExperienceSuccessFragment;
-    }
-  | {
-      key: "exception";
-      error: Error;
-    };
-
-export async function createExperienceOnlineEffect(
-  input: CreateExperienceInput,
-  createExperiences: CreateExperiencesMutationFn,
-  onEvent: (data: CreateExperienceOnlineEvents) => void,
-) {
-  const variables = ceateExperienceInputMutationFunctionVariable(input);
-
-  try {
-    const responses = await createExperiences({
-      variables,
-      update: createExperiencesManualUpdate,
-    });
-
-    const validResponses =
-      responses && responses.data && responses.data.createExperiences;
-
-    if (!validResponses) {
-      onEvent({
-        key: "invalidResponse",
-      });
-
-      return;
-    }
-
-    const response = validResponses[0];
-
-    if (response.__typename === "CreateExperienceErrors") {
-      const { errors } = response;
-
-      onEvent({
-        key: "CreateExperienceErrors",
-        errors,
-      });
-    } else {
-      onEvent({
-        key: "ExperienceSuccess",
-        data: response,
-      });
-    }
-  } catch (error) {
-    onEvent({
-      key: "exception",
-      error,
-    });
   }
 }
 
@@ -337,7 +269,9 @@ type DefInsertExperienceEffect = EffectDefinition<
 >;
 
 const scrollToViewEffect: DefScrollToViewEffect["func"] = ({ id }) => {
-  scrollIntoView(id, {
+  const { scrollIntoViewInject } = window.____ebnis.upsertExperienceInjections;
+
+  scrollIntoViewInject(id, {
     behavior: "smooth",
   });
 };
@@ -356,12 +290,16 @@ const fetchExperienceEffect: DefFetchExperienceEffect["func"] = async (
 ) => {
   const { dispatch } = effectArgs;
 
+  const { getExperienceDetailViewInject } =
+    window.____ebnis.upsertExperienceInjections;
+
   try {
-    const x = await getExperienceDetailView({
+    const fetchResult = await getExperienceDetailViewInject({
       id: experienceId,
     });
 
-    const experience = x && x.data && x.data.getExperience;
+    const experience =
+      fetchResult && fetchResult.data && fetchResult.data.getExperience;
 
     if (!experience) {
       onError(GENERIC_SERVER_ERROR);
@@ -389,11 +327,20 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
   props,
   effectArgs,
 ) => {
+  const {
+    getGetDataObjectsInject,
+    updateExperienceOfflineFnInject,
+    getCachedEntriesDetailViewSuccessInject,
+    updateExperiencesMutationInject,
+    getIsConnectedInject,
+  } = window.____ebnis.upsertExperienceInjections;
+
   const { onSuccess } = props;
-  if (getIsConnected()) {
+
+  if (getIsConnectedInject()) {
     const { dispatch } = effectArgs;
 
-    updateExperiencesMutation({
+    updateExperiencesMutationInject({
       input: [input],
       onUpdateSuccess: async (successArgs, updatedExperience) => {
         const { experienceId } = successArgs.experience;
@@ -404,7 +351,7 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
 
         // istanbul ignore else:
         if (inputChanged) {
-          const entries = getCachedEntriesDetailViewSuccess(experienceId)
+          const entries = getCachedEntriesDetailViewSuccessInject(experienceId)
             .edges as EntryConnectionFragment_edges[];
 
           // istanbul ignore else:
@@ -416,7 +363,7 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
               return ds.map((d) => d.id);
             });
 
-            await getGetDataObjects({
+            await getGetDataObjectsInject({
               ids: dataObjectsIds,
             });
           }
@@ -435,15 +382,15 @@ const updateExperienceEffect: DefUpdateExperienceEffect["func"] = (
       },
     });
   } else {
-    const updatedExperience = updateExperienceOfflineFn(
+    const updatedExperience = updateExperienceOfflineFnInject(
       input,
-    ) as ExperienceDetailViewFragment;
+    ) as ExperienceDFragment;
 
     const onlineStatus = isOfflineId(updatedExperience.id)
       ? StateValue.offline
       : StateValue.partOffline;
 
-    onSuccess(updatedExperience as ExperienceDetailViewFragment, onlineStatus);
+    onSuccess(updatedExperience as ExperienceDFragment, onlineStatus);
   }
 };
 
@@ -451,7 +398,7 @@ type DefUpdateExperienceEffect = EffectDefinition<
   "updateExperienceEffect",
   {
     input: UpdateExperienceInput;
-    experience: ExperienceDetailViewFragment;
+    experience: ExperienceDFragment;
   }
 >;
 
@@ -468,7 +415,7 @@ export const effectFunctions = {
 
 export function initState(props: Props): StateMachine {
   const { title, id: experienceId } = (props.experience ||
-    {}) as ExperienceDetailViewFragment;
+    {}) as ExperienceDFragment;
 
   const emptyDefinition = makeDataDefinitionFormField(0);
 
@@ -676,7 +623,7 @@ function validateForm(
     id: experienceId,
   } = (
     mode.value === StateValue.update ? mode.update.context.experience : {}
-  ) as ExperienceDetailViewFragment;
+  ) as ExperienceDFragment;
 
   const updateInput = {
     experienceId,
@@ -1446,7 +1393,7 @@ function mapDefinitionIdToDefinitionHelper(
 
 export type CallerProps = {
   onSuccess: (
-    experience: ExperienceDetailViewFragment,
+    experience: ExperienceDFragment,
     onlineStatus: OnlineStatus,
   ) => void;
   onClose: (e: ReactMouseEvent) => void;
@@ -1458,7 +1405,7 @@ export type CallerProps = {
   className?: string;
 };
 
-export type Props = CreateExperiencesOnlineComponentProps & CallerProps;
+export type Props = CallerProps;
 
 export type Action =
   | ({
@@ -1502,7 +1449,7 @@ export type Action =
     } & OnExperienceDetailedViewFetchedSuccessPayload);
 
 interface OnExperienceDetailedViewFetchedSuccessPayload {
-  experience: ExperienceDetailViewFragment;
+  experience: ExperienceDFragment;
 }
 
 interface ServerErrorsPayload {
@@ -1566,7 +1513,7 @@ type UpdateState = {
   value: UpdateVal;
   update: {
     context: {
-      experience: ExperienceDetailViewFragment;
+      experience: ExperienceDFragment;
     };
   };
 };

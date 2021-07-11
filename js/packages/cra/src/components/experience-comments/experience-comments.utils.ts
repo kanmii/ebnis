@@ -1,14 +1,14 @@
 import {
+  readExperienceDCFragment,
+  writeExperienceDCFragment,
+} from "@eb/shared/src/apollo/experience-detail-cache-utils";
+import {
   GetExperienceCommentsFn,
   GetExperienceCommentsQueryResult,
 } from "@eb/shared/src/apollo/experience.gql.types";
-import {
-  readExperienceCompleteFragment,
-  writeCachedExperienceCompleteFragment,
-} from "@eb/shared/src/apollo/get-detailed-experience-query";
 import { CommentFragment } from "@eb/shared/src/graphql/apollo-types/CommentFragment";
-import { ExperienceCompleteFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceCompleteFragment";
-import { ExperienceDetailViewFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDetailViewFragment";
+import { ExperienceDCFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDCFragment";
+import { ExperienceDFragment } from "@eb/shared/src/graphql/apollo-types/ExperienceDFragment";
 import { GetExperienceCommentsErrorsFragment_errors } from "@eb/shared/src/graphql/apollo-types/GetExperienceCommentsErrorsFragment";
 import { wrapReducer, wrapState } from "@eb/shared/src/logger";
 import { getIsConnected } from "@eb/shared/src/utils/connections";
@@ -27,6 +27,7 @@ import {
 } from "@eb/shared/src/utils/types";
 import immer, { Draft } from "immer";
 import { Dispatch, Reducer } from "react";
+import { UpdateExperiencesMutationProps } from "../../../../shared/src/apollo/update-experiences.gql";
 import { deleteObjectKey } from "../../utils";
 import { DATA_FETCHING_FAILED, ErrorType } from "../../utils/common-errors";
 import {
@@ -34,7 +35,6 @@ import {
   GenericGeneralEffect,
   getGeneralEffects,
 } from "../../utils/effects";
-import { UpdateExperiencesMutationProps } from "../../utils/update-experiences.gql";
 import { scrollDocumentToTop } from "../DetailExperience/detail-experience.injectables";
 import {
   Action as ParentAction,
@@ -548,7 +548,7 @@ const fetchEffect: DefFetchEffect["func"] = async (_, props, effectArgs) => {
     experienceId,
   };
 
-  const maybeCachedExperience = readExperienceCompleteFragment(experienceId);
+  const maybeCachedExperience = readExperienceDCFragment(experienceId);
 
   if (maybeCachedExperience) {
     const { comments } = maybeCachedExperience;
@@ -595,9 +595,9 @@ const fetchEffect: DefFetchEffect["func"] = async (_, props, effectArgs) => {
               scrollDocumentToTop();
 
               const cachedExperience =
-                maybeCachedExperience as ExperienceCompleteFragment;
+                maybeCachedExperience as ExperienceDCFragment;
 
-              writeCachedExperienceCompleteFragment({
+              writeExperienceDCFragment({
                 ...cachedExperience,
                 comments: commentsList,
               });
@@ -816,7 +816,7 @@ export const effectFunctions = {
 
 export type StateMachine = GenericGeneralEffect<EffectType> & {
   context: {
-    experience: ExperienceDetailViewFragment;
+    experience: ExperienceDFragment;
   };
   timeouts: Timeouts;
   states: {
@@ -1021,7 +1021,7 @@ type OnUpsertPayload = {
 };
 
 export type CallerProps = {
-  experience: ExperienceDetailViewFragment;
+  experience: ExperienceDFragment;
   postActions: CommentRemoteAction[];
   parentDispatch: ParentDispatchType;
 };

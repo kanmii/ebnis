@@ -1,12 +1,12 @@
 import { Button } from "@eb/jsx/src/Button";
 import Input from "@eb/jsx/src/Input";
 import { Notification } from "@eb/jsx/src/Notification";
+import { setUpRoutePage } from "@eb/shared/src/global-window";
 import { ComponentColorType } from "@eb/shared/src/utils/types/react";
 import cn from "classnames";
 import React, { useContext, useEffect, useReducer } from "react";
-import { EbnisAppContext } from "../../utils/app-context";
 import { FieldError } from "../../utils/common-errors";
-import { setUpRoutePage } from "../../utils/global-window";
+import { EbnisAppContext } from "../../utils/react-app-context";
 import { SIGN_UP_URL } from "../../utils/urls";
 import { useRunEffects } from "../../utils/use-run-effects";
 import { useLoginMutation } from "../../utils/user.gql.types";
