@@ -162,8 +162,8 @@ export async function syncToServer() {
         const newEntriesInput: CreateEntryInput[] = [];
         const updateEntriesInput: UpdateEntryInput[] = [];
 
-        const edges = getCachedEntriesDetailViewSuccess(experienceId)
-          .edges as EntryConnectionFragment_edges[];
+        const edges = (getCachedEntriesDetailViewSuccess(experienceId).edges ||
+          []) as EntryConnectionFragment_edges[];
 
         edges.forEach((edge) => {
           const entry = edge.node as EntryFragment;

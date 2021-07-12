@@ -1,5 +1,6 @@
 import { cleanCachedMutations } from "@eb/shared/src/apollo/clean-cached-mutations";
 import { ChangeUrlType } from "@eb/shared/src/global-window";
+import { deleteObjectKey } from "@eb/shared/src/utils";
 import {
   BroadcastMessageType,
   EmitAction,
@@ -50,6 +51,10 @@ export function WithSubscriptions(props: Props) {
       cleanupWithSubscriptions(() => {
         bcBroadcaster.removeEventListener(StateValue.bcMessageKey, onBcMessage);
         subscription.unsubscribe();
+        deleteObjectKey(
+          window.____ebnis,
+          "withSubscriptionsComponentInjections",
+        );
       });
     };
     /* eslint-disable react-hooks/exhaustive-deps*/
